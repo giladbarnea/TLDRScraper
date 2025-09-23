@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
@@ -25,6 +25,12 @@
         }
         .form-group {
             margin-bottom: 20px;
+            display: inline-block;
+            width: 45%;
+            margin-right: 5%;
+        }
+        .form-group:last-child {
+            margin-right: 0;
         }
         label {
             display: block;
@@ -38,6 +44,7 @@
             border: 2px solid #ddd;
             border-radius: 4px;
             font-size: 16px;
+            box-sizing: border-box;
         }
         button {
             background-color: #007bff;
@@ -48,6 +55,7 @@
             cursor: pointer;
             font-size: 16px;
             width: 100%;
+            margin-top: 20px;
         }
         button:hover {
             background-color: #0056b3;
@@ -56,11 +64,27 @@
             background-color: #ccc;
             cursor: not-allowed;
         }
-        #loading {
+        .progress {
             display: none;
-            text-align: center;
             margin: 20px 0;
-            color: #666;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 4px;
+            border-left: 4px solid #2196f3;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #2196f3;
+            width: 0%;
+            transition: width 0.3s ease;
         }
         #result {
             margin-top: 20px;
@@ -68,9 +92,12 @@
             background-color: #f8f9fa;
             border-radius: 4px;
             white-space: pre-wrap;
-            max-height: 500px;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            max-height: 600px;
             overflow-y: auto;
             display: none;
+            border: 1px solid #dee2e6;
         }
         .error {
             background-color: #f8d7da;
@@ -82,6 +109,14 @@
             border: 1px solid #c3e6cb;
             color: #155724;
         }
+        .stats {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -90,53 +125,106 @@
         
         <form id="scrapeForm">
             <div class="form-group">
-                <label for="start_date">Start Date (defaults to 1 week ago):</label>
-                <input type="date" id="start_date" name="start_date" value="{{ start_date }}" required>
+                <label for="start_date">Start Date:</label>
+                <input type="date" id="start_date" name="start_date" required>
             </div>
             
             <div class="form-group">
-                <label for="end_date">End Date (defaults to today):</label>
-                <input type="date" id="end_date" name="end_date" value="{{ end_date }}" required>
+                <label for="end_date">End Date:</label>
+                <input type="date" id="end_date" name="end_date" required>
             </div>
             
             <button type="submit" id="scrapeBtn">Scrape TLDR Newsletters</button>
         </form>
         
-        <div id="loading">
-            <p>Scraping newsletters... This may take a few minutes.</p>
+        <div id="progress" class="progress">
+            <div id="progress-text">Initializing...</div>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
         </div>
         
         <div id="result"></div>
     </div>
 
     <script>
+        // Set default dates
+        function setDefaultDates() {
+            const today = new Date();
+            const weekAgo = new Date(today);
+            weekAgo.setDate(today.getDate() - 7);
+            
+            document.getElementById('end_date').value = today.toISOString().split('T')[0];
+            document.getElementById('start_date').value = weekAgo.toISOString().split('T')[0];
+        }
+
+        // Form submission handler - use backend API
         document.getElementById('scrapeForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const formData = new FormData(this);
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            
             const button = document.getElementById('scrapeBtn');
-            const loading = document.getElementById('loading');
+            const progress = document.getElementById('progress');
             const result = document.getElementById('result');
             
-            // Show loading state
+            // Validate dates
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            if (start > end) {
+                result.style.display = 'block';
+                result.className = 'error';
+                result.textContent = 'Start date must be before or equal to end date.';
+                return;
+            }
+            
+            // Check if date range exceeds 31 days (inclusive)
+            const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+            if (daysDiff >= 31) {
+                result.style.display = 'block';
+                result.className = 'error';
+                result.textContent = 'Date range cannot exceed 31 days. Please select a smaller range.';
+                return;
+            }
+            
+            // Show progress, hide previous results
             button.disabled = true;
-            loading.style.display = 'block';
+            progress.style.display = 'block';
             result.style.display = 'none';
             
+            document.getElementById('progress-text').textContent = 'Scraping newsletters... This may take several minutes.';
+            document.getElementById('progress-fill').style.width = '50%';
+            
             try {
-                const response = await fetch('/scrape', {
+                const response = await fetch('/api/scrape', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        start_date: startDate,
+                        end_date: endDate
+                    })
                 });
                 
                 const data = await response.json();
                 
-                // Show result
-                result.style.display = 'block';
                 if (data.success) {
+                    // Show results
+                    result.style.display = 'block';
                     result.className = 'success';
-                    result.textContent = data.result;
+                    
+                    const statsHtml = `<div class="stats">
+                        📊 Stats: ${data.stats.total_articles} articles found, 
+                        ${data.stats.unique_urls} unique URLs, 
+                        ${data.stats.dates_with_content}/${data.stats.dates_processed} dates had content
+                    </div>`;
+                    
+                    result.innerHTML = statsHtml + '<pre>' + data.output + '</pre>';
                 } else {
+                    result.style.display = 'block';
                     result.className = 'error';
                     result.textContent = 'Error: ' + data.error;
                 }
@@ -145,12 +233,16 @@
                 result.style.display = 'block';
                 result.className = 'error';
                 result.textContent = 'Network error: ' + error.message;
+                console.error('Scraping error:', error);
             }
             
-            // Hide loading state
+            // Hide progress, re-enable button
+            progress.style.display = 'none';
             button.disabled = false;
-            loading.style.display = 'none';
         });
+
+        // Initialize default dates on page load
+        setDefaultDates();
     </script>
 </body>
 </html>
