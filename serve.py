@@ -109,23 +109,44 @@ def extract_newsletter_content(html):
     
     return result.text_content
 
+def is_file_url(url):
+    """Check if URL points to a file (image, PDF, etc.) rather than a web page"""
+    file_extensions = [
+        '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp',  # Images
+        '.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx',  # Documents
+        '.mp4', '.mp3', '.avi', '.mov', '.wav',  # Media files
+        '.zip', '.tar', '.gz', '.rar'  # Archives
+    ]
+    
+    # Remove query parameters to check the actual file path
+    url_path = url.split('?')[0].lower()
+    return any(url_path.endswith(ext) for ext in file_extensions)
+
+def get_utm_source_category(url):
+    """Extract UTM source from URL and map to category"""
+    import urllib.parse as urlparse
+    
+    try:
+        parsed = urlparse.urlparse(url)
+        query_params = urlparse.parse_qs(parsed.query)
+        utm_source = query_params.get('utm_source', [''])[0].lower()
+        
+        # Map UTM sources to categories - only "general" and AI
+        if utm_source in ['tldr', 'tldrtech']:
+            return 'TLDR Tech'
+        elif utm_source in ['tldrai', 'tldr-ai', 'tldr_ai']:
+            return 'TLDR AI'
+        else:
+            return None  # Filter out other sources
+            
+    except:
+        return None
+
 def parse_articles_from_markdown(markdown, date, newsletter_type):
-    """Parse articles from markdown content, preserving chronological order"""
+    """Parse articles from markdown content, using UTM source for categorization"""
     lines = markdown.split('\n')
     articles = []
-    current_category = 'Miscellaneous'
     in_sponsored_section = False
-    
-    # Category mapping for consistency
-    category_mapping = {
-        'big tech & startups': 'Big Tech & Startups',
-        'science & futuristic technology': 'Science & Futuristic Technology',
-        'programming, design & data science': 'Programming',
-        'programming': 'Programming', 
-        'design & data science': 'Design & Data Science',
-        'miscellaneous': 'Miscellaneous',
-        'quick links': 'Quick Links'
-    }
     
     for line in lines:
         line = line.strip()
@@ -134,7 +155,7 @@ def parse_articles_from_markdown(markdown, date, newsletter_type):
         if not line:
             continue
             
-        # Detect section headers
+        # Detect section headers to skip sponsored sections
         if line.startswith('###') or line.startswith('##'):
             header_text = re.sub(r'^#+\s*', '', line).strip()
             
@@ -144,10 +165,6 @@ def parse_articles_from_markdown(markdown, date, newsletter_type):
                 continue
             else:
                 in_sponsored_section = False
-                
-            # Map to standard category name
-            normalized = header_text.lower().strip()
-            current_category = category_mapping.get(normalized, header_text)
             continue
         
         # Skip content in sponsored sections
@@ -160,19 +177,32 @@ def parse_articles_from_markdown(markdown, date, newsletter_type):
             # Skip if URL doesn't start with http (internal links, etc.)
             if not url.startswith('http'):
                 continue
+            
+            # Skip file URLs (images, PDFs, etc.)
+            if is_file_url(url):
+                continue
                 
-            # Skip if appears to be sponsored
+            # Skip if appears to be sponsored in title
             if is_sponsored_link(title, url):
                 continue
+            
+            # Get category from UTM source
+            category = get_utm_source_category(url)
+            if not category:
+                continue  # Skip articles that don't match our desired sources
                 
             # Clean up title and URL
             title = title.strip()
             url = url.strip()
             
+            # Clean up title (remove markdown artifacts)
+            title = re.sub(r'^#+\s*', '', title)  # Remove leading ###
+            title = re.sub(r'^\s*\d+\.\s*', '', title)  # Remove leading numbers
+            
             articles.append({
                 'title': title,
                 'url': url, 
-                'category': current_category,
+                'category': category,
                 'date': date,
                 'newsletter_type': newsletter_type
             })
@@ -207,13 +237,28 @@ def fetch_newsletter(date, newsletter_type):
         print(f"Failed to fetch {url}: {e}")
         return None
 
+def canonicalize_url(url):
+    """Canonicalize URL for better deduplication"""
+    import urllib.parse as urlparse
+    
+    try:
+        parsed = urlparse.urlparse(url)
+        # Keep only the base URL without query parameters for deduplication
+        canonical = f"{parsed.scheme}://{parsed.netloc.lower()}{parsed.path}"
+        # Remove trailing slash for consistency
+        if canonical.endswith('/') and len(canonical) > 1:
+            canonical = canonical[:-1]
+        return canonical
+    except:
+        return url.lower()
+
 def scrape_date_range(start_date, end_date):
     """Scrape all newsletters in date range"""
     dates = get_date_range(start_date, end_date)
     newsletter_types = ['tech', 'ai']
     
     all_articles = []
-    url_set = set()  # For deduplication
+    url_set = set()  # For deduplication by canonical URL
     processed_count = 0
     total_count = len(dates) * len(newsletter_types)
     
@@ -224,10 +269,11 @@ def scrape_date_range(start_date, end_date):
             
             result = fetch_newsletter(date, newsletter_type)
             if result and result['articles']:
-                # Deduplicate by URL
+                # Deduplicate by canonical URL
                 for article in result['articles']:
-                    if article['url'] not in url_set:
-                        url_set.add(article['url'])
+                    canonical_url = canonicalize_url(article['url'])
+                    if canonical_url not in url_set:
+                        url_set.add(canonical_url)
                         all_articles.append(article)
             
             # Rate limiting - be respectful
@@ -268,7 +314,7 @@ def format_final_output(start_date, end_date, grouped_articles):
         # Use H3 for issue dates (as required)
         output += f"### {date_str}\n\n"
         
-        # Group articles by category
+        # Group articles by category (TLDR Tech vs TLDR AI)
         category_groups = {}
         for article in articles:
             category = article['category']
@@ -276,23 +322,20 @@ def format_final_output(start_date, end_date, grouped_articles):
                 category_groups[category] = []
             category_groups[category].append(article)
         
-        # Preserve original category order from the newsletter
-        # Get unique categories in the order they first appeared
-        seen_categories = set()
-        original_category_order = []
-        for article in articles:
-            if article['category'] not in seen_categories:
-                original_category_order.append(article['category'])
-                seen_categories.add(article['category'])
+        # Sort categories: TLDR Tech first, then TLDR AI
+        category_order = []
+        if 'TLDR Tech' in category_groups:
+            category_order.append('TLDR Tech')
+        if 'TLDR AI' in category_groups:
+            category_order.append('TLDR AI')
         
-        for category in original_category_order:
+        for category in category_order:
             category_articles = category_groups[category]
             
-            # Use H4 for categories (as required)
+            # Use H4 for categories (TLDR Tech / TLDR AI)
             output += f"#### {category}\n\n"
             
             # Keep original chronological order within categories
-            # (articles are already in chronological order from parsing)
             for i, article in enumerate(category_articles, 1):
                 output += f"{i}. [{article['title']}]({article['url']})\n"
             
