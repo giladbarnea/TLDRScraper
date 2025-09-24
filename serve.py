@@ -11,6 +11,9 @@ from io import BytesIO
 import re
 from bs4 import BeautifulSoup
 import time
+import os
+
+from blob_cache import is_cache_eligible, get_cached_json, put_cached_json
 
 app = Flask(__name__)
 md = MarkItDown()
@@ -214,24 +217,55 @@ def fetch_newsletter(date, newsletter_type):
     date_str = format_date_for_url(date)
     url = f"https://tldr.tech/{newsletter_type}/{date_str}"
     
+    # For dates older than 3 days, use blob cache (store hits and misses)
+    if is_cache_eligible(date):
+        cached = get_cached_json(newsletter_type, date)
+        if cached is not None:
+            # expected cached format: { status: 'hit'|'miss'|'error', articles?: [], error?: str }
+            status = cached.get('status')
+            if status == 'hit':
+                return {
+                    'date': date,
+                    'newsletter_type': newsletter_type,
+                    'articles': cached.get('articles', [])
+                }
+            # For miss or error, behave like no newsletter for this date
+            return None
+
     try:
         response = requests.get(url, timeout=30, headers={
             'User-Agent': 'Mozilla/5.0 (compatible; TLDR-Scraper/1.0)'
         })
         
         if response.status_code == 404:
-            return None  # No newsletter for this date
+            # Cache miss (no newsletter)
+            if is_cache_eligible(date):
+                put_cached_json(newsletter_type, date, {
+                    'status': 'miss',
+                    'date': date_str,
+                    'newsletter_type': newsletter_type
+                })
+            return None
             
         response.raise_for_status()
         
         markdown_content = extract_newsletter_content(response.text)
         articles = parse_articles_from_markdown(markdown_content, date, newsletter_type)
-        
-        return {
+        result = {
             'date': date,
             'newsletter_type': newsletter_type,
             'articles': articles
         }
+
+        if is_cache_eligible(date):
+            put_cached_json(newsletter_type, date, {
+                'status': 'hit',
+                'date': date_str,
+                'newsletter_type': newsletter_type,
+                'articles': articles
+            })
+
+        return result
         
     except requests.RequestException as e:
         print(f"Failed to fetch {url}: {e}")
