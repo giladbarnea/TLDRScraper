@@ -269,14 +269,6 @@ def fetch_newsletter(date, newsletter_type):
         
     except requests.RequestException as e:
         print(f"Failed to fetch {url}: {e}")
-        if is_cache_eligible(date):
-            # Cache error outcome so subsequent calls don't retry forever
-            put_cached_json(newsletter_type, date, {
-                'status': 'error',
-                'date': date_str,
-                'newsletter_type': newsletter_type,
-                'error': str(e)
-            })
         return None
 
 def canonicalize_url(url):
