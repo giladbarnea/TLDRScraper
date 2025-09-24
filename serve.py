@@ -63,6 +63,8 @@ def get_date_range(start_date, end_date):
 
 def format_date_for_url(date):
     """Format date as YYYY-MM-DD for TLDR URL"""
+    if isinstance(date, str):
+        return date
     return date.strftime('%Y-%m-%d')
 
 def is_sponsored_section(text):
