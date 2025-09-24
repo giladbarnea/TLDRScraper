@@ -9,6 +9,13 @@ import requests
 BLOB_UPLOAD_BASE_URL = "https://blob.vercel-storage.com"
 VERCEL_BLOB_API_URL = "https://api.vercel.com/v2/blobs"
 
+def _json_default(obj: Any):
+    """Best-effort JSON serializer for cache payloads."""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    # Fallback to string for any other non-serializable objects
+    return str(obj)
+
 
 def _get_token() -> Optional[str]:
     return os.environ.get("BLOB_READ_WRITE_TOKEN")
@@ -95,7 +102,7 @@ def put_cached_json(newsletter_type: str, date_value: datetime, payload: Dict[st
         return None
 
     key = build_blob_key(newsletter_type, date_value)
-    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    body = json.dumps(payload, ensure_ascii=False, default=_json_default).encode("utf-8")
 
     headers = {
         "Authorization": f"Bearer {token}",
