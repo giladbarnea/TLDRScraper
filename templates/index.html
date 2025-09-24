@@ -229,7 +229,9 @@
                     const statsHtml = `<div class="stats">
                         📊 Stats: ${data.stats.total_articles} articles found, 
                         ${data.stats.unique_urls} unique URLs, 
-                        ${data.stats.dates_with_content}/${data.stats.dates_processed} dates had content
+                        ${data.stats.dates_with_content}/${data.stats.dates_processed} dates had content<br>
+                        🧠 Cache: hits=${data.stats.cache_hits ?? 0}, misses=${data.stats.cache_misses ?? 0}, other=${data.stats.cache_other ?? 0}<br>
+                        🔐 Blob token present: ${data.stats.blob_token_present ? 'true' : 'false'}
                     </div>`;
                     
                     const html = DOMPurify.sanitize(marked.parse(data.output));
