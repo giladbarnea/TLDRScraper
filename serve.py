@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 import time
 import os
 
-from blob_cache import is_cache_eligible, get_cached_json, put_cached_json
+from blob_cache import is_cache_eligible, get_cached_json, put_cached_json, _get_token
 
 app = Flask(__name__)
 md = MarkItDown()
@@ -310,6 +310,10 @@ def scrape_date_range(start_date, end_date):
     url_set = set()  # For deduplication by canonical URL
     processed_count = 0
     total_count = len(dates) * len(newsletter_types)
+    # Diagnostics
+    hits = 0
+    misses = 0
+    others = 0
     
     for date in dates:
         for newsletter_type in newsletter_types:
@@ -324,6 +328,14 @@ def scrape_date_range(start_date, end_date):
                     if canonical_url not in url_set:
                         url_set.add(canonical_url)
                         all_articles.append(article)
+                        # Count source
+                        src = article.get('fetched_via')
+                        if src == 'hit':
+                            hits += 1
+                        elif src == 'miss':
+                            misses += 1
+                        else:
+                            others += 1
             
             # Rate limiting - be respectful
             time.sleep(0.2)
@@ -346,7 +358,11 @@ def scrape_date_range(start_date, end_date):
             'total_articles': len(all_articles),
             'unique_urls': len(url_set),
             'dates_processed': len(dates),
-            'dates_with_content': len(grouped_articles)
+            'dates_with_content': len(grouped_articles),
+            'cache_hits': hits,
+            'cache_misses': misses,
+            'cache_other': others,
+            'blob_token_present': bool(_get_token())
         }
     }
 
