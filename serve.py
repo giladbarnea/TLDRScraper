@@ -220,16 +220,21 @@ def fetch_newsletter(date, newsletter_type):
     url = f"https://tldr.tech/{newsletter_type}/{date_str}"
     
     # For dates older than 3 days, use blob cache (store hits and misses)
-    if is_cache_eligible(date):
+    eligible_for_cache = is_cache_eligible(date)
+    if eligible_for_cache:
         cached = get_cached_json(newsletter_type, date)
         if cached is not None:
             # expected cached format: { status: 'hit'|'miss'|'error', articles?: [], error?: str }
             status = cached.get('status')
             if status == 'hit':
+                cached_articles = cached.get('articles', [])
+                # Tag as cache hit for UI display
+                for a in cached_articles:
+                    a['fetched_via'] = 'hit'
                 return {
                     'date': date,
                     'newsletter_type': newsletter_type,
-                    'articles': cached.get('articles', [])
+                    'articles': cached_articles
                 }
             # For miss or error, behave like no newsletter for this date
             return None
@@ -253,18 +258,26 @@ def fetch_newsletter(date, newsletter_type):
         
         markdown_content = extract_newsletter_content(response.text)
         articles = parse_articles_from_markdown(markdown_content, date, newsletter_type)
+        # Tag fetched source for UI: 'miss' if eligible but no cache entry, else 'other'
+        fetched_status = 'miss' if eligible_for_cache else 'other'
+        for a in articles:
+            a['fetched_via'] = fetched_status
         result = {
             'date': date,
             'newsletter_type': newsletter_type,
             'articles': articles
         }
 
-        if is_cache_eligible(date):
+        if eligible_for_cache:
+            # Store without the transient fetched_via field
+            sanitized_articles = [
+                {k: v for k, v in a.items() if k != 'fetched_via'} for a in articles
+            ]
             put_cached_json(newsletter_type, date, {
                 'status': 'hit',
                 'date': date_str,
                 'newsletter_type': newsletter_type,
-                'articles': articles
+                'articles': sanitized_articles
             })
 
         return result
@@ -373,7 +386,11 @@ def format_final_output(start_date, end_date, grouped_articles):
             
             # Keep original chronological order within categories
             for i, article in enumerate(category_articles, 1):
-                output += f"{i}. [{article['title']}]({article['url']})\n"
+                status = article.get('fetched_via')
+                if status not in ('hit', 'miss', 'other'):
+                    status = 'other'
+                title_with_status = f"{article['title']} ({status})"
+                output += f"{i}. [{title_with_status}]({article['url']})\n"
             
             output += "\n"
     
