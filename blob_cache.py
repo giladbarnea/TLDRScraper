@@ -74,15 +74,24 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
     Otherwise return None.
     """
     key = build_blob_key(newsletter_type, date_value)
+
+    # Fast path: attempt direct GET to the deterministic public URL.
+    # This works even if we cannot access the List API (e.g., missing token).
+    direct_url = f"{BLOB_UPLOAD_BASE_URL}/{key}"
+    try:
+        resp = requests.get(direct_url, timeout=8)
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception:
+        pass
+
+    # If direct GET failed, fall back to List API when token is available
     blob = _list_blob_exact(key)
     if not blob:
         return None
 
-    # Prefer 'url' field; fallback to 'downloadUrl'
-    url = blob.get("url") or blob.get("downloadUrl")
-    if not url:
-        # Construct best-effort URL using upload base + key. This may fail if the store uses a different host.
-        url = f"{BLOB_UPLOAD_BASE_URL}/{key}"
+    # Prefer 'url' field; fallback to 'downloadUrl'; last resort to constructed URL
+    url = blob.get("url") or blob.get("downloadUrl") or direct_url
 
     try:
         resp = requests.get(url, timeout=10)
