@@ -68,7 +68,8 @@ def build_blob_dir(newsletter_type: str) -> str:
 
 def build_blob_prefix(newsletter_type: str, date_value: datetime) -> str:
     date_str = date_value.strftime("%Y-%m-%d")
-    return f"{build_blob_dir(newsletter_type)}/{date_str}-"
+    # No trailing hyphen: matches both deterministic ".json" and "-<suffix>.json"
+    return f"{build_blob_dir(newsletter_type)}/{date_str}"
 
 
 def _list_blob_exact(pathname: str) -> Optional[Dict[str, Any]]:
@@ -240,7 +241,7 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
     chosen = None
     for b in blobs:
         p = b.get("pathname") or b.get("key") or b.get("path") or ""
-        if p.startswith(prefix_with_store) and p.endswith(".json"):
+        if (p.startswith(prefix_rel) or p.startswith(prefix_with_store)) and p.endswith(".json"):
             chosen = b
             break
     if not chosen:
