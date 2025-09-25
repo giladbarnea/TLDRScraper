@@ -4,6 +4,7 @@ TLDR Newsletter Scraper Backend with Proxy
 """
 
 from flask import Flask, render_template, request, jsonify
+import logging
 from datetime import datetime, timedelta
 import requests
 from markitdown import MarkItDown
@@ -16,6 +17,8 @@ import os
 from blob_cache import is_cache_eligible, get_cached_json, put_cached_json, _get_token
 
 app = Flask(__name__)
+logging.basicConfig(level=os.environ.get('LOG_LEVEL', 'INFO'))
+logger = logging.getLogger("serve")
 md = MarkItDown()
 
 @app.route('/')
@@ -46,7 +49,15 @@ def scrape_newsletters():
         if (end_date - start_date).days >= 31:
             return jsonify({'success': False, 'error': 'Date range cannot exceed 31 days'}), 400
         
+        logger.info(
+            "[serve.scrape_newsletters] start start_date=%s end_date=%s",
+            data['start_date'], data['end_date']
+        )
         result = scrape_date_range(start_date, end_date)
+        logger.info(
+            "[serve.scrape_newsletters] done dates_processed=%s total_articles=%s stats=%s",
+            result['stats']['dates_processed'], result['stats']['total_articles'], result['stats']
+        )
         return jsonify(result)
         
     except Exception as e:
@@ -231,12 +242,20 @@ def fetch_newsletter(date, newsletter_type):
                 # Tag as cache hit for UI display
                 for a in cached_articles:
                     a['fetched_via'] = 'hit'
+                logger.info(
+                    "[serve.fetch_newsletter] cache HIT date=%s type=%s count=%s",
+                    date_str, newsletter_type, len(cached_articles)
+                )
                 return {
                     'date': date,
                     'newsletter_type': newsletter_type,
                     'articles': cached_articles
                 }
             # For miss or error, behave like no newsletter for this date
+            logger.info(
+                "[serve.fetch_newsletter] cache %s date=%s type=%s",
+                status.upper(), date_str, newsletter_type
+            )
             return None
 
     try:
@@ -252,6 +271,10 @@ def fetch_newsletter(date, newsletter_type):
                     'date': date_str,
                     'newsletter_type': newsletter_type
                 })
+                logger.info(
+                    "[serve.fetch_newsletter] wrote MISS placeholder date=%s type=%s",
+                    date_str, newsletter_type
+                )
             return None
             
         response.raise_for_status()
@@ -279,11 +302,15 @@ def fetch_newsletter(date, newsletter_type):
                 'newsletter_type': newsletter_type,
                 'articles': sanitized_articles
             })
+            logger.info(
+                "[serve.fetch_newsletter] wrote HIT cache date=%s type=%s count=%s",
+                date_str, newsletter_type, len(sanitized_articles)
+            )
 
         return result
         
     except requests.RequestException as e:
-        print(f"Failed to fetch {url}: {e}")
+        logger.exception("[serve.fetch_newsletter] request error url=%s", url)
         return None
 
 def canonicalize_url(url):
