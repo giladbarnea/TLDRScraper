@@ -118,49 +118,77 @@ def _list_blob_exact(pathname: str) -> Optional[Dict[str, Any]]:
     except Exception:
         logger.exception("[blob_cache._list_blob_exact] exception while listing pathname=%s", pathname)
         return None
-def _list_blobs_by_prefix(prefix: str) -> Optional[list]:
+def _list_blobs_by_prefix(prefix_rel: str, store_prefix: Optional[str]) -> Optional[list]:
     token = _get_token()
     if not token:
-        logger.info("[blob_cache._list_blobs_by_prefix] no token, skipping list prefix=%s", prefix)
+        logger.info("[blob_cache._list_blobs_by_prefix] no token, skipping list prefix_rel=%s", prefix_rel)
         return None
 
-    try:
-        logger.info(
-            "[blob_cache._list_blobs_by_prefix] listing prefix=%s limit=%s",
-            prefix, 100,
-        )
-        resp = requests.get(
-            VERCEL_BLOB_API_URL,
-            params={"prefix": prefix, "limit": 100},
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=8,
-        )
-        logger.info(
-            "[blob_cache._list_blobs_by_prefix] list status=%s",
-            resp.status_code,
-        )
-        if resp.status_code != 200:
-            try:
-                txt = resp.text[:500]
-            except Exception:
-                txt = "<no body>"
-            logger.info(
-                "[blob_cache._list_blobs_by_prefix] list non-200 status=%s body=%s",
-                resp.status_code, txt,
-            )
-            return None
-        data = resp.json()
-        blobs = data.get("blobs", []) or data.get("items", [])
-        logger.info(
-            "[blob_cache._list_blobs_by_prefix] returned count=%s sample=%s",
-            len(blobs), [
-                (b.get("pathname") or b.get("key") or b.get("path")) for b in blobs[:5]
-            ],
-        )
-        return blobs
-    except Exception:
-        logger.exception("[blob_cache._list_blobs_by_prefix] exception while listing prefix=%s", prefix)
-        return None
+    # Try multiple API paths and prefix forms for compatibility
+    api_bases = [
+        os.environ.get("BLOB_API_BASE") or "https://api.vercel.com",
+    ]
+    paths = [
+        "/v2/blobs", "/v2/blob", "/v1/blobs", "/v1/blob",
+    ]
+    # Two prefix variants: relative to store, and including store prefix
+    prefixes = [prefix_rel]
+    if store_prefix:
+        prefixes.append(f"{store_prefix}/{prefix_rel}")
+
+    params_base = {"limit": 100}
+    team_id = os.environ.get("VERCEL_TEAM_ID") or os.environ.get("VERCEL_ORG_ID")
+    project_id = os.environ.get("VERCEL_PROJECT_ID")
+    if team_id:
+        params_base["teamId"] = team_id
+    if project_id:
+        params_base["projectId"] = project_id
+
+    for base in api_bases:
+        for path in paths:
+            url = f"{base}{path}"
+            for prefix in prefixes:
+                try:
+                    params = dict(params_base)
+                    params["prefix"] = prefix
+                    logger.info(
+                        "[blob_cache._list_blobs_by_prefix] GET %s params=%s",
+                        url, params,
+                    )
+                    resp = requests.get(
+                        url,
+                        params=params,
+                        headers={"Authorization": f"Bearer {token}"},
+                        timeout=10,
+                    )
+                    status = resp.status_code
+                    if status != 200:
+                        body_snip = None
+                        try:
+                            body_snip = resp.text[:500]
+                        except Exception:
+                            body_snip = "<no body>"
+                        logger.info(
+                            "[blob_cache._list_blobs_by_prefix] %s status=%s body=%s",
+                            url, status, body_snip,
+                        )
+                        continue
+                    data = resp.json()
+                    blobs = data.get("blobs") or data.get("items") or data.get("data") or []
+                    logger.info(
+                        "[blob_cache._list_blobs_by_prefix] OK count=%s sample=%s",
+                        len(blobs), [
+                            (b.get("pathname") or b.get("key") or b.get("path")) for b in blobs[:5]
+                        ],
+                    )
+                    return blobs
+                except Exception:
+                    logger.exception(
+                        "[blob_cache._list_blobs_by_prefix] exception url=%s prefix=%s",
+                        url, prefix,
+                    )
+                    continue
+    return None
 
     
 
@@ -203,7 +231,7 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
     # If direct GET failed, fall back to List API by prefix (handles random suffix on names)
     prefix_rel = build_blob_prefix(newsletter_type, date_value)
     prefix_with_store = f"{store}/{prefix_rel}" if store else prefix_rel
-    blobs = _list_blobs_by_prefix(prefix_with_store)
+    blobs = _list_blobs_by_prefix(prefix_rel, store)
     if not blobs:
         logger.info("[blob_cache.get_cached_json] list fallback: not found prefix=%s", prefix_with_store)
         return None
