@@ -204,32 +204,7 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
     store = _get_store_prefix()
     path_with_store = f"{store}/{key}" if store else key
 
-    # Fast path: attempt direct GET to the deterministic public URL.
-    # This works even if we cannot access the List API (e.g., missing token).
-    direct_url = f"{BLOB_UPLOAD_BASE_URL}/{path_with_store}"
-    try:
-        logger.info(
-            "[blob_cache.get_cached_json] direct GET url=%s",
-            direct_url,
-        )
-        resp = requests.get(direct_url, timeout=8)
-        logger.info(
-            "[blob_cache.get_cached_json] direct GET status=%s",
-            resp.status_code,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            logger.info(
-                "[blob_cache.get_cached_json] direct hit key=%s articles=%s status=%s",
-                key,
-                len(data.get("articles", [])) if isinstance(data, dict) else "n/a",
-                data.get("status") if isinstance(data, dict) else "n/a",
-            )
-            return data
-    except Exception:
-        logger.exception("[blob_cache.get_cached_json] direct GET failed url=%s", direct_url)
-
-    # If direct GET failed, fall back to List API by prefix (handles random suffix on names)
+    # List API by prefix (handles random suffix on names)
     prefix_rel = build_blob_prefix(newsletter_type, date_value)
     prefix_with_store = f"{store}/{prefix_rel}" if store else prefix_rel
     blobs = _list_blobs_by_prefix(prefix_rel, store)
@@ -251,7 +226,7 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
         )
         return None
 
-    url = chosen.get("url") or chosen.get("downloadUrl") or direct_url
+    url = chosen.get("url") or chosen.get("downloadUrl")
     logger.info(
         "[blob_cache.get_cached_json] list fallback: downloading url=%s chosen_path=%s",
         url, chosen.get("pathname") or chosen.get("key") or chosen.get("path"),
