@@ -16,7 +16,6 @@ import os
 
 from blob_cache import is_cache_eligible, get_cached_json, put_cached_json, _get_token
 from edge_config import is_available as ec_available, set_json as ec_set_json
-from redis_cache import is_available as kv_available, build_kv_key, set_json as kv_set_json
 
 app = Flask(__name__)
 logging.basicConfig(level=os.environ.get('LOG_LEVEL', 'INFO'))
@@ -336,8 +335,6 @@ def fetch_newsletter(date, newsletter_type):
             try:
                 if ec_available():
                     ec_set_json(f"tldr-cache:{newsletter_type}:{date_str}", payload)
-                if kv_available():
-                    kv_set_json(build_kv_key(newsletter_type, date_str), payload, ttl_seconds=60*60*24)
                 logger.info(
                     "[serve.fetch_newsletter] wrote TEMP cache (Edge/KV) date=%s type=%s count=%s",
                     date_str, newsletter_type, len(sanitized_articles)
