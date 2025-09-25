@@ -281,8 +281,8 @@ def fetch_newsletter(date, newsletter_type):
         
         markdown_content = extract_newsletter_content(response.text)
         articles = parse_articles_from_markdown(markdown_content, date, newsletter_type)
-        # Tag fetched source for UI: 'miss' if eligible but no cache entry, else 'other'
-        fetched_status = 'miss' if eligible_for_cache else 'other'
+        # Tag fetched source for UI: only tag as 'other' when network was used
+        fetched_status = 'other'
         for a in articles:
             a['fetched_via'] = fetched_status
         result = {
@@ -364,8 +364,11 @@ def scrape_date_range(start_date, end_date):
                         else:
                             others += 1
             
-            # Rate limiting - be respectful
-            time.sleep(0.2)
+            # Rate limiting - be respectful only when we actually fetched from network
+            if not result or not any(a.get('fetched_via') == 'other' for a in (result.get('articles') or [])):
+                pass
+            else:
+                time.sleep(0.2)
     
     # Group articles by date
     grouped_articles = {}
