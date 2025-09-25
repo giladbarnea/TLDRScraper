@@ -75,7 +75,48 @@ def _list_blob_exact(pathname: str) -> Optional[Dict[str, Any]]:
     """Return blob metadata for exact pathname using the list API, or None if not found."""
     token = _get_token()
     if not token:
-        logger.debug("[blob_cache._list_blob_exact] no token, skipping list pathname=%s", pathname)
+        logger.info("[blob_cache._list_blob_exact] no token, skipping list pathname=%s", pathname)
+        return None
+    try:
+        logger.info(
+            "[blob_cache._list_blob_exact] listing path prefix=%s limit=%s",
+            pathname, 100,
+        )
+        resp = requests.get(
+            VERCEL_BLOB_API_URL,
+            params={"prefix": pathname, "limit": 100},
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=8,
+        )
+        logger.info(
+            "[blob_cache._list_blob_exact] list status=%s",
+            resp.status_code,
+        )
+        if resp.status_code != 200:
+            try:
+                txt = resp.text[:500]
+            except Exception:
+                txt = "<no body>"
+            logger.info(
+                "[blob_cache._list_blob_exact] list non-200 status=%s body=%s",
+                resp.status_code, txt,
+            )
+            return None
+        data = resp.json()
+        blobs = data.get("blobs", []) or data.get("items", [])
+        logger.info(
+            "[blob_cache._list_blob_exact] list returned count=%s keys=%s",
+            len(blobs), [b.get("pathname") or b.get("key") or b.get("path") for b in blobs[:5]],
+        )
+        for blob in blobs:
+            # Some responses use 'pathname', others 'key'
+            blob_path = blob.get("pathname") or blob.get("key") or blob.get("path")
+            if blob_path == pathname or (blob_path and pathname and blob_path.endswith("/" + pathname)):
+                logger.info("[blob_cache._list_blob_exact] found exact match pathname=%s", pathname)
+                return blob
+        return None
+    except Exception:
+        logger.exception("[blob_cache._list_blob_exact] exception while listing pathname=%s", pathname)
         return None
 def _list_blobs_by_prefix(prefix: str) -> Optional[list]:
     token = _get_token()
@@ -121,47 +162,7 @@ def _list_blobs_by_prefix(prefix: str) -> Optional[list]:
         logger.exception("[blob_cache._list_blobs_by_prefix] exception while listing prefix=%s", prefix)
         return None
 
-    try:
-        logger.info(
-            "[blob_cache._list_blob_exact] listing path prefix=%s limit=%s",
-            pathname, 100,
-        )
-        resp = requests.get(
-            VERCEL_BLOB_API_URL,
-            params={"prefix": pathname, "limit": 100},
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=8,
-        )
-        logger.info(
-            "[blob_cache._list_blob_exact] list status=%s",
-            resp.status_code,
-        )
-        if resp.status_code != 200:
-            try:
-                txt = resp.text[:500]
-            except Exception:
-                txt = "<no body>"
-            logger.info(
-                "[blob_cache._list_blob_exact] list non-200 status=%s body=%s",
-                resp.status_code, txt,
-            )
-            return None
-        data = resp.json()
-        blobs = data.get("blobs", []) or data.get("items", [])
-        logger.info(
-            "[blob_cache._list_blob_exact] list returned count=%s keys=%s",
-            len(blobs), [b.get("pathname") or b.get("key") or b.get("path") for b in blobs[:5]],
-        )
-        for blob in blobs:
-            # Some responses use 'pathname', others 'key'
-            blob_path = blob.get("pathname") or blob.get("key") or blob.get("path")
-            if blob_path == pathname or (blob_path and pathname and blob_path.endswith("/" + pathname)):
-                logger.info("[blob_cache._list_blob_exact] found exact match pathname=%s", pathname)
-                return blob
-        return None
-    except Exception:
-        logger.exception("[blob_cache._list_blob_exact] exception while listing pathname=%s", pathname)
-        return None
+    
 
 
 def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict[str, Any]]:
@@ -282,7 +283,7 @@ def put_cached_json(newsletter_type: str, date_value: datetime, payload: Dict[st
     }
 
     try:
-    upload_url = f"{BLOB_UPLOAD_BASE_URL}/{path_with_store}"
+        upload_url = f"{BLOB_UPLOAD_BASE_URL}/{path_with_store}"
         resp = requests.put(upload_url, data=body, headers=headers, timeout=10)
         logger.info(
             "[blob_cache.put_cached_json] write status=%s",
