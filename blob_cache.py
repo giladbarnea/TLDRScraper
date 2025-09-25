@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, Any, Dict
 
 import requests
+from redis_cache import is_available as kv_available, build_kv_key, get_json as kv_get_json, set_json as kv_set_json
 
 
 logger = logging.getLogger("blob_cache")
@@ -207,6 +208,15 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
     store = _get_store_prefix()
     path_with_store = f"{store}/{key}" if store else key
 
+    # First try KV (if configured) for fastest reads
+    date_str = date_value.strftime("%Y-%m-%d")
+    if kv_available():
+        kv_key = build_kv_key(newsletter_type, date_str)
+        kv_val = kv_get_json(kv_key)
+        if kv_val is not None:
+            logger.info("[blob_cache.get_cached_json] KV hit key=%s", kv_key)
+            return kv_val
+
     # List API by prefix (handles random suffix on names)
     prefix_rel = build_blob_prefix(newsletter_type, date_value)
     prefix_with_store = f"{store}/{prefix_rel}" if store else prefix_rel
@@ -271,6 +281,12 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
             len(data.get("articles", [])) if isinstance(data, dict) else "n/a",
             data.get("status") if isinstance(data, dict) else "n/a",
         )
+        # Populate KV for future
+        if kv_available():
+            try:
+                kv_set_json(build_kv_key(newsletter_type, date_str), data, ttl_seconds=60*60*24*14)
+            except Exception:
+                logger.exception("[blob_cache.get_cached_json] KV set failed")
         return data
     except Exception:
         logger.exception("[blob_cache.get_cached_json] list fallback download failed url=%s", url)
@@ -326,6 +342,12 @@ def put_cached_json(newsletter_type: str, date_value: datetime, payload: Dict[st
                     "[blob_cache.put_cached_json] write ok key=%s url=%s",
                     key, url,
                 )
+                # Write to KV to accelerate subsequent reads
+                try:
+                    if kv_available():
+                        kv_set_json(build_kv_key(newsletter_type, date_value.strftime("%Y-%m-%d")), payload, ttl_seconds=60*60*24*14)
+                except Exception:
+                    logger.exception("[blob_cache.put_cached_json] KV set failed")
                 # memoize discovered URL for this process
                 try:
                     prefix_rel = build_blob_prefix(newsletter_type, date_value)
