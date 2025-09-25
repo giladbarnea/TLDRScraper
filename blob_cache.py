@@ -16,6 +16,8 @@ if not logger.handlers:
 BLOB_UPLOAD_BASE_URL = "https://blob.vercel-storage.com"
 VERCEL_BLOB_API_URL = "https://api.vercel.com/v2/blobs"
 
+_URL_INDEX: Dict[str, str] = {}
+
 def _json_default(obj: Any):
     """Best-effort JSON serializer for cache payloads."""
     if isinstance(obj, datetime):
@@ -129,8 +131,9 @@ def _list_blobs_by_prefix(prefix_rel: str, store_prefix: Optional[str]) -> Optio
     api_bases = [
         os.environ.get("BLOB_API_BASE") or "https://api.vercel.com",
     ]
+    # Prefer endpoints observed working in logs first
     paths = [
-        "/v2/blobs", "/v2/blob", "/v1/blobs", "/v1/blob",
+        "/v2/blob", "/v1/blob", "/v2/blobs", "/v1/blobs",
     ]
     # Two prefix variants: relative to store, and including store prefix
     prefixes = [prefix_rel]
@@ -207,6 +210,24 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
     # List API by prefix (handles random suffix on names)
     prefix_rel = build_blob_prefix(newsletter_type, date_value)
     prefix_with_store = f"{store}/{prefix_rel}" if store else prefix_rel
+    # In-process URL cache lookup to avoid re-listing within a warm process
+    cached_url = _URL_INDEX.get(prefix_rel) or _URL_INDEX.get(prefix_with_store)
+    if cached_url:
+        try:
+            resp = requests.get(cached_url, timeout=8)
+            if resp.status_code == 200:
+                logger.info(
+                    "[blob_cache.get_cached_json] index url hit prefix=%s status=%s",
+                    prefix_rel, resp.status_code,
+                )
+                return resp.json()
+            else:
+                logger.info(
+                    "[blob_cache.get_cached_json] index url miss prefix=%s status=%s",
+                    prefix_rel, resp.status_code,
+                )
+        except Exception:
+            logger.exception("[blob_cache.get_cached_json] index url fetch failed url=%s", cached_url)
     blobs = _list_blobs_by_prefix(prefix_rel, store)
     if not blobs:
         logger.info("[blob_cache.get_cached_json] list fallback: not found prefix=%s", prefix_with_store)
@@ -227,6 +248,10 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
         return None
 
     url = chosen.get("url") or chosen.get("downloadUrl")
+    if url:
+        # memoize for this process
+        _URL_INDEX[prefix_rel] = url
+        _URL_INDEX[prefix_with_store] = url
     logger.info(
         "[blob_cache.get_cached_json] list fallback: downloading url=%s chosen_path=%s",
         url, chosen.get("pathname") or chosen.get("key") or chosen.get("path"),
@@ -301,6 +326,15 @@ def put_cached_json(newsletter_type: str, date_value: datetime, payload: Dict[st
                     "[blob_cache.put_cached_json] write ok key=%s url=%s",
                     key, url,
                 )
+                # memoize discovered URL for this process
+                try:
+                    prefix_rel = build_blob_prefix(newsletter_type, date_value)
+                    prefix_with_store = f"{store}/{prefix_rel}" if store else prefix_rel
+                    if url:
+                        _URL_INDEX[prefix_rel] = url
+                        _URL_INDEX[prefix_with_store] = url
+                except Exception:
+                    logger.exception("[blob_cache.put_cached_json] failed to memoize url for prefix")
                 # Post-write verification via direct GET and returned URL
                 try:
                     verify_direct = requests.get(upload_url, timeout=6)
