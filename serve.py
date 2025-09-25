@@ -233,6 +233,7 @@ def fetch_newsletter(date, newsletter_type):
     # For dates older than 3 days, use blob cache (store hits and misses)
     eligible_for_cache = is_cache_eligible(date)
     if eligible_for_cache:
+        cache_start = time.time()
         cached = get_cached_json(newsletter_type, date)
         if cached is not None:
             # expected cached format: { status: 'hit'|'miss'|'error', articles?: [], error?: str }
@@ -242,6 +243,7 @@ def fetch_newsletter(date, newsletter_type):
                 # Tag as cache hit for UI display
                 for a in cached_articles:
                     a['fetched_via'] = 'hit'
+                    a['timing_total_ms'] = int(round((time.time() - cache_start) * 1000))
                 logger.info(
                     "[serve.fetch_newsletter] cache HIT date=%s type=%s count=%s",
                     date_str, newsletter_type, len(cached_articles)
@@ -259,9 +261,11 @@ def fetch_newsletter(date, newsletter_type):
             return None
 
     try:
+        net_start = time.time()
         response = requests.get(url, timeout=30, headers={
             'User-Agent': 'Mozilla/5.0 (compatible; TLDR-Scraper/1.0)'
         })
+        net_ms = int(round((time.time() - net_start) * 1000))
         
         if response.status_code == 404:
             # Cache miss (no newsletter)
@@ -279,12 +283,22 @@ def fetch_newsletter(date, newsletter_type):
             
         response.raise_for_status()
         
+        convert_start = time.time()
         markdown_content = extract_newsletter_content(response.text)
+        convert_ms = int(round((time.time() - convert_start) * 1000))
+
+        parse_start = time.time()
         articles = parse_articles_from_markdown(markdown_content, date, newsletter_type)
+        parse_ms = int(round((time.time() - parse_start) * 1000))
+        total_ms = net_ms + convert_ms + parse_ms
         # Tag fetched source for UI: only tag as 'other' when network was used
         fetched_status = 'other'
         for a in articles:
             a['fetched_via'] = fetched_status
+            a['timing_total_ms'] = total_ms
+            a['timing_fetch_ms'] = net_ms
+            a['timing_convert_ms'] = convert_ms
+            a['timing_parse_ms'] = parse_ms
         result = {
             'date': date,
             'newsletter_type': newsletter_type,
@@ -294,7 +308,7 @@ def fetch_newsletter(date, newsletter_type):
         if eligible_for_cache:
             # Store without the transient fetched_via field
             sanitized_articles = [
-                {k: v for k, v in a.items() if k != 'fetched_via'} for a in articles
+                {k: v for k, v in a.items() if k != 'fetched_via' and not k.startswith('timing_')} for a in articles
             ]
             put_cached_json(newsletter_type, date, {
                 'status': 'hit',
@@ -365,9 +379,7 @@ def scrape_date_range(start_date, end_date):
                             others += 1
             
             # Rate limiting - be respectful only when we actually fetched from network
-            if not result or not any(a.get('fetched_via') == 'other' for a in (result.get('articles') or [])):
-                pass
-            else:
+            if result and any(a.get('fetched_via') == 'other' for a in (result.get('articles') or [])):
                 time.sleep(0.2)
     
     # Group articles by date
@@ -435,7 +447,15 @@ def format_final_output(start_date, end_date, grouped_articles):
                 status = article.get('fetched_via')
                 if status not in ('hit', 'miss', 'other'):
                     status = 'other'
-                title_with_status = f"{article['title']} ({status})"
+                # Timing summary
+                total_ms = article.get('timing_total_ms')
+                if total_ms is not None and status == 'other':
+                    timing_label = f", {total_ms}ms"
+                elif total_ms is not None and status == 'hit':
+                    timing_label = f", {total_ms}ms"
+                else:
+                    timing_label = ""
+                title_with_status = f"{article['title']} ({status}{timing_label})"
                 output += f"{i}. [{title_with_status}]({article['url']})\n"
             
             output += "\n"
