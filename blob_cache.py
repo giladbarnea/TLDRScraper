@@ -23,6 +23,11 @@ def _json_default(obj: Any):
     # Fallback to string for any other non-serializable objects
     return str(obj)
 
+def _get_store_prefix() -> Optional[str]:
+    """Optional store prefix to include in blob path, e.g., 'my-store'."""
+    # Support multiple env names; prefer explicit BLOB_STORE_PREFIX
+    return os.environ.get("BLOB_STORE_PREFIX") or os.environ.get("VERCEL_BLOB_STORE")
+
 
 def _get_token() -> Optional[str]:
     token = os.environ.get("BLOB_READ_WRITE_TOKEN")
@@ -100,7 +105,7 @@ def _list_blob_exact(pathname: str) -> Optional[Dict[str, Any]]:
         for blob in blobs:
             # Some responses use 'pathname', others 'key'
             blob_path = blob.get("pathname") or blob.get("key") or blob.get("path")
-            if blob_path == pathname:
+            if blob_path == pathname or (blob_path and pathname and blob_path.endswith("/" + pathname)):
                 logger.info("[blob_cache._list_blob_exact] found exact match pathname=%s", pathname)
                 return blob
         return None
@@ -116,9 +121,12 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
     """
     key = build_blob_key(newsletter_type, date_value)
 
+    store = _get_store_prefix()
+    path_with_store = f"{store}/{key}" if store else key
+
     # Fast path: attempt direct GET to the deterministic public URL.
     # This works even if we cannot access the List API (e.g., missing token).
-    direct_url = f"{BLOB_UPLOAD_BASE_URL}/{key}"
+    direct_url = f"{BLOB_UPLOAD_BASE_URL}/{path_with_store}"
     try:
         logger.info(
             "[blob_cache.get_cached_json] direct GET url=%s",
@@ -142,7 +150,7 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
         logger.exception("[blob_cache.get_cached_json] direct GET failed url=%s", direct_url)
 
     # If direct GET failed, fall back to List API when token is available
-    blob = _list_blob_exact(key)
+    blob = _list_blob_exact(path_with_store)
     if not blob:
         logger.info("[blob_cache.get_cached_json] list fallback: not found key=%s", key)
         return None
@@ -187,6 +195,8 @@ def put_cached_json(newsletter_type: str, date_value: datetime, payload: Dict[st
         return None
 
     key = build_blob_key(newsletter_type, date_value)
+    store = _get_store_prefix()
+    path_with_store = f"{store}/{key}" if store else key
     body = json.dumps(payload, ensure_ascii=False, default=_json_default).encode("utf-8")
     status = payload.get("status")
     num_articles = len(payload.get("articles", [])) if isinstance(payload, dict) else "n/a"
@@ -207,7 +217,7 @@ def put_cached_json(newsletter_type: str, date_value: datetime, payload: Dict[st
     }
 
     try:
-        upload_url = f"{BLOB_UPLOAD_BASE_URL}/{key}"
+    upload_url = f"{BLOB_UPLOAD_BASE_URL}/{path_with_store}"
         resp = requests.put(upload_url, data=body, headers=headers, timeout=10)
         logger.info(
             "[blob_cache.put_cached_json] write status=%s",
