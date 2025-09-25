@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, Any, Dict
 
 import requests
-from redis_cache import is_available as kv_available, build_kv_key, get_json as kv_get_json, set_json as kv_set_json
 from edge_config import is_available as ec_available, get_json as ec_get_json, set_json as ec_set_json
 
 
@@ -209,7 +208,7 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
     store = _get_store_prefix()
     path_with_store = f"{store}/{key}" if store else key
 
-    # First try Edge Config (first-party, ultra-low latency), then KV, then Blob
+    # First try Edge Config (first-party, ultra-low latency), then Blob
     date_str = date_value.strftime("%Y-%m-%d")
     if ec_available():
         ec_key = f"tldr-cache:{newsletter_type}:{date_str}"
@@ -217,14 +216,6 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
         if ec_val is not None:
             logger.info("[blob_cache.get_cached_json] EdgeConfig hit key=%s", ec_key)
             return ec_val
-
-    # Next try KV (if configured)
-    if kv_available():
-        kv_key = build_kv_key(newsletter_type, date_str)
-        kv_val = kv_get_json(kv_key)
-        if kv_val is not None:
-            logger.info("[blob_cache.get_cached_json] KV hit key=%s", kv_key)
-            return kv_val
 
     # List API by prefix (handles random suffix on names)
     prefix_rel = build_blob_prefix(newsletter_type, date_value)
@@ -290,12 +281,7 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
             len(data.get("articles", [])) if isinstance(data, dict) else "n/a",
             data.get("status") if isinstance(data, dict) else "n/a",
         )
-        # Populate Edge Config and KV for future
-        if kv_available():
-            try:
-                kv_set_json(build_kv_key(newsletter_type, date_str), data, ttl_seconds=60*60*24*14)
-            except Exception:
-                logger.exception("[blob_cache.get_cached_json] KV set failed")
+        # Populate Edge Config for future
         if ec_available():
             try:
                 ec_set_json(f"tldr-cache:{newsletter_type}:{date_str}", data)
@@ -356,15 +342,13 @@ def put_cached_json(newsletter_type: str, date_value: datetime, payload: Dict[st
                     "[blob_cache.put_cached_json] write ok key=%s url=%s",
                     key, url,
                 )
-                # Write to Edge Config and KV to accelerate subsequent reads
+                # Write to Edge Config to accelerate subsequent reads
                 try:
                     date_str = date_value.strftime("%Y-%m-%d")
                     if ec_available():
                         ec_set_json(f"tldr-cache:{newsletter_type}:{date_str}", payload)
-                    if kv_available():
-                        kv_set_json(build_kv_key(newsletter_type, date_str), payload, ttl_seconds=60*60*24*14)
                 except Exception:
-                    logger.exception("[blob_cache.put_cached_json] EdgeConfig/KV set failed")
+                    logger.exception("[blob_cache.put_cached_json] EdgeConfig set failed")
                 # memoize discovered URL for this process
                 try:
                     prefix_rel = build_blob_prefix(newsletter_type, date_value)
