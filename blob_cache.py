@@ -208,194 +208,27 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
     store = _get_store_prefix()
     path_with_store = f"{store}/{key}" if store else key
 
-    # First try Edge Config (first-party, ultra-low latency), then Blob
+    # If EDGE_CONFIG missing, skip cache entirely per env rules
     date_str = date_value.strftime("%Y-%m-%d")
-    if ec_available():
-        ec_key = f"tldr-cache:{newsletter_type}:{date_str}"
-        ec_val = ec_get_json(ec_key)
-        if ec_val is not None:
-            logger.info("[blob_cache.get_cached_json] EdgeConfig hit key=%s", ec_key)
-            return ec_val
-
-    # List API by prefix (handles random suffix on names)
-    prefix_rel = build_blob_prefix(newsletter_type, date_value)
-    prefix_with_store = f"{store}/{prefix_rel}" if store else prefix_rel
-    # In-process URL cache lookup to avoid re-listing within a warm process
-    cached_url = _URL_INDEX.get(prefix_rel) or _URL_INDEX.get(prefix_with_store)
-    if cached_url:
-        try:
-            resp = requests.get(cached_url, timeout=8)
-            if resp.status_code == 200:
-                logger.info(
-                    "[blob_cache.get_cached_json] index url hit prefix=%s status=%s",
-                    prefix_rel, resp.status_code,
-                )
-                return resp.json()
-            else:
-                logger.info(
-                    "[blob_cache.get_cached_json] index url miss prefix=%s status=%s",
-                    prefix_rel, resp.status_code,
-                )
-        except Exception:
-            logger.exception("[blob_cache.get_cached_json] index url fetch failed url=%s", cached_url)
-    blobs = _list_blobs_by_prefix(prefix_rel, store)
-    if not blobs:
-        logger.info("[blob_cache.get_cached_json] list fallback: not found prefix=%s", prefix_with_store)
+    if not ec_available():
         return None
 
-    # Choose a candidate that matches the prefix and ends with .json
-    chosen = None
-    for b in blobs:
-        p = b.get("pathname") or b.get("key") or b.get("path") or ""
-        if (p.startswith(prefix_rel) or p.startswith(prefix_with_store)) and p.endswith(".json"):
-            chosen = b
-            break
-    if not chosen:
-        logger.info(
-            "[blob_cache.get_cached_json] list fallback: no .json under prefix=%s",
-            prefix_with_store,
-        )
+    # Read via Edge URL only
+    ec_key = f"tldr-cache:{newsletter_type}:{date_str}"
+    ec_val = ec_get_json(ec_key)
+    if ec_val is not None:
+        logger.info("[blob_cache.get_cached_json] EdgeConfig hit key=%s", ec_key)
+        return ec_val
+    return None
+
+
+    # If EDGE_CONFIG missing, skip cache writes per env rules
+    if not ec_available():
         return None
 
-    url = chosen.get("url") or chosen.get("downloadUrl")
-    if url:
-        # memoize for this process
-        _URL_INDEX[prefix_rel] = url
-        _URL_INDEX[prefix_with_store] = url
-    logger.info(
-        "[blob_cache.get_cached_json] list fallback: downloading url=%s chosen_path=%s",
-        url, chosen.get("pathname") or chosen.get("key") or chosen.get("path"),
-    )
-    try:
-        resp = requests.get(url, timeout=10)
-        logger.info(
-            "[blob_cache.get_cached_json] list download status=%s",
-            resp.status_code,
-        )
-        if resp.status_code != 200:
-            return None
-        data = resp.json()
-        logger.info(
-            "[blob_cache.get_cached_json] list hit key=%s articles=%s status=%s",
-            key,
-            len(data.get("articles", [])) if isinstance(data, dict) else "n/a",
-            data.get("status") if isinstance(data, dict) else "n/a",
-        )
-        # Populate Edge Config for future
-        if ec_available():
-            try:
-                ec_set_json(f"tldr-cache:{newsletter_type}:{date_str}", data)
-            except Exception:
-                logger.exception("[blob_cache.get_cached_json] EdgeConfig set failed")
-        return data
-    except Exception:
-        logger.exception("[blob_cache.get_cached_json] list fallback download failed url=%s", url)
-        return None
-
-
-def put_cached_json(newsletter_type: str, date_value: datetime, payload: Dict[str, Any]) -> Optional[str]:
-    """
-    Upload JSON payload to deterministic key. Returns blob URL on success, else None.
-    """
-    token = _get_token()
-    if not token:
-        logger.warning(
-            "[blob_cache.put_cached_json] missing token, cannot write key newsletter_type=%s date=%s",
-            newsletter_type, date_value.strftime("%Y-%m-%d"),
-        )
-        return None
-
-    key = build_blob_key(newsletter_type, date_value)
-    store = _get_store_prefix()
-    path_with_store = f"{store}/{key}" if store else key
-    body = json.dumps(payload, ensure_ascii=False, default=_json_default).encode("utf-8")
-    status = payload.get("status")
-    num_articles = len(payload.get("articles", [])) if isinstance(payload, dict) else "n/a"
-    logger.info(
-        "[blob_cache.put_cached_json] writing key=%s status=%s articles=%s bytes=%s",
-        key, status, num_articles, len(body),
-    )
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-        # Mark file as public to allow direct GETs
-        "x-vercel-blob-public": "true",
-        # Deterministic name for read-after-write
-        "x-vercel-blob-add-random-suffix": "false",
-        # Allow updating cache entries if we recompute
-        "x-vercel-blob-allow-overwrite": "true",
-        "Content-Type": "application/json; charset=utf-8",
-    }
-
-    try:
-        upload_url = f"{BLOB_UPLOAD_BASE_URL}/{path_with_store}"
-        resp = requests.put(upload_url, data=body, headers=headers, timeout=10)
-        logger.info(
-            "[blob_cache.put_cached_json] write status=%s",
-            resp.status_code,
-        )
-        if resp.status_code in (200, 201):
-            try:
-                info = resp.json()
-                url = info.get("url") or info.get("downloadUrl")
-                logger.info(
-                    "[blob_cache.put_cached_json] write ok key=%s url=%s",
-                    key, url,
-                )
-                # Write to Edge Config to accelerate subsequent reads
-                try:
-                    date_str = date_value.strftime("%Y-%m-%d")
-                    if ec_available():
-                        ec_set_json(f"tldr-cache:{newsletter_type}:{date_str}", payload)
-                except Exception:
-                    logger.exception("[blob_cache.put_cached_json] EdgeConfig set failed")
-                # memoize discovered URL for this process
-                try:
-                    prefix_rel = build_blob_prefix(newsletter_type, date_value)
-                    prefix_with_store = f"{store}/{prefix_rel}" if store else prefix_rel
-                    if url:
-                        _URL_INDEX[prefix_rel] = url
-                        _URL_INDEX[prefix_with_store] = url
-                except Exception:
-                    logger.exception("[blob_cache.put_cached_json] failed to memoize url for prefix")
-                # Post-write verification via direct GET and returned URL
-                try:
-                    verify_direct = requests.get(upload_url, timeout=6)
-                    logger.info(
-                        "[blob_cache.put_cached_json] verify direct GET status=%s url=%s",
-                        verify_direct.status_code, upload_url,
-                    )
-                except Exception:
-                    logger.exception("[blob_cache.put_cached_json] verify direct GET failed url=%s", upload_url)
-                if url:
-                    try:
-                        verify_returned = requests.get(url, timeout=6)
-                        logger.info(
-                            "[blob_cache.put_cached_json] verify returned URL status=%s url=%s",
-                            verify_returned.status_code, url,
-                        )
-                    except Exception:
-                        logger.exception("[blob_cache.put_cached_json] verify returned URL failed url=%s", url)
-                return url
-            except Exception:
-                # Some deployments may not return JSON; construct best-effort URL
-                url = f"{BLOB_UPLOAD_BASE_URL}/{key}"
-                logger.info(
-                    "[blob_cache.put_cached_json] write ok (non-json body) key=%s url=%s",
-                    key, url,
-                )
-                # Post-write verification
-                try:
-                    verify_direct = requests.get(url, timeout=6)
-                    logger.info(
-                        "[blob_cache.put_cached_json] verify direct GET status=%s url=%s",
-                        verify_direct.status_code, url,
-                    )
-                except Exception:
-                    logger.exception("[blob_cache.put_cached_json] verify direct GET failed url=%s", url)
-                return url
-        return None
-    except Exception:
-        logger.exception("[blob_cache.put_cached_json] exception while writing key=%s", key)
-        return None
+    # Write via Edge Config API only
+    date_str = date_value.strftime("%Y-%m-%d")
+    ok = ec_set_json(f"tldr-cache:{newsletter_type}:{date_str}", payload)
+    logger.info("[blob_cache.put_cached_json] EdgeConfig write key=%s ok=%s", f"tldr-cache:{newsletter_type}:{date_str}", ok)
+    return "edge://ok" if ok else None
 
