@@ -63,12 +63,62 @@ def build_blob_key(newsletter_type: str, date_value: datetime) -> str:
     )
     return key
 
+def build_blob_dir(newsletter_type: str) -> str:
+    return f"tldr-scraper-cache/{newsletter_type}"
+
+def build_blob_prefix(newsletter_type: str, date_value: datetime) -> str:
+    date_str = date_value.strftime("%Y-%m-%d")
+    return f"{build_blob_dir(newsletter_type)}/{date_str}-"
+
 
 def _list_blob_exact(pathname: str) -> Optional[Dict[str, Any]]:
     """Return blob metadata for exact pathname using the list API, or None if not found."""
     token = _get_token()
     if not token:
         logger.debug("[blob_cache._list_blob_exact] no token, skipping list pathname=%s", pathname)
+        return None
+def _list_blobs_by_prefix(prefix: str) -> Optional[list]:
+    token = _get_token()
+    if not token:
+        logger.info("[blob_cache._list_blobs_by_prefix] no token, skipping list prefix=%s", prefix)
+        return None
+
+    try:
+        logger.info(
+            "[blob_cache._list_blobs_by_prefix] listing prefix=%s limit=%s",
+            prefix, 100,
+        )
+        resp = requests.get(
+            VERCEL_BLOB_API_URL,
+            params={"prefix": prefix, "limit": 100},
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=8,
+        )
+        logger.info(
+            "[blob_cache._list_blobs_by_prefix] list status=%s",
+            resp.status_code,
+        )
+        if resp.status_code != 200:
+            try:
+                txt = resp.text[:500]
+            except Exception:
+                txt = "<no body>"
+            logger.info(
+                "[blob_cache._list_blobs_by_prefix] list non-200 status=%s body=%s",
+                resp.status_code, txt,
+            )
+            return None
+        data = resp.json()
+        blobs = data.get("blobs", []) or data.get("items", [])
+        logger.info(
+            "[blob_cache._list_blobs_by_prefix] returned count=%s sample=%s",
+            len(blobs), [
+                (b.get("pathname") or b.get("key") or b.get("path")) for b in blobs[:5]
+            ],
+        )
+        return blobs
+    except Exception:
+        logger.exception("[blob_cache._list_blobs_by_prefix] exception while listing prefix=%s", prefix)
         return None
 
     try:
@@ -149,17 +199,32 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
     except Exception:
         logger.exception("[blob_cache.get_cached_json] direct GET failed url=%s", direct_url)
 
-    # If direct GET failed, fall back to List API when token is available
-    blob = _list_blob_exact(path_with_store)
-    if not blob:
-        logger.info("[blob_cache.get_cached_json] list fallback: not found key=%s", key)
+    # If direct GET failed, fall back to List API by prefix (handles random suffix on names)
+    prefix_rel = build_blob_prefix(newsletter_type, date_value)
+    prefix_with_store = f"{store}/{prefix_rel}" if store else prefix_rel
+    blobs = _list_blobs_by_prefix(prefix_with_store)
+    if not blobs:
+        logger.info("[blob_cache.get_cached_json] list fallback: not found prefix=%s", prefix_with_store)
         return None
 
-    # Prefer 'url' field; fallback to 'downloadUrl'; last resort to constructed URL
-    url = blob.get("url") or blob.get("downloadUrl") or direct_url
+    # Choose a candidate that matches the prefix and ends with .json
+    chosen = None
+    for b in blobs:
+        p = b.get("pathname") or b.get("key") or b.get("path") or ""
+        if p.startswith(prefix_with_store) and p.endswith(".json"):
+            chosen = b
+            break
+    if not chosen:
+        logger.info(
+            "[blob_cache.get_cached_json] list fallback: no .json under prefix=%s",
+            prefix_with_store,
+        )
+        return None
+
+    url = chosen.get("url") or chosen.get("downloadUrl") or direct_url
     logger.info(
-        "[blob_cache.get_cached_json] list fallback: downloading url=%s key=%s",
-        url, key,
+        "[blob_cache.get_cached_json] list fallback: downloading url=%s chosen_path=%s",
+        url, chosen.get("pathname") or chosen.get("key") or chosen.get("path"),
     )
     try:
         resp = requests.get(url, timeout=10)
