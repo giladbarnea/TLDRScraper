@@ -425,7 +425,11 @@ def scrape_date_range(start_date, end_date):
             'cache_hits': hits,
             'cache_misses': misses,
             'cache_other': others,
-            'blob_token_present': bool(_get_token())
+            # Env and cache diagnostics
+            'edge_config_present': bool(os.environ.get('EDGE_CONFIG')),
+            'edge_config_id_present': bool(os.environ.get('EDGE_CONFIG_ID')),
+            'vercel_token_present': bool(os.environ.get('VERCEL_TOKEN')),
+            'edge_config_available': bool(ec_available())
         }
     }
 

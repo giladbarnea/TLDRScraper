@@ -237,7 +237,9 @@
                         ${data.stats.unique_urls} unique URLs, 
                         ${data.stats.dates_with_content}/${data.stats.dates_processed} dates had content<br>
                         🧠 Cache: hits=${data.stats.cache_hits ?? 0}, misses=${data.stats.cache_misses ?? 0}, other=${data.stats.cache_other ?? 0}<br>
-                        🔐 Blob token present: ${data.stats.blob_token_present ? 'true' : 'false'}
+                        ⚙️ EDGE_CONFIG present: ${data.stats.edge_config_present ? 'true' : 'false'}, available: ${data.stats.edge_config_available ? 'true' : 'false'}<br>
+                        🆔 EDGE_CONFIG_ID present: ${data.stats.edge_config_id_present ? 'true' : 'false'}<br>
+                        🔑 VERCEL_TOKEN present: ${data.stats.vercel_token_present ? 'true' : 'false'}
                     </div>`;
                     
                     const html = DOMPurify.sanitize(marked.parse(data.output));
