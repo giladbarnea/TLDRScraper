@@ -245,7 +245,14 @@
                     </div>`;
                     
                     const html = DOMPurify.sanitize(marked.parse(data.output));
-                    result.innerHTML = statsHtml + '<article class="markdown-body">' + html + '</article>';
+                    let logsHtml = '';
+                    try {
+                        if (Array.isArray(data.stats.debug_logs) && data.stats.debug_logs.length) {
+                            logsHtml = '<details><summary>Debug logs</summary><pre style="white-space:pre-wrap">' +
+                                data.stats.debug_logs.map(l => String(l)).join('\n') + '</pre></details>';
+                        }
+                    } catch (e) {}
+                    result.innerHTML = statsHtml + logsHtml + '<article class="markdown-body">' + html + '</article>';
                     // Open links in new tabs safely
                     result.querySelectorAll('.markdown-body a[href]').forEach(function(a) {
                         a.setAttribute('target', '_blank');

@@ -17,11 +17,19 @@ import os
 from blob_cache import is_cache_eligible, get_cached_json, put_cached_json, _get_token
 from edge_config import is_available as ec_available
 import urllib.parse as _urlparse
+import collections
 
 app = Flask(__name__)
 logging.basicConfig(level=os.environ.get('LOG_LEVEL', 'INFO'))
 logger = logging.getLogger("serve")
 md = MarkItDown()
+LOGS = collections.deque(maxlen=200)
+def _log(msg):
+    try:
+        LOGS.append(msg)
+    except Exception:
+        pass
+    logger.info(msg)
 
 # Per-request run diagnostics (simple globals, reset at start of scrape)
 EDGE_READ_ATTEMPTS = 0
@@ -57,18 +65,12 @@ def scrape_newsletters():
         if (end_date - start_date).days >= 31:
             return jsonify({'success': False, 'error': 'Date range cannot exceed 31 days'}), 400
         
-        logger.info(
-            "[serve.scrape_newsletters] start start_date=%s end_date=%s",
-            data['start_date'], data['end_date']
-        )
+        _log(f"[serve.scrape_newsletters] start start_date={data['start_date']} end_date={data['end_date']}")
         # reset run diagnostics
         global EDGE_READ_ATTEMPTS, EDGE_READ_HITS, EDGE_WRITE_ATTEMPTS, EDGE_WRITE_SUCCESS
         EDGE_READ_ATTEMPTS = EDGE_READ_HITS = EDGE_WRITE_ATTEMPTS = EDGE_WRITE_SUCCESS = 0
         result = scrape_date_range(start_date, end_date)
-        logger.info(
-            "[serve.scrape_newsletters] done dates_processed=%s total_articles=%s stats=%s",
-            result['stats']['dates_processed'], result['stats']['total_articles'], result['stats']
-        )
+        _log(f"[serve.scrape_newsletters] done dates_processed={result['stats']['dates_processed']} total_articles={result['stats']['total_articles']}")
         return jsonify(result)
         
     except Exception as e:
@@ -241,39 +243,23 @@ def fetch_newsletter(date, newsletter_type):
     date_str = format_date_for_url(date)
     url = f"https://tldr.tech/{newsletter_type}/{date_str}"
     
-    # For dates older than 3 days, use blob cache (store hits and misses)
-    eligible_for_cache = is_cache_eligible(date)
-    if eligible_for_cache:
-        # Attempt Edge cache read first
-        global EDGE_READ_ATTEMPTS, EDGE_READ_HITS
-        EDGE_READ_ATTEMPTS += 1
-        cache_start = time.time()
-        cached = get_cached_json(newsletter_type, date)
-        if cached is not None:
-            # expected cached format: { status: 'hit'|'miss'|'error', articles?: [], error?: str }
-            status = cached.get('status')
-            if status == 'hit':
-                EDGE_READ_HITS += 1
-                cached_articles = cached.get('articles', [])
-                # Tag as cache hit for UI display
-                for a in cached_articles:
-                    a['fetched_via'] = 'hit'
-                    a['timing_total_ms'] = int(round((time.time() - cache_start) * 1000))
-                logger.info(
-                    "[serve.fetch_newsletter] cache HIT date=%s type=%s count=%s",
-                    date_str, newsletter_type, len(cached_articles)
-                )
-                return {
-                    'date': date,
-                    'newsletter_type': newsletter_type,
-                    'articles': cached_articles
-                }
-            # For miss or error, behave like no newsletter for this date
-            logger.info(
-                "[serve.fetch_newsletter] cache %s date=%s type=%s",
-                status.upper(), date_str, newsletter_type
-            )
-            return None
+    # Always try Edge cache read first (no Blob fallback)
+    global EDGE_READ_ATTEMPTS, EDGE_READ_HITS
+    EDGE_READ_ATTEMPTS += 1
+    cache_start = time.time()
+    cached = get_cached_json(newsletter_type, date)
+    if cached is not None and cached.get('status') == 'hit':
+        EDGE_READ_HITS += 1
+        cached_articles = cached.get('articles', [])
+        for a in cached_articles:
+            a['fetched_via'] = 'hit'
+            a['timing_total_ms'] = int(round((time.time() - cache_start) * 1000))
+        _log(f"[serve.fetch_newsletter] cache HIT date={date_str} type={newsletter_type} count={len(cached_articles)}")
+        return {
+            'date': date,
+            'newsletter_type': newsletter_type,
+            'articles': cached_articles
+        }
 
     try:
         net_start = time.time()
@@ -283,17 +269,6 @@ def fetch_newsletter(date, newsletter_type):
         net_ms = int(round((time.time() - net_start) * 1000))
         
         if response.status_code == 404:
-            # Cache miss (no newsletter)
-            if is_cache_eligible(date):
-                put_cached_json(newsletter_type, date, {
-                    'status': 'miss',
-                    'date': date_str,
-                    'newsletter_type': newsletter_type
-                })
-                logger.info(
-                    "[serve.fetch_newsletter] wrote MISS placeholder date=%s type=%s",
-                    date_str, newsletter_type
-                )
             return None
             
         response.raise_for_status()
@@ -336,10 +311,7 @@ def fetch_newsletter(date, newsletter_type):
             ok = put_cached_json(newsletter_type, date, payload)
             if ok:
                 EDGE_WRITE_SUCCESS += 1
-            logger.info(
-                "[serve.fetch_newsletter] wrote cache date=%s type=%s count=%s ok=%s",
-                date_str, newsletter_type, len(sanitized_articles), bool(ok)
-            )
+            _log(f"[serve.fetch_newsletter] wrote cache date={date_str} type={newsletter_type} count={len(sanitized_articles)} ok={bool(ok)}")
         except Exception:
             logger.exception("[serve.fetch_newsletter] failed writing cache date=%s type=%s", date_str, newsletter_type)
 
@@ -448,7 +420,8 @@ def scrape_date_range(start_date, end_date):
             'edge_reads_attempted': EDGE_READ_ATTEMPTS,
             'edge_reads_hit': EDGE_READ_HITS,
             'edge_writes_attempted': EDGE_WRITE_ATTEMPTS,
-            'edge_writes_success': EDGE_WRITE_SUCCESS
+            'edge_writes_success': EDGE_WRITE_SUCCESS,
+            'debug_logs': list(LOGS)
         }
     }
 
