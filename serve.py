@@ -15,8 +15,7 @@ import time
 import os
 
 from blob_cache import is_cache_eligible, get_cached_json, put_cached_json, _get_token
-from edge_config import is_available as ec_available, get_last_write_status, get_last_write_body, list_keys as ec_list_keys
-import re
+from edge_config import is_available as ec_available, get_last_write_status, get_last_write_body
 import urllib.parse as _urlparse
 import collections
 
@@ -409,39 +408,6 @@ def scrape_date_range(start_date, end_date):
             return None
     ec_id_from_url = _extract_id(ec_url) if ec_url else None
 
-    # Edge Config cache audit (detect duplicates and total size signals)
-    edge_total_keys = 0
-    edge_unknown_keys = 0
-    edge_pairs = {}
-    edge_sample_dups = []
-    try:
-        keys = ec_list_keys(prefix="tldr-cache-", limit=1000) or []
-        edge_total_keys = len(keys)
-        pattern = re.compile(r"^tldr-cache-(tech|ai)-(\d{4}-\d{2}-\d{2})$")
-        pair_to_keys = {}
-        for k in keys:
-            m = pattern.match(k)
-            if not m:
-                edge_unknown_keys += 1
-                continue
-            nl_type, date_str = m.group(1), m.group(2)
-            pair = f"{nl_type}:{date_str}"
-            edge_pairs[pair] = edge_pairs.get(pair, 0) + 1
-            pair_to_keys.setdefault(pair, []).append(k)
-        # Collect up to 5 duplicate samples
-        for pair, cnt in edge_pairs.items():
-            if cnt > 1 and len(edge_sample_dups) < 5:
-                edge_sample_dups.append({
-                    'pair': pair,
-                    'count': cnt,
-                    'keys': pair_to_keys.get(pair, [])[:5]
-                })
-        if edge_sample_dups:
-            _log(f"[serve.audit] duplicates found: {edge_sample_dups}")
-        _log(f"[serve.audit] edge_total_keys={edge_total_keys} edge_unknown_keys={edge_unknown_keys} unique_pairs={len(edge_pairs)}")
-    except Exception:
-        _log("[serve.audit] failed to list Edge Config keys")
-
     return {
         'success': True,
         'output': output,
@@ -463,10 +429,6 @@ def scrape_date_range(start_date, end_date):
             'edge_reads_hit': EDGE_READ_HITS,
             'edge_writes_attempted': EDGE_WRITE_ATTEMPTS,
             'edge_writes_success': EDGE_WRITE_SUCCESS,
-            'edge_total_keys': edge_total_keys,
-            'edge_unknown_keys': edge_unknown_keys,
-            'edge_unique_pairs': len(edge_pairs),
-            'edge_duplicate_pairs': sum(1 for v in edge_pairs.values() if v > 1),
             'debug_logs': list(LOGS)
         }
     }
