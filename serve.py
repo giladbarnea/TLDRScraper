@@ -15,12 +15,19 @@ import time
 import os
 
 from blob_cache import is_cache_eligible, get_cached_json, put_cached_json, _get_token
-from edge_config import is_available as ec_available, set_json as ec_set_json
+from edge_config import is_available as ec_available
+import urllib.parse as _urlparse
 
 app = Flask(__name__)
 logging.basicConfig(level=os.environ.get('LOG_LEVEL', 'INFO'))
 logger = logging.getLogger("serve")
 md = MarkItDown()
+
+# Per-request run diagnostics (simple globals, reset at start of scrape)
+EDGE_READ_ATTEMPTS = 0
+EDGE_READ_HITS = 0
+EDGE_WRITE_ATTEMPTS = 0
+EDGE_WRITE_SUCCESS = 0
 
 @app.route('/')
 def index():
@@ -54,6 +61,9 @@ def scrape_newsletters():
             "[serve.scrape_newsletters] start start_date=%s end_date=%s",
             data['start_date'], data['end_date']
         )
+        # reset run diagnostics
+        global EDGE_READ_ATTEMPTS, EDGE_READ_HITS, EDGE_WRITE_ATTEMPTS, EDGE_WRITE_SUCCESS
+        EDGE_READ_ATTEMPTS = EDGE_READ_HITS = EDGE_WRITE_ATTEMPTS = EDGE_WRITE_SUCCESS = 0
         result = scrape_date_range(start_date, end_date)
         logger.info(
             "[serve.scrape_newsletters] done dates_processed=%s total_articles=%s stats=%s",
@@ -234,12 +244,16 @@ def fetch_newsletter(date, newsletter_type):
     # For dates older than 3 days, use blob cache (store hits and misses)
     eligible_for_cache = is_cache_eligible(date)
     if eligible_for_cache:
+        # Attempt Edge cache read first
+        global EDGE_READ_ATTEMPTS, EDGE_READ_HITS
+        EDGE_READ_ATTEMPTS += 1
         cache_start = time.time()
         cached = get_cached_json(newsletter_type, date)
         if cached is not None:
             # expected cached format: { status: 'hit'|'miss'|'error', articles?: [], error?: str }
             status = cached.get('status')
             if status == 'hit':
+                EDGE_READ_HITS += 1
                 cached_articles = cached.get('articles', [])
                 # Tag as cache hit for UI display
                 for a in cached_articles:
@@ -306,41 +320,28 @@ def fetch_newsletter(date, newsletter_type):
             'articles': articles
         }
 
-        if eligible_for_cache:
-            # Store without the transient fetched_via field
-            sanitized_articles = [
-                {k: v for k, v in a.items() if k != 'fetched_via' and not k.startswith('timing_')} for a in articles
-            ]
-            put_cached_json(newsletter_type, date, {
-                'status': 'hit',
-                'date': date_str,
-                'newsletter_type': newsletter_type,
-                'articles': sanitized_articles
-            })
+        # Always write to Edge for fast repeats (per env rules handled in put_cached_json)
+        sanitized_articles = [
+            {k: v for k, v in a.items() if k != 'fetched_via' and not k.startswith('timing_')} for a in articles
+        ]
+        payload = {
+            'status': 'hit',
+            'date': date_str,
+            'newsletter_type': newsletter_type,
+            'articles': sanitized_articles
+        }
+        try:
+            global EDGE_WRITE_ATTEMPTS, EDGE_WRITE_SUCCESS
+            EDGE_WRITE_ATTEMPTS += 1
+            ok = put_cached_json(newsletter_type, date, payload)
+            if ok:
+                EDGE_WRITE_SUCCESS += 1
             logger.info(
-                "[serve.fetch_newsletter] wrote HIT cache date=%s type=%s count=%s",
-                date_str, newsletter_type, len(sanitized_articles)
+                "[serve.fetch_newsletter] wrote cache date=%s type=%s count=%s ok=%s",
+                date_str, newsletter_type, len(sanitized_articles), bool(ok)
             )
-        else:
-            # Also persist recent results to Edge Config (and KV) for fast repeats
-            sanitized_articles = [
-                {k: v for k, v in a.items() if k != 'fetched_via' and not k.startswith('timing_')} for a in articles
-            ]
-            payload = {
-                'status': 'hit',
-                'date': date_str,
-                'newsletter_type': newsletter_type,
-                'articles': sanitized_articles
-            }
-            try:
-                if ec_available():
-                    ec_set_json(f"tldr-cache:{newsletter_type}:{date_str}", payload)
-                logger.info(
-                    "[serve.fetch_newsletter] wrote TEMP cache (Edge/KV) date=%s type=%s count=%s",
-                    date_str, newsletter_type, len(sanitized_articles)
-                )
-            except Exception:
-                logger.exception("[serve.fetch_newsletter] failed writing TEMP cache date=%s type=%s", date_str, newsletter_type)
+        except Exception:
+            logger.exception("[serve.fetch_newsletter] failed writing cache date=%s type=%s", date_str, newsletter_type)
 
         return result
         
@@ -414,6 +415,19 @@ def scrape_date_range(start_date, end_date):
     # Format output
     output = format_final_output(start_date, end_date, grouped_articles)
     
+    # Edge config ID consistency check (read URL vs ID)
+    ec_url = os.environ.get('EDGE_CONFIG')
+    ec_id_env = os.environ.get('EDGE_CONFIG_ID')
+    def _extract_id(u: str):
+        try:
+            p = _urlparse.urlparse(u)
+            # path like /ecfg_xxx or /ecfg_xxx/...
+            seg = p.path.strip('/').split('/')[0]
+            return seg if seg.startswith('ecfg_') else None
+        except Exception:
+            return None
+    ec_id_from_url = _extract_id(ec_url) if ec_url else None
+
     return {
         'success': True,
         'output': output,
@@ -429,7 +443,12 @@ def scrape_date_range(start_date, end_date):
             'edge_config_present': bool(os.environ.get('EDGE_CONFIG')),
             'edge_config_id_present': bool(os.environ.get('EDGE_CONFIG_ID')),
             'vercel_token_present': bool(os.environ.get('VERCEL_TOKEN')),
-            'edge_config_available': bool(ec_available())
+            'edge_config_available': bool(ec_available()),
+            'edge_id_match': bool(ec_id_from_url and ec_id_env and ec_id_from_url == ec_id_env),
+            'edge_reads_attempted': EDGE_READ_ATTEMPTS,
+            'edge_reads_hit': EDGE_READ_HITS,
+            'edge_writes_attempted': EDGE_WRITE_ATTEMPTS,
+            'edge_writes_success': EDGE_WRITE_SUCCESS
         }
     }
 
