@@ -15,7 +15,7 @@ import time
 import os
 
 from blob_cache import is_cache_eligible, get_cached_json, put_cached_json, _get_token
-from edge_config import is_available as ec_available
+from edge_config import is_available as ec_available, get_last_write_status, get_last_write_body
 import urllib.parse as _urlparse
 import collections
 
@@ -311,7 +311,9 @@ def fetch_newsletter(date, newsletter_type):
             ok = put_cached_json(newsletter_type, date, payload)
             if ok:
                 EDGE_WRITE_SUCCESS += 1
-            _log(f"[serve.fetch_newsletter] wrote cache date={date_str} type={newsletter_type} count={len(sanitized_articles)} ok={bool(ok)}")
+            status = get_last_write_status()
+            body = get_last_write_body()
+            _log(f"[serve.fetch_newsletter] wrote cache date={date_str} type={newsletter_type} count={len(sanitized_articles)} ok={bool(ok)} status={status} body={(body or '')}")
         except Exception:
             logger.exception("[serve.fetch_newsletter] failed writing cache date=%s type=%s", date_str, newsletter_type)
 
