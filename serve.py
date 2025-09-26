@@ -296,9 +296,15 @@ def fetch_newsletter(date, newsletter_type):
         }
 
         # Always write to Edge for fast repeats (per env rules handled in put_cached_json)
-        sanitized_articles = [
-            {k: v for k, v in a.items() if k != 'fetched_via' and not k.startswith('timing_')} for a in articles
-        ]
+        def _sanitize(a):
+            clean = {k: v for k, v in a.items() if k != 'fetched_via' and not k.startswith('timing_')}
+            try:
+                if 'date' in clean and not isinstance(clean['date'], str):
+                    clean['date'] = format_date_for_url(clean['date'])
+            except Exception:
+                pass
+            return clean
+        sanitized_articles = [_sanitize(a) for a in articles]
         payload = {
             'status': 'hit',
             'date': date_str,
