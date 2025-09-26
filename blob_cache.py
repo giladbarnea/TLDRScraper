@@ -228,7 +228,28 @@ def put_cached_json(newsletter_type: str, date_value: datetime, payload: Dict[st
         return None
     date_str = date_value.strftime("%Y-%m-%d")
     key = f"tldr-cache-{newsletter_type}-{date_str}"
-    ok = ec_set_json(key, payload)
+    # Ensure payload is JSON-serializable (dates as strings)
+    safe_payload = payload
+    try:
+        articles = payload.get('articles') if isinstance(payload, dict) else None
+        if isinstance(articles, list):
+            fixed = []
+            for a in articles:
+                if isinstance(a, dict):
+                    b = dict(a)
+                    if 'date' in b and not isinstance(b['date'], str):
+                        try:
+                            b['date'] = b['date'].strftime('%Y-%m-%d')
+                        except Exception:
+                            b['date'] = str(b['date'])
+                    fixed.append(b)
+                else:
+                    fixed.append(a)
+            safe_payload = dict(payload)
+            safe_payload['articles'] = fixed
+    except Exception:
+        pass
+    ok = ec_set_json(key, safe_payload)
     logger.info("[blob_cache.put_cached_json] EdgeConfig write key=%s ok=%s", key, ok)
     return "edge://ok" if ok else None
 
