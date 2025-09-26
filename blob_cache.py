@@ -222,13 +222,13 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
     return None
 
 
-    # If EDGE_CONFIG missing, skip cache writes per env rules
+def put_cached_json(newsletter_type: str, date_value: datetime, payload: Dict[str, Any]) -> Optional[str]:
+    """Write cache to Edge Config. If EDGE_CONFIG is absent, do nothing."""
     if not ec_available():
         return None
-
-    # Write via Edge Config API only
     date_str = date_value.strftime("%Y-%m-%d")
-    ok = ec_set_json(f"tldr-cache:{newsletter_type}:{date_str}", payload)
-    logger.info("[blob_cache.put_cached_json] EdgeConfig write key=%s ok=%s", f"tldr-cache:{newsletter_type}:{date_str}", ok)
+    key = f"tldr-cache:{newsletter_type}:{date_str}"
+    ok = ec_set_json(key, payload)
+    logger.info("[blob_cache.put_cached_json] EdgeConfig write key=%s ok=%s", key, ok)
     return "edge://ok" if ok else None
 
