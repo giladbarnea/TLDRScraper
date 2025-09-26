@@ -214,7 +214,7 @@ def get_cached_json(newsletter_type: str, date_value: datetime) -> Optional[Dict
         return None
 
     # Read via Edge URL only
-    ec_key = f"tldr-cache:{newsletter_type}:{date_str}"
+    ec_key = f"tldr-cache-{newsletter_type}-{date_str}"
     ec_val = ec_get_json(ec_key)
     if ec_val is not None:
         logger.info("[blob_cache.get_cached_json] EdgeConfig hit key=%s", ec_key)
@@ -227,7 +227,7 @@ def put_cached_json(newsletter_type: str, date_value: datetime, payload: Dict[st
     if not ec_available():
         return None
     date_str = date_value.strftime("%Y-%m-%d")
-    key = f"tldr-cache:{newsletter_type}:{date_str}"
+    key = f"tldr-cache-{newsletter_type}-{date_str}"
     ok = ec_set_json(key, payload)
     logger.info("[blob_cache.put_cached_json] EdgeConfig write key=%s ok=%s", key, ok)
     return "edge://ok" if ok else None
