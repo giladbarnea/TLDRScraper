@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 import time
 import os
 
-from blob_cache import get_cached_json, put_cached_json
+from edge_config_cache import get_cached_json, put_cached_json
 from edge_config import is_available as ec_available, get_last_write_status, get_last_write_body, get_effective_env_summary
 import urllib.parse as _urlparse
 import collections
