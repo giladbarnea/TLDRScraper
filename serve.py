@@ -111,6 +111,26 @@ def is_sponsored_link(title, url):
     title_lower = title.lower()
     return any(keyword in title_lower for keyword in sponsored_keywords)
 
+def is_sponsored_url(url: str) -> bool:
+    """Treat links as sponsored based on UTM query params.
+
+    Rules:
+    - If utm_medium=newsletter (case-insensitive) => sponsored
+    - If utm_campaign is present (any value) => sponsored
+    """
+    try:
+        import urllib.parse as urlparse
+        parsed = urlparse.urlparse(url)
+        query_params = {k.lower(): v for k, v in urlparse.parse_qs(parsed.query).items()}
+        medium_values = [v.lower() for v in query_params.get('utm_medium', [])]
+        if 'newsletter' in medium_values:
+            return True
+        if 'utm_campaign' in query_params:
+            return True
+        return False
+    except Exception:
+        return False
+
 def extract_newsletter_content(html):
     """Extract newsletter content from HTML using BeautifulSoup"""
     soup = BeautifulSoup(html, 'html.parser')
@@ -215,6 +235,10 @@ def parse_articles_from_markdown(markdown, date, newsletter_type):
             if is_sponsored_link(title, url):
                 continue
             
+            # Skip if URL UTM flags indicate sponsorship
+            if is_sponsored_url(url):
+                continue
+            
             # Get category from UTM source
             category = get_utm_source_category(url)
             if not category:
@@ -301,6 +325,14 @@ def fetch_newsletter(date, newsletter_type):
             try:
                 if 'date' in clean and not isinstance(clean['date'], str):
                     clean['date'] = format_date_for_url(clean['date'])
+                # Strip utm_* params from stored URLs
+                if 'url' in clean and isinstance(clean['url'], str):
+                    import urllib.parse as urlparse
+                    p = urlparse.urlparse(clean['url'])
+                    # Keep only non-utm_* query params
+                    query_pairs = [(k, v) for (k, v) in urlparse.parse_qsl(p.query, keep_blank_values=True) if not k.lower().startswith('utm_')]
+                    new_query = urlparse.urlencode(query_pairs, doseq=True)
+                    clean['url'] = urlparse.urlunparse((p.scheme, p.netloc.lower(), p.path.rstrip('/') if len(p.path) > 1 and p.path.endswith('/') else p.path, p.params, new_query, p.fragment))
             except Exception:
                 pass
             return clean
