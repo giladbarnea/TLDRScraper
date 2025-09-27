@@ -13,6 +13,8 @@ import re
 from bs4 import BeautifulSoup
 import time
 import os
+import threading
+import base64
 
 from edge_config_cache import get_cached_json, put_cached_json
 from edge_config import is_available as ec_available, get_last_write_status, get_last_write_body, get_effective_env_summary
@@ -25,12 +27,81 @@ logger = logging.getLogger("serve")
 md = MarkItDown()
 LOGS = collections.deque(maxlen=200)
 
+# In-memory store for the summarization prompt template fetched from GitHub
+SUMMARIZE_PROMPT_TEMPLATE = None
+SUMMARIZE_PROMPT_LAST_FETCH_EPOCH = None
+
 def _log(msg):
     try:
         LOGS.append(msg)
     except Exception:
         pass
     logger.info(msg)
+
+
+def _resolve_github_token() -> str:
+    """Resolve a usable GitHub token from environment variables.
+
+    Priority:
+    1) GITHUB_TOKEN (if it looks like a real token and not an indirection)
+    2) GITHUB_API_TOKEN
+    3) GH_TOKEN
+    """
+    token = os.environ.get('GITHUB_TOKEN')
+    # Common indirection pattern: GITHUB_TOKEN=GITHUB_API_TOKEN
+    if token and token != 'GITHUB_API_TOKEN' and not token.startswith('GITHUB_'):
+        return token
+    token = os.environ.get('GITHUB_API_TOKEN') or os.environ.get('GH_TOKEN')
+    return token or ''
+
+
+def _fetch_summarize_prompt_from_github(owner: str = 'giladbarnea', repo: str = 'llm-templates', path: str = 'text/summarize.md', ref: str = 'main') -> str:
+    """Fetch the summarize.md prompt via GitHub Contents API and return it as text."""
+    token = _resolve_github_token()
+    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={ref}"
+    headers = {
+        'Accept': 'application/vnd.github.v3.raw',
+        'User-Agent': 'tldr-scraper/1.0'
+    }
+    if token:
+        headers['Authorization'] = f"Bearer {token}"
+    resp = requests.get(url, headers=headers, timeout=20)
+    if resp.status_code == 200:
+        # v3.raw returns file content directly
+        return resp.text
+    # Fallback to JSON/base64 if server ignored Accept header
+    if resp.headers.get('Content-Type', '').startswith('application/json'):
+        try:
+            data = resp.json()
+            if isinstance(data, dict) and 'content' in data:
+                return base64.b64decode(data['content']).decode('utf-8', errors='replace')
+        except Exception:
+            pass
+    raise RuntimeError(f"Failed to fetch summarize.md from GitHub: {resp.status_code}")
+
+
+def _background_fetch_prompt_once():
+    """Background job that fetches the summarize prompt once and stores it in memory."""
+    global SUMMARIZE_PROMPT_TEMPLATE, SUMMARIZE_PROMPT_LAST_FETCH_EPOCH
+    try:
+        prompt = _fetch_summarize_prompt_from_github()
+        SUMMARIZE_PROMPT_TEMPLATE = prompt
+        SUMMARIZE_PROMPT_LAST_FETCH_EPOCH = int(time.time())
+        _log("[startup] summarize.md template fetched and stored in memory")
+    except Exception as e:
+        logger.exception("[startup] Failed to fetch summarize.md: %s", e)
+
+
+def _maybe_start_background_fetch():
+    """Kick off a daemon thread to fetch the summarize prompt at startup."""
+    # Avoid duplicate startups in some hosting environments
+    if os.environ.get('DISABLE_BG_PROMPT_FETCH') == '1':
+        return
+    try:
+        t = threading.Thread(target=_background_fetch_prompt_once, daemon=True)
+        t.start()
+    except Exception:
+        logger.exception("[startup] Failed to start background prompt fetch thread")
 
 # Per-request run diagnostics (simple globals, reset at start of scrape)
 EDGE_READ_ATTEMPTS = 0
