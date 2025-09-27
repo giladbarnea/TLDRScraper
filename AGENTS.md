@@ -7,23 +7,32 @@
 - Vercel: Project uses Edge Config `tldr-scraper-edge-config-store` under your team; reads via Edge Config connection string, writes via Vercel REST API.
 - Cache mechanism: Keys are `{YYYY-MM-DD}-{type}`; values contain only `{ articles: [ { title, url } ] }`. A cache hit should return in tens of milliseconds due to Edge Config’s global distribution and low-latency reads.
 
-### Environment variables available
+### Environment variables
+
+**In your local environment:**
 
 - `TLDR_SCRAPER_EDGE_CONFIG_CONN_STRING`
   - Connection string to the Edge Config store.
-  - Format: `https://edge-config.vercel.com/<EDGE_ID>?token=<READ_TOKEN>`
-  - Use for read-only calls to fetch items directly from Edge Config.
+  - Format: `https://edge-config.vercel.com/<EDGE_CONFIG_ID>?token=<READ_TOKEN>`
+  - Use locally for read-only calls to fetch items directly from Edge Config.
+  - For local operarions on production. Unavailable in production.
 
 - `VERCEL_TOKEN`
   - Vercel API token used for write operations via `api.vercel.com`.
-  - When the Edge Config belongs to a team, include `?teamId=<TEAM_ID>` on API calls.
 
-Tips to extract parts from the connection string (bash):
+**In production:**
+
+- `EDGE_CONFIG_ID`: ecfg_...
+- `EDGE_CONFIG`: The connection string. Exactly like `TLDR_SCRAPER_EDGE_CONFIG_CONN_STRING`.
+
+Tips to extract parts from the connection string for local operations (bash):
 ```bash
 CONN="$TLDR_SCRAPER_EDGE_CONFIG_CONN_STRING"
-EDGE_ID=$(basename "${CONN%%\?*}")
+EDGE_CONFIG_ID=$(basename "${CONN%%\?*}")
 READ_TOKEN="${CONN##*token=}"
 ```
+
+**Important: To avoid confusion, run `env|grep -e EDGE -e TLDR -e TOKEN -e API`.**
 
 ### Common tasks and examples
 
