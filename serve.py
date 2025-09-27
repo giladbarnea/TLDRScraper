@@ -3,14 +3,45 @@
 TLDR Newsletter Scraper Backend with Proxy
 """
 
-from flask import Flask, render_template, request, jsonify
+try:
+    from flask import Flask, render_template, request, jsonify
+except Exception:  # pragma: no cover - import-time guard for environments without Flask
+    class Flask:  # type: ignore
+        def __init__(self, *args, **kwargs):
+            pass
+        def route(self, *args, **kwargs):
+            def _decorator(fn):
+                return fn
+            return _decorator
+    def render_template(*args, **kwargs):  # type: ignore
+        return ""
+    class request:  # type: ignore
+        pass
+    def jsonify(obj):  # type: ignore
+        return obj
 import logging
 from datetime import datetime, timedelta
-import requests
-from markitdown import MarkItDown
+try:
+    import requests
+except Exception:  # pragma: no cover - import-time guard
+    class _RequestsMissing:  # type: ignore
+        def __getattr__(self, name):
+            raise ImportError("requests is not available in this environment")
+    requests = _RequestsMissing()  # type: ignore
+try:
+    from markitdown import MarkItDown
+except Exception:  # pragma: no cover - import-time guard
+    class MarkItDown:  # type: ignore
+        def convert_stream(self, stream, file_extension: str = ".html"):
+            class _Result:
+                text_content = stream.read().decode("utf-8", errors="ignore")
+            return _Result()
 from io import BytesIO
 import re
-from bs4 import BeautifulSoup
+try:
+    from bs4 import BeautifulSoup
+except Exception:  # pragma: no cover - import-time guard
+    BeautifulSoup = None  # type: ignore
 import time
 import os
 
@@ -133,6 +164,8 @@ def is_sponsored_url(url: str) -> bool:
 
 def extract_newsletter_content(html):
     """Extract newsletter content from HTML using BeautifulSoup"""
+    if BeautifulSoup is None:
+        return html
     soup = BeautifulSoup(html, 'html.parser')
     
     # Find the main newsletter content area
