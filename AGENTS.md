@@ -27,7 +27,7 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 - `EDGE_CONFIG_ID`: The `ecfg_...` identifier
 - `EDGE_CONFIG_READ_TOKEN`: Read token for Edge Config
 - `VERCEL_TOKEN`: Vercel API token used for write operations (unprefixed in all environments)
-- Optional: `VERCEL_TEAM_ID` or `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
+ 
 
 Notes and examples:
 
@@ -55,7 +55,7 @@ curl -s -H "Authorization: Bearer $READ_TOKEN" \
 - Write items (API token + team scope) — batch upsert/delete:
 ```bash
 curl -s -X PATCH \
-  "https://api.vercel.com/v1/edge-config/$EDGE_ID/items?teamId=$TEAM_ID" \
+  "https://api.vercel.com/v1/edge-config/$EDGE_ID/items" \
   -H "Authorization: Bearer $VERCEL_TOKEN" \
   -H "Content-Type: application/json" \
   --data-binary @ops.json

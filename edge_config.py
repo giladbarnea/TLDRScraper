@@ -44,11 +44,7 @@ def _get_vercel_token() -> Optional[str]:
     # VERCEL_TOKEN is unprefixed uniformly in local and production
     return os.environ.get("VERCEL_TOKEN")
 
-def _get_team_id() -> Optional[str]:
-    return _resolve_env("VERCEL_TEAM_ID") or _resolve_env("VERCEL_ORG_ID")
-
-def _get_project_id() -> Optional[str]:
-    return _resolve_env("VERCEL_PROJECT_ID")
+# Team/organization/project scoping is intentionally not used to keep env minimal
 
 
 def get_effective_env_summary() -> dict:
@@ -56,14 +52,10 @@ def get_effective_env_summary() -> dict:
     read_base_present = bool(_get_read_base())
     config_id_present = bool(_get_config_id())
     vercel_token_present = bool(_get_vercel_token())
-    team_or_org_present = bool(_get_team_id())
-    project_present = bool(_get_project_id())
     return {
         "edge_config_present": read_base_present,
         "edge_config_id_present": config_id_present,
         "vercel_token_present": vercel_token_present,
-        "team_or_org_present": team_or_org_present,
-        "project_present": project_present,
     }
 
 
@@ -126,14 +118,7 @@ def set_json(key: str, value: dict) -> bool:
         ]
     }
     try:
-        params = {}
-        team_id = _get_team_id()
-        project_id = _get_project_id()
-        if team_id:
-            params["teamId"] = team_id
-        if project_id:
-            params["projectId"] = project_id
-        resp = requests.patch(url, params=params, json=body, headers={
+        resp = requests.patch(url, json=body, headers={
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }, timeout=8)
