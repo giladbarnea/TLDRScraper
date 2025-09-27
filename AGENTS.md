@@ -9,9 +9,12 @@
 
 ### Environment variables
 
+1. Your local env has the same env vars with the same values as production, only that Edge Config variable names are prefixed with `TLDR_SCRAPER_`.
+2. There is some redundancy in having both the full connection string env var and the parts that make as env vars. Use whatever is convenient.
+
 **In your local environment:**
 
-- `TLDR_SCRAPER_EDGE_CONFIG_CONN_STRING`
+- `TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING`
   - Connection string to the Edge Config store.
   - Format: `https://edge-config.vercel.com/<EDGE_CONFIG_ID>?token=<READ_TOKEN>`
   - Use locally for read-only calls to fetch items directly from Edge Config.
@@ -21,6 +24,11 @@
   - Vercel API token used for write operations via `api.vercel.com`.
 
 **In production:**
+
+1.	EDGE_CONFIG_CONNECTION_STRING
+2.	EDGE_CONFIG_READ_TOKEN
+3.	EDGE_CONFIG_ID
+4.	VERCEL_TOKEN
 
 - `EDGE_CONFIG_ID`: ecfg_...
 - `EDGE_CONFIG`: The connection string. Exactly like `TLDR_SCRAPER_EDGE_CONFIG_CONN_STRING`.
