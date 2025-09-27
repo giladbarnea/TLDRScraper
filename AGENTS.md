@@ -9,38 +9,40 @@
 
 ### Environment variables
 
-1. Your local env has the same env vars with the same values as production, only that Edge Config variable names are prefixed with `TLDR_SCRAPER_`.
-2. There is some redundancy in having both the full connection string env var and the parts that make as env vars. Use whatever is convenient.
+The single source of truth for what is available locally is the output of:
 
-**In your local environment:**
-
-- `TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING`
-  - Connection string to the Edge Config store.
-  - Format: `https://edge-config.vercel.com/<EDGE_CONFIG_ID>?token=<READ_TOKEN>`
-  - Use locally for read-only calls to fetch items directly from Edge Config.
-  - For local operarions on production. Unavailable in production.
-
-- `VERCEL_TOKEN`
-  - Vercel API token used for write operations via `api.vercel.com`.
-
-**In production:**
-
-1.	EDGE_CONFIG_CONNECTION_STRING
-2.	EDGE_CONFIG_READ_TOKEN
-3.	EDGE_CONFIG_ID
-4.	VERCEL_TOKEN
-
-- `EDGE_CONFIG_ID`: ecfg_...
-- `EDGE_CONFIG`: The connection string. Exactly like `TLDR_SCRAPER_EDGE_CONFIG_CONN_STRING`.
-
-Tips to extract parts from the connection string for local operations (bash):
 ```bash
-CONN="$TLDR_SCRAPER_EDGE_CONFIG_CONN_STRING"
-EDGE_CONFIG_ID=$(basename "${CONN%%\?*}")
-READ_TOKEN="${CONN##*token=}"
+env | grep -e EDGE -e TLDR -e TOKEN
 ```
 
-**Important: To avoid confusion, run `env|grep -e EDGE -e TLDR -e TOKEN -e API`.**
+Rules:
+
+- **Local:** Env vars are prefixed with `TLDR_SCRAPER_` (except `VERCEL_TOKEN`).
+- **Production:** Exactly the same variables but without the `TLDR_SCRAPER_` prefix (and `VERCEL_TOKEN` remains unprefixed).
+- **Redundancy is intentional:** Both the full connection string and the decomposed parts exist so you never need to parse the connection string unless you want to.
+
+Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_` locally):
+
+- `EDGE_CONFIG_CONNECTION_STRING`: Full read URL, e.g. `https://edge-config.vercel.com/<EDGE_CONFIG_ID>?token=<EDGE_CONFIG_READ_TOKEN>`
+- `EDGE_CONFIG_ID`: The `ecfg_...` identifier
+- `EDGE_CONFIG_READ_TOKEN`: Read token for Edge Config
+- `VERCEL_TOKEN`: Vercel API token used for write operations (unprefixed in all environments)
+ 
+
+Notes and examples:
+
+- If you prefer parts over the full URL, you can construct the read URL yourself without parsing:
+  ```bash
+  READ_BASE="https://edge-config.vercel.com/${TLDR_SCRAPER_EDGE_CONFIG_ID}?token=${TLDR_SCRAPER_EDGE_CONFIG_READ_TOKEN}"
+  ```
+- If you do want to parse an existing connection string:
+  ```bash
+  CONN="$TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING"
+  EDGE_CONFIG_ID=$(basename "${CONN%%\?*}")
+  EDGE_CONFIG_READ_TOKEN="${CONN##*token=}"
+  ```
+
+The code automatically looks for both the prefixed and unprefixed forms and also accepts either `EDGE_CONFIG` or `EDGE_CONFIG_CONNECTION_STRING` for the full URL. You don't need to set all variants—set whatever is convenient.
 
 ### Common tasks and examples
 
@@ -53,7 +55,7 @@ curl -s -H "Authorization: Bearer $READ_TOKEN" \
 - Write items (API token + team scope) — batch upsert/delete:
 ```bash
 curl -s -X PATCH \
-  "https://api.vercel.com/v1/edge-config/$EDGE_ID/items?teamId=$TEAM_ID" \
+  "https://api.vercel.com/v1/edge-config/$EDGE_ID/items" \
   -H "Authorization: Bearer $VERCEL_TOKEN" \
   -H "Content-Type: application/json" \
   --data-binary @ops.json

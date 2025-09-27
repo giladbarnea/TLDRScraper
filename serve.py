@@ -15,7 +15,7 @@ import time
 import os
 
 from blob_cache import is_cache_eligible, get_cached_json, put_cached_json, _get_token
-from edge_config import is_available as ec_available, get_last_write_status, get_last_write_body
+from edge_config import is_available as ec_available, get_last_write_status, get_last_write_body, get_effective_env_summary
 import urllib.parse as _urlparse
 import collections
 
@@ -396,8 +396,8 @@ def scrape_date_range(start_date, end_date):
     output = format_final_output(start_date, end_date, grouped_articles)
     
     # Edge config ID consistency check (read URL vs ID)
-    ec_url = os.environ.get('EDGE_CONFIG')
-    ec_id_env = os.environ.get('EDGE_CONFIG_ID')
+    ec_url = os.environ.get('EDGE_CONFIG_CONNECTION_STRING') or os.environ.get('TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING')
+    ec_id_env = os.environ.get('EDGE_CONFIG_ID') or os.environ.get('TLDR_SCRAPER_EDGE_CONFIG_ID')
     def _extract_id(u: str):
         try:
             p = _urlparse.urlparse(u)
@@ -420,9 +420,7 @@ def scrape_date_range(start_date, end_date):
             'cache_misses': misses,
             'cache_other': others,
             # Env and cache diagnostics
-            'edge_config_present': bool(os.environ.get('EDGE_CONFIG')),
-            'edge_config_id_present': bool(os.environ.get('EDGE_CONFIG_ID')),
-            'vercel_token_present': bool(os.environ.get('VERCEL_TOKEN')),
+            **get_effective_env_summary(),
             'edge_config_available': bool(ec_available()),
             'edge_id_match': bool(ec_id_from_url and ec_id_env and ec_id_from_url == ec_id_env),
             'edge_reads_attempted': EDGE_READ_ATTEMPTS,
