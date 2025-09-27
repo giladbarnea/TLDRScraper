@@ -32,7 +32,7 @@ def _resolve_env(*names: str) -> Optional[str]:
 def _get_read_base() -> Optional[str]:
     # Canonical env var for full read URL
     # Example: https://edge-config.vercel.com/ecfg_xxx?token=...
-    return _resolve_env("EDGE_CONFIG")
+    return _resolve_env("EDGE_CONFIG_CONNECTION_STRING")
 
 
 def _get_config_id() -> Optional[str]:
@@ -41,7 +41,8 @@ def _get_config_id() -> Optional[str]:
 
 def _get_vercel_token() -> Optional[str]:
     # Token for write operations via REST API
-    return _resolve_env("VERCEL_TOKEN")
+    # VERCEL_TOKEN is unprefixed uniformly in local and production
+    return os.environ.get("VERCEL_TOKEN")
 
 def _get_team_id() -> Optional[str]:
     return _resolve_env("VERCEL_TEAM_ID") or _resolve_env("VERCEL_ORG_ID")

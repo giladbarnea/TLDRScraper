@@ -396,7 +396,7 @@ def scrape_date_range(start_date, end_date):
     output = format_final_output(start_date, end_date, grouped_articles)
     
     # Edge config ID consistency check (read URL vs ID)
-    ec_url = os.environ.get('EDGE_CONFIG') or os.environ.get('TLDR_SCRAPER_EDGE_CONFIG')
+    ec_url = os.environ.get('EDGE_CONFIG_CONNECTION_STRING') or os.environ.get('TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING')
     ec_id_env = os.environ.get('EDGE_CONFIG_ID') or os.environ.get('TLDR_SCRAPER_EDGE_CONFIG_ID')
     def _extract_id(u: str):
         try:
