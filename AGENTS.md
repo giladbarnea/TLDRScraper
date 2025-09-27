@@ -23,7 +23,7 @@ Rules:
 
 Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_` locally):
 
-- `EDGE_CONFIG` or `EDGE_CONFIG_CONNECTION_STRING`: Full read URL, e.g. `https://edge-config.vercel.com/<EDGE_CONFIG_ID>?token=<EDGE_CONFIG_READ_TOKEN>`
+- `EDGE_CONFIG`, `EDGE_CONFIG_CONNECTION_STRING`, or `EDGE_CONFIG_CONN_STRING`: Full read URL, e.g. `https://edge-config.vercel.com/<EDGE_CONFIG_ID>?token=<EDGE_CONFIG_READ_TOKEN>`
 - `EDGE_CONFIG_ID`: The `ecfg_...` identifier
 - `EDGE_CONFIG_READ_TOKEN`: Read token for Edge Config
 - `VERCEL_TOKEN`: Vercel API token used for write operations
@@ -37,7 +37,7 @@ Notes and examples:
   ```
 - If you do want to parse an existing connection string:
   ```bash
-  CONN="$TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING"
+  CONN="${TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING:-$TLDR_SCRAPER_EDGE_CONFIG_CONN_STRING}"
   EDGE_CONFIG_ID=$(basename "${CONN%%\?*}")
   EDGE_CONFIG_READ_TOKEN="${CONN##*token=}"
   ```
