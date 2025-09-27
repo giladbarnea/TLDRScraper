@@ -1,5 +1,12 @@
 ## Agents Guide
 
+### Project overview (short)
+
+- Purpose: Daily TLDR newsletter scraping/curation with a tiny, fast cache.
+- Stack: Bash + curl, Node/uv-Python for scripting, Vercel Edge Config as the cache store.
+- Vercel: Project uses Edge Config `tldr-scraper-edge-config-store` under your team; reads via Edge Config connection string, writes via Vercel REST API.
+- Cache mechanism: Keys are `{YYYY-MM-DD}-{type}`; values contain only `{ articles: [ { title, url } ] }`. A cache hit should return in tens of milliseconds due to Edge Config’s global distribution and low-latency reads.
+
 ### Environment variables available
 
 - `TLDR_SCRAPER_EDGE_CONFIG_CONN_STRING`
