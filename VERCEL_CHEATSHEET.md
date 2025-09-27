@@ -9,8 +9,8 @@
 
 - Edge Config write via Vercel REST API
   - Base: `https://api.vercel.com/v1/edge-config`
-  - The write endpoint that worked: `PATCH /v1/edge-config/{EDGE_ID}/items?teamId={TEAM_ID}`
-  - Auth: header `Authorization: Bearer <VERCEL_TOKEN>` (account or team scope)
+  - The write endpoint: `PATCH /v1/edge-config/{EDGE_ID}/items`
+  - Auth: header `Authorization: Bearer <VERCEL_TOKEN>`
   - Payload shape that actually succeeded:
     ```json
     {
@@ -22,7 +22,7 @@
     ```
   - Common gotcha: using `op` instead of `operation` yields 400 with message about missing `operation`.
   - Another gotcha: wrong HTTP method or path. `POST /v1/edge-config/{id}/items` returned 404. Use `PATCH`.
-  - Team scope sometimes required. If your Edge Config belongs to a team, add `?teamId=<TEAM_ID>`.
+  
 
 - Discovering account + team + configs
   - Current user: `GET https://api.vercel.com/v2/user` (shows `defaultTeamId`).
@@ -38,7 +38,7 @@
 - Write items (batch upsert/delete) via API token and team scope:
   ```bash
   curl -s -X PATCH \
-    "https://api.vercel.com/v1/edge-config/$EDGE_ID/items?teamId=$TEAM_ID" \
+    "https://api.vercel.com/v1/edge-config/$EDGE_ID/items" \
     -H "Authorization: Bearer $VERCEL_TOKEN" \
     -H "Content-Type: application/json" \
     --data-binary @ops.json
@@ -47,7 +47,7 @@
 - List configs to confirm ownership/scope:
   ```bash
   curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
-    "https://api.vercel.com/v1/edge-config?teamId=$TEAM_ID" | jq .
+    "https://api.vercel.com/v1/edge-config" | jq .
   ```
 
 ### Data modeling tips we implemented
@@ -62,7 +62,7 @@
 
 #### 1) Using the wrong auth/host for reads vs writes
 - Reads use the Edge Config connection string host `edge-config.vercel.com` with the `token` from the connection string.
-- Writes use the Vercel REST API host `api.vercel.com` with the `VERCEL_TOKEN` (and often `teamId`).
+- Writes use the Vercel REST API host `api.vercel.com` with the `VERCEL_TOKEN`.
 
 #### 2) Wrong HTTP method/path for mutations
 - `POST /v1/edge-config/{id}/items` returned 404.
@@ -72,8 +72,8 @@
 - `{"items":[{"op":"upsert", ...}]}` failed with 400. It requires `operation` instead of `op`.
 - Working shape is `{"items":[{"operation":"upsert", ...},{"operation":"delete",...}]}`.
 
-#### 4) Missing team scope
-- If the Edge Config belongs to a team, you must include `?teamId=<TEAM_ID>` or the request may fail or operate in the wrong scope.
+#### 4) 
+ 
 
 #### 5) Mixing redundant fields in values
 - Storing `newsletter_type`, `date`, `category`, `status` bloated values and caused inconsistencies. We standardized on deriving type/date from the key and omitting `status` entirely.
@@ -82,7 +82,7 @@
 
 - Extract `EDGE_ID` and `READ_TOKEN` from connection string:
   ```bash
-  CONN="$TLDR_SCRAPER_EDGE_CONFIG_CONN_STRING"
+  CONN="$TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING"
   EDGE_ID=$(basename "${CONN%%\?*}")
   READ_TOKEN="${CONN##*token=}"
   ```
