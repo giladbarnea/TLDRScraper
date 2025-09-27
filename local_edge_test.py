@@ -1,6 +1,6 @@
 import os
 import time
-from edge_config import set_json, get_json, _get_config_id as get_id
+from edge_config import set_json, get_json
 
 
 def main():
