@@ -30,9 +30,9 @@ def _resolve_env(*names: str) -> Optional[str]:
 
 
 def _get_read_base() -> Optional[str]:
-    # Accept multiple aliases for the full read URL
+    # Canonical env var for full read URL
     # Example: https://edge-config.vercel.com/ecfg_xxx?token=...
-    return _resolve_env("EDGE_CONFIG", "EDGE_CONFIG_CONNECTION_STRING", "EDGE_CONFIG_CONN_STRING")
+    return _resolve_env("EDGE_CONFIG")
 
 
 def _get_config_id() -> Optional[str]:
