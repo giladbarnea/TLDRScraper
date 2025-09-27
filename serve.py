@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 import time
 import os
 
-from blob_cache import is_cache_eligible, get_cached_json, put_cached_json, _get_token
+from edge_config_cache import get_cached_json, put_cached_json
 from edge_config import is_available as ec_available, get_last_write_status, get_last_write_body, get_effective_env_summary
 import urllib.parse as _urlparse
 import collections
@@ -24,6 +24,7 @@ logging.basicConfig(level=os.environ.get('LOG_LEVEL', 'INFO'))
 logger = logging.getLogger("serve")
 md = MarkItDown()
 LOGS = collections.deque(maxlen=200)
+
 def _log(msg):
     try:
         LOGS.append(msg)
