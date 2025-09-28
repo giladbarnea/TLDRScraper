@@ -12,7 +12,7 @@
 The single source of truth for what is available locally is the output of:
 
 ```bash
-env | grep -e EDGE -e TLDR -e TOKEN -e API
+env | grep -e EDGE -e BLOB -e TLDR -e TOKEN -e API
 ```
 
 Rules:
@@ -27,38 +27,32 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 - `EDGE_CONFIG_ID`: The `ecfg_...` identifier
 - `EDGE_CONFIG_READ_TOKEN`: Read token for Edge Config
 - `VERCEL_TOKEN`: Vercel API token used for write operations (unprefixed in all environments)
-- `OPENAI_API_TOKEN`: Self explanatory.
-- `BLOB_STORE_PREFIX`
-- `BLOB_READ_WRITE_TOKEN`
-- `GITHUB_API_TOKEN`
-
-Notes and examples:
-
-- If you prefer parts over the full URL, you can construct the read URL yourself without parsing:
-  ```bash
-  READ_BASE="https://edge-config.vercel.com/${TLDR_SCRAPER_EDGE_CONFIG_ID}?token=${TLDR_SCRAPER_EDGE_CONFIG_READ_TOKEN}"
-  ```
-
-The code automatically looks (or at least _should_ automatically look) for both the prefixed and unprefixed forms.
+- `OPENAI_API_TOKEN`: `sk-...`
+- `BLOB_STORE_PREFIX`: Simply 'tldr-scraper-blob'.
+- `BLOB_READ_WRITE_TOKEN`: `vercel_blob_rw_...`
+- `GITHUB_API_TOKEN`: `github_pat_...`
 
 ### Common tasks and examples
 
 - Read all items (read token):
 ```bash
-curl -s -H "Authorization: Bearer $READ_TOKEN" \
-  "https://edge-config.vercel.com/$EDGE_ID/items" | jq -S .
+ec_conn_string="${EDGE_CONFIG_CONNECTION_STRING:-TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING}"
+ec_id="${EDGE_CONFIG_ID:-TLDR_SCRAPER_EDGE_CONFIG_ID}"
+curl -s -H "Authorization: Bearer $ec_conn_string" \
+  "https://edge-config.vercel.com/$ec_id/items" | jq -S .
 ```
 
 - Write items (API token + team scope) — batch upsert/delete:
 ```bash
+ec_id="${EDGE_CONFIG_ID:-TLDR_SCRAPER_EDGE_CONFIG_ID}"
 curl -s -X PATCH \
-  "https://api.vercel.com/v1/edge-config/$EDGE_ID/items" \
+  "https://api.vercel.com/v1/edge-config/$ec_id/items" \
   -H "Authorization: Bearer $VERCEL_TOKEN" \
   -H "Content-Type: application/json" \
   --data-binary @ops.json
 ```
 
-- Payload shape for writes (works):
+- Payload shape for writes:
 ```json
 {
   "items": [
