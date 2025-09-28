@@ -149,7 +149,7 @@ def main() -> None:
         print("ERROR: --before must be a reasonable epoch timestamp in seconds", file=sys.stderr)
         sys.exit(2)
 
-    conn_string = get_env_or_exit("TLDR_SCRAPER_EDGE_CONFIG_CONN_STRING")
+    conn_string = os.getenv("EDGE_CONFIG_CONNECTION_STRING") or os.getenv("TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING")
     api_token = get_env_or_exit("VERCEL_TOKEN")
     edge_id, read_token = extract_edge_id_and_token(conn_string)
 
