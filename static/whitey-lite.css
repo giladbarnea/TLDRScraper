@@ -1,54 +1,48 @@
 /* =======================================================
-   Whitey-Lite (Light) — Scoped to #write
+   Whitey (Light) — scoped to #write
+   - Desktop defaults faithfully mirror Typora Whitey (light)
+   - Mobile refinements kick in at a type-relative breakpoint
    - No Typora-specific DOM required
-   - Preserves Whitey’s look; mobile-optimized
-   - Elements covered: headings, paragraphs, links, lists,
-     blockquotes, hr — all INSIDE #write only.
    ======================================================= */
 
 :root{
-  /* Whitey tokens */
-  --whitey-bg: #fefefe;
+  /* Tokens consistent with Whitey (light) */
   --whitey-text: #333;
   --whitey-link: #2484c1;
   --whitey-divider: #2f2f2f;
   --whitey-rule: #ddd;
 
-  /* Type & rhythm */
-  --whitey-base-size: 19px;     /* desktop body size */
-  --whitey-lh: 1.4;             /* desktop line height */
-  --whitey-lh-read: 1.6;        /* mobile reading line height */
-
-  /* Spacing scale (tied to type) */
+  /* Rhythm + spacing (used in mobile overrides) */
   --whitey-s-1: 0.5rem;
   --whitey-s-2: 1rem;
   --whitey-s-3: 1.5rem;
   --whitey-s-4: 2.5rem;
-
-  /* Reading measure (desktop) */
-  --whitey-measure: 65ch;       /* ~60–75 chars per line */
 }
 
-/* Container: centered reading column with Whitey typeface */
+/* ===== Desktop defaults (faithful to Whitey) ===== */
+
 #write{
-  max-width: var(--whitey-measure);
-  margin: 0 auto var(--whitey-s-2);
+  /* Whitey desktop size */
+  font-size: 19px;
+
+  max-width: 960px;
+  margin: 0 auto 2em;
   padding-top: 40px;
-  padding-left: var(--whitey-s-2);
-  padding-right: var(--whitey-s-2);
-  line-height: 1.53; /* Whitey vibe */
-  background: transparent;
+  padding-left: 1rem;
+  padding-right: 1rem;
+
   color: var(--whitey-text);
   font-family: "Vollkorn", Palatino, Times;
-  /* Ensure the reading surface doesn't inherit app chrome justify settings */
-  text-align: initial;
+  line-height: 1.53;      /* matches Typora Whitey’s reading rhythm */
+  text-align: justify;
+  background: transparent;
 }
 
-@media (min-width: 1400px){
+@media only screen and (min-width: 1400px){
   #write{ max-width: 1100px; }
 }
 
-/* Typography inside the reading surface */
+/* Headings */
 #write h1, #write h2, #write h3{
   text-align: center;
   font-weight: normal;
@@ -57,7 +51,9 @@
 #write h1{ margin-top: 1.6em; font-size: 3em; }
 #write h2{ margin-top: 2em; }
 #write h3{ margin-top: 3em; font-style: italic; }
-#write h1 + h2, 
+
+/* Tighten adjacency as in Whitey */
+#write h1 + h2,
 #write h2 + h3{ margin-top: 0.83em; }
 
 /* Whitey’s subtle divider under h2 */
@@ -70,22 +66,30 @@
   height: 1px;
 }
 
-/* Text and lists */
+/* Paragraphs & text */
 #write p{
   margin-top: 0;
+  -webkit-hyphens: auto;
+  -moz-hyphens: auto;
   hyphens: auto;
 }
 #write em, #write i{ font-style: italic; }
 #write strong, #write b{ font-weight: bold; }
-#write ul{ list-style: square; padding-left: 1.2em; }
-#write ol{ padding-left: 1.2em; }
+
+/* Lists */
+#write ul{
+  list-style: square;
+  padding-left: 1.2em;
+}
+#write ol{
+  padding-left: 1.2em;
+}
 
 /* Blockquotes */
 #write blockquote{
-  margin: 1em 0;
+  margin-left: 1em;
   padding-left: 1em;
   border-left: 1px solid var(--whitey-rule);
-  color: inherit;
 }
 
 /* Links */
@@ -104,14 +108,21 @@
   border-bottom: 0; border-left: 0; border-right: 0;
 }
 
-/* Print: match Whitey’s 13px print size and serif face */
+/* Print mirrors Typora’s smaller size */
 @media print{
-  #write{ font-size: 13px; font-family: "Vollkorn", Palatino, Times; }
+  #write{ font-size: 13px; }
 }
 
-/* Mobile: type-relative breakpoint for comfortable reading */
+/* ===== Mobile refinements (content-driven) ===== */
+/* Kick in when width is tight. Keep #write scoped so app chrome stays untouched. */
 @media (max-width: 42em){
-  #write{ line-height: var(--whitey-lh-read); }
+  /* Slightly smaller body size and a touch more line-height for phone reading */
+  #write{
+    font-size: clamp(16px, 0.95rem + 0.6vw, 18px);
+    line-height: 1.6;
+    padding-left: var(--whitey-s-2);
+    padding-right: var(--whitey-s-2);
+  }
 
   #write h1{
     font-size: clamp(2rem, 7vw, 2.6rem);
@@ -130,7 +141,7 @@
   }
   #write h2::after{ width: 64px; }
 
-  /* Normalize paragraph/list rhythm on small screens */
+  /* Normalize rhythm on small screens */
   #write p, 
   #write ul, 
   #write ol, 
