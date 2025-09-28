@@ -24,6 +24,7 @@ from edge_config import (
     get_last_write_body,
     get_effective_env_summary,
 )
+from blob_store import normalize_url_to_pathname, put_markdown
 import urllib.parse as _urlparse
 import collections
 
@@ -508,6 +509,23 @@ def summarize_url_endpoint():
             }), 502
         html = r.text
         page_md = _convert_html_to_markdown(html) or ""
+
+        # Persist cleaned Markdown to Vercel Blob with deterministic pathname.
+        blob_url = None
+        blob_pathname = None
+        try:
+            blob_pathname = normalize_url_to_pathname(
+                target_url,
+                os.getenv("BLOB_STORE_PREFIX", os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob")),
+            )
+            blob_url = put_markdown(blob_pathname, page_md)
+        except Exception as e:
+            _log(
+                "[serve.summarize_url_endpoint] blob upload failed url=%s error=%s",
+                target_url,
+                repr(e),
+                level=logging.WARNING,
+            )
         # Ensure prompt present
         global SUMMARIZE_PROMPT_TEMPLATE
         if not SUMMARIZE_PROMPT_TEMPLATE:
@@ -524,7 +542,15 @@ def summarize_url_endpoint():
         prompt_template = SUMMARIZE_PROMPT_TEMPLATE or ""
         full_prompt = _insert_page_markdown_into_prompt(prompt_template, page_md)
         summary_text = _call_openai_responses_api(full_prompt)
-        return jsonify({"success": True, "summary_markdown": summary_text})
+        resp_payload = {
+            "success": True,
+            "summary_markdown": summary_text,
+            "blob_url": blob_url,
+            "blob_pathname": blob_pathname,
+        }
+        if blob_url is None:
+            resp_payload["upload_error"] = "blob upload failed or URL unavailable"
+        return jsonify(resp_payload)
     except requests.RequestException as e:
         _log(
             "[serve.summarize_url_endpoint] request error url=%s",
