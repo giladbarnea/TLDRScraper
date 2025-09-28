@@ -5,10 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TLDR Newsletter Scraper</title>
     <meta name="color-scheme" content="light">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown-light.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <!-- Whitey-Lite reading surface -->
+    <link rel="stylesheet" href="/static/whitey-lite.css">
+
+    <!-- Vollkorn (optional; matches Whitey) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
         :root {
             --bg: #f6f7f9;
@@ -20,7 +25,8 @@
             --radius: 10px;
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10);
         }
-        
+
+        /* App chrome (form, container, etc.) stays system-ui; Whitey styles are scoped to #write */
         body {
             font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
             max-width: 1000px;
@@ -122,109 +128,29 @@
             width: 0%;
             transition: width 0.3s ease;
         }
+
+        /* Result container (we'll inject stats + <main id="write">...</main>) */
         #result {
-			margin-top: 20px;
-			padding: 0;
-			background-color: transparent;
-			border-radius: 0;
-			line-height: 1.7;
-			display: none;
-			border: none;
+            margin-top: 20px;
+            padding: 0;
+            background-color: transparent;
+            border-radius: 0;
+            display: none;
+            border: none;
         }
-        .markdown-body {
-            box-sizing: border-box;
-            min-width: 200px;
-            max-width: 72ch;
-            margin: 0 auto;
-            padding: 16px 16px 24px;
-            color: var(--text);
-            font-family: 'Vollkorn', ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-            font-size: 17px;
-            line-height: 1.75;
-            text-wrap: pretty;
-            hyphens: auto;
-            -webkit-hyphens: auto;
-            word-break: normal;
-        }
-        .markdown-body p { margin: 0 0 0.9em; }
-        .markdown-body p + p { margin-top: 0.9em; }
-        .markdown-body h1,
-        .markdown-body h2,
-        .markdown-body h3,
-        .markdown-body h4,
-        .markdown-body h5,
-        .markdown-body h6 {
-            color: var(--text);
-            margin: 1.4em 0 0.6em;
-            line-height: 1.25;
-            text-wrap: balance;
-        }
-        .markdown-body h1 { font-size: 1.6rem; letter-spacing: -0.01em; }
-        .markdown-body h2 { font-size: 1.35rem; letter-spacing: -0.008em; }
-        .markdown-body h3 { font-size: 1.2rem; letter-spacing: -0.005em; }
-        .markdown-body h4 { font-size: 1.05rem; }
-        .markdown-body h5 { font-size: 1rem; }
-        .markdown-body h6 { font-size: 0.95rem; color: var(--muted); }
-        .markdown-body ul,
-        .markdown-body ol { margin: 0.8em 0 1em; padding-left: 1.25em; }
-        .markdown-body li { margin: 0.25em 0; }
-        .markdown-body a {
-            color: var(--link);
-            text-decoration: underline;
-            text-decoration-thickness: 1.5px;
-            text-underline-offset: 2px;
-            text-decoration-skip-ink: auto;
-        }
-        .markdown-body a:hover { opacity: 0.9; }
-        .markdown-body code {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-            font-size: 0.95em;
-        }
-        .markdown-body pre {
-            overflow: auto;
-            padding: 12px;
-            border-radius: 8px;
-            background: rgba(15, 23, 42, 0.04);
-            border: 1px solid var(--border);
-        }
-        .markdown-body blockquote {
-            margin: 1em 0;
-            padding-left: 1em;
-            border-left: 3px solid var(--border);
-            color: var(--muted);
-        }
-        .markdown-body img, .markdown-body video {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-        }
-        .markdown-body hr {
-            border: 0;
-            border-top: 1px solid var(--border);
-            margin: 1.5em 0;
-        }
-        @media (max-width: 480px) {
-            body { padding: 12px; }
-            .container { padding: 12px; }
-            .form-group { width: 100%; margin-right: 0; }
-            .markdown-body { padding: 12px; font-size: 17px; }
-        }
-        @media (min-width: 480px) {
-            .markdown-body { font-size: 18px; padding: 16px 20px 28px; }
-            .markdown-body h1 { font-size: 1.8rem; }
-            .markdown-body h2 { font-size: 1.5rem; }
-            .markdown-body h3 { font-size: 1.3rem; }
-        }
+
         .error {
             background-color: #f8d7da;
             border: 1px solid #f5c6cb;
             color: #721c24;
+            padding: 10px 12px;
+            border-radius: 6px;
         }
-		.success {
-			background-color: transparent;
-			border: 0;
-			color: var(--text);
-		}
+        .success {
+            background-color: transparent;
+            border: 0;
+            color: var(--text);
+        }
         .stats {
             background-color: #fff3cd;
             border: 1px solid #ffeaa7;
@@ -234,45 +160,51 @@
             border-radius: 4px;
         }
 
-		/* Flat, inline expansion under links without nested container styling */
-		.inline-summary {
-			margin-top: 8px;
-			padding-top: 8px;
-			border-top: 1px dashed var(--border);
-			font-size: 0.96em;
-			line-height: 1.7;
-		}
-        
+        /* Flat, inline expansion under links without nested container styling */
+        .inline-summary {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border);
+            font-size: 0.96em;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 12px; }
+            .container { padding: 12px; }
+            .form-group { width: 100%; margin-right: 0; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>TLDR Newsletter Scraper</h1>
-        
+
         <form id="scrapeForm">
             <div class="form-group">
                 <label for="start_date">Start Date:</label>
                 <input type="date" id="start_date" name="start_date" required>
             </div>
-            
+
             <div class="form-group">
                 <label for="end_date">End Date:</label>
                 <input type="date" id="end_date" name="end_date" required>
             </div>
-            
+
             <button type="submit" id="scrapeBtn">Scrape TLDR Newsletters</button>
         </form>
-        
+
         <div id="progress" class="progress">
             <div id="progress-text">Initializing...</div>
             <div class="progress-bar">
                 <div id="progress-fill" class="progress-fill"></div>
             </div>
         </div>
-        
+
         <div id="result"></div>
     </div>
 
+    <!-- Client-side MD→HTML + sanitization for dynamic results -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
     <script>
@@ -281,7 +213,7 @@
             const today = new Date();
             const weekAgo = new Date(today);
             weekAgo.setDate(today.getDate() - 7);
-            
+
             document.getElementById('end_date').value = today.toISOString().split('T')[0];
             document.getElementById('start_date').value = weekAgo.toISOString().split('T')[0];
         }
@@ -289,25 +221,25 @@
         // Form submission handler - use backend API
         document.getElementById('scrapeForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
-            
+
             const button = document.getElementById('scrapeBtn');
             const progress = document.getElementById('progress');
             const result = document.getElementById('result');
-            
+
             // Validate dates
             const start = new Date(startDate);
             const end = new Date(endDate);
-            
+
             if (start > end) {
                 result.style.display = 'block';
                 result.className = 'error';
                 result.textContent = 'Start date must be before or equal to end date.';
                 return;
             }
-            
+
             // Check if date range exceeds 31 days (inclusive)
             const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
             if (daysDiff >= 31) {
@@ -316,37 +248,29 @@
                 result.textContent = 'Date range cannot exceed 31 days. Please select a smaller range.';
                 return;
             }
-            
+
             // Show progress, hide previous results
             button.disabled = true;
             progress.style.display = 'block';
             result.style.display = 'none';
-            
+
             document.getElementById('progress-text').textContent = 'Scraping newsletters... This may take several minutes.';
             document.getElementById('progress-fill').style.width = '50%';
-            
+
             try {
                 const response = await fetch('/api/scrape', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        start_date: startDate,
-                        end_date: endDate
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ start_date: startDate, end_date: endDate })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
-                    // Show results
-                    result.style.display = 'block';
-                    result.className = 'success';
-                    
+                    // Prepare stats block
                     const statsHtml = `<div class="stats">
-                        📊 Stats: ${data.stats.total_articles} articles found, 
-                        ${data.stats.unique_urls} unique URLs, 
+                        📊 Stats: ${data.stats.total_articles} articles found,
+                        ${data.stats.unique_urls} unique URLs,
                         ${data.stats.dates_with_content}/${data.stats.dates_processed} dates had content<br>
                         🧠 Cache: hits=${data.stats.cache_hits ?? 0}, misses=${data.stats.cache_misses ?? 0}, other=${data.stats.cache_other ?? 0}<br>
                         ⚙️ EDGE_CONFIG present: ${data.stats.edge_config_present ? 'true' : 'false'}, available: ${data.stats.edge_config_available ? 'true' : 'false'}<br>
@@ -355,35 +279,52 @@
                         📥 Reads: ${data.stats.edge_reads_hit}/${data.stats.edge_reads_attempted} hit<br>
                         📤 Writes: ${data.stats.edge_writes_success}/${data.stats.edge_writes_attempted} ok
                     </div>`;
-                    
+
+                    // Render Markdown → HTML then sanitize
                     const html = DOMPurify.sanitize(marked.parse(data.output));
-                    let logsHtml = '';
+
+                    // Inject a slot for logs (we will append DOM nodes to avoid unsafe innerHTML from logs)
+                    const whiteySurface = `<main id="write"><article>${html}</article></main>`;
+                    result.innerHTML = statsHtml + '<div id="logs-slot"></div>' + whiteySurface;
+
+                    // Safely append logs as text (no HTML interpretation)
                     try {
                         if (Array.isArray(data.stats.debug_logs) && data.stats.debug_logs.length) {
-                            logsHtml = '<details><summary>Debug logs</summary><pre style="white-space:pre-wrap">' +
-                                data.stats.debug_logs.map(l => String(l)).join('\n') + '</pre></details>';
+                            const slot = document.getElementById('logs-slot');
+                            const details = document.createElement('details');
+                            const summary = document.createElement('summary');
+                            summary.textContent = 'Debug logs';
+                            const pre = document.createElement('pre');
+                            pre.style.whiteSpace = 'pre-wrap';
+                            pre.textContent = data.stats.debug_logs.map(l => String(l)).join('\n');
+                            details.appendChild(summary);
+                            details.appendChild(pre);
+                            slot.appendChild(details);
                         }
-                    } catch (e) {}
-                    result.innerHTML = statsHtml + logsHtml + '<article class="markdown-body">' + html + '</article>';
+                    } catch (_) {}
+
                     // Open links in new tabs safely
-                    result.querySelectorAll('.markdown-body a[href]').forEach(function(a) {
+                    result.querySelectorAll('#write a[href]').forEach(function(a) {
                         a.setAttribute('target', '_blank');
                         a.setAttribute('rel', 'noopener noreferrer');
                     });
-            document.getElementById('progress-fill').style.width = '100%';
+
+                    result.style.display = 'block';
+                    result.className = 'success';
+                    document.getElementById('progress-fill').style.width = '100%';
                 } else {
                     result.style.display = 'block';
                     result.className = 'error';
                     result.textContent = 'Error: ' + data.error;
                 }
-                
+
             } catch (error) {
                 result.style.display = 'block';
                 result.className = 'error';
                 result.textContent = 'Network error: ' + error.message;
                 console.error('Scraping error:', error);
             }
-            
+
             // Hide progress, re-enable button
             progress.style.display = 'none';
             button.disabled = false;
@@ -392,13 +333,15 @@
         // Initialize default dates on page load
         setDefaultDates();
 
-        // Intercept link clicks inside the result markdown to expand inline summaries
+        // Intercept link clicks inside the result reading surface to expand inline summaries
         document.addEventListener('click', async function(e) {
             const a = e.target.closest('a[href]');
             if (!a) return;
-            // Only intercept links inside the rendered results
-            const withinResult = document.getElementById('result').contains(a);
-            if (!withinResult) return;
+
+            // Only intercept links inside the rendered reading surface
+            const write = document.getElementById('write');
+            if (!write || !write.contains(a)) return;
+
             const href = a.getAttribute('href');
             if (!href || href.startsWith('#')) return;
             e.preventDefault();
@@ -410,10 +353,10 @@
                 return;
             }
 
-			// Create inline summary under the link, flat styling (no nested container)
-			expander = document.createElement('div');
-			expander.className = 'inline-summary';
-			expander.textContent = 'Summarizing...';
+            // Create inline summary under the link, flat styling (no nested container)
+            expander = document.createElement('div');
+            expander.className = 'inline-summary';
+            expander.textContent = 'Summarizing...';
             a.insertAdjacentElement('afterend', expander);
 
             try {
@@ -426,6 +369,11 @@
                 if (data.success) {
                     const html = DOMPurify.sanitize(marked.parse(data.summary_markdown || ''));
                     expander.innerHTML = '<strong>Summary</strong>\n\n' + html;
+                    // Make links inside the inline summary safe/tabbed
+                    expander.querySelectorAll('a[href]').forEach(function(a) {
+                        a.setAttribute('target', '_blank');
+                        a.setAttribute('rel', 'noopener noreferrer');
+                    });
                 } else {
                     expander.classList.add('error');
                     expander.textContent = 'Error: ' + (data.error || 'Failed to summarize');
@@ -438,4 +386,3 @@
     </script>
 </body>
 </html>
-<!-- deploy: trigger noop 2 -->
