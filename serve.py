@@ -487,6 +487,33 @@ def summarize_url_endpoint():
                 level=logging.ERROR,
             )
             return jsonify({"success": False, "error": "Invalid or missing url"}), 400
+		# Read-first: if a prior summary blob exists, return it immediately
+		try:
+			_pfx = os.getenv("BLOB_STORE_PREFIX", os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"))
+			base_path = normalize_url_to_pathname(target_url, _pfx)
+			base = base_path[:-3] if base_path.endswith(".md") else base_path
+			summary_blob_pathname = f"{base}.summary.md"
+			store_id = os.getenv("BLOB_STORE_ID", os.getenv("TLDR_SCRAPER_BLOB_STORE_ID", "")).strip()
+			if store_id:
+				summary_blob_url = f"https://{store_id}.public.blob.vercel-storage.com/{summary_blob_pathname}"
+				resp = requests.get(summary_blob_url, timeout=10, headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"})
+				if resp.status_code == 200 and isinstance(resp.text, str) and resp.text.strip():
+					_log(
+						f"[serve.summarize_url_endpoint] summary cache HIT url={target_url} pathname={summary_blob_pathname}"
+					)
+					return jsonify({
+						"success": True,
+						"summary_markdown": resp.text,
+						"summary_blob_url": summary_blob_url,
+						"summary_blob_pathname": summary_blob_pathname,
+					})
+		except Exception as e:
+			_log(
+				"[serve.summarize_url_endpoint] summary cache read error url=%s error=%s",
+				target_url,
+				repr(e),
+				level=logging.WARNING,
+			)
         # Fetch page
         r = requests.get(
             target_url,
