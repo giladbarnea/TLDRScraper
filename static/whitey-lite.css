@@ -1,0 +1,138 @@
+/* =======================================================
+   Whitey-Lite (Light) — Scoped to #write
+   - No Typora-specific DOM required
+   - Preserves Whitey’s look; mobile-optimized
+   - Elements covered: headings, paragraphs, links, lists,
+     blockquotes, hr — all INSIDE #write only.
+   ======================================================= */
+
+:root{
+  /* Whitey tokens */
+  --whitey-bg: #fefefe;
+  --whitey-text: #333;
+  --whitey-link: #2484c1;
+  --whitey-divider: #2f2f2f;
+  --whitey-rule: #ddd;
+
+  /* Type & rhythm */
+  --whitey-base-size: 19px;     /* desktop body size */
+  --whitey-lh: 1.4;             /* desktop line height */
+  --whitey-lh-read: 1.6;        /* mobile reading line height */
+
+  /* Spacing scale (tied to type) */
+  --whitey-s-1: 0.5rem;
+  --whitey-s-2: 1rem;
+  --whitey-s-3: 1.5rem;
+  --whitey-s-4: 2.5rem;
+
+  /* Reading measure (desktop) */
+  --whitey-measure: 65ch;       /* ~60–75 chars per line */
+}
+
+/* Container: centered reading column with Whitey typeface */
+#write{
+  max-width: var(--whitey-measure);
+  margin: 0 auto var(--whitey-s-2);
+  padding-top: 40px;
+  padding-left: var(--whitey-s-2);
+  padding-right: var(--whitey-s-2);
+  line-height: 1.53; /* Whitey vibe */
+  background: transparent;
+  color: var(--whitey-text);
+  font-family: "Vollkorn", Palatino, Times;
+  /* Ensure the reading surface doesn't inherit app chrome justify settings */
+  text-align: initial;
+}
+
+@media (min-width: 1400px){
+  #write{ max-width: 1100px; }
+}
+
+/* Typography inside the reading surface */
+#write h1, #write h2, #write h3{
+  text-align: center;
+  font-weight: normal;
+  color: var(--whitey-text);
+}
+#write h1{ margin-top: 1.6em; font-size: 3em; }
+#write h2{ margin-top: 2em; }
+#write h3{ margin-top: 3em; font-style: italic; }
+#write h1 + h2, 
+#write h2 + h3{ margin-top: 0.83em; }
+
+/* Whitey’s subtle divider under h2 */
+#write h2::after{
+  border-bottom: 1px solid var(--whitey-divider);
+  content: '';
+  width: 100px;
+  display: block;
+  margin: 0.4em auto 0;
+  height: 1px;
+}
+
+/* Text and lists */
+#write p{
+  margin-top: 0;
+  hyphens: auto;
+}
+#write em, #write i{ font-style: italic; }
+#write strong, #write b{ font-weight: bold; }
+#write ul{ list-style: square; padding-left: 1.2em; }
+#write ol{ padding-left: 1.2em; }
+
+/* Blockquotes */
+#write blockquote{
+  margin: 1em 0;
+  padding-left: 1em;
+  border-left: 1px solid var(--whitey-rule);
+  color: inherit;
+}
+
+/* Links */
+#write a{
+  color: var(--whitey-link);
+  text-decoration: none;
+}
+#write a:hover{ text-decoration: underline; }
+
+/* Horizontal rules */
+#write hr{
+  color: var(--whitey-rule);
+  height: 1px;
+  margin: 2em 0;
+  border-top: solid 1px var(--whitey-rule);
+  border-bottom: 0; border-left: 0; border-right: 0;
+}
+
+/* Print: match Whitey’s 13px print size and serif face */
+@media print{
+  #write{ font-size: 13px; font-family: "Vollkorn", Palatino, Times; }
+}
+
+/* Mobile: type-relative breakpoint for comfortable reading */
+@media (max-width: 42em){
+  #write{ line-height: var(--whitey-lh-read); }
+
+  #write h1{
+    font-size: clamp(2rem, 7vw, 2.6rem);
+    line-height: 1.15;
+    margin: var(--whitey-s-4) 0 var(--whitey-s-2);
+  }
+  #write h2{
+    font-size: clamp(1.5rem, 5.5vw, 2rem);
+    line-height: 1.25;
+    margin: var(--whitey-s-4) 0 var(--whitey-s-1);
+  }
+  #write h3{
+    font-size: clamp(1.25rem, 4.5vw, 1.6rem);
+    line-height: 1.3;
+    margin: var(--whitey-s-3) 0 var(--whitey-s-1);
+  }
+  #write h2::after{ width: 64px; }
+
+  /* Normalize paragraph/list rhythm on small screens */
+  #write p, 
+  #write ul, 
+  #write ol, 
+  #write blockquote{ margin-bottom: var(--whitey-s-2); }
+}
