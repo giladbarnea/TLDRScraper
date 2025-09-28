@@ -29,7 +29,6 @@ LOGS = collections.deque(maxlen=200)
 
 # In-memory store for the summarization prompt template fetched from GitHub
 SUMMARIZE_PROMPT_TEMPLATE = None
-SUMMARIZE_PROMPT_LAST_FETCH_EPOCH = None
 
 def _log(msg):
     try:
@@ -82,30 +81,23 @@ def _fetch_summarize_prompt_from_github(owner: str = 'giladbarnea', repo: str = 
 
 def _background_fetch_prompt_once():
     """Background job that fetches the summarize prompt once and stores it in memory."""
-    global SUMMARIZE_PROMPT_TEMPLATE, SUMMARIZE_PROMPT_LAST_FETCH_EPOCH
+    global SUMMARIZE_PROMPT_TEMPLATE
+    # Idempotency: if already loaded, do nothing
+    if SUMMARIZE_PROMPT_TEMPLATE:
+        _log("[startup] summarize.md template already present, skipping fetch")
+        return
     try:
         prompt = _fetch_summarize_prompt_from_github()
         SUMMARIZE_PROMPT_TEMPLATE = prompt
-        SUMMARIZE_PROMPT_LAST_FETCH_EPOCH = int(time.time())
         _log("[startup] summarize.md template fetched and stored in memory")
     except Exception as e:
         logger.exception("[startup] Failed to fetch summarize.md: %s", e)
 
-
-def _maybe_start_background_fetch():
-    """Kick off a daemon thread to fetch the summarize prompt at startup."""
-    # Avoid duplicate startups in some hosting environments
-    if os.environ.get('DISABLE_BG_PROMPT_FETCH') == '1':
-        return
-    try:
-        t = threading.Thread(target=_background_fetch_prompt_once, daemon=True)
-        t.start()
-    except Exception:
-        logger.exception("[startup] Failed to start background prompt fetch thread")
-
-
 # Kick off the background fetch when the module is imported (server startup)
-_maybe_start_background_fetch()
+try:
+    threading.Thread(target=_background_fetch_prompt_once, daemon=True).start()
+except Exception:
+    logger.exception("[startup] Failed to start background prompt fetch thread")
 
 # Per-request run diagnostics (simple globals, reset at start of scrape)
 EDGE_READ_ATTEMPTS = 0
