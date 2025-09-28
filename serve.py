@@ -542,12 +542,37 @@ def summarize_url_endpoint():
         prompt_template = SUMMARIZE_PROMPT_TEMPLATE or ""
         full_prompt = _insert_page_markdown_into_prompt(prompt_template, page_md)
         summary_text = _call_openai_responses_api(full_prompt)
+        # Best-effort: persist the LLM-produced summary to Blob storage alongside the page markdown
+        summary_blob_url = None
+        summary_blob_pathname = None
+        try:
+            # Derive a deterministic summary pathname based on the page markdown pathname
+            if blob_pathname and isinstance(blob_pathname, str):
+                base = blob_pathname[:-3] if blob_pathname.endswith(".md") else blob_pathname
+                summary_blob_pathname = f"{base}.summary.md"
+            else:
+                # Fallback: recompute from URL
+                _pfx = os.getenv("BLOB_STORE_PREFIX", os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"))
+                _base_path = normalize_url_to_pathname(target_url, _pfx)
+                base = _base_path[:-3] if _base_path.endswith(".md") else _base_path
+                summary_blob_pathname = f"{base}.summary.md"
+            summary_blob_url = put_markdown(summary_blob_pathname, summary_text or "")
+        except Exception as e:
+            _log(
+                "[serve.summarize_url_endpoint] summary blob upload failed url=%s error=%s",
+                target_url,
+                repr(e),
+                level=logging.WARNING,
+            )
         resp_payload = {
             "success": True,
             "summary_markdown": summary_text,
             "blob_url": blob_url,
             "blob_pathname": blob_pathname,
         }
+        if summary_blob_url is not None:
+            resp_payload["summary_blob_url"] = summary_blob_url
+            resp_payload["summary_blob_pathname"] = summary_blob_pathname
         if blob_url is None:
             resp_payload["upload_error"] = "blob upload failed or URL unavailable"
         return jsonify(resp_payload)
