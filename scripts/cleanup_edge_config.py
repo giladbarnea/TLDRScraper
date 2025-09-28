@@ -41,10 +41,25 @@ VERCEL_API_HOST = "https://api.vercel.com"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Cleanup Edge Config keys older than an epoch timestamp.")
-    parser.add_argument("--before", required=True, type=int, help="Epoch timestamp (seconds). Delete keys with a date before this.")
-    parser.add_argument("--team-id", default=None, help="Vercel team id to scope write API calls (optional).")
-    parser.add_argument("--dry-run", action="store_true", help="Show what would be deleted without performing changes.")
+    parser = argparse.ArgumentParser(
+        description="Cleanup Edge Config keys older than an epoch timestamp."
+    )
+    parser.add_argument(
+        "--before",
+        required=True,
+        type=int,
+        help="Epoch timestamp (seconds). Delete keys with a date before this.",
+    )
+    parser.add_argument(
+        "--team-id",
+        default=None,
+        help="Vercel team id to scope write API calls (optional).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be deleted without performing changes.",
+    )
     return parser.parse_args()
 
 
@@ -70,7 +85,9 @@ def extract_edge_id_and_token(conn_string: str) -> Tuple[str, str]:
     return edge_id, read_token
 
 
-def http_json(method: str, url: str, headers: Dict[str, str], body: Optional[dict] = None) -> dict:
+def http_json(
+    method: str, url: str, headers: Dict[str, str], body: Optional[dict] = None
+) -> dict:
     data: Optional[bytes] = None
     req_headers = {"User-Agent": "edge-cleaner/1.0"}
     req_headers.update(headers or {})
@@ -127,7 +144,9 @@ def infer_team_id_if_needed(team_id: Optional[str], api_token: str) -> Optional[
         return None
 
 
-def delete_keys(edge_id: str, api_token: str, team_id: Optional[str], keys: List[str]) -> dict:
+def delete_keys(
+    edge_id: str, api_token: str, team_id: Optional[str], keys: List[str]
+) -> dict:
     if not keys:
         return {"status": "noop", "deleted": 0}
     url = f"{VERCEL_API_HOST}/v1/edge-config/{edge_id}/items"
@@ -146,10 +165,15 @@ def main() -> None:
     before_epoch = int(args.before)
     now_epoch = int(time.time())
     if before_epoch <= 0 or before_epoch > now_epoch + 365 * 24 * 3600:
-        print("ERROR: --before must be a reasonable epoch timestamp in seconds", file=sys.stderr)
+        print(
+            "ERROR: --before must be a reasonable epoch timestamp in seconds",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
-    conn_string = os.getenv("EDGE_CONFIG_CONNECTION_STRING") or os.getenv("TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING")
+    conn_string = os.getenv("EDGE_CONFIG_CONNECTION_STRING") or os.getenv(
+        "TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING"
+    )
     api_token = get_env_or_exit("VERCEL_TOKEN")
     edge_id, read_token = extract_edge_id_and_token(conn_string)
 
@@ -174,13 +198,18 @@ def main() -> None:
 
     candidate_deletes = sorted(set(candidate_deletes))
 
-    print(json.dumps({
-        "edge_id": edge_id,
-        "before_epoch": before_epoch,
-        "delete_count": len(candidate_deletes),
-        "keys_to_delete": candidate_deletes,
-        "skipped_non_matching": skipped_non_matching,
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "edge_id": edge_id,
+                "before_epoch": before_epoch,
+                "delete_count": len(candidate_deletes),
+                "keys_to_delete": candidate_deletes,
+                "skipped_non_matching": skipped_non_matching,
+            },
+            indent=2,
+        )
+    )
 
     if args.dry_run:
         return
@@ -192,4 +221,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
