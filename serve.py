@@ -103,6 +103,10 @@ def _maybe_start_background_fetch():
     except Exception:
         logger.exception("[startup] Failed to start background prompt fetch thread")
 
+
+# Kick off the background fetch when the module is imported (server startup)
+_maybe_start_background_fetch()
+
 # Per-request run diagnostics (simple globals, reset at start of scrape)
 EDGE_READ_ATTEMPTS = 0
 EDGE_READ_HITS = 0
