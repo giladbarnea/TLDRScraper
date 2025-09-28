@@ -267,17 +267,41 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Prepare stats block
+                    // Prepare stats block (enhanced but backward-compatible)
+                    const s = data.stats || {};
+                    const cov = (s.coverage || {});
+                    const yld = (s.yield || {});
+                    const disc = (yld.discard_breakdown || {});
+                    const lat = (s.latency_ms || {});
+                    const cats = (s.by_category || {});
+                    const catLine = Object.keys(cats).length
+                      ? 'By category: ' + Object.entries(cats).map(([k,v]) => `${k}=${v}`).join(', ') + '<br>'
+                      : '';
+
                     const statsHtml = `<div class="stats">
-                        📊 Stats: ${data.stats.total_articles} articles found,
-                        ${data.stats.unique_urls} unique URLs,
-                        ${data.stats.dates_with_content}/${data.stats.dates_processed} dates had content<br>
-                        🧠 Cache: hits=${data.stats.cache_hits ?? 0}, misses=${data.stats.cache_misses ?? 0}, other=${data.stats.cache_other ?? 0}<br>
-                        ⚙️ EDGE_CONFIG present: ${data.stats.edge_config_present ? 'true' : 'false'}, available: ${data.stats.edge_config_available ? 'true' : 'false'}<br>
-                        🆔 EDGE_CONFIG_ID present: ${data.stats.edge_config_id_present ? 'true' : 'false'} (id match: ${data.stats.edge_id_match ? 'true' : 'false'})<br>
-                        🔑 VERCEL_TOKEN present: ${data.stats.vercel_token_present ? 'true' : 'false'}<br>
-                        📥 Reads: ${data.stats.edge_reads_hit}/${data.stats.edge_reads_attempted} hit<br>
-                        📤 Writes: ${data.stats.edge_writes_success}/${data.stats.edge_writes_attempted} ok
+                      <strong>Coverage</strong>:
+                      issues ${cov.issues_fetched ?? 0}/${cov.issues_in_range ?? 0}
+                      (with articles: ${cov.issues_with_articles ?? 0})<br>
+                      <strong>Yield</strong>:
+                      kept ${yld.kept_after_dedup ?? s.unique_urls ?? 0}
+                      of ${yld.candidates_total ?? '—'}
+                      (dedup removed: ${yld.dedup_removed ?? 0})<br>
+                      <strong>Discards</strong>:
+                      non-http ${disc.non_http ?? 0},
+                      files ${disc.file_url ?? 0},
+                      title-spon ${disc.title_sponsored ?? 0},
+                      utm-spon ${disc.utm_sponsored ?? 0},
+                      no-category ${disc.no_category ?? 0}<br>
+                      <strong>Latency</strong>:
+                      fetch avg ${lat.fetch_avg_ms ?? '—'}ms (p95 ${lat.fetch_p95_ms ?? '—'}ms),
+                      total avg ${lat.total_avg_ms ?? '—'}ms (p95 ${lat.total_p95_ms ?? '—'}ms)<br>
+                      ${catLine}
+                      <details><summary>Runtime diagnostics</summary>
+                        Cache: hits=${s.cache_hits ?? 0}, misses=${s.cache_misses ?? 0}, other=${s.cache_other ?? 0}<br>
+                        EDGE_CONFIG available=${s.edge_config_available ? 'true' : 'false'}, id_match=${s.edge_id_match ? 'true' : 'false'}<br>
+                        Reads: ${s.edge_reads_hit ?? 0}/${s.edge_reads_attempted ?? 0} hit,
+                        Writes: ${s.edge_writes_success ?? 0}/${s.edge_writes_attempted ?? 0} ok
+                      </details>
                     </div>`;
 
                     // Render Markdown → HTML then sanitize

@@ -16,6 +16,7 @@ import os
 import threading
 import base64
 import json
+from statistics import mean
 
 from edge_config_cache import get_cached_json, put_cached_json
 from edge_config import is_available as ec_available, get_last_write_status, get_last_write_body, get_effective_env_summary
@@ -38,6 +39,20 @@ def _log(msg):
         pass
     logger.info(msg)
 
+
+def _percentile(values, p):
+    """Compute the pth percentile of a non-empty list (no numpy)."""
+    if not values:
+        return None
+    values = sorted(values)
+    k = (len(values) - 1) * (p / 100.0)
+    f = int(k)
+    c = min(f + 1, len(values) - 1)
+    if f == c:
+        return values[f]
+    d0 = values[f] * (c - k)
+    d1 = values[c] * (k - f)
+    return d0 + d1
 
 def _resolve_github_token() -> str:
     """Resolve a usable GitHub token from environment variables.
@@ -493,7 +508,8 @@ def fetch_newsletter(date, newsletter_type):
         return {
             'date': date,
             'newsletter_type': newsletter_type,
-            'articles': cached_articles
+            'articles': cached_articles,
+            'timings': None
         }
 
     try:
@@ -527,7 +543,13 @@ def fetch_newsletter(date, newsletter_type):
         result = {
             'date': date,
             'newsletter_type': newsletter_type,
-            'articles': articles
+            'articles': articles,
+            'timings': {
+                'fetch_ms': net_ms,
+                'convert_ms': convert_ms,
+                'parse_ms': parse_ms,
+                'total_ms': total_ms,
+            }
         }
 
         # Always write to Edge for fast repeats (per env rules handled in put_cached_json)
@@ -596,10 +618,18 @@ def scrape_date_range(start_date, end_date):
     url_set = set()  # For deduplication by canonical URL
     processed_count = 0
     total_count = len(dates) * len(newsletter_types)
-    # Diagnostics
+    # Diagnostics (existing)
     hits = 0
     misses = 0
     others = 0
+
+    # New aggregates
+    issues_fetched = 0
+    issues_with_articles = 0
+    dedup_removed = 0
+    by_category = collections.Counter()
+    per_issue_fetch_ms = []
+    per_issue_total_ms = []
     
     for date in dates:
         for newsletter_type in newsletter_types:
@@ -607,21 +637,33 @@ def scrape_date_range(start_date, end_date):
             print(f"Processing {newsletter_type} newsletter for {format_date_for_url(date)} ({processed_count}/{total_count})")
             
             result = fetch_newsletter(date, newsletter_type)
+            if result:
+                issues_fetched += 1
+                if result.get('timings'):
+                    if isinstance(result['timings'].get('fetch_ms'), int):
+                        per_issue_fetch_ms.append(result['timings']['fetch_ms'])
+                    if isinstance(result['timings'].get('total_ms'), int):
+                        per_issue_total_ms.append(result['timings']['total_ms'])
             if result and result['articles']:
                 # Deduplicate by canonical URL
+                issues_with_articles += 1
                 for article in result['articles']:
                     canonical_url = canonicalize_url(article['url'])
-                    if canonical_url not in url_set:
-                        url_set.add(canonical_url)
-                        all_articles.append(article)
-                        # Count source
-                        src = article.get('fetched_via')
-                        if src == 'hit':
-                            hits += 1
-                        elif src == 'miss':
-                            misses += 1
-                        else:
-                            others += 1
+                    if canonical_url in url_set:
+                        dedup_removed += 1
+                        continue
+                    url_set.add(canonical_url)
+                    all_articles.append(article)
+                    # Count source
+                    src = article.get('fetched_via')
+                    if src == 'hit':
+                        hits += 1
+                    elif src == 'miss':
+                        misses += 1
+                    else:
+                        others += 1
+                    # Category counts
+                    by_category[article.get('category')] += 1
             
             # Rate limiting - be respectful only when we actually fetched from network
             if result and any(a.get('fetched_via') == 'other' for a in (result.get('articles') or [])):
@@ -651,6 +693,31 @@ def scrape_date_range(start_date, end_date):
             return None
     ec_id_from_url = _extract_id(ec_url) if ec_url else None
 
+    # New, clearer stats geared toward precision/recall proxies
+    issues_in_range = total_count
+    kept_after_dedup = len(url_set)
+
+    latency_stats = {
+        'fetch_avg_ms': int(round(mean(per_issue_fetch_ms))) if per_issue_fetch_ms else None,
+        'fetch_p95_ms': int(round(_percentile(per_issue_fetch_ms, 95))) if per_issue_fetch_ms else None,
+        'total_avg_ms': int(round(mean(per_issue_total_ms))) if per_issue_total_ms else None,
+        'total_p95_ms': int(round(_percentile(per_issue_total_ms, 95))) if per_issue_total_ms else None,
+    }
+
+    new_stats = {
+        'coverage': {
+            'issues_in_range': issues_in_range,
+            'issues_fetched': issues_fetched,
+            'issues_with_articles': issues_with_articles,
+        },
+        'yield': {
+            'kept_after_dedup': kept_after_dedup,
+            'dedup_removed': dedup_removed,
+        },
+        'by_category': dict(by_category),
+        'latency_ms': latency_stats,
+    }
+
     return {
         'success': True,
         'output': output,
@@ -670,7 +737,10 @@ def scrape_date_range(start_date, end_date):
             'edge_reads_hit': EDGE_READ_HITS,
             'edge_writes_attempted': EDGE_WRITE_ATTEMPTS,
             'edge_writes_success': EDGE_WRITE_SUCCESS,
-            'debug_logs': list(LOGS)
+            'debug_logs': list(LOGS),
+
+            # New precision/recall oriented view (approx, additive)
+            **new_stats,
         }
     }
 
