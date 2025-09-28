@@ -133,13 +133,13 @@
             transition: width 0.3s ease;
         }
         #result {
-            margin-top: 20px;
-            padding: 0;
-            background-color: var(--surface);
-            border-radius: var(--radius);
-            line-height: 1.7;
-            display: none;
-            border: 1px solid var(--border);
+			margin-top: 20px;
+			padding: 0;
+			background-color: transparent;
+			border-radius: 0;
+			line-height: 1.7;
+			display: none;
+			border: none;
         }
         .markdown-body {
             box-sizing: border-box;
@@ -230,11 +230,11 @@
             border: 1px solid #f5c6cb;
             color: #721c24;
         }
-        .success {
-            background-color: #ffffff;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-        }
+		.success {
+			background-color: transparent;
+			border: 0;
+			color: var(--text);
+		}
         .stats {
             background-color: #fff3cd;
             border: 1px solid #ffeaa7;
@@ -243,6 +243,15 @@
             padding: 10px;
             border-radius: 4px;
         }
+
+		/* Flat, inline expansion under links without nested container styling */
+		.inline-summary {
+			margin-top: 8px;
+			padding-top: 8px;
+			border-top: 1px dashed var(--border);
+			font-size: 0.96em;
+			line-height: 1.7;
+		}
     </style>
 </head>
 <body>
@@ -410,13 +419,10 @@
                 return;
             }
 
-            // Create container under the link
-            expander = document.createElement('div');
-            expander.className = 'inline-summary markdown-body';
-            expander.style.marginTop = '8px';
-            expander.style.borderTop = '1px dashed var(--border)';
-            expander.style.paddingTop = '8px';
-            expander.textContent = 'Summarizing...';
+			// Create inline summary under the link, flat styling (no nested container)
+			expander = document.createElement('div');
+			expander.className = 'inline-summary';
+			expander.textContent = 'Summarizing...';
             a.insertAdjacentElement('afterend', expander);
 
             try {
