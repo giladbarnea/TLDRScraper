@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TLDR Newsletter Scraper</title>
     <meta name="color-scheme" content="light dark">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown-light.min.css" media="(prefers-color-scheme: light)">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown-dark.min.css" media="(prefers-color-scheme: dark)">
+    <link id="gh-md-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown-light.min.css" media="(prefers-color-scheme: light)">
+    <link id="gh-md-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown-dark.min.css" media="(prefers-color-scheme: dark)">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
@@ -30,6 +30,22 @@
                 --border: #1f2937;
                 --link: #8ab4f8;
             }
+        }
+        html[data-theme="light"] {
+            --bg: #f6f7f9;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --muted: #475569;
+            --border: #e5e7eb;
+            --link: #1a73e8;
+        }
+        html[data-theme="dark"] {
+            --bg: #0b0c0f;
+            --surface: #0f1115;
+            --text: #e5e7eb;
+            --muted: #9aa4b2;
+            --border: #1f2937;
+            --link: #8ab4f8;
         }
         body {
             font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
@@ -252,10 +268,39 @@
 			font-size: 0.96em;
 			line-height: 1.7;
 		}
+        .theme-controls {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .theme-controls label {
+            color: var(--muted);
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .theme-controls select {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 14px;
+            min-height: 36px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="theme-controls">
+            <label for="theme-select">Theme</label>
+            <select id="theme-select" aria-label="Theme">
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+        </div>
         <h1>TLDR Newsletter Scraper</h1>
         
         <form id="scrapeForm">
@@ -285,6 +330,61 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
     <script>
+        // Theme handling (System / Light / Dark)
+        (function() {
+            const storageKey = 'theme-preference';
+            const docEl = document.documentElement;
+            const lightLink = document.getElementById('gh-md-light');
+            const darkLink = document.getElementById('gh-md-dark');
+            const preferDarkMedia = window.matchMedia('(prefers-color-scheme: dark)');
+
+            function setMarkdownCssFor(mode) {
+                if (!lightLink || !darkLink) return;
+                if (mode === 'light') {
+                    lightLink.media = 'all';
+                    darkLink.media = 'not all';
+                } else if (mode === 'dark') {
+                    lightLink.media = 'not all';
+                    darkLink.media = 'all';
+                } else {
+                    lightLink.media = '(prefers-color-scheme: light)';
+                    darkLink.media = '(prefers-color-scheme: dark)';
+                }
+            }
+
+            function applyTheme(mode) {
+                if (mode === 'light') {
+                    docEl.setAttribute('data-theme', 'light');
+                } else if (mode === 'dark') {
+                    docEl.setAttribute('data-theme', 'dark');
+                } else {
+                    docEl.removeAttribute('data-theme');
+                }
+                setMarkdownCssFor(mode);
+            }
+
+            function initTheme() {
+                const select = document.getElementById('theme-select');
+                const stored = localStorage.getItem(storageKey) || 'system';
+                if (select) {
+                    select.value = stored;
+                    select.addEventListener('change', function() {
+                        const mode = this.value;
+                        localStorage.setItem(storageKey, mode);
+                        applyTheme(mode);
+                    });
+                }
+                applyTheme(stored);
+
+                preferDarkMedia.addEventListener('change', function() {
+                    const current = localStorage.getItem(storageKey) || 'system';
+                    if (current === 'system') applyTheme('system');
+                });
+            }
+
+            initTheme();
+        })();
+
         // Set default dates
         function setDefaultDates() {
             const today = new Date();
