@@ -13,6 +13,9 @@ import re
 from bs4 import BeautifulSoup
 import time
 import os
+import threading
+import base64
+import json
 
 from edge_config_cache import get_cached_json, put_cached_json
 from edge_config import is_available as ec_available, get_last_write_status, get_last_write_body, get_effective_env_summary
@@ -25,12 +28,77 @@ logger = logging.getLogger("serve")
 md = MarkItDown()
 LOGS = collections.deque(maxlen=200)
 
+# In-memory store for the summarization prompt template fetched from GitHub
+SUMMARIZE_PROMPT_TEMPLATE = None
+
 def _log(msg):
     try:
         LOGS.append(msg)
     except Exception:
         pass
     logger.info(msg)
+
+
+def _resolve_github_token() -> str:
+    """Resolve a usable GitHub token from environment variables.
+
+    Priority:
+    1) GITHUB_TOKEN (if it looks like a real token and not an indirection)
+    2) GITHUB_API_TOKEN
+    3) GH_TOKEN
+    """
+    token = os.environ.get('GITHUB_TOKEN')
+    # Common indirection pattern: GITHUB_TOKEN=GITHUB_API_TOKEN
+    if token and token != 'GITHUB_API_TOKEN' and not token.startswith('GITHUB_'):
+        return token
+    token = os.environ.get('GITHUB_API_TOKEN') or os.environ.get('GH_TOKEN')
+    return token or ''
+
+
+def _fetch_summarize_prompt_from_github(owner: str = 'giladbarnea', repo: str = 'llm-templates', path: str = 'text/summarize.md', ref: str = 'main') -> str:
+    """Fetch the summarize.md prompt via GitHub Contents API and return it as text."""
+    token = _resolve_github_token()
+    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={ref}"
+    headers = {
+        'Accept': 'application/vnd.github.v3.raw',
+        'User-Agent': 'tldr-scraper/1.0'
+    }
+    if token:
+        headers['Authorization'] = f"Bearer {token}"
+    resp = requests.get(url, headers=headers, timeout=20)
+    if resp.status_code == 200:
+        # v3.raw returns file content directly
+        return resp.text
+    # Fallback to JSON/base64 if server ignored Accept header
+    if resp.headers.get('Content-Type', '').startswith('application/json'):
+        try:
+            data = resp.json()
+            if isinstance(data, dict) and 'content' in data:
+                return base64.b64decode(data['content']).decode('utf-8', errors='replace')
+        except Exception:
+            pass
+    raise RuntimeError(f"Failed to fetch summarize.md from GitHub: {resp.status_code}")
+
+
+def _background_fetch_prompt_once():
+    """Background job that fetches the summarize prompt once and stores it in memory."""
+    global SUMMARIZE_PROMPT_TEMPLATE
+    # Idempotency: if already loaded, do nothing
+    if SUMMARIZE_PROMPT_TEMPLATE:
+        _log("[startup] summarize.md template already present, skipping fetch")
+        return
+    try:
+        prompt = _fetch_summarize_prompt_from_github()
+        SUMMARIZE_PROMPT_TEMPLATE = prompt
+        _log("[startup] summarize.md template fetched and stored in memory")
+    except Exception as e:
+        logger.exception("[startup] Failed to fetch summarize.md: %s", e)
+
+# Kick off the background fetch when the module is imported (server startup)
+try:
+    threading.Thread(target=_background_fetch_prompt_once, daemon=True).start()
+except Exception:
+    logger.exception("[startup] Failed to start background prompt fetch thread")
 
 # Per-request run diagnostics (simple globals, reset at start of scrape)
 EDGE_READ_ATTEMPTS = 0
@@ -159,6 +227,108 @@ def extract_newsletter_content(html):
     
     return result.text_content
 
+
+def _resolve_openai_api_key() -> str:
+    """Resolve OpenAI API key from environment variables."""
+    key = os.environ.get('OPENAI_API_KEY') or os.environ.get('OPENAI_KEY') or os.environ.get('OPENAI_TOKEN')
+    if not key:
+        raise RuntimeError('OPENAI_API_KEY not set')
+    return key
+
+
+def _convert_html_to_markdown(html: str) -> str:
+    """Convert raw HTML to Markdown using MarkItDown."""
+    try:
+        stream = BytesIO(html.encode('utf-8', errors='ignore'))
+        result = md.convert_stream(stream, file_extension='.html')
+        return result.text_content
+    except Exception:
+        return ''
+
+
+def _insert_page_markdown_into_prompt(template_text: str, page_md: str) -> str:
+    """Insert page_md between known summarize tags in template_text.
+
+    Supports variants: <summarize this>, <summarize_this>, <summarize>.
+    If none found, appends a new block to the end.
+    """
+    if not template_text:
+        return f"<summarize this>\n{page_md}\n</summarize this>"
+    patterns = [
+        re.compile(r'(\<\s*summarize\s+this\s*\>)([\s\S]*?)(\<\s*/\s*summarize\s+this\s*\>)', re.IGNORECASE),
+        re.compile(r'(\<\s*summarize_this\s*\>)([\s\S]*?)(\<\s*/\s*summarize_this\s*\>)', re.IGNORECASE),
+        re.compile(r'(\<\s*summarize\s*\>)([\s\S]*?)(\<\s*/\s*summarize\s*\>)', re.IGNORECASE),
+    ]
+    for pattern in patterns:
+        if pattern.search(template_text):
+            return pattern.sub(lambda m: f"{m.group(1)}\n{page_md}\n{m.group(3)}", template_text, count=1)
+    # Fallback: append section
+    return template_text.rstrip() + f"\n\n<summarize this>\n{page_md}\n</summarize this>\n"
+
+
+def _call_openai_responses_api(prompt_text: str) -> str:
+    """Call OpenAI Responses API with gpt-5, low reasoning effort, no stream, return text."""
+    api_key = _resolve_openai_api_key()
+    url = 'https://api.openai.com/v1/responses'
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json'
+    }
+    body = {
+        'model': 'gpt-5',
+        # Use the Responses API canonical shape
+        'input': [
+            {
+                'role': 'user',
+                'content': [
+                    {'type': 'text', 'text': prompt_text}
+                ]
+            }
+        ],
+        # Try both forms to maximize compatibility across deployments
+        'reasoning': { 'effort': 'low' },
+        'reasoning_effort': 'low',
+        'temperature': 0.2,
+        'max_output_tokens': 400,
+        'stream': False
+    }
+    resp = requests.post(url, headers=headers, data=json.dumps(body), timeout=60)
+    resp.raise_for_status()
+    data = resp.json()
+
+    # Extract text from Responses API variants
+    # 1) Flattened output_text
+    if isinstance(data, dict) and 'output_text' in data and isinstance(data['output_text'], list):
+        try:
+            return '\n'.join([str(x) for x in data['output_text'] if isinstance(x, str)])
+        except Exception:
+            pass
+    # 2) output -> content[] -> type=output_text
+    try:
+        outputs = data.get('output') or []
+        texts = []
+        for item in outputs:
+            for c in (item.get('content') or []):
+                if c.get('type') in ('output_text', 'text') and isinstance(c.get('text'), str):
+                    texts.append(c['text'])
+        if texts:
+            return '\n'.join(texts)
+    except Exception:
+        pass
+    # 3) choices fallback (compat)
+    try:
+        choices = data.get('choices') or []
+        if choices:
+            msg = choices[0].get('message') or {}
+            content = msg.get('content')
+            if isinstance(content, str):
+                return content
+    except Exception:
+        pass
+    # As last resort, return entire JSON
+    return json.dumps(data)
+
+
 def is_file_url(url):
     """Check if URL points to a file (image, PDF, etc.) rather than a web page"""
     file_extensions = [
@@ -171,6 +341,49 @@ def is_file_url(url):
     # Remove query parameters to check the actual file path
     url_path = url.split('?')[0].lower()
     return any(url_path.endswith(ext) for ext in file_extensions)
+
+
+@app.route('/api/prompt', methods=['GET'])
+def get_prompt_template():
+    """Return the loaded summarize.md prompt (for debugging/inspection)."""
+    global SUMMARIZE_PROMPT_TEMPLATE
+    # If not loaded yet, try to load synchronously once
+    if not SUMMARIZE_PROMPT_TEMPLATE:
+        try:
+            SUMMARIZE_PROMPT_TEMPLATE = _fetch_summarize_prompt_from_github()
+        except Exception as e:
+            return (SUMMARIZE_PROMPT_TEMPLATE or f"Error loading prompt: {e}"), 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    return (SUMMARIZE_PROMPT_TEMPLATE or ''), 200, {'Content-Type': 'text/plain; charset=utf-8'}
+
+
+@app.route('/api/summarize-url', methods=['POST'])
+def summarize_url_endpoint():
+    """Summarize a given URL: fetch HTML, convert to Markdown, insert into template, call OpenAI."""
+    try:
+        data = request.get_json() or {}
+        target_url = (data.get('url') or '').strip()
+        if not target_url or not (target_url.startswith('http://') or target_url.startswith('https://')):
+            return jsonify({'success': False, 'error': 'Invalid or missing url'}), 400
+        # Fetch page
+        r = requests.get(target_url, timeout=30, headers={'User-Agent': 'Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)'})
+        r.raise_for_status()
+        html = r.text
+        page_md = _convert_html_to_markdown(html) or ''
+        # Ensure prompt present
+        global SUMMARIZE_PROMPT_TEMPLATE
+        if not SUMMARIZE_PROMPT_TEMPLATE:
+            try:
+                SUMMARIZE_PROMPT_TEMPLATE = _fetch_summarize_prompt_from_github()
+            except Exception:
+                pass
+        prompt_template = SUMMARIZE_PROMPT_TEMPLATE or ''
+        full_prompt = _insert_page_markdown_into_prompt(prompt_template, page_md)
+        summary_text = _call_openai_responses_api(full_prompt)
+        return jsonify({'success': True, 'summary_markdown': summary_text})
+    except requests.RequestException as e:
+        return jsonify({'success': False, 'error': f'Network error fetching URL: {str(e)}'}), 502
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 def get_utm_source_category(url):
     """Extract UTM source from URL and map to category"""

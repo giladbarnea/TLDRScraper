@@ -370,7 +370,7 @@
                         a.setAttribute('target', '_blank');
                         a.setAttribute('rel', 'noopener noreferrer');
                     });
-                    document.getElementById('progress-fill').style.width = '100%';
+            document.getElementById('progress-fill').style.width = '100%';
                 } else {
                     result.style.display = 'block';
                     result.className = 'error';
@@ -391,6 +391,53 @@
 
         // Initialize default dates on page load
         setDefaultDates();
+
+        // Intercept link clicks inside the result markdown to expand inline summaries
+        document.addEventListener('click', async function(e) {
+            const a = e.target.closest('a[href]');
+            if (!a) return;
+            // Only intercept links inside the rendered results
+            const withinResult = document.getElementById('result').contains(a);
+            if (!withinResult) return;
+            const href = a.getAttribute('href');
+            if (!href || href.startsWith('#')) return;
+            e.preventDefault();
+
+            // If already expanded, toggle collapse
+            let expander = a.nextElementSibling;
+            if (expander && expander.classList.contains('inline-summary')) {
+                expander.style.display = expander.style.display === 'none' ? 'block' : 'none';
+                return;
+            }
+
+            // Create container under the link
+            expander = document.createElement('div');
+            expander.className = 'inline-summary markdown-body';
+            expander.style.marginTop = '8px';
+            expander.style.borderTop = '1px dashed var(--border)';
+            expander.style.paddingTop = '8px';
+            expander.textContent = 'Summarizing...';
+            a.insertAdjacentElement('afterend', expander);
+
+            try {
+                const resp = await fetch('/api/summarize-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: href })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    const html = DOMPurify.sanitize(marked.parse(data.summary_markdown || ''));
+                    expander.innerHTML = '<strong>Summary</strong>\n\n' + html;
+                } else {
+                    expander.classList.add('error');
+                    expander.textContent = 'Error: ' + (data.error || 'Failed to summarize');
+                }
+            } catch (err) {
+                expander.classList.add('error');
+                expander.textContent = 'Network error: ' + (err?.message || String(err));
+            }
+        }, true);
     </script>
 </body>
 </html>
