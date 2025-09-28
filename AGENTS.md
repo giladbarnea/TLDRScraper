@@ -30,9 +30,23 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 - `OPENAI_API_TOKEN`: `sk-...`
 - `BLOB_STORE_PREFIX`: Simply 'tldr-scraper-blob'.
 - `BLOB_READ_WRITE_TOKEN`: `vercel_blob_rw_...`
+- `BLOB_STORE_ID`: The public store identifier used to form read URLs:
+  `https://<BLOB_STORE_ID>.public.blob.vercel-storage.com/<pathname>`
+  (Example: `prj_abc1234`)  Use the same value with or without `TLDR_SCRAPER_` prefix depending on environment.
 - `GITHUB_API_TOKEN`: `github_pat_...`
 
 ### Common tasks and examples
+#### Vercel CLI (required for Blob uploads from Python)
+Install once:
+```bash
+npm i -g vercel
+vercel --version
+```
+The server shells out to:
+```bash
+vercel blob put <tmpfile> --pathname "<normalized-pathname>" --force --rw-token "$BLOB_READ_WRITE_TOKEN"
+```
+Upload is deterministic and overwrites existing content at the same pathname (no random suffixes, no listing).
 
 - Read all items (read token):
 ```bash
