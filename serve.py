@@ -23,7 +23,7 @@ import urllib.parse as _urlparse
 import collections
 
 app = Flask(__name__)
-logging.basicConfig(level=os.environ.get('LOG_LEVEL', 'INFO'))
+logging.basicConfig(level=os.getenv('LOG_LEVEL', os.getenv('TLDR_SCRAPER_LOG_LEVEL', "INFO")))
 logger = logging.getLogger("serve")
 md = MarkItDown()
 LOGS = collections.deque(maxlen=200)
@@ -31,33 +31,23 @@ LOGS = collections.deque(maxlen=200)
 # In-memory store for the summarization prompt template fetched from GitHub
 SUMMARIZE_PROMPT_TEMPLATE = None
 
-def _log(msg):
+def _log(msg, *args, **kwargs):
     try:
         LOGS.append(msg)
     except Exception:
+        logger.warning("[serve._log] failed to append to LOGS", exc_info=True)
         pass
-    logger.info(msg)
+    kwargs.setdefault('stacklevel', 2)
+    level = kwargs.pop('level', logging.INFO)
+    logger.log(level, msg, *args, **kwargs)
 
 
-def _resolve_github_token() -> str:
-    """Resolve a usable GitHub token from environment variables.
-
-    Priority:
-    1) GITHUB_TOKEN (if it looks like a real token and not an indirection)
-    2) GITHUB_API_TOKEN
-    3) GH_TOKEN
-    """
-    token = os.environ.get('GITHUB_TOKEN')
-    # Common indirection pattern: GITHUB_TOKEN=GITHUB_API_TOKEN
-    if token and token != 'GITHUB_API_TOKEN' and not token.startswith('GITHUB_'):
-        return token
-    token = os.environ.get('GITHUB_API_TOKEN') or os.environ.get('GH_TOKEN')
-    return token or ''
-
+def _resolve_github_api_token() -> str:
+    return os.getenv('GITHUB_API_TOKEN', os.getenv("TLDR_SCRAPER_GITHUB_API_TOKEN", ""))
 
 def _fetch_summarize_prompt_from_github(owner: str = 'giladbarnea', repo: str = 'llm-templates', path: str = 'text/summarize.md', ref: str = 'main') -> str:
     """Fetch the summarize.md prompt via GitHub Contents API and return it as text."""
-    token = _resolve_github_token()
+    token = _resolve_github_api_token()
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={ref}"
     headers = {
         'Accept': 'application/vnd.github.v3.raw',
@@ -85,14 +75,14 @@ def _background_fetch_prompt_once():
     global SUMMARIZE_PROMPT_TEMPLATE
     # Idempotency: if already loaded, do nothing
     if SUMMARIZE_PROMPT_TEMPLATE:
-        _log("[startup] summarize.md template already present, skipping fetch")
+        _log("[startup][_background_fetch_prompt_once] summarize.md template already present, skipping fetch")
         return
     try:
         prompt = _fetch_summarize_prompt_from_github()
         SUMMARIZE_PROMPT_TEMPLATE = prompt
-        _log("[startup] summarize.md template fetched and stored in memory")
+        _log("[startup][_background_fetch_prompt_once] summarize.md template fetched and stored in memory")
     except Exception as e:
-        logger.exception("[startup] Failed to fetch summarize.md: %s", e)
+        logger.exception("[startup][_background_fetch_prompt_once] Failed to fetch summarize.md: %s", e)
 
 # Kick off the background fetch when the module is imported (server startup)
 try:
@@ -143,6 +133,7 @@ def scrape_newsletters():
         return jsonify(result)
         
     except Exception as e:
+        logger.exception("[serve.scrape_newsletters] Failed to scrape newsletters: %s", e)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 def get_date_range(start_date, end_date):
@@ -228,12 +219,8 @@ def extract_newsletter_content(html):
     return result.text_content
 
 
-def _resolve_openai_api_key() -> str:
-    """Resolve OpenAI API key from environment variables."""
-    key = os.environ.get('OPENAI_API_KEY') or os.environ.get('OPENAI_KEY') or os.environ.get('OPENAI_TOKEN')
-    if not key:
-        raise RuntimeError('OPENAI_API_KEY not set')
-    return key
+def _resolve_openai_api_token() -> str:
+    return os.getenv('OPENAI_API_TOKEN', os.getenv("TLDR_SCRAPER_OPENAI_API_TOKEN", ""))
 
 
 def _convert_html_to_markdown(html: str) -> str:
@@ -247,28 +234,22 @@ def _convert_html_to_markdown(html: str) -> str:
 
 
 def _insert_page_markdown_into_prompt(template_text: str, page_md: str) -> str:
-    """Insert page_md between known summarize tags in template_text.
-
-    Supports variants: <summarize this>, <summarize_this>, <summarize>.
-    If none found, appends a new block to the end.
-    """
+    """Insert page_md between <summarize this> tags in template_text."""
     if not template_text:
         return f"<summarize this>\n{page_md}\n</summarize this>"
-    patterns = [
-        re.compile(r'(\<\s*summarize\s+this\s*\>)([\s\S]*?)(\<\s*/\s*summarize\s+this\s*\>)', re.IGNORECASE),
-        re.compile(r'(\<\s*summarize_this\s*\>)([\s\S]*?)(\<\s*/\s*summarize_this\s*\>)', re.IGNORECASE),
-        re.compile(r'(\<\s*summarize\s*\>)([\s\S]*?)(\<\s*/\s*summarize\s*\>)', re.IGNORECASE),
-    ]
-    for pattern in patterns:
-        if pattern.search(template_text):
-            return pattern.sub(lambda m: f"{m.group(1)}\n{page_md}\n{m.group(3)}", template_text, count=1)
-    # Fallback: append section
-    return template_text.rstrip() + f"\n\n<summarize this>\n{page_md}\n</summarize this>\n"
+    open_tag_index = template_text.find('<summarize this>')
+    if open_tag_index == -1:
+        _log("[serve._insert_page_markdown_into_prompt] template_text is not empty but no <summarize this> tag found in template_text: %s", template_text, level=logging.WARNING)
+        return template_text.rstrip() + f"\n\n<summarize this>\n{page_md}\n</summarize this>\n"
+    close_tag_index = template_text.find('</summarize this>', open_tag_index)
+    return template_text[:open_tag_index] + page_md + template_text[close_tag_index + len('</summarize this>'):]
 
 
 def _call_openai_responses_api(prompt_text: str) -> str:
     """Call OpenAI Responses API with gpt-5, low reasoning effort, no stream, return text."""
-    api_key = _resolve_openai_api_key()
+    api_key = _resolve_openai_api_token()
+    if not api_key:
+        raise RuntimeError('OPENAI_API_TOKEN not set')
     url = 'https://api.openai.com/v1/responses'
     headers = {
         'Authorization': f'Bearer {api_key}',
@@ -281,14 +262,17 @@ def _call_openai_responses_api(prompt_text: str) -> str:
         'input': prompt_text,
         # Reasoning knobs
         'reasoning': { 'effort': 'low' },
-        'reasoning_effort': 'low',
-        'temperature': 0.2,
-        'max_output_tokens': 400,
         'stream': False
     }
-    resp = requests.post(url, headers=headers, data=json.dumps(body), timeout=60)
-    resp.raise_for_status()
+    # from IPython import embed; embed()
+    resp = requests.post(url, headers=headers, data=json.dumps(body), timeout=600)
+    try:
+        resp.raise_for_status()
+    except Exception:
+        logger.exception("[serve._call_openai_responses_api] request failed url=%s", url)
+        raise
     data = resp.json()
+    problems: list[Exception] = []
 
     # Extract text from Responses API variants
     # 1) output_text (string or list)
@@ -298,7 +282,8 @@ def _call_openai_responses_api(prompt_text: str) -> str:
                 return data['output_text']
             if isinstance(data['output_text'], list):
                 return '\n'.join([str(x) for x in data['output_text'] if isinstance(x, str)])
-        except Exception:
+        except Exception as e:
+            problems.append(e)
             pass
     # 2) output -> content[] -> type=output_text
     try:
@@ -310,7 +295,8 @@ def _call_openai_responses_api(prompt_text: str) -> str:
                     texts.append(c['text'])
         if texts:
             return '\n'.join(texts)
-    except Exception:
+    except Exception as e:
+        problems.append(e)
         pass
     # 3) choices fallback (compat)
     try:
@@ -320,9 +306,13 @@ def _call_openai_responses_api(prompt_text: str) -> str:
             content = msg.get('content')
             if isinstance(content, str):
                 return content
-    except Exception:
+    except Exception as e:
+        problems.append(e)
         pass
     # As last resort, return entire JSON
+    if problems:
+        formatted_problems = '\n'.join([repr(e) for e in problems])
+        _log("[serve._call_openai_responses_api] Parsing response encountered errors. Returning raw JSON of length %d. url=%s problems=%s", len(str(data)), url, formatted_problems, level=logging.ERROR)
     return json.dumps(data)
 
 
@@ -349,8 +339,11 @@ def get_prompt_template():
         try:
             SUMMARIZE_PROMPT_TEMPLATE = _fetch_summarize_prompt_from_github()
         except Exception as e:
-            return (SUMMARIZE_PROMPT_TEMPLATE or f"Error loading prompt: {e}"), 200, {'Content-Type': 'text/plain; charset=utf-8'}
-    return (SUMMARIZE_PROMPT_TEMPLATE or ''), 200, {'Content-Type': 'text/plain; charset=utf-8'}
+            _log("[serve.get_prompt_template] error loading prompt=%s", repr(e), level=logging.ERROR, exc_info=True)
+            if SUMMARIZE_PROMPT_TEMPLATE:
+                return SUMMARIZE_PROMPT_TEMPLATE, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+            return f"Error loading prompt: {e!r}", 500, {'Content-Type': 'text/plain; charset=utf-8'}
+    return SUMMARIZE_PROMPT_TEMPLATE, 200, {'Content-Type': 'text/plain; charset=utf-8'}
 
 
 @app.route('/api/summarize-url', methods=['POST'])
@@ -360,10 +353,15 @@ def summarize_url_endpoint():
         data = request.get_json() or {}
         target_url = (data.get('url') or '').strip()
         if not target_url or not (target_url.startswith('http://') or target_url.startswith('https://')):
+            _log("[serve.summarize_url_endpoint] invalid or missing url=%s", target_url, level=logging.ERROR)
             return jsonify({'success': False, 'error': 'Invalid or missing url'}), 400
         # Fetch page
         r = requests.get(target_url, timeout=30, headers={'User-Agent': 'Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)'})
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+        except Exception as e:
+            _log("[serve.summarize_url_endpoint] request error url=%s error=%s", target_url, repr(e), level=logging.ERROR, exc_info=True)
+            return jsonify({'success': False, 'error': f'Network error fetching URL: {repr(e)}'}), 502
         html = r.text
         page_md = _convert_html_to_markdown(html) or ''
         # Ensure prompt present
@@ -371,16 +369,19 @@ def summarize_url_endpoint():
         if not SUMMARIZE_PROMPT_TEMPLATE:
             try:
                 SUMMARIZE_PROMPT_TEMPLATE = _fetch_summarize_prompt_from_github()
-            except Exception:
+            except Exception as e:
+                _log("[serve.summarize_url_endpoint] failed to fetch summarize.md template url=%s", target_url, level=logging.ERROR, exc_info=True)
                 pass
         prompt_template = SUMMARIZE_PROMPT_TEMPLATE or ''
         full_prompt = _insert_page_markdown_into_prompt(prompt_template, page_md)
         summary_text = _call_openai_responses_api(full_prompt)
         return jsonify({'success': True, 'summary_markdown': summary_text})
     except requests.RequestException as e:
-        return jsonify({'success': False, 'error': f'Network error fetching URL: {str(e)}'}), 502
+        _log("[serve.summarize_url_endpoint] request error url=%s", target_url, level=logging.ERROR, exc_info=True)
+        return jsonify({'success': False, 'error': f'Network error fetching URL: {repr(e)}'}), 502
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        _log("[serve.summarize_url_endpoint] error url=%s", target_url, level=logging.ERROR, exc_info=True)
+        return jsonify({'success': False, 'error': repr(e)}), 500
 
 def get_utm_source_category(url):
     """Extract UTM source from URL and map to category"""
@@ -399,7 +400,8 @@ def get_utm_source_category(url):
         else:
             return None  # Filter out other sources
             
-    except:
+    except Exception as e:
+        _log("[serve.get_utm_source_category] error url=%s", url, level=logging.ERROR, exc_info=True)
         return None
 
 def parse_articles_from_markdown(markdown, date, newsletter_type):
@@ -544,7 +546,8 @@ def fetch_newsletter(date, newsletter_type):
                     query_pairs = [(k, v) for (k, v) in urlparse.parse_qsl(p.query, keep_blank_values=True) if not k.lower().startswith('utm_')]
                     new_query = urlparse.urlencode(query_pairs, doseq=True)
                     clean['url'] = urlparse.urlunparse((p.scheme, p.netloc.lower(), p.path.rstrip('/') if len(p.path) > 1 and p.path.endswith('/') else p.path, p.params, new_query, p.fragment))
-            except Exception:
+            except Exception as e:
+                _log("[serve.fetch_newsletter] error sanitizing article url=%s error=%s", a['url'], repr(e), level=logging.WARNING)
                 pass
             return clean
         sanitized_articles = [_sanitize(a) for a in articles]
@@ -563,13 +566,13 @@ def fetch_newsletter(date, newsletter_type):
             status = get_last_write_status()
             body = get_last_write_body()
             _log(f"[serve.fetch_newsletter] wrote cache date={date_str} type={newsletter_type} count={len(sanitized_articles)} ok={bool(ok)} status={status} body={(body or '')}")
-        except Exception:
-            logger.exception("[serve.fetch_newsletter] failed writing cache date=%s type=%s", date_str, newsletter_type)
+        except Exception as e:
+            _log("[serve.fetch_newsletter] failed writing cache date=%s type=%s error=%s", date_str, newsletter_type, repr(e), level=logging.ERROR, exc_info=True)
 
         return result
         
     except requests.RequestException as e:
-        logger.exception("[serve.fetch_newsletter] request error url=%s", url)
+        _log("[serve.fetch_newsletter] request error url=%s", url, level=logging.ERROR, exc_info=True)
         return None
 
 def canonicalize_url(url):
@@ -639,15 +642,16 @@ def scrape_date_range(start_date, end_date):
     output = format_final_output(start_date, end_date, grouped_articles)
     
     # Edge config ID consistency check (read URL vs ID)
-    ec_url = os.environ.get('EDGE_CONFIG_CONNECTION_STRING') or os.environ.get('TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING')
-    ec_id_env = os.environ.get('EDGE_CONFIG_ID') or os.environ.get('TLDR_SCRAPER_EDGE_CONFIG_ID')
+    ec_url = os.getenv('EDGE_CONFIG_CONNECTION_STRING', os.getenv('TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING', ""))
+    ec_id_env = os.getenv('EDGE_CONFIG_ID', os.getenv('TLDR_SCRAPER_EDGE_CONFIG_ID', ""))
     def _extract_id(u: str):
         try:
             p = _urlparse.urlparse(u)
             # path like /ecfg_xxx or /ecfg_xxx/...
             seg = p.path.strip('/').split('/')[0]
             return seg if seg.startswith('ecfg_') else None
-        except Exception:
+        except Exception as e:
+            _log("[serve.scrape_date_range] error extracting id from url=%s error=%s", u, repr(e), level=logging.ERROR)
             return None
     ec_id_from_url = _extract_id(ec_url) if ec_url else None
 
@@ -729,4 +733,4 @@ def format_final_output(start_date, end_date, grouped_articles):
     return output
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5001, debug=True)
