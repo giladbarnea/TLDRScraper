@@ -17,7 +17,7 @@ env | grep -e EDGE -e TLDR -e TOKEN -e API
 
 Rules:
 
-- **Local (Cursor background agents developing the app):** Env vars are prefixed with `TLDR_SCRAPER_` (except `VERCEL_TOKEN`).
+- **Local (Cursor background agents developing the app):** Env vars are prefixed with `TLDR_SCRAPER_` (except `VERCEL_TOKEN` and `GITHUB_API_TOKEN`).
 - **Production:** Exactly the same variables but without the `TLDR_SCRAPER_` prefix (and `VERCEL_TOKEN` remains unprefixed).
 - **Redundancy is intentional:** Both the full connection string and the decomposed parts exist so you never need to parse the connection string unless you want to.
 
@@ -28,6 +28,9 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 - `EDGE_CONFIG_READ_TOKEN`: Read token for Edge Config
 - `VERCEL_TOKEN`: Vercel API token used for write operations (unprefixed in all environments)
 - `OPENAI_API_TOKEN`: Self explanatory.
+- `BLOB_STORE_PREFIX`
+- `BLOB_READ_WRITE_TOKEN`
+- `GITHUB_API_TOKEN`
 
 Notes and examples:
 
