@@ -276,16 +276,10 @@ def _call_openai_responses_api(prompt_text: str) -> str:
     }
     body = {
         'model': 'gpt-5',
-        # Use the Responses API canonical shape
-        'input': [
-            {
-                'role': 'user',
-                'content': [
-                    {'type': 'text', 'text': prompt_text}
-                ]
-            }
-        ],
-        # Try both forms to maximize compatibility across deployments
+        # Per official Responses API, `input` can be a string or content array.
+        # Use simple string input for text-only requests.
+        'input': prompt_text,
+        # Reasoning knobs
         'reasoning': { 'effort': 'low' },
         'reasoning_effort': 'low',
         'temperature': 0.2,
@@ -297,10 +291,13 @@ def _call_openai_responses_api(prompt_text: str) -> str:
     data = resp.json()
 
     # Extract text from Responses API variants
-    # 1) Flattened output_text
-    if isinstance(data, dict) and 'output_text' in data and isinstance(data['output_text'], list):
+    # 1) output_text (string or list)
+    if isinstance(data, dict) and 'output_text' in data:
         try:
-            return '\n'.join([str(x) for x in data['output_text'] if isinstance(x, str)])
+            if isinstance(data['output_text'], str):
+                return data['output_text']
+            if isinstance(data['output_text'], list):
+                return '\n'.join([str(x) for x in data['output_text'] if isinstance(x, str)])
         except Exception:
             pass
     # 2) output -> content[] -> type=output_text
