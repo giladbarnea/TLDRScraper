@@ -6,8 +6,8 @@
     <title>TLDR Newsletter Scraper</title>
     <meta name="color-scheme" content="light">
 
-    <!-- Whitey-Lite reading surface -->
-    <link rel="stylesheet" href="/static/whitey-lite.css">
+    <!-- Unified Whitey (Light) reading surface: desktop-faithful + mobile refinements -->
+    <link rel="stylesheet" href="/static/whitey.css">
 
     <!-- Vollkorn (optional; matches Whitey) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
@@ -283,11 +283,11 @@
                     // Render Markdown → HTML then sanitize
                     const html = DOMPurify.sanitize(marked.parse(data.output));
 
-                    // Inject a slot for logs (we will append DOM nodes to avoid unsafe innerHTML from logs)
+                    // Inject Whitey reading surface (desktop-faithful + mobile refinements)
                     const whiteySurface = `<main id="write"><article>${html}</article></main>`;
                     result.innerHTML = statsHtml + '<div id="logs-slot"></div>' + whiteySurface;
 
-                    // Safely append logs as text (no HTML interpretation)
+                    // Safely append logs as plain text (no HTML interpretation)
                     try {
                         if (Array.isArray(data.stats.debug_logs) && data.stats.debug_logs.length) {
                             const slot = document.getElementById('logs-slot');
