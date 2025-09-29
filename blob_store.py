@@ -92,6 +92,7 @@ def put_file(pathname: str, content: str) -> str:
             check=True,
         )
         import json
+
         out = proc.stdout.decode("utf-8")
         result = json.loads(out)
         url = result.get("url", "")
