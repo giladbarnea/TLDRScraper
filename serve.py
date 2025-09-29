@@ -24,7 +24,7 @@ from edge_config import (
     get_last_write_body,
     get_effective_env_summary,
 )
-from blob_store import normalize_url_to_pathname, put_markdown
+from blob_store import normalize_url_to_pathname, put_markdown, list_all_entries
 import urllib.parse as _urlparse
 import collections
 
@@ -38,6 +38,7 @@ LOGS = collections.deque(maxlen=200)
 
 # In-memory store for the summarization prompt template fetched from GitHub
 SUMMARIZE_PROMPT_TEMPLATE = None
+_BLOB_ENTRIES: list[str] = []
 
 
 def _log(msg, *args, **kwargs):
@@ -114,6 +115,26 @@ try:
     threading.Thread(target=_background_fetch_prompt_once, daemon=True).start()
 except Exception:
     logger.exception("[startup] Failed to start background prompt fetch thread")
+
+
+def _startup_load_blob_listing_sync():
+    """Synchronously list blob entries into memory for debug matching."""
+    global _BLOB_ENTRIES
+    try:
+        pfx = os.getenv("BLOB_STORE_PREFIX", os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob")).strip()
+        entries = list_all_entries(prefix=pfx)
+        _BLOB_ENTRIES = entries or []
+        _log(f"[startup][_startup_load_blob_listing_sync] loaded blob entries count={len(_BLOB_ENTRIES)} prefix={pfx}")
+    except Exception as e:
+        _log(
+            "[startup][_startup_load_blob_listing_sync] failed to list blobs error=%s",
+            repr(e),
+            level=logging.WARNING,
+        )
+
+
+# Perform synchronous load immediately at import time (safe if token missing; it no-ops)
+_startup_load_blob_listing_sync()
 
 # Per-request run diagnostics (simple globals, reset at start of scrape)
 EDGE_READ_ATTEMPTS = 0
@@ -488,7 +509,7 @@ def summarize_url_endpoint():
             )
             return jsonify({"success": False, "error": "Invalid or missing url"}), 400
 		# Read-first: if a prior summary blob exists, return it immediately
-		try:
+        try:
 			_pfx = os.getenv("BLOB_STORE_PREFIX", os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"))
 			base_path = normalize_url_to_pathname(target_url, _pfx)
 			base = base_path[:-3] if base_path.endswith(".md") else base_path
@@ -501,12 +522,36 @@ def summarize_url_endpoint():
 					_log(
 						f"[serve.summarize_url_endpoint] summary cache HIT url={target_url} pathname={summary_blob_pathname}"
 					)
-					return jsonify({
-						"success": True,
-						"summary_markdown": resp.text,
-						"summary_blob_url": summary_blob_url,
-						"summary_blob_pathname": summary_blob_pathname,
-					})
+                    # Inject debug appendix (do not store this; it's only in response)
+                    appendix_lines = [
+                        "\n\n---\n",
+                        "Debug: Summary cache key candidate and nearby keys\n",
+                        f"- candidate: `{summary_blob_pathname}`\n",
+                    ]
+                    try:
+                        # Best-effort fuzzy show similar keys from startup listing
+                        if _BLOB_ENTRIES:
+                            pfx = summary_blob_pathname.split('/')[-1][:32]
+                            similar = [k for k in _BLOB_ENTRIES if isinstance(k, str) and k.endswith('.summary.md') and pfx in k]
+                            similar = similar[:20]
+                            if similar:
+                                appendix_lines.append("- similar keys:" + "\n")
+                                for k in similar:
+                                    appendix_lines.append(f"  - `{k}`\n")
+                            else:
+                                appendix_lines.append("- similar keys: none\n")
+                        else:
+                            appendix_lines.append("- similar keys: listing empty or unavailable\n")
+                    except Exception:
+                        appendix_lines.append("- similar keys: error\n")
+                    summary_with_debug = resp.text + "".join(appendix_lines)
+                    return jsonify({
+                        "success": True,
+                        "summary_markdown": summary_with_debug,
+                        "summary_blob_url": summary_blob_url,
+                        "summary_blob_pathname": summary_blob_pathname,
+                        "debug_summary_cache_key": summary_blob_pathname,
+                    })
 		except Exception as e:
 			_log(
 				"[serve.summarize_url_endpoint] summary cache read error url=%s error=%s",
@@ -591,15 +636,39 @@ def summarize_url_endpoint():
                 repr(e),
                 level=logging.WARNING,
             )
+        # Inject debug appendix only in the response body (not stored)
+        try:
+            appendix_lines = [
+                "\n\n---\n",
+                "Debug: Summary cache key candidate and nearby keys\n",
+                f"- candidate: `{summary_blob_pathname}`\n" if summary_blob_pathname else "- candidate: <unknown>\n",
+            ]
+            if _BLOB_ENTRIES and summary_blob_pathname:
+                pfx = summary_blob_pathname.split('/')[-1][:32]
+                similar = [k for k in _BLOB_ENTRIES if isinstance(k, str) and k.endswith('.summary.md') and pfx in k]
+                similar = similar[:20]
+                if similar:
+                    appendix_lines.append("- similar keys:" + "\n")
+                    for k in similar:
+                        appendix_lines.append(f"  - `{k}`\n")
+                else:
+                    appendix_lines.append("- similar keys: none\n")
+            else:
+                appendix_lines.append("- similar keys: listing empty or unavailable\n")
+            summary_text_with_debug = (summary_text or "") + "".join(appendix_lines)
+        except Exception:
+            summary_text_with_debug = summary_text
+
         resp_payload = {
             "success": True,
-            "summary_markdown": summary_text,
+            "summary_markdown": summary_text_with_debug,
             "blob_url": blob_url,
             "blob_pathname": blob_pathname,
         }
         if summary_blob_url is not None:
             resp_payload["summary_blob_url"] = summary_blob_url
             resp_payload["summary_blob_pathname"] = summary_blob_pathname
+            resp_payload["debug_summary_cache_key"] = summary_blob_pathname
         if blob_url is None:
             resp_payload["upload_error"] = "blob upload failed or URL unavailable"
         return jsonify(resp_payload)
