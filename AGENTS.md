@@ -30,9 +30,7 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 - `OPENAI_API_TOKEN`: `sk-...`
 - `BLOB_STORE_PREFIX`: Simply 'tldr-scraper-blob'.
 - `BLOB_READ_WRITE_TOKEN`: `vercel_blob_rw_...`
-- `BLOB_STORE_ID`: The public store identifier used to form read URLs:
-  `https://<BLOB_STORE_ID>.public.blob.vercel-storage.com/<pathname>`
-  (Example: `prj_abc1234`)  Use the same value with or without `TLDR_SCRAPER_` prefix depending on environment.
+- `BLOB_STORE_BASE_URL`: read URL: `<BLOB_STORE_BASE_URL>/<pathname>`
 - `GITHUB_API_TOKEN`: `github_pat_...`
 
 ### Common tasks and examples
@@ -118,3 +116,8 @@ PY
 - Values should only contain:
   - `articles: [ { title, url }, ... ]`
   - Strip all `utm_*` query params before storing.
+
+### Development Conventions
+
+- Always use `util.resolve_env_var` to get environment variables.
+- Add a doctest example to pure‘ish functions (data in, data out).

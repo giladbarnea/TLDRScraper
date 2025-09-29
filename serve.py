@@ -12,7 +12,6 @@ from io import BytesIO
 import re
 from bs4 import BeautifulSoup
 import time
-import os
 import threading
 import base64
 import json
@@ -26,34 +25,21 @@ from edge_config import (
 )
 from blob_store import normalize_url_to_pathname, put_markdown, list_all_entries
 import urllib.parse as _urlparse
-import collections
+import util
 
 app = Flask(__name__)
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", os.getenv("TLDR_SCRAPER_LOG_LEVEL", "INFO"))
-)
+logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("serve")
 md = MarkItDown()
-LOGS = collections.deque(maxlen=200)
+
 
 # In-memory store for the summarization prompt template fetched from GitHub
 SUMMARIZE_PROMPT_TEMPLATE = None
 _BLOB_ENTRIES: list[str] = []
 
 
-def _log(msg, *args, **kwargs):
-    try:
-        LOGS.append(msg)
-    except Exception:
-        logger.warning("[serve._log] failed to append to LOGS", exc_info=True)
-        pass
-    kwargs.setdefault("stacklevel", 2)
-    level = kwargs.pop("level", logging.INFO)
-    logger.log(level, msg, *args, **kwargs)
-
-
 def _resolve_github_api_token() -> str:
-    return os.getenv("GITHUB_API_TOKEN", os.getenv("TLDR_SCRAPER_GITHUB_API_TOKEN", ""))
+    return util.resolve_env_var("GITHUB_API_TOKEN", "")
 
 
 def _fetch_summarize_prompt_from_github(
@@ -93,48 +79,56 @@ def _background_fetch_prompt_once():
     global SUMMARIZE_PROMPT_TEMPLATE
     # Idempotency: if already loaded, do nothing
     if SUMMARIZE_PROMPT_TEMPLATE:
-        _log(
-            "[startup][_background_fetch_prompt_once] summarize.md template already present, skipping fetch"
+        util.log(
+            "[startup][_background_fetch_prompt_once] summarize.md template already present, skipping fetch",
+            logger=logger,
         )
         return
     try:
         prompt = _fetch_summarize_prompt_from_github()
         SUMMARIZE_PROMPT_TEMPLATE = prompt
-        _log(
-            "[startup][_background_fetch_prompt_once] summarize.md template fetched and stored in memory"
+        util.log(
+            "[startup][_background_fetch_prompt_once] summarize.md template fetched and stored in memory",
+            logger=logger,
         )
     except Exception as e:
         logger.exception(
             "[startup][_background_fetch_prompt_once] Failed to fetch summarize.md: %s",
             e,
+            logger=logger,
         )
 
 
 # Kick off the background fetch when the module is imported (server startup)
 try:
     threading.Thread(target=_background_fetch_prompt_once, daemon=True).start()
-except Exception:
-    logger.exception("[startup] Failed to start background prompt fetch thread")
+except Exception as e:
+    util.log(
+        "[startup] Failed to start background prompt fetch thread error=%s",
+        repr(e),
+        level=logging.ERROR,
+        logger=logger,
+        exc_info=True,
+    )
 
 
 def _startup_load_blob_listing_sync():
     """Synchronously list blob entries into memory for debug matching."""
     global _BLOB_ENTRIES
     try:
-        pfx = os.getenv(
-            "BLOB_STORE_PREFIX",
-            os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"),
-        ).strip()
-        entries = list_all_entries(prefix=pfx)
+        entries = list_all_entries()
         _BLOB_ENTRIES = entries or []
-        _log(
-            f"[startup][_startup_load_blob_listing_sync] loaded blob entries count={len(_BLOB_ENTRIES)} prefix={pfx}"
+        util.log(
+            f"[startup][_startup_load_blob_listing_sync] loaded blob entries count={len(_BLOB_ENTRIES)}",
+            logger=logger,
         )
     except Exception as e:
-        _log(
+        util.log(
             "[startup][_startup_load_blob_listing_sync] failed to list blobs error=%s",
             repr(e),
-            level=logging.WARNING,
+            level=logging.ERROR,
+            logger=logger,
+            exc_info=True,
         )
 
 
@@ -186,8 +180,9 @@ def scrape_newsletters():
                 "error": "Date range cannot exceed 31 days",
             }), 400
 
-        _log(
-            f"[serve.scrape_newsletters] start start_date={data['start_date']} end_date={data['end_date']}"
+        util.log(
+            f"[serve.scrape_newsletters] start start_date={data['start_date']} end_date={data['end_date']}",
+            logger=logger,
         )
         # reset run diagnostics
         global \
@@ -199,8 +194,9 @@ def scrape_newsletters():
             EDGE_WRITE_SUCCESS
         ) = 0
         result = scrape_date_range(start_date, end_date)
-        _log(
-            f"[serve.scrape_newsletters] done dates_processed={result['stats']['dates_processed']} total_articles={result['stats']['total_articles']}"
+        util.log(
+            f"[serve.scrape_newsletters] done dates_processed={result['stats']['dates_processed']} total_articles={result['stats']['total_articles']}",
+            logger=logger,
         )
         return jsonify(result)
 
@@ -320,7 +316,7 @@ def extract_newsletter_content(html):
 
 
 def _resolve_openai_api_token() -> str:
-    return os.getenv("OPENAI_API_TOKEN", os.getenv("TLDR_SCRAPER_OPENAI_API_TOKEN", ""))
+    return util.resolve_env_var("OPENAI_API_TOKEN", "")
 
 
 def _convert_html_to_markdown(html: str) -> str:
@@ -339,10 +335,11 @@ def _insert_page_markdown_into_prompt(template_text: str, page_md: str) -> str:
         return f"<summarize this>\n{page_md}\n</summarize this>"
     open_tag_index = template_text.find("<summarize this>")
     if open_tag_index == -1:
-        _log(
+        util.log(
             "[serve._insert_page_markdown_into_prompt] template_text is not empty but no <summarize this> tag found in template_text: %s",
             template_text,
             level=logging.WARNING,
+            logger=logger,
         )
         return (
             template_text.rstrip()
@@ -364,7 +361,7 @@ def _call_openai_responses_api(prompt_text: str) -> str:
     url = "https://api.openai.com/v1/responses"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     body = {
-        "model": "gpt-5",
+        "model": "gpt-5-mini",
         # Per official Responses API, `input` can be a string or content array.
         # Use simple string input for text-only requests.
         "input": prompt_text,
@@ -376,9 +373,14 @@ def _call_openai_responses_api(prompt_text: str) -> str:
     resp = requests.post(url, headers=headers, data=json.dumps(body), timeout=600)
     try:
         resp.raise_for_status()
-    except Exception:
-        logger.exception(
-            "[serve._call_openai_responses_api] request failed url=%s", url
+    except Exception as e:
+        util.log(
+            "[serve._call_openai_responses_api] request failed url=%s error=%s",
+            url,
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
         )
         raise
     data = resp.json()
@@ -426,12 +428,13 @@ def _call_openai_responses_api(prompt_text: str) -> str:
     # As last resort, return entire JSON
     if problems:
         formatted_problems = "\n".join([repr(e) for e in problems])
-        _log(
+        util.log(
             "[serve._call_openai_responses_api] Parsing response encountered errors. Returning raw JSON of length %d. url=%s problems=%s",
             len(str(data)),
             url,
             formatted_problems,
             level=logging.ERROR,
+            logger=logger,
         )
     return json.dumps(data)
 
@@ -478,11 +481,12 @@ def get_prompt_template():
         try:
             SUMMARIZE_PROMPT_TEMPLATE = _fetch_summarize_prompt_from_github()
         except Exception as e:
-            _log(
+            util.log(
                 "[serve.get_prompt_template] error loading prompt=%s",
                 repr(e),
                 level=logging.ERROR,
                 exc_info=True,
+                logger=logger,
             )
             if SUMMARIZE_PROMPT_TEMPLATE:
                 return (
@@ -507,24 +511,19 @@ def summarize_url_endpoint():
         if not target_url or not (
             target_url.startswith("http://") or target_url.startswith("https://")
         ):
-            _log(
+            util.log(
                 "[serve.summarize_url_endpoint] invalid or missing url=%s",
                 target_url,
                 level=logging.ERROR,
+                logger=logger,
             )
             return jsonify({"success": False, "error": "Invalid or missing url"}), 400
         # Read-first: if a prior summary blob exists, return it immediately
         try:
-            _pfx = os.getenv(
-                "BLOB_STORE_PREFIX",
-                os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"),
-            )
-            base_path = normalize_url_to_pathname(target_url, _pfx)
+            base_path = normalize_url_to_pathname(target_url)
             base = base_path[:-3] if base_path.endswith(".md") else base_path
-            summary_blob_pathname = f"{base}.summary.md"
-            summary_blob_url = os.getenv(
-                "BLOB_STORE_BASE_URL", os.getenv("TLDR_SCRAPER_BLOB_STORE_BASE_URL", "")
-            ).strip()
+            summary_blob_pathname = f"{base}-summary-md"
+            summary_blob_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
             if summary_blob_url:
                 resp = requests.get(
                     summary_blob_url,
@@ -538,7 +537,7 @@ def summarize_url_endpoint():
                     and isinstance(resp.text, str)
                     and resp.text.strip()
                 ):
-                    _log(
+                    util.log(
                         f"[serve.summarize_url_endpoint] summary cache HIT url={target_url} pathname={summary_blob_pathname}"
                     )
                     # Inject debug appendix (do not store this; it's only in response)
@@ -574,11 +573,12 @@ def summarize_url_endpoint():
                         "debug_summary_cache_key": summary_blob_pathname,
                     })
         except Exception as e:
-            _log(
+            util.log(
                 "[serve.summarize_url_endpoint] summary cache read error url=%s error=%s",
                 target_url,
                 repr(e),
                 level=logging.WARNING,
+                logger=logger,
             )
         # Fetch page
         r = requests.get(
@@ -589,12 +589,13 @@ def summarize_url_endpoint():
         try:
             r.raise_for_status()
         except Exception as e:
-            _log(
+            util.log(
                 "[serve.summarize_url_endpoint] request error url=%s error=%s",
                 target_url,
                 repr(e),
                 level=logging.ERROR,
                 exc_info=True,
+                logger=logger,
             )
             return jsonify({
                 "success": False,
@@ -609,18 +610,16 @@ def summarize_url_endpoint():
         try:
             blob_pathname = normalize_url_to_pathname(
                 target_url,
-                os.getenv(
-                    "BLOB_STORE_PREFIX",
-                    os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"),
-                ),
+                util.resolve_env_var("BLOB_STORE_PREFIX", "tldr-scraper-blob"),
             )
             blob_url = put_markdown(blob_pathname, page_md)
         except Exception as e:
-            _log(
+            util.log(
                 "[serve.summarize_url_endpoint] blob upload failed url=%s error=%s",
                 target_url,
                 repr(e),
                 level=logging.WARNING,
+                logger=logger,
             )
         # Ensure prompt present
         global SUMMARIZE_PROMPT_TEMPLATE
@@ -628,11 +627,12 @@ def summarize_url_endpoint():
             try:
                 SUMMARIZE_PROMPT_TEMPLATE = _fetch_summarize_prompt_from_github()
             except Exception:
-                _log(
+                util.log(
                     "[serve.summarize_url_endpoint] failed to fetch summarize.md template url=%s",
                     target_url,
                     level=logging.ERROR,
                     exc_info=True,
+                    logger=logger,
                 )
                 pass
         prompt_template = SUMMARIZE_PROMPT_TEMPLATE or ""
@@ -649,23 +649,20 @@ def summarize_url_endpoint():
                     if blob_pathname.endswith(".md")
                     else blob_pathname
                 )
-                summary_blob_pathname = f"{base}.summary.md"
+                summary_blob_pathname = f"{base}-summary-md"
             else:
                 # Fallback: recompute from URL
-                _pfx = os.getenv(
-                    "BLOB_STORE_PREFIX",
-                    os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"),
-                )
-                _base_path = normalize_url_to_pathname(target_url, _pfx)
+                _base_path = normalize_url_to_pathname(target_url)
                 base = _base_path[:-3] if _base_path.endswith(".md") else _base_path
-                summary_blob_pathname = f"{base}.summary.md"
+                summary_blob_pathname = f"{base}-summary-md"
             summary_blob_url = put_markdown(summary_blob_pathname, summary_text or "")
         except Exception as e:
-            _log(
+            util.log(
                 "[serve.summarize_url_endpoint] summary blob upload failed url=%s error=%s",
                 target_url,
                 repr(e),
                 level=logging.WARNING,
+                logger=logger,
             )
         # Inject debug appendix only in the response body (not stored)
         try:
@@ -701,22 +698,24 @@ def summarize_url_endpoint():
             resp_payload["upload_error"] = "blob upload failed or URL unavailable"
         return jsonify(resp_payload)
     except requests.RequestException as e:
-        _log(
+        util.log(
             "[serve.summarize_url_endpoint] request error url=%s",
             target_url,
             level=logging.ERROR,
             exc_info=True,
+            logger=logger,
         )
         return jsonify({
             "success": False,
             "error": f"Network error fetching URL: {repr(e)}",
         }), 502
     except Exception as e:
-        _log(
+        util.log(
             "[serve.summarize_url_endpoint] error url=%s",
             target_url,
             level=logging.ERROR,
             exc_info=True,
+            logger=logger,
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
@@ -739,11 +738,12 @@ def get_utm_source_category(url):
             return None  # Filter out other sources
 
     except Exception:
-        _log(
+        util.log(
             "[serve.get_utm_source_category] error url=%s",
             url,
             level=logging.ERROR,
             exc_info=True,
+            logger=logger,
         )
         return None
 
@@ -836,8 +836,9 @@ def fetch_newsletter(date, newsletter_type):
         for a in cached_articles:
             a["fetched_via"] = "hit"
             a["timing_total_ms"] = int(round((time.time() - cache_start) * 1000))
-        _log(
-            f"[serve.fetch_newsletter] cache HIT date={date_str} type={newsletter_type} count={len(cached_articles)}"
+        util.log(
+            f"[serve.fetch_newsletter] cache HIT date={date_str} type={newsletter_type} count={len(cached_articles)}",
+            logger=logger,
         )
         return {
             "date": date,
@@ -916,11 +917,12 @@ def fetch_newsletter(date, newsletter_type):
                         p.fragment,
                     ))
             except Exception as e:
-                _log(
+                util.log(
                     "[serve.fetch_newsletter] error sanitizing article url=%s error=%s",
                     a["url"],
                     repr(e),
                     level=logging.WARNING,
+                    logger=logger,
                 )
                 pass
             return clean
@@ -940,45 +942,45 @@ def fetch_newsletter(date, newsletter_type):
                 EDGE_WRITE_SUCCESS += 1
             status = get_last_write_status()
             body = get_last_write_body()
-            _log(
-                f"[serve.fetch_newsletter] wrote cache date={date_str} type={newsletter_type} count={len(sanitized_articles)} ok={bool(ok)} status={status} body={(body or '')}"
+            util.log(
+                f"[serve.fetch_newsletter] wrote cache date={date_str} type={newsletter_type} count={len(sanitized_articles)} ok={bool(ok)} status={status} body={(body or '')}",
+                logger=logger,
             )
         except Exception as e:
-            _log(
+            util.log(
                 "[serve.fetch_newsletter] failed writing cache date=%s type=%s error=%s",
                 date_str,
                 newsletter_type,
                 repr(e),
                 level=logging.ERROR,
                 exc_info=True,
+                logger=logger,
             )
 
         return result
 
     except requests.RequestException:
-        _log(
+        util.log(
             "[serve.fetch_newsletter] request error url=%s",
             url,
             level=logging.ERROR,
             exc_info=True,
+            logger=logger,
         )
         return None
 
 
-def canonicalize_url(url):
+def canonicalize_url(url) -> str:
     """Canonicalize URL for better deduplication"""
     import urllib.parse as urlparse
 
-    try:
-        parsed = urlparse.urlparse(url)
-        # Keep only the base URL without query parameters for deduplication
-        canonical = f"{parsed.scheme}://{parsed.netloc.lower()}{parsed.path}"
-        # Remove trailing slash for consistency
-        if canonical.endswith("/") and len(canonical) > 1:
-            canonical = canonical[:-1]
-        return canonical
-    except:
-        return url.lower()
+    parsed = urlparse.urlparse(url)
+    # Keep only the base URL without query parameters for deduplication
+    canonical = f"{parsed.scheme}://{parsed.netloc.lower()}{parsed.path}"
+    # Remove trailing slash for consistency
+    if canonical.endswith("/") and len(canonical) > 1:
+        canonical = canonical[:-1]
+    return canonical
 
 
 def scrape_date_range(start_date, end_date):
@@ -1037,13 +1039,10 @@ def scrape_date_range(start_date, end_date):
     output = format_final_output(start_date, end_date, grouped_articles)
 
     # Edge config ID consistency check (read URL vs ID)
-    ec_url = os.getenv(
+    ec_url = util.resolve_env_var(
         "EDGE_CONFIG_CONNECTION_STRING",
-        os.getenv("TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING", ""),
     )
-    ec_id_env = os.getenv(
-        "EDGE_CONFIG_ID", os.getenv("TLDR_SCRAPER_EDGE_CONFIG_ID", "")
-    )
+    ec_id_env = util.resolve_env_var("EDGE_CONFIG_ID", "")
 
     def _extract_id(u: str):
         try:
@@ -1052,11 +1051,12 @@ def scrape_date_range(start_date, end_date):
             seg = p.path.strip("/").split("/")[0]
             return seg if seg.startswith("ecfg_") else None
         except Exception as e:
-            _log(
+            util.log(
                 "[serve.scrape_date_range] error extracting id from url=%s error=%s",
                 u,
                 repr(e),
                 level=logging.ERROR,
+                logger=logger,
             )
             return None
 
@@ -1083,7 +1083,7 @@ def scrape_date_range(start_date, end_date):
             "edge_reads_hit": EDGE_READ_HITS,
             "edge_writes_attempted": EDGE_WRITE_ATTEMPTS,
             "edge_writes_success": EDGE_WRITE_SUCCESS,
-            "debug_logs": list(LOGS),
+            "debug_logs": list(util.LOGS),
         },
     }
 
@@ -1144,4 +1144,13 @@ def format_final_output(start_date, end_date, grouped_articles):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=5001,
+        debug=True,
+        threaded=False,
+        use_reloader=False,
+        use_evalex=True,
+        processes=1,
+        use_debugger=True,
+    )
