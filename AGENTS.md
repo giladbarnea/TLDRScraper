@@ -35,11 +35,21 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 - `BLOB_READ_WRITE_TOKEN`: `vercel_blob_rw_...`
 
 ### Common tasks and examples
+#### Run serve.py locally
+
+```bash
+# Takes care of installing dependencies and bootstrapping the environment.
+./scripts/background-agent-setup.sh
+
+# .env should be already populated by the setup script.
+uv run --env-file=./.env python3 serve.py
+```
+
 #### Vercel CLI (required for Blob uploads from Python)
 Install once:
 ```bash
 npm i -g vercel
-vercel --version
+vercel --help
 ```
 The server shells out to:
 ```bash
@@ -70,8 +80,8 @@ export PATH="$HOME/.local/bin:$PATH"
 
 - Install uv and use Python via uv:
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-export PATH="$HOME/.local/bin:$PATH"
+source setup.sh
+ensure_uv
 uv --version
 ```
 
@@ -99,12 +109,12 @@ PY
 - Values should only contain:
   * `articles: [ { title, url }, ... ]`
   * Strip all `utm_*` query params before storing.
-- Failing early is better than fallbacks. Zero “Just in case” code. Fallback-rich code explodes complexity and often just propagates bugs downstream. If something important fails, fail early and clearly. Bad code should be fixed, not worked around.
+- Failing early is better than fallbacks. Zero “Just in case” code. Fallback-rich code explodes complexity and often just propagates bugs downstream. If something important fails, fail early and clearly. Broken code should be fixed, not worked around.
 
 ### Development Conventions
 
 - Always use `util.resolve_env_var` to get environment variables.
-- Add a doctest example to pure‘ish functions (data in, data out).
+- Add a doctest example to pure-ish functions (data in, data out).
 - Do not abbreviate variable, function or class names. Use complete words.
 - `util.log` when something is going wrong, even if it is recoverable. Be consistent with existing logging style.
 
