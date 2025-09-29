@@ -145,7 +145,7 @@ def is_sponsored_url(url: str) -> bool:
 
     Rules:
     - If utm_medium=newsletter (case-insensitive) => sponsored
-    - If utm_campaign is present (any value) => sponsored
+    - REMOVED: utm_campaign check (was too aggressive, filtering out legitimate articles)
     """
     try:
         import urllib.parse as urlparse
@@ -157,8 +157,7 @@ def is_sponsored_url(url: str) -> bool:
         medium_values = [v.lower() for v in query_params.get("utm_medium", [])]
         if "newsletter" in medium_values:
             return True
-        if "utm_campaign" in query_params:
-            return True
+        # REMOVED: utm_campaign check - was filtering out too many legitimate articles
         return False
     except Exception:
         return False
@@ -344,13 +343,22 @@ def get_utm_source_category(url):
         query_params = urlparse.parse_qs(parsed.query)
         utm_source = query_params.get("utm_source", [""])[0].lower()
 
-        # Map UTM sources to categories - only "general" and AI
-        if utm_source in ["tldr", "tldrtech"]:
-            return "TLDR Tech"
-        elif utm_source in ["tldrai", "tldr-ai", "tldr_ai"]:
-            return "TLDR AI"
+        # Map UTM sources to categories - accept all TLDR newsletter types
+        if utm_source.startswith("tldr"):
+            # Map known sources to specific categories
+            if utm_source in ["tldrai", "tldr-ai", "tldr_ai"]:
+                return "TLDR AI"
+            elif utm_source in ["tldr", "tldrtech"]:
+                return "TLDR Tech"
+            else:
+                # For other TLDR sources (tldrmarketing, tldrfounders, etc.),
+                # return a category based on the source name
+                # Convert tldrmarketing -> TLDR Marketing, tldrfounders -> TLDR Founders, etc.
+                suffix = utm_source[4:]  # Remove "tldr" prefix
+                category_name = f"TLDR {suffix.capitalize()}"
+                return category_name
         else:
-            return None  # Filter out other sources
+            return None  # Filter out non-TLDR sources
 
     except Exception:
         util.log(
