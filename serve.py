@@ -12,6 +12,7 @@ from io import BytesIO
 import re
 from bs4 import BeautifulSoup
 import time
+import json
 
 from blob_newsletter_cache import get_cached_json, put_cached_json
 from blob_store import normalize_url_to_pathname
@@ -141,11 +142,15 @@ def is_sponsored_link(title, url):
 
 
 def is_sponsored_url(url: str) -> bool:
-    """Treat links as sponsored based on UTM query params.
-
-    Rules:
-    - If utm_medium=newsletter (case-insensitive) => sponsored
-    - If utm_campaign is present (any value) => sponsored
+    """Detect sponsored content based ONLY on bulletproof UTM parameter combinations.
+    
+    This function only uses explicit, unambiguous UTM indicators that definitively
+    signal paid/sponsored placement. Title-based filtering (is_sponsored_link) handles
+    the rest via "(Sponsor)" markers in article titles.
+    
+    Bulletproof rules:
+    - utm_medium contains explicit paid/sponsored terms (thirdparty_advertising, paid, sponsor, etc.)
+    - utm_content or utm_term explicitly says "paid"
     """
     try:
         import urllib.parse as urlparse
@@ -154,11 +159,32 @@ def is_sponsored_url(url: str) -> bool:
         query_params = {
             k.lower(): v for k, v in urlparse.parse_qs(parsed.query).items()
         }
+        
+        # Check utm_medium for EXPLICIT sponsored indicators
         medium_values = [v.lower() for v in query_params.get("utm_medium", [])]
-        if "newsletter" in medium_values:
+        medium_str = ' '.join(medium_values)
+        
+        # These are unambiguous paid placement indicators
+        explicit_paid_mediums = [
+            'thirdparty_advertising',  # Explicitly says it's third-party advertising
+            'paid',                     # Explicitly says it's paid
+            'sponsor',                  # Explicitly says it's sponsored
+            'sponsored',                # Explicitly says it's sponsored
+            'cpc',                      # Cost-per-click (paid)
+            'cpm',                      # Cost-per-mille (paid)
+        ]
+        
+        if any(indicator in medium_str for indicator in explicit_paid_mediums):
             return True
-        if "utm_campaign" in query_params:
+        
+        # Check utm_content or utm_term for explicit "paid" indicator
+        content_values = [v.lower() for v in query_params.get("utm_content", [])]
+        term_values = [v.lower() for v in query_params.get("utm_term", [])]
+        
+        if 'paid' in ' '.join(content_values) or 'paid' in ' '.join(term_values):
             return True
+        
+        # That's it! Everything else is handled by title-based filtering
         return False
     except Exception:
         return False
@@ -335,6 +361,85 @@ def remove_url_endpoint():
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
+@app.route("/api/invalidate-cache", methods=["POST"])
+def invalidate_cache_endpoint():
+    """Invalidate the day-level newsletter cache for a date range.
+    
+    This only clears the scraped newsletter cache (scrape-day-*.json files),
+    not article content or summaries.
+    """
+    try:
+        data = request.get_json() or {}
+        
+        if "start_date" not in data or "end_date" not in data:
+            return jsonify({
+                "success": False,
+                "error": "start_date and end_date are required",
+            }), 400
+
+        start_date = datetime.fromisoformat(data["start_date"])
+        end_date = datetime.fromisoformat(data["end_date"])
+
+        if start_date > end_date:
+            return jsonify({
+                "success": False,
+                "error": "start_date must be before or equal to end_date",
+            }), 400
+
+        # Get all dates in range
+        dates = get_date_range(start_date, end_date)
+        
+        # Try to delete each day's cache file
+        from blob_store import delete_file
+        
+        deleted_count = 0
+        failed_count = 0
+        errors = []
+        
+        for date in dates:
+            date_str = format_date_for_url(date)
+            pathname = _scrape_day_pathname(date_str)
+            
+            try:
+                success = delete_file(pathname)
+                if success:
+                    deleted_count += 1
+                    util.log(
+                        f"[serve.invalidate_cache_endpoint] Deleted cache for day={date_str}",
+                        logger=logger,
+                    )
+                else:
+                    failed_count += 1
+                    errors.append(f"{date_str}: delete returned false")
+            except Exception as e:
+                failed_count += 1
+                error_msg = f"{date_str}: {repr(e)}"
+                errors.append(error_msg)
+                util.log(
+                    f"[serve.invalidate_cache_endpoint] Failed to delete cache for day={date_str} error={repr(e)}",
+                    level=logging.WARNING,
+                    logger=logger,
+                )
+        
+        return jsonify({
+            "success": True,
+            "deleted": deleted_count,
+            "failed": failed_count,
+            "total_days": len(dates),
+            "errors": errors if errors else None,
+        })
+
+    except Exception as e:
+        util.log(
+            "[serve.invalidate_cache_endpoint] error error=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
 def get_utm_source_category(url):
     """Extract UTM source from URL and map to category"""
     import urllib.parse as urlparse
@@ -344,13 +449,22 @@ def get_utm_source_category(url):
         query_params = urlparse.parse_qs(parsed.query)
         utm_source = query_params.get("utm_source", [""])[0].lower()
 
-        # Map UTM sources to categories - only "general" and AI
-        if utm_source in ["tldr", "tldrtech"]:
-            return "TLDR Tech"
-        elif utm_source in ["tldrai", "tldr-ai", "tldr_ai"]:
-            return "TLDR AI"
+        # Map UTM sources to categories - accept all TLDR newsletter types
+        if utm_source.startswith("tldr"):
+            # Map known sources to specific categories
+            if utm_source in ["tldrai", "tldr-ai", "tldr_ai"]:
+                return "TLDR AI"
+            elif utm_source in ["tldr", "tldrtech"]:
+                return "TLDR Tech"
+            else:
+                # For other TLDR sources (tldrmarketing, tldrfounders, etc.),
+                # return a category based on the source name
+                # Convert tldrmarketing -> TLDR Marketing, tldrfounders -> TLDR Founders, etc.
+                suffix = utm_source[4:]  # Remove "tldr" prefix
+                category_name = f"TLDR {suffix.capitalize()}"
+                return category_name
         else:
-            return None  # Filter out other sources
+            return None  # Filter out non-TLDR sources
 
     except Exception:
         util.log(

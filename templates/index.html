@@ -102,6 +102,13 @@
             background-color: #ccc;
             cursor: not-allowed;
         }
+        .secondary-btn {
+            background-color: #6c757d;
+            margin-top: 10px;
+        }
+        .secondary-btn:hover {
+            background-color: #5a6268;
+        }
         a:focus-visible, button:focus-visible, input:focus-visible {
             outline: 3px solid rgba(26,115,232,0.45);
             outline-offset: 2px;
@@ -225,6 +232,7 @@
             </div>
 
             <button type="submit" id="scrapeBtn">Scrape TLDR Newsletters</button>
+            <button type="button" id="invalidateCacheBtn" class="secondary-btn">Clear Cache for These Dates</button>
         </form>
 
         <div id="progress" class="progress">
@@ -371,6 +379,63 @@
 
         // Initialize default dates on page load
         setDefaultDates();
+
+        // Handle cache invalidation button
+        document.getElementById('invalidateCacheBtn').addEventListener('click', async function(e) {
+            e.preventDefault();
+            
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            
+            if (!startDate || !endDate) {
+                alert('Please select both start and end dates first.');
+                return;
+            }
+            
+            const confirmed = confirm(
+                `This will clear the newsletter cache for dates ${startDate} to ${endDate}.\n\n` +
+                `The next scrape will fetch fresh data from TLDR.\n\n` +
+                `Note: This does NOT delete article content or summaries, only the newsletter cache.\n\n` +
+                `Continue?`
+            );
+            
+            if (!confirmed) return;
+            
+            const button = e.target;
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Clearing cache...';
+            
+            try {
+                const response = await fetch('/api/invalidate-cache', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ start_date: startDate, end_date: endDate })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(
+                        `Cache cleared successfully!\n\n` +
+                        `Deleted: ${data.deleted} days\n` +
+                        `Failed: ${data.failed} days\n` +
+                        `Total: ${data.total_days} days\n\n` +
+                        (data.errors && data.errors.length > 0 ? 
+                            `Errors:\n${data.errors.join('\n')}` : 
+                            `Next scrape will fetch fresh data.`)
+                    );
+                } else {
+                    alert('Error clearing cache: ' + data.error);
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+                console.error('Cache invalidation error:', error);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        });
 
         // Handle remove button clicks
         document.addEventListener('click', async function(e) {
