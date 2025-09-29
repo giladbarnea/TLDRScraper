@@ -48,10 +48,10 @@ def normalize_url_to_pathname(url: str) -> str:
     base = f"{s}.md"
     from string import punctuation
 
-    if any(c in base for c in set(punctuation) - {"-"}):
+    if any(c in s for c in set(punctuation) - {"-"}):
         util.log(
             "[blob_store.normalize_url_to_pathname] result contains punctuation: %s",
-            base,
+            s,
             level=logging.ERROR,
         )
     return f"{base}"
