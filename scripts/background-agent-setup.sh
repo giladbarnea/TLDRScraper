@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKDIR="/workspace"
+# Dynamic working directory (do not assume /workspace)
+WORKDIR="${WORKDIR:-$PWD}"
 RUN_DIR="$WORKDIR/.run"
 SCRIPTS_DIR="$WORKDIR/scripts"
 LOG_FILE="$WORKDIR/server.log"
@@ -10,6 +11,14 @@ PORT="${PORT:-5001}"
 echo "[setup] Working directory: $WORKDIR"
 cd "$WORKDIR"
 mkdir -p "$RUN_DIR" "$SCRIPTS_DIR"
+
+# Source project setup (uv, etc.) and reuse its assumptions
+if [[ -f "$WORKDIR/setup.sh" ]]; then
+  # shellcheck disable=SC1090
+  . "$WORKDIR/setup.sh" || true
+else
+  echo "[setup] setup.sh not found in $WORKDIR; continuing with fallbacks" >&2
+fi
 
 echo "[setup] Checking Node.js and npm..."
 if ! command -v node >/dev/null; then
@@ -23,47 +32,44 @@ fi
 node -v || true
 npm -v || true
 
-echo "[setup] Installing Vercel CLI (local prefix)..."
-mkdir -p "$WORKDIR/.npm-global"
-npm config set prefix "$WORKDIR/.npm-global" >/dev/null
-export PATH="$WORKDIR/.npm-global/bin:$PATH"
+echo "[setup] Ensuring Vercel CLI..."
 if ! command -v vercel >/dev/null; then
-  npm i -g vercel@latest
-else
-  echo "[setup] Vercel CLI already installed at $(command -v vercel)"
+  # Fallback to local npm prefix if setup.sh did not provide vercel
+  mkdir -p "$WORKDIR/.npm-global"
+  npm config set prefix "$WORKDIR/.npm-global" >/dev/null
+  export PATH="$WORKDIR/.npm-global/bin:$PATH"
+  if ! command -v vercel >/dev/null; then
+    npm i -g vercel@latest
+  fi
 fi
 vercel --version || true
 
-echo "[setup] Installing Python dependencies..."
-python3 -m pip --version || true
-python3 -m pip install --user --break-system-packages -r "$WORKDIR/requirements.txt"
+echo "[setup] Ensuring Python dependencies via uv..."
+if command -v uv >/dev/null; then
+  uv sync || true
+else
+  echo "[warn] uv is not available; attempting to install it..." >&2
+  curl -LsSf https://astral.sh/uv/install.sh | sh || true
+  if command -v uv >/dev/null; then
+    uv sync || true
+  else
+    echo "[warn] uv still unavailable; proceeding without uv sync" >&2
+  fi
+fi
 
-echo "[setup] Generating .env and .env.sh from current environment..."
-ENV_SH="$WORKDIR/.env.sh"
+echo "[setup] Generating .env from current environment..."
 ENV_FILE="$WORKDIR/.env"
 ENV_KEYS_REGEX='^(OPENAI_API_TOKEN|GITHUB_API_TOKEN|EDGE_CONFIG_CONNECTION_STRING|EDGE_CONFIG_ID|VERCEL_TOKEN|BLOB_READ_WRITE_TOKEN|BLOB_STORE_BASE_URL|LOG_LEVEL|TLDR_SCRAPER_.*)='
+env | egrep "$ENV_KEYS_REGEX" | sort | sed 's/^export \{0,1\}//' > "$ENV_FILE" || true
 
-env | egrep "$ENV_KEYS_REGEX" | sort | sed 's/^/export /' > "$ENV_SH" || true
-
-# Ensure PATH and helpful aliases available when sourcing .env.sh
-if ! grep -q '/workspace/.npm-global/bin' "$ENV_SH" 2>/dev/null; then
-  echo 'export PATH="/workspace/.npm-global/bin:$PATH"' >> "$ENV_SH"
-fi
-echo 'alias slog="tail -n 200 /workspace/server.log"' >> "$ENV_SH" || true
-echo 'alias slogf="tail -F /workspace/server.log"' >> "$ENV_SH" || true
-
-# .env: plain KEY=VALUE lines for python-dotenv autoload
-awk -F= '{print $1 "=" $2}' "$ENV_SH" | sed 's/^export //' > "$ENV_FILE" || true
-
-echo "[setup] Sourcing .env.sh for this shell..."
-set -a; . "$ENV_SH"; set +a
-
-echo "[setup] Creating watchdog script..."
-cat > "$SCRIPTS_DIR/watchdog.sh" <<'EOSH'
+echo "[setup] Ensuring watchdog script exists..."
+if [[ ! -x "$SCRIPTS_DIR/watchdog.sh" ]]; then
+  cat > "$SCRIPTS_DIR/watchdog.sh" <<'EOSH'
 #!/usr/bin/env bash
 set -euo pipefail
-PID_FILE="/workspace/.run/server.pid"
-LOG_FILE="/workspace/server.log"
+WORKDIR="${WORKDIR:-$PWD}"
+PID_FILE="$WORKDIR/.run/server.pid"
+LOG_FILE="$WORKDIR/server.log"
 CHECK_INTERVAL="2"
 if [[ ! -f "$PID_FILE" ]]; then
   echo "watchdog: missing PID file $PID_FILE" >&2
@@ -84,7 +90,8 @@ while true; do
   sleep "$CHECK_INTERVAL"
 done
 EOSH
-chmod +x "$SCRIPTS_DIR/watchdog.sh"
+  chmod +x "$SCRIPTS_DIR/watchdog.sh"
+fi
 
 echo "[setup] Stopping any existing server/watchdog..."
 if [[ -f "$RUN_DIR/watchdog.pid" ]]; then
@@ -96,9 +103,9 @@ fi
 
 echo "[setup] Starting server with nohup (port $PORT)..."
 rm -f "$LOG_FILE"
-nohup env PATH="/workspace/.npm-global/bin:$PATH" python3 "$WORKDIR/serve.py" >> "$LOG_FILE" 2>&1 & echo $! > "$RUN_DIR/server.pid"
+nohup env PATH="$WORKDIR/.npm-global/bin:$PATH" uv run python3 "$WORKDIR/serve.py" >> "$LOG_FILE" 2>&1 & echo $! > "$RUN_DIR/server.pid"
 sleep 1
-nohup "$SCRIPTS_DIR/watchdog.sh" >> "$LOG_FILE" 2>&1 & echo $! > "$RUN_DIR/watchdog.pid"
+nohup env WORKDIR="$WORKDIR" "$SCRIPTS_DIR/watchdog.sh" >> "$LOG_FILE" 2>&1 & echo $! > "$RUN_DIR/watchdog.pid"
 
 echo "[setup] Server PID: $(cat "$RUN_DIR/server.pid")"
 echo "[setup] Watchdog PID: $(cat "$RUN_DIR/watchdog.pid")"
@@ -118,20 +125,19 @@ echo
 echo "[setup] Tail last 40 log lines:"
 tail -n 40 "$LOG_FILE" || true
 
-cat <<'EOT'
+cat <<EOT
 
 [done] Setup complete.
 Useful follow-ups:
-  - source /workspace/.env.sh      # add PATH and aliases (slog/slogf)
-  - ps -o pid,cmd -p $(cat /workspace/run/server.pid)
-  - slog                           # show last 200 log lines
-  - slogf                          # follow logs
-  - curl -sS localhost:5001/ | head
-  - curl -sS -H 'Content-Type: application/json' -d '{"url":"https://example.com"}' localhost:5001/api/summarize-url
-  - curl -sS localhost:5001/api/prompt
+  - ps -o pid,cmd -p \\$(cat "$RUN_DIR/server.pid")
+  - tail -n 200 "$LOG_FILE"
+  - tail -F "$LOG_FILE"
+  - curl -sS localhost:$PORT/ | head
+  - curl -sS -H 'Content-Type: application/json' -d '{"url":"https://example.com"}' localhost:$PORT/api/summarize-url
+  - curl -sS localhost:$PORT/api/prompt
 
 Notes:
-  - To enable blob uploads, set BLOB_READ_WRITE_TOKEN in /workspace/.env and rerun.
-  - To avoid GitHub 401 in /api/prompt, set GITHUB_API_TOKEN in /workspace/.env and restart.
+  - To enable blob uploads, set BLOB_READ_WRITE_TOKEN in "$ENV_FILE" and rerun.
+  - To avoid GitHub 401 in /api/prompt, set GITHUB_API_TOKEN in "$ENV_FILE" and restart.
 EOT
 
