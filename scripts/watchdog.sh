@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-PID_FILE="/workspace/run/server.pid"
+PID_FILE="/workspace/.run/server.pid"
 LOG_FILE="/workspace/server.log"
 CHECK_INTERVAL="2"
 if [[ ! -f "$PID_FILE" ]]; then

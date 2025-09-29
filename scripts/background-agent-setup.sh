@@ -2,7 +2,7 @@
 set -euo pipefail
 
 WORKDIR="/workspace"
-RUN_DIR="$WORKDIR/run"
+RUN_DIR="$WORKDIR/.run"
 SCRIPTS_DIR="$WORKDIR/scripts"
 LOG_FILE="$WORKDIR/server.log"
 PORT="${PORT:-5001}"
@@ -62,7 +62,7 @@ echo "[setup] Creating watchdog script..."
 cat > "$SCRIPTS_DIR/watchdog.sh" <<'EOSH'
 #!/usr/bin/env bash
 set -euo pipefail
-PID_FILE="/workspace/run/server.pid"
+PID_FILE="/workspace/.run/server.pid"
 LOG_FILE="/workspace/server.log"
 CHECK_INTERVAL="2"
 if [[ ! -f "$PID_FILE" ]]; then
