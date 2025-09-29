@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import hashlib
@@ -6,15 +7,10 @@ import tempfile
 import urllib.parse
 import json
 
-
-def _default_prefix() -> str:
-    return os.getenv(
-        "BLOB_STORE_PREFIX",
-        os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"),
-    ).strip("/")
+import util
 
 
-def normalize_url_to_pathname(url: str, prefix: str | None = None) -> str:
+def normalize_url_to_pathname(url: str) -> str:
     """
     Deterministically convert a canonical URL into a Blob pathname:
 
@@ -25,7 +21,6 @@ def normalize_url_to_pathname(url: str, prefix: str | None = None) -> str:
     - replace any non-alphanumeric with a single '-'
     - collapse repeats; trim leading/trailing '-'
     - ensure '.md' suffix
-    - prepend prefix directory
     - truncate overly long names and add a short hash
     """
     u = urllib.parse.urlsplit(url)
@@ -33,7 +28,7 @@ def normalize_url_to_pathname(url: str, prefix: str | None = None) -> str:
     path = urllib.parse.unquote(u.path or "/").lower()
 
     # Preserve dots in host, hyphenate other non-alphanumerics
-    host_clean = re.sub(r"[^a-z0-9.]+", "-", host)
+    host_clean = re.sub(r"[^a-z0-9]+", "-", host)
     # For path, replace any non-alphanumeric with '-'
     path_clean = re.sub(r"[^a-z0-9]+", "-", path)
     # Collapse repeated hyphens
@@ -44,29 +39,31 @@ def normalize_url_to_pathname(url: str, prefix: str | None = None) -> str:
     if not s:
         s = "root"
 
-    if not s:
-        s = "root"
-
     # Length guard: keep pathnames sane; append a short hash if truncated
     MAX = 80
     if len(s) > MAX:
         h = hashlib.sha256(s.encode("utf-8")).hexdigest()[:10]
         s = f"{s[: MAX - 11]}-{h}"
 
-    base = f"{s}.md"
-    pfx = (prefix if isinstance(prefix, str) else _default_prefix()).strip("/")
-    return f"{pfx}/{base}" if pfx else base
+    base = f"{s}-md"
+    from string import punctuation
+
+    if any(c in base for c in set(punctuation) - {"-"}):
+        util.log(
+            "[blob_store.normalize_url_to_pathname] result contains punctuation: %s",
+            base,
+            level=logging.ERROR,
+        )
+    return f"{base}"
 
 
 def _resolve_rw_token() -> str:
-    return (
-        os.getenv("BLOB_READ_WRITE_TOKEN")
-        or os.getenv("TLDR_SCRAPER_BLOB_READ_WRITE_TOKEN")
-        or ""
-    )
+    return util.resolve_env_var("BLOB_READ_WRITE_TOKEN", "")
+
 
 def _resolve_store_base_url() -> str | None:
-    return os.getenv("BLOB_STORE_BASE_URL") or os.getenv("TLDR_SCRAPER_BLOB_STORE_BASE_URL") or None
+    return util.resolve_env_var("BLOB_STORE_BASE_URL", None)
+
 
 def put_markdown(pathname: str, markdown: str) -> str:
     """
@@ -81,7 +78,9 @@ def put_markdown(pathname: str, markdown: str) -> str:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as f:
         f.write(markdown.encode("utf-8"))
         tmp = f.name
+    from IPython import embed
 
+    embed()
     try:
         cmd = [
             "vercel",
@@ -114,7 +113,7 @@ def put_markdown(pathname: str, markdown: str) -> str:
     return ""  # Unknown but upload succeeded
 
 
-def list_all_entries(prefix: str | None = None, limit: int | None = None) -> list[str]:
+def list_all_entries(limit: int | None = None) -> list[str]:
     """
     List blob pathnames using the Vercel CLI.
 
@@ -126,8 +125,6 @@ def list_all_entries(prefix: str | None = None, limit: int | None = None) -> lis
         return []
     # Build base command
     base_cmd = ["vercel", "blob", "ls", "--rw-token", token]
-    if prefix and isinstance(prefix, str) and prefix.strip():
-        base_cmd.append(prefix.strip())
     try:
         # Prefer JSON when available
         cmd = base_cmd + ["--json"]
