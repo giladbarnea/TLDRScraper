@@ -343,12 +343,9 @@ def _resolve_openai_api_token() -> str:
 
 def _convert_html_to_markdown(html: str) -> str:
     """Convert raw HTML to Markdown using MarkItDown."""
-    try:
-        stream = BytesIO(html.encode("utf-8", errors="ignore"))
-        result = md.convert_stream(stream, file_extension=".html")
-        return result.text_content
-    except Exception:
-        return ""
+    stream = BytesIO(html.encode("utf-8", errors="ignore"))
+    result = md.convert_stream(stream, file_extension=".html")
+    return result.text_content
 
 
 def _insert_page_markdown_into_prompt(template_text: str, page_md: str) -> str:
@@ -388,7 +385,7 @@ def _call_openai_responses_api(prompt_text: str) -> str:
         # Use simple string input for text-only requests.
         "input": prompt_text,
         # Reasoning knobs
-        "reasoning": {"effort": "low"},
+        "reasoning": {"effort": "minimal"},
         "stream": False,
     }
     # from IPython import embed; embed()
@@ -540,13 +537,19 @@ def summarize_url_endpoint():
                 logger=logger,
             )
             return jsonify({"success": False, "error": "Invalid or missing url"}), 400
-        # Read-first: if a prior summary blob exists, return it immediately
+        # Try read cached summary
+        base_path = normalize_url_to_pathname(target_url)
+        blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
         try:
-            base_path = normalize_url_to_pathname(target_url)
             base = base_path[:-3] if base_path.endswith(".md") else base_path
             summary_blob_pathname = f"{base}-summary.md"
-            summary_blob_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
-            if summary_blob_url:
+            if blob_base_url:
+                summary_blob_url = f"{blob_base_url}/{summary_blob_pathname}"
+                util.log(
+                    "[serve.summarize_url_endpoint] Trying to get cached summary from blob store url=%s",
+                    summary_blob_url,
+                    logger=logger,
+                )
                 resp = requests.get(
                     summary_blob_url,
                     timeout=10,
@@ -554,103 +557,122 @@ def summarize_url_endpoint():
                         "User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"
                     },
                 )
-                if (
-                    resp.status_code == 200
-                    and isinstance(resp.text, str)
-                    and resp.text.strip()
-                ):
-                    util.log(
-                        f"[serve.summarize_url_endpoint] summary cache HIT url={target_url} pathname={summary_blob_pathname}"
-                    )
-                    # Inject debug appendix (do not store this; it's only in response)
-                    appendix_lines = [
-                        "\n\n---\n",
-                        "Debug: Summary cache key candidate and store listing\n",
-                        f"- candidate: `{summary_blob_pathname}`\n",
-                    ]
-                    try:
-                        if _BLOB_ENTRIES:
-                            appendix_lines.append(
-                                f"- store entries ({len(_BLOB_ENTRIES)}):\n"
-                            )
-                            for k in _BLOB_ENTRIES:
-                                try:
-                                    appendix_lines.append(f"  - `{k}`\n")
-                                except Exception as e:
-                                    appendix_lines.append(
-                                        f"  - failed to append blob entry: {repr(e)}\n"
-                                    )
-                        else:
-                            appendix_lines.append(
-                                "- store entries: empty or unavailable\n"
-                            )
-                    except Exception as e:
-                        appendix_lines.append(f"- store entries: {repr(e)}\n")
-                    summary_with_debug = resp.text + "".join(appendix_lines)
-                    return jsonify({
-                        "success": True,
-                        "summary_markdown": summary_with_debug,
-                        "summary_blob_url": summary_blob_url,
-                        "summary_blob_pathname": summary_blob_pathname,
-                        "debug_summary_cache_key": summary_blob_pathname,
-                    })
+                resp.raise_for_status()
+                util.log(
+                    f"[serve.summarize_url_endpoint] summary cache HIT url={target_url} pathname={summary_blob_pathname}",
+                    logger=logger,
+                )
+                cached_summary = resp.text.strip()
+                # Inject debug appendix (do not store this; it's only in response)
+                appendix_lines = [
+                    "\n\n---\n",
+                    "Debug: Summary cache key candidate\n",
+                    f"- candidate: `{summary_blob_pathname}`\n",
+                ]
+                summary_with_debug = cached_summary + "".join(appendix_lines)
+                return jsonify({
+                    "success": True,
+                    "summary_markdown": summary_with_debug,
+                    "summary_blob_url": summary_blob_url,
+                    "summary_blob_pathname": summary_blob_pathname,
+                    "debug_summary_cache_key": summary_blob_pathname,
+                })
         except Exception as e:
             util.log(
-                "[serve.summarize_url_endpoint] summary cache read error url=%s error=%s",
+                "[serve.summarize_url_endpoint] summary cache read error url=%s. Trying to fetch cached content of URL instead. error=%s",
                 target_url,
                 repr(e),
                 level=logging.WARNING,
                 logger=logger,
-            )
-        # Fetch page
-        r = requests.get(
-            target_url,
-            timeout=30,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"},
-        )
-        try:
-            r.raise_for_status()
-        except Exception as e:
-            util.log(
-                "[serve.summarize_url_endpoint] request error url=%s error=%s",
-                target_url,
-                repr(e),
-                level=logging.ERROR,
                 exc_info=True,
+            )
+        page_md = None
+
+        # No cached summary -> Try read cached content of URL
+        try:
+            webpage_blob_url = f"{blob_base_url}/{base_path}"
+            util.log(
+                "[serve.summarize_url_endpoint] Trying to get cached content of URL from blob store url=%s",
+                webpage_blob_url,
                 logger=logger,
             )
-            return jsonify({
-                "success": False,
-                "error": f"Network error fetching URL: {repr(e)}",
-            }), 502
-        html = r.text
-        page_md = _convert_html_to_markdown(html) or ""
-
-        # Persist cleaned Markdown to Vercel Blob with deterministic pathname.
-        blob_url = None
-        blob_pathname = None
-        try:
-            blob_pathname = normalize_url_to_pathname(
-                target_url,
+            resp = requests.get(
+                webpage_blob_url,
+                timeout=10,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"},
             )
-            blob_url = put_markdown(blob_pathname, page_md)
+            resp.raise_for_status()
+            util.log(
+                f"[serve.summarize_url_endpoint] webpage cache HIT url={target_url} pathname={base_path}",
+                logger=logger,
+            )
+            html = resp.text.strip()
+            page_md = _convert_html_to_markdown(html)
         except Exception as e:
             util.log(
-                "[serve.summarize_url_endpoint] blob upload failed url=%s error=%s",
+                "[serve.summarize_url_endpoint] webpage cache read error url=%s. Trying to fetch URL content instead. error=%s",
                 target_url,
                 repr(e),
                 level=logging.WARNING,
                 logger=logger,
+                exc_info=True,
             )
+
+        # Fetch page manually if no cached content
+        if not page_md:
+            webpage_response = requests.get(
+                target_url,
+                timeout=30,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"},
+            )
+            try:
+                webpage_response.raise_for_status()
+            except Exception as e:
+                util.log(
+                    "[serve.summarize_url_endpoint] Failed to fetch URL web content url=%s error=%s",
+                    target_url,
+                    repr(e),
+                    level=logging.ERROR,
+                    exc_info=True,
+                    logger=logger,
+                )
+                return jsonify({
+                    "success": False,
+                    "error": f"Network error fetching URL: {repr(e)}",
+                }), 502
+            util.log(
+                f"[serve.summarize_url_endpoint] Fetched URL web content url={target_url} pathname={base_path}. Converting to Markdown and trying to cache in blob store",
+                logger=logger,
+            )
+            html = webpage_response.text
+            page_md = _convert_html_to_markdown(html)
+
+            # Persist cleaned Markdown to Vercel Blob with deterministic pathname.
+            try:
+                put_markdown(base_path, page_md)
+            except Exception as e:
+                util.log(
+                    "[serve.summarize_url_endpoint] blob upload failed url=%s error=%s",
+                    target_url,
+                    repr(e),
+                    level=logging.WARNING,
+                    logger=logger,
+                )
+            else:
+                util.log(
+                    f"[serve.summarize_url_endpoint] Successfully cached URL web content url={target_url} pathname={base_path}",
+                    logger=logger,
+                )
         # Ensure prompt present
         global SUMMARIZE_PROMPT_TEMPLATE
         if not SUMMARIZE_PROMPT_TEMPLATE:
             try:
                 SUMMARIZE_PROMPT_TEMPLATE = _fetch_summarize_prompt_from_github()
-            except Exception:
+            except Exception as e:
                 util.log(
-                    "[serve.summarize_url_endpoint] failed to fetch summarize.md template url=%s",
+                    "[serve.summarize_url_endpoint] failed to fetch summarize.md template url=%s error=%s",
                     target_url,
+                    repr(e),
                     level=logging.ERROR,
                     exc_info=True,
                     logger=logger,
@@ -664,19 +686,15 @@ def summarize_url_endpoint():
         summary_blob_pathname = None
         try:
             # Derive a deterministic summary pathname based on the page markdown pathname
-            if blob_pathname and isinstance(blob_pathname, str):
-                base = (
-                    blob_pathname[:-3]
-                    if blob_pathname.endswith(".md")
-                    else blob_pathname
-                )
+            if base_path and isinstance(base_path, str):
+                base = base_path[:-3] if base_path.endswith(".md") else base_path
                 summary_blob_pathname = f"{base}-summary.md"
             else:
                 # Fallback: recompute from URL
                 _base_path = normalize_url_to_pathname(target_url)
                 base = _base_path[:-3] if _base_path.endswith(".md") else _base_path
                 summary_blob_pathname = f"{base}-summary.md"
-            summary_blob_url = put_markdown(summary_blob_pathname, summary_text or "")
+                put_markdown(summary_blob_pathname, summary_text)
         except Exception as e:
             util.log(
                 "[serve.summarize_url_endpoint] summary blob upload failed url=%s error=%s",
@@ -684,44 +702,30 @@ def summarize_url_endpoint():
                 repr(e),
                 level=logging.WARNING,
                 logger=logger,
+                exc_info=True,
             )
         # Inject debug appendix only in the response body (not stored)
-        try:
-            appendix_lines = [
-                "\n\n---\n",
-                "Debug: Summary cache key candidate and store listing\n",
-                f"- candidate: `{summary_blob_pathname}`\n"
-                if summary_blob_pathname
-                else "- candidate: <unknown>\n",
-            ]
-            if _BLOB_ENTRIES:
-                appendix_lines.append(f"- store entries ({len(_BLOB_ENTRIES)}):\n")
-                for k in _BLOB_ENTRIES:
-                    if isinstance(k, str):
-                        appendix_lines.append(f"  - `{k}`\n")
-            else:
-                appendix_lines.append("- store entries: empty or unavailable\n")
-            summary_text_with_debug = (summary_text or "") + "".join(appendix_lines)
-        except Exception:
-            summary_text_with_debug = summary_text
+        appendix_lines = [
+            "\n\n---\n",
+            "Debug: Summary cache key candidate\n",
+            f"- candidate: `{summary_blob_pathname}`\n"
+            if summary_blob_pathname
+            else "- candidate: <unknown>\n",
+        ]
+        summary_text_with_debug = (summary_text or "") + "".join(appendix_lines)
 
         resp_payload = {
             "success": True,
             "summary_markdown": summary_text_with_debug,
-            "blob_url": blob_url,
-            "blob_pathname": blob_pathname,
+            "summary_blob_url": summary_blob_url,
+            "summary_blob_pathname": summary_blob_pathname,
         }
-        if summary_blob_url is not None:
-            resp_payload["summary_blob_url"] = summary_blob_url
-            resp_payload["summary_blob_pathname"] = summary_blob_pathname
-            resp_payload["debug_summary_cache_key"] = summary_blob_pathname
-        if blob_url is None:
-            resp_payload["upload_error"] = "blob upload failed or URL unavailable"
         return jsonify(resp_payload)
     except requests.RequestException as e:
         util.log(
-            "[serve.summarize_url_endpoint] request error url=%s",
+            "[serve.summarize_url_endpoint] request error url=%s error=%s",
             target_url,
+            repr(e),
             level=logging.ERROR,
             exc_info=True,
             logger=logger,
@@ -732,8 +736,9 @@ def summarize_url_endpoint():
         }), 502
     except Exception as e:
         util.log(
-            "[serve.summarize_url_endpoint] error url=%s",
+            "[serve.summarize_url_endpoint] error url=%s error=%s",
             target_url,
+            repr(e),
             level=logging.ERROR,
             exc_info=True,
             logger=logger,
