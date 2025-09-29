@@ -49,6 +49,12 @@ def _fetch_summarize_prompt_from_github(
     ref: str = "main",
 ) -> str:
     """Fetch the summarize.md prompt via GitHub Contents API and return it as text."""
+    if SUMMARIZE_PROMPT_TEMPLATE:
+        util.log(
+            "[startup][_fetch_summarize_prompt_from_github] summarize.md template already present, skipping fetch",
+            logger=logger,
+        )
+        return SUMMARIZE_PROMPT_TEMPLATE
     token = _resolve_github_api_token()
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={ref}"
     headers = {
@@ -69,9 +75,24 @@ def _fetch_summarize_prompt_from_github(
                 return base64.b64decode(data["content"]).decode(
                     "utf-8", errors="replace"
                 )
-        except Exception:
-            pass
-    raise RuntimeError(f"Failed to fetch summarize.md from GitHub: {resp.status_code}")
+        except Exception as e:
+            util.log(
+                "[startup][_fetch_summarize_prompt_from_github] Failed to fetch summarize.md from GitHub status_code=%s error=%s",
+                resp.status_code,
+                repr(e),
+                level=logging.ERROR,
+                logger=logger,
+                exc_info=True,
+            )
+            raise
+
+    formatted_error = {
+        "status_code": resp.status_code,
+        "content_type": resp.headers.get("Content-Type", ""),
+        "headers": dict(resp.headers),
+        "text": resp.text if len(resp.text) < 1000 else resp.text[:1000] + "...",
+    }
+    raise RuntimeError(f"Failed to fetch summarize.md from GitHub: {formatted_error}")
 
 
 def _background_fetch_prompt_once():
@@ -94,7 +115,8 @@ def _background_fetch_prompt_once():
     except Exception as e:
         logger.exception(
             "[startup][_background_fetch_prompt_once] Failed to fetch summarize.md: %s",
-            e,
+            repr(e),
+            level=logging.ERROR,
             logger=logger,
         )
 

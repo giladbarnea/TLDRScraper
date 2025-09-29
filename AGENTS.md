@@ -122,3 +122,5 @@ PY
 
 - Always use `util.resolve_env_var` to get environment variables.
 - Add a doctest example to pure‘ish functions (data in, data out).
+- Do not abbreviate variable, function or class names. Use complete words.
+- `util.log` when something is going wrong, even if it is recoverable. Be consistent with existing logging style.
