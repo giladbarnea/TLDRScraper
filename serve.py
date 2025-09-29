@@ -12,7 +12,6 @@ from io import BytesIO
 import re
 from bs4 import BeautifulSoup
 import time
-import json
 
 from edge_config_cache import get_cached_json, put_cached_json
 from edge_config import (
@@ -21,16 +20,16 @@ from edge_config import (
     get_last_write_body,
     get_effective_env_summary,
 )
-from blob_store import normalize_url_to_pathname, put_file
+from blob_store import normalize_url_to_pathname
 import urllib.parse as _urlparse
 import util
 from summarizer import summarize_url
+from blob_cache import blob_cached_json
 
 app = Flask(__name__)
 logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("serve")
 md = MarkItDown()
-
 
 
 # Per-request run diagnostics (simple globals, reset at start of scrape)
@@ -213,8 +212,6 @@ def extract_newsletter_content(html):
     return result.text_content
 
 
-
-
 def is_file_url(url):
     """Check if URL points to a file (image, PDF, etc.) rather than a web page"""
     file_extensions = [
@@ -253,6 +250,7 @@ def get_prompt_template():
     """Return the loaded summarize.md prompt (for debugging/inspection)."""
     try:
         from summarizer import _fetch_summarize_prompt
+
         prompt = _fetch_summarize_prompt()
         return prompt, 200, {"Content-Type": "text/plain; charset=utf-8"}
     except Exception as e:
@@ -276,31 +274,33 @@ def summarize_url_endpoint():
     try:
         data = request.get_json() or {}
         url = (data.get("url") or "").strip()
-        
+
         if not url or not (url.startswith("http://") or url.startswith("https://")):
             return jsonify({"success": False, "error": "Invalid or missing url"}), 400
-        
+
         summary = summarize_url(url)
-        
+
         base_path = normalize_url_to_pathname(url)
         base = base_path[:-3] if base_path.endswith(".md") else base_path
         summary_blob_pathname = f"{base}-summary.md"
         blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
-        summary_blob_url = f"{blob_base_url}/{summary_blob_pathname}" if blob_base_url else None
-        
+        summary_blob_url = (
+            f"{blob_base_url}/{summary_blob_pathname}" if blob_base_url else None
+        )
+
         debug_appendix = (
             f"\n\n---\n"
             f"Debug: Summary cache key candidate\n"
             f"- candidate: `{summary_blob_pathname}`\n"
         )
-        
+
         return jsonify({
             "success": True,
             "summary_markdown": summary + debug_appendix,
             "summary_blob_url": summary_blob_url,
             "summary_blob_pathname": summary_blob_pathname,
         })
-        
+
     except requests.RequestException as e:
         util.log(
             "[serve.summarize_url_endpoint] request error error=%s",
@@ -310,7 +310,7 @@ def summarize_url_endpoint():
             logger=logger,
         )
         return jsonify({"success": False, "error": f"Network error: {repr(e)}"}), 502
-        
+
     except Exception as e:
         util.log(
             "[serve.summarize_url_endpoint] error error=%s",
@@ -585,6 +585,18 @@ def canonicalize_url(url) -> str:
     return canonical
 
 
+def _scrape_pathname(start_date, end_date) -> str:
+    """Generate blob pathname for scrape results."""
+    start_str = format_date_for_url(start_date)
+    end_str = format_date_for_url(end_date)
+    return f"scrape-{start_str}-to-{end_str}.json"
+
+
+@blob_cached_json(
+    pathname_fn=_scrape_pathname,
+    should_cache=lambda result: result.get("success", False),
+    logger=logger,
+)
 def scrape_date_range(start_date, end_date):
     """Scrape all newsletters in date range"""
     dates = get_date_range(start_date, end_date)
