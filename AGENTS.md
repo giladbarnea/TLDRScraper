@@ -47,24 +47,6 @@ vercel blob put <tmpfile> --pathname "<normalized-pathname>" --force --token "$B
 ```
 Upload is deterministic and overwrites existing content at the same pathname (no random suffixes, no listing).
 
-- Read all items (read token):
-```bash
-ec_conn_string="${EDGE_CONFIG_CONNECTION_STRING:-TLDR_SCRAPER_EDGE_CONFIG_CONNECTION_STRING}"
-ec_id="${EDGE_CONFIG_ID:-TLDR_SCRAPER_EDGE_CONFIG_ID}"
-curl -s -H "Authorization: Bearer $ec_conn_string" \
-  "https://edge-config.vercel.com/$ec_id/items" | jq -S .
-```
-
-- Write items (API token + team scope) — batch upsert/delete:
-```bash
-ec_id="${EDGE_CONFIG_ID:-TLDR_SCRAPER_EDGE_CONFIG_ID}"
-curl -s -X PATCH \
-  "https://api.vercel.com/v1/edge-config/$ec_id/items" \
-  -H "Authorization: Bearer $VERCEL_TOKEN" \
-  -H "Content-Type: application/json" \
-  --data-binary @ops.json
-```
-
 - Payload shape for writes:
 ```json
 {
