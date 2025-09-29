@@ -141,13 +141,15 @@ def is_sponsored_link(title, url):
 
 
 def is_sponsored_url(url: str) -> bool:
-    """Detect sponsored/advertorial content based on URL patterns and UTM params.
-
-    Rules:
-    - Marketing landing pages (demo, resources, ebooks, pricing, etc.)
-    - utm_medium indicating paid/sponsored placement (email-media-newsletter, thirdparty_advertising, etc.)
-    - utm_content or utm_term indicating paid content
-    - Combination of newsletter utm_medium + marketing campaign names
+    """Detect sponsored content based ONLY on bulletproof UTM parameter combinations.
+    
+    This function only uses explicit, unambiguous UTM indicators that definitively
+    signal paid/sponsored placement. Title-based filtering (is_sponsored_link) handles
+    the rest via "(Sponsor)" markers in article titles.
+    
+    Bulletproof rules:
+    - utm_medium contains explicit paid/sponsored terms (thirdparty_advertising, paid, sponsor, etc.)
+    - utm_content or utm_term explicitly says "paid"
     """
     try:
         import urllib.parse as urlparse
@@ -157,93 +159,31 @@ def is_sponsored_url(url: str) -> bool:
             k.lower(): v for k, v in urlparse.parse_qs(parsed.query).items()
         }
         
-        # Check URL path for marketing/sales pages
-        path_lower = parsed.path.lower()
-        marketing_paths = [
-            '/demo', '/request-demo', '/get-demo', '/book-demo',
-            '/pricing', '/plans',
-            '/resources/', '/ebook', '/whitepaper', '/guide',
-            '/trial', '/signup', '/get-started',
-            '/contact-sales', '/request-info',
-        ]
-        if any(marker in path_lower for marker in marketing_paths):
-            return True
-        
-        # Check utm_medium for sponsored indicators
+        # Check utm_medium for EXPLICIT sponsored indicators
         medium_values = [v.lower() for v in query_params.get("utm_medium", [])]
-        sponsored_mediums = [
-            'email-media-newsletter',
-            'thirdparty_advertising',
-            'paid',
-            'sponsor',
-            'sponsored',
-            'cpc',
-            'cpm',
-            'partner',
+        medium_str = ' '.join(medium_values)
+        
+        # These are unambiguous paid placement indicators
+        explicit_paid_mediums = [
+            'thirdparty_advertising',  # Explicitly says it's third-party advertising
+            'paid',                     # Explicitly says it's paid
+            'sponsor',                  # Explicitly says it's sponsored
+            'sponsored',                # Explicitly says it's sponsored
+            'cpc',                      # Cost-per-click (paid)
+            'cpm',                      # Cost-per-mille (paid)
         ]
-        if any(medium in ' '.join(medium_values) for medium in sponsored_mediums):
+        
+        if any(indicator in medium_str for indicator in explicit_paid_mediums):
             return True
         
-        # Check utm_content or utm_term for "paid" indicator
+        # Check utm_content or utm_term for explicit "paid" indicator
         content_values = [v.lower() for v in query_params.get("utm_content", [])]
         term_values = [v.lower() for v in query_params.get("utm_term", [])]
+        
         if 'paid' in ' '.join(content_values) or 'paid' in ' '.join(term_values):
             return True
         
-        # Check for newsletter-related UTM params (source or medium) with brand campaigns
-        # Indicates paid placement in TLDR newsletters
-        source_values = [v.lower() for v in query_params.get("utm_source", [])]
-        source_str = ' '.join(source_values)
-        medium_str = ' '.join(medium_values)
-        
-        # Check if either source or medium contains "newsletter" or TLDR variant
-        has_newsletter_tracking = (
-            'newsletter' in source_str or 
-            'newsletter' in medium_str or
-            'tldr' in medium_str  # e.g., utm_medium=TLDRAI
-        )
-        
-        if has_newsletter_tracking:
-            campaign_values = [v.lower() for v in query_params.get("utm_campaign", [])]
-            campaign_str = ' '.join(campaign_values)
-            
-            # Get domain info
-            domain_parts = parsed.netloc.lower().replace('www.', '').split('.')
-            domain_name = domain_parts[0] if domain_parts else ''
-            
-            # Known news/content domains (legitimate articles)
-            news_domains = {
-                'cnbc', 'wsj', 'nytimes', 'reuters', 'bloomberg', 'forbes',
-                'techcrunch', 'theverge', 'wired', 'arstechnica', 'nature',
-                'science', 'mit', 'stanford', 'arxiv', 'github', 'medium'
-            }
-            
-            # If it's a known news domain, it's likely legitimate
-            if domain_name in news_domains:
-                return False
-            
-            # For other domains with newsletter tracking, check for sponsored indicators
-            # If campaign contains brand/product names (not just date/newsletter name), it's likely sponsored
-            sponsored_campaign_indicators = [
-                'dg-', 'datadog',  # Datadog
-                'vectara', 'airia', 'callrail', 'rocket',  # Brand names
-                'cpa', 'creator',  # Payment models
-                'paid',
-            ]
-            
-            # Check if campaign contains suspicious indicators
-            has_brand_campaign = any(indicator in campaign_str for indicator in sponsored_campaign_indicators)
-            
-            # Check if the domain matches the campaign (e.g., callrail.com with callrail campaign)
-            domain_in_campaign = domain_name and len(domain_name) > 3 and domain_name in campaign_str
-            
-            # If TLDR is in the medium (utm_medium=TLDRAI), it's a paid placement
-            # unless it's from a known news domain
-            tldr_in_medium = 'tldr' in medium_str
-            
-            if has_brand_campaign or domain_in_campaign or tldr_in_medium:
-                return True
-        
+        # That's it! Everything else is handled by title-based filtering
         return False
     except Exception:
         return False
