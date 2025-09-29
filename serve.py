@@ -374,9 +374,15 @@ def _insert_page_markdown_into_prompt(template_text: str, page_md: str) -> str:
 
 def _call_openai_responses_api(prompt_text: str) -> str:
     """Call OpenAI Responses API with gpt-5, low reasoning effort, no stream, return text."""
+    util.log(
+        "[serve._call_openai_responses_api] calling OpenAI Responses API with prompt_text=%s",
+        prompt_text[:200] + "..." if len(prompt_text) > 200 else prompt_text,
+        logger=logger,
+    )
     api_key = _resolve_openai_api_token()
     if not api_key:
         raise RuntimeError("OPENAI_API_TOKEN not set")
+
     url = "https://api.openai.com/v1/responses"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     body = {
@@ -618,7 +624,7 @@ def summarize_url_endpoint():
                 exc_info=True,
             )
 
-        # Fetch page manually if no cached content
+        # No cached content -> Fetch page manually
         if not page_md:
             webpage_response = requests.get(
                 target_url,
@@ -640,6 +646,8 @@ def summarize_url_endpoint():
                     "success": False,
                     "error": f"Network error fetching URL: {repr(e)}",
                 }), 502
+
+            # Fetched manually -> Convert to Markdown and cache in blob store
             util.log(
                 f"[serve.summarize_url_endpoint] Fetched URL web content url={target_url} pathname={base_path}. Converting to Markdown and trying to cache in blob store",
                 logger=logger,
@@ -663,7 +671,8 @@ def summarize_url_endpoint():
                     f"[serve.summarize_url_endpoint] Successfully cached URL web content url={target_url} pathname={base_path}",
                     logger=logger,
                 )
-        # Ensure prompt present
+
+        # Summarize the page using LLM
         global SUMMARIZE_PROMPT_TEMPLATE
         if not SUMMARIZE_PROMPT_TEMPLATE:
             try:
@@ -677,11 +686,11 @@ def summarize_url_endpoint():
                     exc_info=True,
                     logger=logger,
                 )
-                pass
         prompt_template = SUMMARIZE_PROMPT_TEMPLATE or ""
         full_prompt = _insert_page_markdown_into_prompt(prompt_template, page_md)
         summary_text = _call_openai_responses_api(full_prompt)
-        # Best-effort: persist the LLM-produced summary to Blob storage alongside the page markdown
+
+        # Cache the summary in blob store
         summary_blob_url = None
         summary_blob_pathname = None
         try:
@@ -690,11 +699,11 @@ def summarize_url_endpoint():
                 base = base_path[:-3] if base_path.endswith(".md") else base_path
                 summary_blob_pathname = f"{base}-summary.md"
             else:
-                # Fallback: recompute from URL
+                # Fallback: recompute from URL (i hate this fallback. upstream code should work period. no maybes.)
                 _base_path = normalize_url_to_pathname(target_url)
                 base = _base_path[:-3] if _base_path.endswith(".md") else _base_path
                 summary_blob_pathname = f"{base}-summary.md"
-                put_markdown(summary_blob_pathname, summary_text)
+            put_markdown(summary_blob_pathname, summary_text)
         except Exception as e:
             util.log(
                 "[serve.summarize_url_endpoint] summary blob upload failed url=%s error=%s",
@@ -704,7 +713,6 @@ def summarize_url_endpoint():
                 logger=logger,
                 exc_info=True,
             )
-        # Inject debug appendix only in the response body (not stored)
         appendix_lines = [
             "\n\n---\n",
             "Debug: Summary cache key candidate\n",
