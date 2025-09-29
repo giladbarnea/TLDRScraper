@@ -12,6 +12,7 @@ from io import BytesIO
 import re
 from bs4 import BeautifulSoup
 import time
+import json
 
 from blob_newsletter_cache import get_cached_json, put_cached_json
 from blob_store import normalize_url_to_pathname
@@ -352,6 +353,85 @@ def remove_url_endpoint():
     except Exception as e:
         util.log(
             "[serve.remove_url_endpoint] error error=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
+@app.route("/api/invalidate-cache", methods=["POST"])
+def invalidate_cache_endpoint():
+    """Invalidate the day-level newsletter cache for a date range.
+    
+    This only clears the scraped newsletter cache (scrape-day-*.json files),
+    not article content or summaries.
+    """
+    try:
+        data = request.get_json() or {}
+        
+        if "start_date" not in data or "end_date" not in data:
+            return jsonify({
+                "success": False,
+                "error": "start_date and end_date are required",
+            }), 400
+
+        start_date = datetime.fromisoformat(data["start_date"])
+        end_date = datetime.fromisoformat(data["end_date"])
+
+        if start_date > end_date:
+            return jsonify({
+                "success": False,
+                "error": "start_date must be before or equal to end_date",
+            }), 400
+
+        # Get all dates in range
+        dates = get_date_range(start_date, end_date)
+        
+        # Try to delete each day's cache file
+        from blob_store import delete_file
+        
+        deleted_count = 0
+        failed_count = 0
+        errors = []
+        
+        for date in dates:
+            date_str = format_date_for_url(date)
+            pathname = _scrape_day_pathname(date_str)
+            
+            try:
+                success = delete_file(pathname)
+                if success:
+                    deleted_count += 1
+                    util.log(
+                        f"[serve.invalidate_cache_endpoint] Deleted cache for day={date_str}",
+                        logger=logger,
+                    )
+                else:
+                    failed_count += 1
+                    errors.append(f"{date_str}: delete returned false")
+            except Exception as e:
+                failed_count += 1
+                error_msg = f"{date_str}: {repr(e)}"
+                errors.append(error_msg)
+                util.log(
+                    f"[serve.invalidate_cache_endpoint] Failed to delete cache for day={date_str} error={repr(e)}",
+                    level=logging.WARNING,
+                    logger=logger,
+                )
+        
+        return jsonify({
+            "success": True,
+            "deleted": deleted_count,
+            "failed": failed_count,
+            "total_days": len(dates),
+            "errors": errors if errors else None,
+        })
+
+    except Exception as e:
+        util.log(
+            "[serve.invalidate_cache_endpoint] error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,

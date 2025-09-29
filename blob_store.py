@@ -123,3 +123,82 @@ def put_file(pathname: str, content: str) -> str:
             exc_info=True,
         )
         raise RuntimeError(f"Blob upload failed: {repr(e)}") from e
+
+
+def delete_file(pathname: str) -> bool:
+    """
+    Delete a file from Vercel Blob storage at the given pathname.
+    Returns True if deletion succeeded, False otherwise.
+    """
+    token = _resolve_rw_token()
+    if not token:
+        util.log(
+            "[blob_store.delete_file] BLOB_READ_WRITE_TOKEN not set, cannot delete",
+            level=logging.WARNING,
+        )
+        return False
+    
+    base_url = _resolve_store_base_url()
+    if not base_url:
+        util.log(
+            "[blob_store.delete_file] BLOB_STORE_BASE_URL not set, cannot delete",
+            level=logging.WARNING,
+        )
+        return False
+
+    try:
+        import requests
+        
+        # The Vercel Blob delete API expects the full URL
+        blob_url = f"{base_url}/{pathname}"
+        
+        util.log(
+            "[blob_store.delete_file] Deleting %s from blob storage...",
+            pathname,
+        )
+        
+        # Vercel Blob API uses DELETE with the URL in the body
+        api_url = "https://blob.vercel-storage.com/delete"
+        
+        headers = {
+            "Authorization": f"Bearer {token}",
+        }
+        
+        # The API expects URLs in the request body
+        response = requests.post(
+            api_url,
+            json={"urls": [blob_url]},
+            headers=headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+        
+        util.log(
+            "[blob_store.delete_file] Successfully deleted %s",
+            pathname,
+        )
+        return True
+        
+    except requests.HTTPError as e:
+        if e.response and e.response.status_code == 404:
+            util.log(
+                "[blob_store.delete_file] File %s not found (already deleted?)",
+                pathname,
+                level=logging.INFO,
+            )
+            return True  # Consider 404 as success (idempotent)
+        util.log(
+            "[blob_store.delete_file] HTTP error deleting %s: %s",
+            pathname,
+            repr(e),
+            level=logging.WARNING,
+        )
+        return False
+    except Exception as e:
+        util.log(
+            "[blob_store.delete_file] Error deleting %s: %s",
+            pathname,
+            repr(e),
+            level=logging.WARNING,
+        )
+        return False
