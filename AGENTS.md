@@ -4,7 +4,7 @@
 
 - Purpose: Daily TLDR newsletter scraping/curation with a fast, distributed cache.
 - Stack: Bash + curl, Node/uv-Python for scripting, Vercel Blob Store as the cache store.
-- Vercel: Project uses Blob Store for all caching (newsletters, URL content, LLM summaries, scrape results). Reads via Blob Store base URL, writes via Vercel CLI.
+- Vercel: Project uses Blob Store for all caching (newsletters, URL content, LLM summaries, scrape results). Reads via Blob Store base URL, writes via Node.js SDK.
 - Cache mechanism: Blob pathnames are deterministic based on content (e.g., `newsletter-ai-2025-09-20.json`, `scrape-2025-09-20-to-2025-09-27.json`). Cache hits return quickly via CDN.
 
 ### Environment variables
@@ -38,15 +38,14 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 uv run --env-file=./.env python3 serve.py
 ```
 
-#### Vercel CLI (required for Blob uploads from Python)
-Install once:
+#### Vercel Blob SDK (required for uploads)
+Dependencies are managed via `package.json` and npm:
 ```bash
-npm i -g vercel
-vercel --help
+npm install
 ```
-The server shells out to:
+The server shells out to `scripts/blob_put.mjs` which uses `@vercel/blob` SDK:
 ```bash
-vercel blob put <tmpfile> --pathname "<normalized-pathname>" --force --token "$BLOB_READ_WRITE_TOKEN"
+echo "content" | PATHNAME="file.md" BLOB_READ_WRITE_TOKEN="$token" node scripts/blob_put.mjs
 ```
 Upload is deterministic and overwrites existing content at the same pathname (no random suffixes, no listing).
 

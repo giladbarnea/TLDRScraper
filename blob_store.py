@@ -3,7 +3,6 @@ import os
 import re
 import hashlib
 import subprocess
-import tempfile
 import urllib.parse
 
 import util
@@ -67,66 +66,58 @@ def _resolve_store_base_url() -> str | None:
 def put_file(pathname: str, content: str) -> str:
     """
     Upload `content` to Vercel Blob at the exact `pathname`, overwriting if it exists.
-    Returns the public URL if it can be determined (using CLI output).
+    Returns the public URL from the SDK response.
     Raises RuntimeError on upload failure.
     """
     token = _resolve_rw_token()
     if not token:
         raise RuntimeError("BLOB_READ_WRITE_TOKEN not set")
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as f:
-        f.write(content.encode("utf-8"))
-        tmp = f.name
-    # from IPython import embed
+    env = os.environ.copy()
+    env["PATHNAME"] = pathname
+    env["BLOB_READ_WRITE_TOKEN"] = token
 
-    # embed()
+    script_path = os.path.join(os.path.dirname(__file__), "scripts", "blob_put.mjs")
+
     try:
-        cmd = [
-            "vercel",
-            "blob",
-            "put",
-            tmp,
-            "--pathname",
-            pathname,
-            "--force",
-            "--no-color",
-            "--token",
-            token,
-        ]
         util.log(
-            "[blob_store.put_file] Uploading to %s via Vercel CLI...",
+            "[blob_store.put_file] Uploading to %s via Node SDK...",
             pathname,
         )
-        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
-    except subprocess.CalledProcessError as e:
+        proc = subprocess.run(
+            ["node", script_path],
+            input=content.encode("utf-8"),
+            capture_output=True,
+            env=env,
+            check=True,
+        )
+        import json
+        out = proc.stdout.decode("utf-8")
+        result = json.loads(out)
+        url = result.get("url", "")
         util.log(
-            "[blob_store.put_file] Error uploading to %s: %s via Vercel CLI. Full error: %s",
+            "[blob_store.put_file] Success uploading to %s via Node SDK.",
             pathname,
-            e.output.strip(),
+        )
+        return url
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode("utf-8") if e.stderr else ""
+        util.log(
+            "[blob_store.put_file] Error uploading to %s: %s. Full error: %s",
+            pathname,
+            stderr,
             repr(e),
             level=logging.ERROR,
             exc_info=True,
         )
         raise RuntimeError(
-            f"vercel blob put failed: {e.output.strip()}. Full error: {repr(e)}"
+            f"Node SDK blob upload failed: {stderr}. Full error: {repr(e)}"
         ) from e
-    else:
+    except json.JSONDecodeError as e:
         util.log(
-            "[blob_store.put_file] Success uploading to %s via Vercel CLI.",
-            pathname,
+            "[blob_store.put_file] Error parsing SDK response: %s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
         )
-    finally:
-        try:
-            os.unlink(tmp)
-        except Exception:
-            pass
-
-    base_url = _resolve_store_base_url()
-    if base_url:
-        return f"{base_url}/{pathname}"
-
-    # Fallback: best-effort extract from CLI stdout
-    for tok in (out or "").split():
-        if ".public.blob.vercel-storage.com/" in tok:
-            return tok.strip().strip('"').rstrip()
-    return ""  # Unknown but upload succeeded
+        raise RuntimeError(f"Failed to parse SDK response: {repr(e)}") from e

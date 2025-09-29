@@ -19,14 +19,17 @@ function main() {
   source "$WORKDIR/setup.sh"
 
   message "[background-agent-setup] Checking Node.js and npm..."
-  if ! is_defined "node"; then
+  if ! isdefined "node"; then
     message "[error] Node.js is required but not installed." >&2
     return 1
   fi
-  if ! is_defined "npm"; then
+  if ! isdefined "npm"; then
     message "[error] npm is required but not installed." >&2
     return 1
   fi
+
+  message "[background-agent-setup] Installing Node.js dependencies..."
+  npm install
 
   if [[ ! -f "$ENV_FILE" ]]; then
     message "[background-agent-setup] Generating .env from current environment..."
