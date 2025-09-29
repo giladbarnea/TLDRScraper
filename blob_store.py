@@ -4,6 +4,7 @@ import hashlib
 import subprocess
 import tempfile
 import urllib.parse
+import json
 
 
 def _default_prefix() -> str:
@@ -106,4 +107,86 @@ def put_markdown(pathname: str, markdown: str) -> str:
         if ".public.blob.vercel-storage.com/" in tok:
             return tok.strip().strip('"').rstrip()
     return ""  # Unknown but upload succeeded
+
+
+def list_all_entries(prefix: str | None = None, limit: int | None = None) -> list[str]:
+    """
+    List blob pathnames using the Vercel CLI.
+
+    Attempts JSON output first; falls back to line parsing. Returns a list of
+    pathnames (strings). Best-effort: on any error, returns an empty list.
+    """
+    token = _resolve_rw_token()
+    if not token:
+        return []
+    # Build base command
+    base_cmd = ["vercel", "blob", "ls", "--rw-token", token]
+    if prefix and isinstance(prefix, str) and prefix.strip():
+        base_cmd.append(prefix.strip())
+    try:
+        # Prefer JSON when available
+        cmd = base_cmd + ["--json"]
+        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
+        # Some versions print one JSON object per line; handle array or NDJSON
+        pathnames: list[str] = []
+        try:
+            data = json.loads(out)
+            if isinstance(data, list):
+                for item in data:
+                    # Accept common shapes: {pathname}, {key}, {url}
+                    if isinstance(item, dict):
+                        p = item.get("pathname") or item.get("key") or item.get("name")
+                        if isinstance(p, str):
+                            pathnames.append(p)
+            elif isinstance(data, dict):
+                # Some outputs may wrap under "blobs"
+                items = data.get("blobs") or data.get("items") or []
+                if isinstance(items, list):
+                    for item in items:
+                        if isinstance(item, dict):
+                            p = item.get("pathname") or item.get("key") or item.get("name")
+                            if isinstance(p, str):
+                                pathnames.append(p)
+        except Exception:
+            # Try NDJSON lines
+            for line in (out or "").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    item = json.loads(line)
+                    if isinstance(item, dict):
+                        p = item.get("pathname") or item.get("key") or item.get("name")
+                        if isinstance(p, str):
+                            pathnames.append(p)
+                except Exception:
+                    continue
+        if limit is not None and isinstance(limit, int) and limit > 0:
+            return pathnames[:limit]
+        return pathnames
+    except Exception:
+        # Fallback: non-JSON output parsing
+        try:
+            out = subprocess.check_output(base_cmd, stderr=subprocess.STDOUT, text=True)
+            candidates: list[str] = []
+            for line in (out or "").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                # Heuristic: take tokens that look like pathnames (contain '/'
+                # and end with common suffixes)
+                for tok in line.split():
+                    if "/" in tok and (tok.endswith(".md") or ".vercel-storage.com/" in tok):
+                        # If full URL, extract pathname part
+                        idx = tok.find(".vercel-storage.com/")
+                        if idx != -1:
+                            p = tok[idx + len(".vercel-storage.com/"):]
+                            candidates.append(p)
+                        else:
+                            candidates.append(tok)
+            if limit is not None and isinstance(limit, int) and limit > 0:
+                return candidates[:limit]
+            return candidates
+        except Exception:
+            return []
 
