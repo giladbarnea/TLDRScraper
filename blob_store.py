@@ -46,9 +46,9 @@ def normalize_url_to_pathname(url: str, prefix: str | None = None) -> str:
         s = "root"
 
     # Length guard: keep pathnames sane; append a short hash if truncated
-    MAX = 180
+    MAX = 80
     if len(s) > MAX:
-        h = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:10]
+        h = hashlib.sha256(s.encode("utf-8")).hexdigest()[:10]
         s = f"{s[:MAX-11]}-{h}"
 
     base = f"{s}.md"
