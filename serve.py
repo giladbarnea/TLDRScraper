@@ -13,15 +13,8 @@ import re
 from bs4 import BeautifulSoup
 import time
 
-from edge_config_cache import get_cached_json, put_cached_json
-from edge_config import (
-    is_available as ec_available,
-    get_last_write_status,
-    get_last_write_body,
-    get_effective_env_summary,
-)
+from blob_newsletter_cache import get_cached_json, put_cached_json
 from blob_store import normalize_url_to_pathname
-import urllib.parse as _urlparse
 import util
 from summarizer import summarize_url
 from blob_cache import blob_cached_json
@@ -32,11 +25,8 @@ logger = logging.getLogger("serve")
 md = MarkItDown()
 
 
-# Per-request run diagnostics (simple globals, reset at start of scrape)
-EDGE_READ_ATTEMPTS = 0
-EDGE_READ_HITS = 0
-EDGE_WRITE_ATTEMPTS = 0
-EDGE_WRITE_SUCCESS = 0
+BLOB_CACHE_HITS = 0
+BLOB_CACHE_MISSES = 0
 
 
 @app.route("/")
@@ -81,15 +71,8 @@ def scrape_newsletters():
             f"[serve.scrape_newsletters] start start_date={data['start_date']} end_date={data['end_date']}",
             logger=logger,
         )
-        # reset run diagnostics
-        global \
-            EDGE_READ_ATTEMPTS, \
-            EDGE_READ_HITS, \
-            EDGE_WRITE_ATTEMPTS, \
-            EDGE_WRITE_SUCCESS
-        EDGE_READ_ATTEMPTS = EDGE_READ_HITS = EDGE_WRITE_ATTEMPTS = (
-            EDGE_WRITE_SUCCESS
-        ) = 0
+        global BLOB_CACHE_HITS, BLOB_CACHE_MISSES
+        BLOB_CACHE_HITS = BLOB_CACHE_MISSES = 0
         result = scrape_date_range(start_date, end_date)
         util.log(
             f"[serve.scrape_newsletters] done dates_processed={result['stats']['dates_processed']} total_articles={result['stats']['total_articles']}",
@@ -428,12 +411,11 @@ def fetch_newsletter(date, newsletter_type):
     url = f"https://tldr.tech/{newsletter_type}/{date_str}"
 
     # Always try Edge cache read first (no Blob fallback)
-    global EDGE_READ_ATTEMPTS, EDGE_READ_HITS
-    EDGE_READ_ATTEMPTS += 1
+    global BLOB_CACHE_HITS, BLOB_CACHE_MISSES
     cache_start = time.time()
     cached = get_cached_json(newsletter_type, date)
     if cached is not None and cached.get("status") == "hit":
-        EDGE_READ_HITS += 1
+        BLOB_CACHE_HITS += 1
         cached_articles = cached.get("articles", [])
         for a in cached_articles:
             a["fetched_via"] = "hit"
@@ -484,7 +466,7 @@ def fetch_newsletter(date, newsletter_type):
             "articles": articles,
         }
 
-        # Always write to Edge for fast repeats (per env rules handled in put_cached_json)
+        # Always write to blob cache for fast repeats
         def _sanitize(a):
             clean = {
                 k: v
@@ -537,15 +519,9 @@ def fetch_newsletter(date, newsletter_type):
             "articles": sanitized_articles,
         }
         try:
-            global EDGE_WRITE_ATTEMPTS, EDGE_WRITE_SUCCESS
-            EDGE_WRITE_ATTEMPTS += 1
             ok = put_cached_json(newsletter_type, date, payload)
-            if ok:
-                EDGE_WRITE_SUCCESS += 1
-            status = get_last_write_status()
-            body = get_last_write_body()
             util.log(
-                f"[serve.fetch_newsletter] wrote cache date={date_str} type={newsletter_type} count={len(sanitized_articles)} ok={bool(ok)} status={status} body={(body or '')}",
+                f"[serve.fetch_newsletter] wrote cache date={date_str} type={newsletter_type} count={len(sanitized_articles)} ok={bool(ok)}",
                 logger=logger,
             )
         except Exception as e:
@@ -652,29 +628,7 @@ def scrape_date_range(start_date, end_date):
     # Format output
     output = format_final_output(start_date, end_date, grouped_articles)
 
-    # Edge config ID consistency check (read URL vs ID)
-    ec_url = util.resolve_env_var(
-        "EDGE_CONFIG_CONNECTION_STRING",
-    )
-    ec_id_env = util.resolve_env_var("EDGE_CONFIG_ID", "")
-
-    def _extract_id(u: str):
-        try:
-            p = _urlparse.urlparse(u)
-            # path like /ecfg_xxx or /ecfg_xxx/...
-            seg = p.path.strip("/").split("/")[0]
-            return seg if seg.startswith("ecfg_") else None
-        except Exception as e:
-            util.log(
-                "[serve.scrape_date_range] error extracting id from url=%s error=%s",
-                u,
-                repr(e),
-                level=logging.ERROR,
-                logger=logger,
-            )
-            return None
-
-    ec_id_from_url = _extract_id(ec_url) if ec_url else None
+    blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
 
     return {
         "success": True,
@@ -687,16 +641,9 @@ def scrape_date_range(start_date, end_date):
             "cache_hits": hits,
             "cache_misses": misses,
             "cache_other": others,
-            # Env and cache diagnostics
-            **get_effective_env_summary(),
-            "edge_config_available": bool(ec_available()),
-            "edge_id_match": bool(
-                ec_id_from_url and ec_id_env and ec_id_from_url == ec_id_env
-            ),
-            "edge_reads_attempted": EDGE_READ_ATTEMPTS,
-            "edge_reads_hit": EDGE_READ_HITS,
-            "edge_writes_attempted": EDGE_WRITE_ATTEMPTS,
-            "edge_writes_success": EDGE_WRITE_SUCCESS,
+            "blob_cache_hits": BLOB_CACHE_HITS,
+            "blob_cache_misses": BLOB_CACHE_MISSES,
+            "blob_store_present": bool(blob_base_url),
             "debug_logs": list(util.LOGS),
         },
     }

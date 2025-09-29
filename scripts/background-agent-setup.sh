@@ -31,7 +31,7 @@ function main() {
   if [[ ! -f "$ENV_FILE" ]]; then
     message "[background-agent-setup] Generating .env from current environment..."
     ENV_FILE="$WORKDIR/.env"
-    ENV_KEYS_REGEX='^(OPENAI_API_TOKEN|GITHUB_API_TOKEN|EDGE_CONFIG_CONNECTION_STRING|EDGE_CONFIG_ID|VERCEL_TOKEN|BLOB_READ_WRITE_TOKEN|BLOB_STORE_BASE_URL|LOG_LEVEL|TLDR_SCRAPER_.*)='
+    ENV_KEYS_REGEX='^(OPENAI_API_TOKEN|GITHUB_API_TOKEN|BLOB_READ_WRITE_TOKEN|BLOB_STORE_BASE_URL|LOG_LEVEL|TLDR_SCRAPER_.*)='
     env | egrep "$ENV_KEYS_REGEX" | sort | sed 's/^export \{0,1\}//' > "$ENV_FILE" || true
   fi
 
