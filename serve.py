@@ -361,12 +361,12 @@ def _call_openai_responses_api(prompt_text: str) -> str:
     url = "https://api.openai.com/v1/responses"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     body = {
-        "model": "gpt-5-mini",
+        "model": "gpt-5",
         # Per official Responses API, `input` can be a string or content array.
         # Use simple string input for text-only requests.
         "input": prompt_text,
         # Reasoning knobs
-        "reasoning": {"effort": "minimal"},
+        "reasoning": {"effort": "low"},
         "stream": False,
     }
     # from IPython import embed; embed()
