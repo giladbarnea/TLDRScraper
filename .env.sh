@@ -9,4 +9,3 @@ export VERCEL_TOKEN=92Mq1qkZlnL8vAslQT4AjUqy
 export PATH="/workspace/.npm-global/bin:$PATH"
 alias slog="tail -n 200 /workspace/server.log"
 alias slogf="tail -F /workspace/server.log"
-export BLOB_READ_WRITE_TOKEN="${BLOB_READ_WRITE_TOKEN:-$TLDR_SCRAPER_BLOB_READ_WRITE_TOKEN}"
