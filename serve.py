@@ -23,7 +23,7 @@ from edge_config import (
     get_last_write_body,
     get_effective_env_summary,
 )
-from blob_store import normalize_url_to_pathname, put_markdown
+from blob_store import normalize_url_to_pathname, put_file
 import urllib.parse as _urlparse
 import util
 
@@ -632,7 +632,7 @@ def summarize_url_endpoint():
 
             # Persist cleaned Markdown to Vercel Blob with deterministic pathname.
             try:
-                put_markdown(base_path, page_md)
+                put_file(base_path, page_md)
             except Exception as e:
                 util.log(
                     "[serve.summarize_url_endpoint] blob upload failed url=%s error=%s",
@@ -678,7 +678,7 @@ def summarize_url_endpoint():
                 _base_path = normalize_url_to_pathname(target_url)
                 base = _base_path[:-3] if _base_path.endswith(".md") else _base_path
                 summary_blob_pathname = f"{base}-summary.md"
-            put_markdown(summary_blob_pathname, summary_text)
+            put_file(summary_blob_pathname, summary_text)
         except Exception as e:
             util.log(
                 "[serve.summarize_url_endpoint] summary blob upload failed url=%s error=%s",
