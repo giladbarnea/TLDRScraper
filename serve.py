@@ -18,6 +18,7 @@ from blob_store import normalize_url_to_pathname
 import util
 from summarizer import summarize_url
 from blob_cache import blob_cached_json
+from removed_urls import get_removed_urls, add_removed_url
 
 app = Flask(__name__)
 logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
@@ -297,6 +298,35 @@ def summarize_url_endpoint():
     except Exception as e:
         util.log(
             "[serve.summarize_url_endpoint] error error=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
+@app.route("/api/remove-url", methods=["POST"])
+def remove_url_endpoint():
+    """Mark a URL as removed so it won't appear in future scrapes."""
+    try:
+        data = request.get_json() or {}
+        url = (data.get("url") or "").strip()
+
+        if not url or not (url.startswith("http://") or url.startswith("https://")):
+            return jsonify({"success": False, "error": "Invalid or missing url"}), 400
+
+        canonical = canonicalize_url(url)
+        success = add_removed_url(canonical)
+
+        if success:
+            return jsonify({"success": True, "canonical_url": canonical})
+        else:
+            return jsonify({"success": False, "error": "Failed to persist removal"}), 500
+
+    except Exception as e:
+        util.log(
+            "[serve.remove_url_endpoint] error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,
@@ -616,6 +646,12 @@ def scrape_date_range(start_date, end_date):
                 a.get("fetched_via") == "other" for a in (result.get("articles") or [])
             ):
                 time.sleep(0.2)
+
+    removed_urls = get_removed_urls()
+    all_articles = [
+        a for a in all_articles
+        if canonicalize_url(a["url"]) not in removed_urls
+    ]
 
     # Group articles by date
     grouped_articles = {}
