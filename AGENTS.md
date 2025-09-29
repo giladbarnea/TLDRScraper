@@ -25,9 +25,9 @@ Rules:
 
 Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_` locally):
 
-- `OPENAI_API_TOKEN`: `sk-...`
+- `OPENAI_API_TOKEN`: `sk-...` (unprefixed in all environments)
 - `VERCEL_TOKEN`: Vercel API token used for write operations (unprefixed in all environments)
-- `GITHUB_API_TOKEN`: `github_pat_...`
+- `GITHUB_API_TOKEN`: `github_pat_...` (unprefixed in all environments)
 - `EDGE_CONFIG_CONNECTION_STRING`: Full read URL, e.g. `https://edge-config.vercel.com/<EDGE_CONFIG_ID>?token=<EDGE_CONFIG_READ_TOKEN>`
 - `EDGE_CONFIG_READ_TOKEN`: Read token for Edge Config
 - `EDGE_CONFIG_ID`: The `ecfg_...` identifier
