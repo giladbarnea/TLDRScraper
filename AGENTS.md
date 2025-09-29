@@ -2,35 +2,28 @@
 
 ### Project overview (short)
 
-- Purpose: Daily TLDR newsletter scraping/curation with a tiny, fast cache.
-- Stack: Bash + curl, Node/uv-Python for scripting, Vercel Edge Config as the cache store.
-- Vercel: Project uses Edge Config `tldr-scraper-edge-config-store` under your team; reads via Edge Config connection string, writes via Vercel REST API. WIP: Blob store for caching fetched web pages contents and LLM summaries.
-- URLs Cache mechanism: Keys are `{YYYY-MM-DD}-{type}`; values contain only `{ articles: [ { title, url } ] }`. A cache hit should return in tens of milliseconds due to Edge Config’s global distribution and low-latency reads.
-
-**ATTENTION:**: Edge Config is awaiting deprecation. The project will be migrated to Blob store only. Avoid utilizing Edge Config for new features.
+- Purpose: Daily TLDR newsletter scraping/curation with a fast, distributed cache.
+- Stack: Bash + curl, Node/uv-Python for scripting, Vercel Blob Store as the cache store.
+- Vercel: Project uses Blob Store for all caching (newsletters, URL content, LLM summaries, scrape results). Reads via Blob Store base URL, writes via Vercel CLI.
+- Cache mechanism: Blob pathnames are deterministic based on content (e.g., `newsletter-ai-2025-09-20.json`, `scrape-2025-09-20-to-2025-09-27.json`). Cache hits return quickly via CDN.
 
 ### Environment variables
 
 The single source of truth for what is available locally is the output of:
 
 ```bash
-env | grep -e EDGE -e BLOB -e TLDR -e TOKEN -e API
+env | grep -e BLOB -e TLDR -e TOKEN -e API
 ```
 
 Rules:
 
-- **Local (Cursor background agents developing the app):** Env vars are prefixed with `TLDR_SCRAPER_` (except `VERCEL_TOKEN` and `GITHUB_API_TOKEN`).
-- **Production:** Exactly the same variables but without the `TLDR_SCRAPER_` prefix (and `VERCEL_TOKEN` remains unprefixed).
-- **Redundancy is intentional:** Both the full connection string and the decomposed parts exist so you never need to parse the connection string unless you want to.
+- **Local (Cursor background agents developing the app):** Env vars are prefixed with `TLDR_SCRAPER_` (except `OPENAI_API_TOKEN`, and `GITHUB_API_TOKEN`).
+- **Production:** Exactly the same variables but without the `TLDR_SCRAPER_` prefix.
 
 Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_` locally):
 
 - `OPENAI_API_TOKEN`: `sk-...` (unprefixed in all environments)
-- `VERCEL_TOKEN`: Vercel API token used for write operations (unprefixed in all environments)
 - `GITHUB_API_TOKEN`: `github_pat_...` (unprefixed in all environments)
-- `EDGE_CONFIG_CONNECTION_STRING`: Full read URL, e.g. `https://edge-config.vercel.com/<EDGE_CONFIG_ID>?token=<EDGE_CONFIG_READ_TOKEN>`
-- `EDGE_CONFIG_READ_TOKEN`: Read token for Edge Config
-- `EDGE_CONFIG_ID`: The `ecfg_...` identifier
 - `BLOB_STORE_BASE_URL`: read URL. Use e.g. `<BLOB_STORE_BASE_URL>/<pathname>`
 - `BLOB_READ_WRITE_TOKEN`: `vercel_blob_rw_...`
 
@@ -56,16 +49,6 @@ The server shells out to:
 vercel blob put <tmpfile> --pathname "<normalized-pathname>" --force --token "$BLOB_READ_WRITE_TOKEN"
 ```
 Upload is deterministic and overwrites existing content at the same pathname (no random suffixes, no listing).
-
-- Payload shape for writes:
-```json
-{
-  "items": [
-    { "operation": "delete", "key": "old-key" },
-    { "operation": "upsert", "key": "2025-09-20-ai", "value": { "articles": [ { "title": "...", "url": "..." } ] } }
-  ]
-}
-```
 
 ### jq and uv setup
 
@@ -105,11 +88,13 @@ PY
 - Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables (`env|grep <wide queries>`)
 - Use `jq -S .` for sorted pretty-printing; `to_entries | length` for counts.
 - If you can emulate a new feature or behavior in your shell, do it. Is the app making a new API call? Try it in your shell. New dependency and Python interface? Try it by running Python via uv, and so on.
-- Keys format: `{YYYY-MM-DD}-{type}`; only write keys for days that have articles. Do not write empty keys.
-- Values should only contain:
-  * `articles: [ { title, url }, ... ]`
-  * Strip all `utm_*` query params before storing.
-- Failing early is better than fallbacks. Zero “Just in case” code. Fallback-rich code explodes complexity and often just propagates bugs downstream. If something important fails, fail early and clearly. Broken code should be fixed, not worked around.
+- Blob pathname format varies by cache type:
+  * Newsletters: `newsletter-{type}-{YYYY-MM-DD}.json` (e.g., `newsletter-ai-2025-09-20.json`)
+  * URL content: `{normalized-url}.md` (e.g., `example-com-article-title.md`)
+  * Summaries: `{normalized-url}-summary.md`
+  * Scrape results: `scrape-{start-date}-to-{end-date}.json`
+- Strip all `utm_*` query params before storing URLs.
+- Failing early is better than fallbacks. Zero "Just in case" code. Fallback-rich code explodes complexity and often just propagates bugs downstream. If something important fails, fail early and clearly. Broken code should be fixed, not worked around.
 
 ### Development Conventions
 

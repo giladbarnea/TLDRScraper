@@ -273,11 +273,8 @@
                         ${data.stats.unique_urls} unique URLs,
                         ${data.stats.dates_with_content}/${data.stats.dates_processed} dates had content<br>
                         🧠 Cache: hits=${data.stats.cache_hits ?? 0}, misses=${data.stats.cache_misses ?? 0}, other=${data.stats.cache_other ?? 0}<br>
-                        ⚙️ EDGE_CONFIG present: ${data.stats.edge_config_present ? 'true' : 'false'}, available: ${data.stats.edge_config_available ? 'true' : 'false'}<br>
-                        🆔 EDGE_CONFIG_ID present: ${data.stats.edge_config_id_present ? 'true' : 'false'} (id match: ${data.stats.edge_id_match ? 'true' : 'false'})<br>
-                        🔑 VERCEL_TOKEN present: ${data.stats.vercel_token_present ? 'true' : 'false'}<br>
-                        📥 Reads: ${data.stats.edge_reads_hit}/${data.stats.edge_reads_attempted} hit<br>
-                        📤 Writes: ${data.stats.edge_writes_success}/${data.stats.edge_writes_attempted} ok
+                        💾 Blob Cache: hits=${data.stats.blob_cache_hits ?? 0}, misses=${data.stats.blob_cache_misses ?? 0}<br>
+                        ☁️ Blob Store present: ${data.stats.blob_store_present ? 'true' : 'false'}
                     </div>`;
 
                     // Render Markdown → HTML then sanitize
