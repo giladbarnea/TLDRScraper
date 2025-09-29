@@ -91,7 +91,7 @@ def put_markdown(pathname: str, markdown: str) -> str:
             pathname,
             "--force",
             "--no-color",
-            "--token",
+            "--rw-token",
             token,
         ]
         util.log(
@@ -141,7 +141,7 @@ def list_all_entries(limit: int | None = None) -> list[str]:
     if not token:
         return []
     # Build base command
-    base_cmd = ["vercel", "blob", "ls", "--token", token]
+    base_cmd = ["vercel", "blob", "list", "--rw-token", token]
     try:
         # Prefer JSON when available
         cmd = base_cmd + ["--json"]
