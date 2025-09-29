@@ -662,6 +662,9 @@ def scrape_date_range(start_date, end_date):
     dates = get_date_range(start_date, end_date)
     newsletter_types = ["tech", "ai"]
 
+    # Get removed URLs once at the start (single source of truth)
+    removed_urls = get_removed_urls()
+    
     all_articles = []
     url_set = set()  # For deduplication by canonical URL
     processed_count = 0
@@ -685,19 +688,32 @@ def scrape_date_range(start_date, end_date):
             cached_articles = cached_day["articles"]
             
             util.log(
-                f"[serve.scrape_date_range] Day cache HIT date={date_str} articles={len(cached_articles)}",
+                f"[serve.scrape_date_range] Day cache HIT date={date_str} articles={len(cached_articles)} (before filtering removed URLs)",
                 logger=logger,
             )
             
-            # Add all articles from cache to results
+            # Add all articles from cache to results, filtering removed URLs
+            filtered_count = 0
             for article in cached_articles:
                 canonical_url = canonicalize_url(article["url"])
+                
+                # Skip if this URL has been removed
+                if canonical_url in removed_urls:
+                    filtered_count += 1
+                    continue
+                
                 if canonical_url not in url_set:
                     url_set.add(canonical_url)
                     # Mark as coming from day cache
                     article["fetched_via"] = "day_cache"
                     all_articles.append(article)
                     hits += 1
+            
+            if filtered_count > 0:
+                util.log(
+                    f"[serve.scrape_date_range] Filtered {filtered_count} removed URLs from cached day={date_str}",
+                    logger=logger,
+                )
             
             processed_count += len(newsletter_types)
             continue
@@ -743,8 +759,13 @@ def scrape_date_range(start_date, end_date):
         # Cache this day's results for future use
         if day_articles:
             # Sanitize articles before caching (remove timing info, etc.)
+            # Also filter out removed URLs at cache time
             sanitized_day_articles = []
             for a in day_articles:
+                # Skip removed URLs
+                if canonicalize_url(a["url"]) in removed_urls:
+                    continue
+                    
                 clean = {
                     k: v
                     for k, v in a.items()
@@ -754,11 +775,11 @@ def scrape_date_range(start_date, end_date):
             
             _put_cached_day(date_str, sanitized_day_articles)
             util.log(
-                f"[serve.scrape_date_range] Cached day={date_str} articles={len(sanitized_day_articles)}",
+                f"[serve.scrape_date_range] Cached day={date_str} articles={len(sanitized_day_articles)} (after removing filtered URLs)",
                 logger=logger,
             )
 
-    removed_urls = get_removed_urls()
+    # Final defensive filter (should be redundant but ensures consistency)
     all_articles = [
         a for a in all_articles
         if canonicalize_url(a["url"]) not in removed_urls
