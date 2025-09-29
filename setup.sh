@@ -60,25 +60,12 @@ function ensure_uv(){
 	return 0
 }
 
-function ensure_vercel_cli(){
-    isdefined vercel && {
-        message "vercel-cli is installed and in the PATH"
+function ensure_node_npm(){
+    if isdefined node && isdefined npm; then
+        message "node and npm are installed and in the PATH"
         return 0
-    }
-    isdefined apt && {
-        message "Installing vercel-cli with 'apt add vercel-cli'"
-        apt add vercel-cli
-        return $?
-    }
-    isdefined npm && {
-        message "Installing vercel-cli with 'npm install -g vercel-cli'"
-        mkdir -p "$HOME/.run/npm-global"
-        npm config set prefix "$HOME/.run/npm-global" >/dev/null
-        export PATH="$HOME/.run/npm-global/bin:$PATH"
-        npm install -g vercel-cli
-        return $?
-    }
-    message "[ERROR] $0 implemented installing only when 'apt' or 'npm' is available. Extend setup.sh $0 to support your current OS's package manager and try again."
+    fi
+    message "[ERROR] node and npm are required for Vercel Blob SDK. Please install Node.js and npm, then try again."
     return 1
 }
 
@@ -97,6 +84,6 @@ function uv_sync(){
 }
 
 ensure_uv
-ensure_vercel_cli
+ensure_node_npm
 uv_sync
 
