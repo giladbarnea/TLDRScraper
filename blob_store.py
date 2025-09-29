@@ -2,7 +2,6 @@ import logging
 import os
 import re
 import hashlib
-import subprocess
 import urllib.parse
 
 import util
@@ -66,59 +65,61 @@ def _resolve_store_base_url() -> str | None:
 def put_file(pathname: str, content: str) -> str:
     """
     Upload `content` to Vercel Blob at the exact `pathname`, overwriting if it exists.
-    Returns the public URL from the SDK response.
+    Returns the public URL from the response.
     Raises RuntimeError on upload failure.
     """
     token = _resolve_rw_token()
     if not token:
         raise RuntimeError("BLOB_READ_WRITE_TOKEN not set")
 
-    env = os.environ.copy()
-    env["PATHNAME"] = pathname
-    env["BLOB_READ_WRITE_TOKEN"] = token
-
-    script_path = os.path.join(os.path.dirname(__file__), "scripts", "blob_put.mjs")
-
     try:
         util.log(
-            "[blob_store.put_file] Uploading to %s via Node SDK...",
+            "[blob_store.put_file] Uploading to %s via HTTP API...",
             pathname,
         )
-        proc = subprocess.run(
-            ["node", script_path],
-            input=content.encode("utf-8"),
-            capture_output=True,
-            env=env,
-            check=True,
+        
+        import requests
+        import json as json_module
+        
+        api_url = f"https://blob.vercel-storage.com/{pathname}"
+        
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "X-Add-Random-Suffix": "0",
+        }
+        
+        response = requests.put(
+            api_url,
+            data=content.encode("utf-8"),
+            headers=headers,
+            timeout=30,
         )
-        import json
-
-        out = proc.stdout.decode("utf-8")
-        result = json.loads(out)
+        response.raise_for_status()
+        
+        result = response.json()
         url = result.get("url", "")
+        
         util.log(
-            "[blob_store.put_file] Success uploading to %s via Node SDK.",
+            "[blob_store.put_file] Success uploading to %s via HTTP API.",
             pathname,
         )
         return url
-    except subprocess.CalledProcessError as e:
-        stderr = e.stderr.decode("utf-8") if e.stderr else ""
+        
+    except requests.RequestException as e:
         util.log(
-            "[blob_store.put_file] Error uploading to %s: %s. Full error: %s",
+            "[blob_store.put_file] HTTP request error uploading to %s: %s",
             pathname,
-            stderr,
             repr(e),
             level=logging.ERROR,
             exc_info=True,
         )
-        raise RuntimeError(
-            f"Node SDK blob upload failed: {stderr}. Full error: {repr(e)}"
-        ) from e
-    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Blob upload failed: {repr(e)}") from e
+    except Exception as e:
         util.log(
-            "[blob_store.put_file] Error parsing SDK response: %s",
+            "[blob_store.put_file] Error uploading to %s: %s",
+            pathname,
             repr(e),
             level=logging.ERROR,
             exc_info=True,
         )
-        raise RuntimeError(f"Failed to parse SDK response: {repr(e)}") from e
+        raise RuntimeError(f"Blob upload failed: {repr(e)}") from e

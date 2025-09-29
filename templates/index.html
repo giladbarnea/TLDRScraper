@@ -381,38 +381,52 @@
                 const btn = e.target;
                 const url = btn.getAttribute('data-url');
                 
-                if (!url) return;
+                console.log('[remove-url] Button clicked, URL:', url);
+                
+                if (!url) {
+                    console.error('[remove-url] No URL found on button');
+                    return;
+                }
                 
                 btn.disabled = true;
                 btn.textContent = '...';
                 
                 try {
+                    console.log('[remove-url] Fetching /api/remove-url');
                     const resp = await fetch('/api/remove-url', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ url: url })
                     });
+                    
+                    console.log('[remove-url] Response status:', resp.status);
                     const data = await resp.json();
+                    console.log('[remove-url] Response data:', data);
                     
                     if (data.success) {
-                        // Remove the entire list item from DOM
+                        console.log('[remove-url] Success! Removing list item');
                         const listItem = btn.closest('li');
                         if (listItem) {
                             listItem.style.opacity = '0.5';
                             listItem.style.transition = 'opacity 0.3s';
                             setTimeout(() => listItem.remove(), 300);
+                        } else {
+                            console.warn('[remove-url] No <li> parent found, removing button only');
+                            btn.remove();
                         }
                     } else {
+                        console.error('[remove-url] API returned failure:', data.error);
                         btn.textContent = '✗';
-                        btn.title = 'Failed to remove: ' + (data.error || 'Unknown error');
+                        btn.title = 'Failed: ' + (data.error || 'Unknown error');
                         setTimeout(() => {
                             btn.textContent = '×';
                             btn.disabled = false;
                         }, 2000);
                     }
                 } catch (err) {
+                    console.error('[remove-url] Exception:', err);
                     btn.textContent = '✗';
-                    btn.title = 'Network error: ' + (err?.message || String(err));
+                    btn.title = 'Error: ' + (err?.message || String(err));
                     setTimeout(() => {
                         btn.textContent = '×';
                         btn.disabled = false;
