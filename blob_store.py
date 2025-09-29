@@ -85,7 +85,7 @@ def put_file(pathname: str, content: str) -> str:
         
         headers = {
             "Authorization": f"Bearer {token}",
-            "X-Add-Random-Suffix": "0",
+            "x-add-random-suffix": "0",
         }
         
         response = requests.put(
