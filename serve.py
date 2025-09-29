@@ -121,10 +121,15 @@ def _startup_load_blob_listing_sync():
     """Synchronously list blob entries into memory for debug matching."""
     global _BLOB_ENTRIES
     try:
-        pfx = os.getenv("BLOB_STORE_PREFIX", os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob")).strip()
+        pfx = os.getenv(
+            "BLOB_STORE_PREFIX",
+            os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"),
+        ).strip()
         entries = list_all_entries(prefix=pfx)
         _BLOB_ENTRIES = entries or []
-        _log(f"[startup][_startup_load_blob_listing_sync] loaded blob entries count={len(_BLOB_ENTRIES)} prefix={pfx}")
+        _log(
+            f"[startup][_startup_load_blob_listing_sync] loaded blob entries count={len(_BLOB_ENTRIES)} prefix={pfx}"
+        )
     except Exception as e:
         _log(
             "[startup][_startup_load_blob_listing_sync] failed to list blobs error=%s",
@@ -510,15 +515,30 @@ def summarize_url_endpoint():
             return jsonify({"success": False, "error": "Invalid or missing url"}), 400
         # Read-first: if a prior summary blob exists, return it immediately
         try:
-            _pfx = os.getenv("BLOB_STORE_PREFIX", os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"))
+            _pfx = os.getenv(
+                "BLOB_STORE_PREFIX",
+                os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"),
+            )
             base_path = normalize_url_to_pathname(target_url, _pfx)
             base = base_path[:-3] if base_path.endswith(".md") else base_path
             summary_blob_pathname = f"{base}.summary.md"
-            store_id = os.getenv("BLOB_STORE_ID", os.getenv("TLDR_SCRAPER_BLOB_STORE_ID", "")).strip()
+            store_id = os.getenv(
+                "BLOB_STORE_ID", os.getenv("TLDR_SCRAPER_BLOB_STORE_ID", "")
+            ).strip()
             if store_id:
                 summary_blob_url = f"https://{store_id}.public.blob.vercel-storage.com/{summary_blob_pathname}"
-                resp = requests.get(summary_blob_url, timeout=10, headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"})
-                if resp.status_code == 200 and isinstance(resp.text, str) and resp.text.strip():
+                resp = requests.get(
+                    summary_blob_url,
+                    timeout=10,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"
+                    },
+                )
+                if (
+                    resp.status_code == 200
+                    and isinstance(resp.text, str)
+                    and resp.text.strip()
+                ):
                     _log(
                         f"[serve.summarize_url_endpoint] summary cache HIT url={target_url} pathname={summary_blob_pathname}"
                     )
@@ -530,14 +550,20 @@ def summarize_url_endpoint():
                     ]
                     try:
                         if _BLOB_ENTRIES:
-                            appendix_lines.append(f"- store entries ({len(_BLOB_ENTRIES)}):\n")
+                            appendix_lines.append(
+                                f"- store entries ({len(_BLOB_ENTRIES)}):\n"
+                            )
                             for k in _BLOB_ENTRIES:
                                 try:
                                     appendix_lines.append(f"  - `{k}`\n")
                                 except Exception as e:
-                                    appendix_lines.append(f"  - failed to append blob entry: {repr(e)}\n")
+                                    appendix_lines.append(
+                                        f"  - failed to append blob entry: {repr(e)}\n"
+                                    )
                         else:
-                            appendix_lines.append("- store entries: empty or unavailable\n")
+                            appendix_lines.append(
+                                "- store entries: empty or unavailable\n"
+                            )
                     except Exception as e:
                         appendix_lines.append(f"- store entries: {repr(e)}\n")
                     summary_with_debug = resp.text + "".join(appendix_lines)
@@ -584,7 +610,10 @@ def summarize_url_endpoint():
         try:
             blob_pathname = normalize_url_to_pathname(
                 target_url,
-                os.getenv("BLOB_STORE_PREFIX", os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob")),
+                os.getenv(
+                    "BLOB_STORE_PREFIX",
+                    os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"),
+                ),
             )
             blob_url = put_markdown(blob_pathname, page_md)
         except Exception as e:
@@ -616,11 +645,18 @@ def summarize_url_endpoint():
         try:
             # Derive a deterministic summary pathname based on the page markdown pathname
             if blob_pathname and isinstance(blob_pathname, str):
-                base = blob_pathname[:-3] if blob_pathname.endswith(".md") else blob_pathname
+                base = (
+                    blob_pathname[:-3]
+                    if blob_pathname.endswith(".md")
+                    else blob_pathname
+                )
                 summary_blob_pathname = f"{base}.summary.md"
             else:
                 # Fallback: recompute from URL
-                _pfx = os.getenv("BLOB_STORE_PREFIX", os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"))
+                _pfx = os.getenv(
+                    "BLOB_STORE_PREFIX",
+                    os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"),
+                )
                 _base_path = normalize_url_to_pathname(target_url, _pfx)
                 base = _base_path[:-3] if _base_path.endswith(".md") else _base_path
                 summary_blob_pathname = f"{base}.summary.md"
@@ -637,7 +673,9 @@ def summarize_url_endpoint():
             appendix_lines = [
                 "\n\n---\n",
                 "Debug: Summary cache key candidate and store listing\n",
-                f"- candidate: `{summary_blob_pathname}`\n" if summary_blob_pathname else "- candidate: <unknown>\n",
+                f"- candidate: `{summary_blob_pathname}`\n"
+                if summary_blob_pathname
+                else "- candidate: <unknown>\n",
             ]
             if _BLOB_ENTRIES:
                 appendix_lines.append(f"- store entries ({len(_BLOB_ENTRIES)}):\n")

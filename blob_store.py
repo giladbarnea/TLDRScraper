@@ -8,8 +8,10 @@ import json
 
 
 def _default_prefix() -> str:
-    return os.getenv("BLOB_STORE_PREFIX",
-           os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob")).strip("/")
+    return os.getenv(
+        "BLOB_STORE_PREFIX",
+        os.getenv("TLDR_SCRAPER_BLOB_STORE_PREFIX", "tldr-scraper-blob"),
+    ).strip("/")
 
 
 def normalize_url_to_pathname(url: str, prefix: str | None = None) -> str:
@@ -49,7 +51,7 @@ def normalize_url_to_pathname(url: str, prefix: str | None = None) -> str:
     MAX = 80
     if len(s) > MAX:
         h = hashlib.sha256(s.encode("utf-8")).hexdigest()[:10]
-        s = f"{s[:MAX-11]}-{h}"
+        s = f"{s[: MAX - 11]}-{h}"
 
     base = f"{s}.md"
     pfx = (prefix if isinstance(prefix, str) else _default_prefix()).strip("/")
@@ -57,15 +59,15 @@ def normalize_url_to_pathname(url: str, prefix: str | None = None) -> str:
 
 
 def _resolve_rw_token() -> str:
-    return (os.getenv("BLOB_READ_WRITE_TOKEN")
-         or os.getenv("TLDR_SCRAPER_BLOB_READ_WRITE_TOKEN")
-         or "")
+    return (
+        os.getenv("BLOB_READ_WRITE_TOKEN")
+        or os.getenv("TLDR_SCRAPER_BLOB_READ_WRITE_TOKEN")
+        or ""
+    )
 
 
 def _resolve_store_id() -> str | None:
-    return (os.getenv("BLOB_STORE_ID")
-         or os.getenv("TLDR_SCRAPER_BLOB_STORE_ID")
-         or None)
+    return os.getenv("BLOB_STORE_ID") or os.getenv("TLDR_SCRAPER_BLOB_STORE_ID") or None
 
 
 def put_markdown(pathname: str, markdown: str) -> str:
@@ -84,10 +86,15 @@ def put_markdown(pathname: str, markdown: str) -> str:
 
     try:
         cmd = [
-            "vercel", "blob", "put", tmp,
-            "--pathname", pathname,
+            "vercel",
+            "blob",
+            "put",
+            tmp,
+            "--pathname",
+            pathname,
             "--force",
-            "--rw-token", token,
+            "--rw-token",
+            token,
         ]
         out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
     except subprocess.CalledProcessError as e:
@@ -144,7 +151,11 @@ def list_all_entries(prefix: str | None = None, limit: int | None = None) -> lis
                 if isinstance(items, list):
                     for item in items:
                         if isinstance(item, dict):
-                            p = item.get("pathname") or item.get("key") or item.get("name")
+                            p = (
+                                item.get("pathname")
+                                or item.get("key")
+                                or item.get("name")
+                            )
                             if isinstance(p, str):
                                 pathnames.append(p)
         except Exception:
@@ -176,11 +187,13 @@ def list_all_entries(prefix: str | None = None, limit: int | None = None) -> lis
                 # Heuristic: take tokens that look like pathnames (contain '/'
                 # and end with common suffixes)
                 for tok in line.split():
-                    if "/" in tok and (tok.endswith(".md") or ".vercel-storage.com/" in tok):
+                    if "/" in tok and (
+                        tok.endswith(".md") or ".vercel-storage.com/" in tok
+                    ):
                         # If full URL, extract pathname part
                         idx = tok.find(".vercel-storage.com/")
                         if idx != -1:
-                            p = tok[idx + len(".vercel-storage.com/"):]
+                            p = tok[idx + len(".vercel-storage.com/") :]
                             candidates.append(p)
                         else:
                             candidates.append(tok)
@@ -189,4 +202,3 @@ def list_all_entries(prefix: str | None = None, limit: int | None = None) -> lis
             return candidates
         except Exception:
             return []
-
