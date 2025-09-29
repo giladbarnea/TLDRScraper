@@ -45,7 +45,7 @@ def normalize_url_to_pathname(url: str) -> str:
         h = hashlib.sha256(s.encode("utf-8")).hexdigest()[:10]
         s = f"{s[: MAX - 11]}-{h}"
 
-    base = f"{s}-md"
+    base = f"{s}.md"
     from string import punctuation
 
     if any(c in base for c in set(punctuation) - {"-"}):
@@ -68,7 +68,7 @@ def _resolve_store_base_url() -> str | None:
 def put_markdown(pathname: str, markdown: str) -> str:
     """
     Upload `markdown` to Vercel Blob at the exact `pathname`, overwriting if it exists.
-    Returns the public URL if it can be determined (using BLOB_STORE_ID or CLI output).
+    Returns the public URL if it can be determined (using CLI output).
     Raises RuntimeError on upload failure.
     """
     token = _resolve_rw_token()
@@ -78,9 +78,9 @@ def put_markdown(pathname: str, markdown: str) -> str:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as f:
         f.write(markdown.encode("utf-8"))
         tmp = f.name
-    from IPython import embed
+    # from IPython import embed
 
-    embed()
+    # embed()
     try:
         cmd = [
             "vercel",
@@ -90,12 +90,29 @@ def put_markdown(pathname: str, markdown: str) -> str:
             "--pathname",
             pathname,
             "--force",
-            "--rw-token",
+            "--no-color",
+            "--token",
             token,
         ]
+        util.log(
+            "[blob_store.put_markdown] Uploading to %s via Vercel CLI",
+            pathname,
+        )
         out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
     except subprocess.CalledProcessError as e:
+        util.log(
+            "[blob_store.put_markdown] Error uploading to %s: %s via Vercel CLI",
+            pathname,
+            e.output.strip(),
+            level=logging.ERROR,
+            exc_info=True,
+        )
         raise RuntimeError(f"vercel blob put failed: {e.output.strip()}") from e
+    else:
+        util.log(
+            "[blob_store.put_markdown] Success uploading to %s via Vercel CLI",
+            pathname,
+        )
     finally:
         try:
             os.unlink(tmp)
@@ -124,10 +141,14 @@ def list_all_entries(limit: int | None = None) -> list[str]:
     if not token:
         return []
     # Build base command
-    base_cmd = ["vercel", "blob", "ls", "--rw-token", token]
+    base_cmd = ["vercel", "blob", "ls", "--token", token]
     try:
         # Prefer JSON when available
         cmd = base_cmd + ["--json"]
+        util.log(
+            "[blob_store.list_all_entries] Listing all entries via Vercel CLI with --json",
+            level=logging.INFO,
+        )
         out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
         # Some versions print one JSON object per line; handle array or NDJSON
         pathnames: list[str] = []
@@ -170,8 +191,15 @@ def list_all_entries(limit: int | None = None) -> list[str]:
         if limit is not None and isinstance(limit, int) and limit > 0:
             return pathnames[:limit]
         return pathnames
-    except Exception:
+    except Exception as e:
         # Fallback: non-JSON output parsing
+        formatted_error = getattr(e, "output", repr(e)).strip()
+        util.log(
+            "[blob_store.list_all_entries] Error listing all entries via Vercel CLI. Trying without --json. Error: %s",
+            formatted_error,
+            level=logging.ERROR,
+            exc_info=True,
+        )
         try:
             out = subprocess.check_output(base_cmd, stderr=subprocess.STDOUT, text=True)
             candidates: list[str] = []
@@ -195,5 +223,12 @@ def list_all_entries(limit: int | None = None) -> list[str]:
             if limit is not None and isinstance(limit, int) and limit > 0:
                 return candidates[:limit]
             return candidates
-        except Exception:
+        except Exception as e:
+            formatted_error = getattr(e, "output", repr(e)).strip()
+            util.log(
+                "[blob_store.list_all_entries] Error listing all entries via Vercel CLI even without --json. Error: %s",
+                formatted_error,
+                level=logging.ERROR,
+                exc_info=True,
+            )
             return []

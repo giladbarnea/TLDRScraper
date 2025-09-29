@@ -4,8 +4,10 @@
 
 - Purpose: Daily TLDR newsletter scraping/curation with a tiny, fast cache.
 - Stack: Bash + curl, Node/uv-Python for scripting, Vercel Edge Config as the cache store.
-- Vercel: Project uses Edge Config `tldr-scraper-edge-config-store` under your team; reads via Edge Config connection string, writes via Vercel REST API.
-- Cache mechanism: Keys are `{YYYY-MM-DD}-{type}`; values contain only `{ articles: [ { title, url } ] }`. A cache hit should return in tens of milliseconds due to Edge Config’s global distribution and low-latency reads.
+- Vercel: Project uses Edge Config `tldr-scraper-edge-config-store` under your team; reads via Edge Config connection string, writes via Vercel REST API. WIP: Blob store for caching fetched web pages contents and LLM summaries.
+- URLs Cache mechanism: Keys are `{YYYY-MM-DD}-{type}`; values contain only `{ articles: [ { title, url } ] }`. A cache hit should return in tens of milliseconds due to Edge Config’s global distribution and low-latency reads.
+
+**ATTENTION:**: Edge Config is awaiting deprecation. The project will be migrated to Blob store only. Avoid utilizing Edge Config for new features.
 
 ### Environment variables
 
@@ -23,15 +25,14 @@ Rules:
 
 Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_` locally):
 
-- `EDGE_CONFIG_CONNECTION_STRING`: Full read URL, e.g. `https://edge-config.vercel.com/<EDGE_CONFIG_ID>?token=<EDGE_CONFIG_READ_TOKEN>`
-- `EDGE_CONFIG_ID`: The `ecfg_...` identifier
-- `EDGE_CONFIG_READ_TOKEN`: Read token for Edge Config
-- `VERCEL_TOKEN`: Vercel API token used for write operations (unprefixed in all environments)
 - `OPENAI_API_TOKEN`: `sk-...`
-- `BLOB_STORE_PREFIX`: Simply 'tldr-scraper-blob'.
-- `BLOB_READ_WRITE_TOKEN`: `vercel_blob_rw_...`
-- `BLOB_STORE_BASE_URL`: read URL: `<BLOB_STORE_BASE_URL>/<pathname>`
+- `VERCEL_TOKEN`: Vercel API token used for write operations (unprefixed in all environments)
 - `GITHUB_API_TOKEN`: `github_pat_...`
+- `EDGE_CONFIG_CONNECTION_STRING`: Full read URL, e.g. `https://edge-config.vercel.com/<EDGE_CONFIG_ID>?token=<EDGE_CONFIG_READ_TOKEN>`
+- `EDGE_CONFIG_READ_TOKEN`: Read token for Edge Config
+- `EDGE_CONFIG_ID`: The `ecfg_...` identifier
+- `BLOB_STORE_BASE_URL`: read URL. Use e.g. `<BLOB_STORE_BASE_URL>/<pathname>`
+- `BLOB_READ_WRITE_TOKEN`: `vercel_blob_rw_...`
 
 ### Common tasks and examples
 #### Vercel CLI (required for Blob uploads from Python)
@@ -42,7 +43,7 @@ vercel --version
 ```
 The server shells out to:
 ```bash
-vercel blob put <tmpfile> --pathname "<normalized-pathname>" --force --rw-token "$BLOB_READ_WRITE_TOKEN"
+vercel blob put <tmpfile> --pathname "<normalized-pathname>" --force --token "$BLOB_READ_WRITE_TOKEN"
 ```
 Upload is deterministic and overwrites existing content at the same pathname (no random suffixes, no listing).
 
