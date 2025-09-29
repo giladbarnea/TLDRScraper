@@ -44,7 +44,7 @@ def blob_cached(
                         f"[blob_cache] Cache HIT for {fn.__name__}: {pathname}",
                         logger=logger,
                     )
-                    return resp.text.strip()
+                    return resp.content.decode("utf-8").strip()
                 except Exception as e:
                     util.log(
                         f"[blob_cache] Cache MISS for {fn.__name__}: {pathname} - {repr(e)}",
@@ -114,7 +114,7 @@ def blob_cached_json(
                         f"[blob_cache_json] Cache HIT for {fn.__name__}: {pathname}",
                         logger=logger,
                     )
-                    return json.loads(resp.text)
+                    return json.loads(resp.content.decode("utf-8"))
                 except Exception as e:
                     util.log(
                         f"[blob_cache_json] Cache MISS for {fn.__name__}: {pathname} - {repr(e)}",

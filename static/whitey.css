@@ -120,8 +120,8 @@
   #write{
     font-size: clamp(16px, 0.95rem + 0.6vw, 18px);
     line-height: 1.6;
-    padding-left: var(--whitey-s-2);
-    padding-right: var(--whitey-s-2);
+    padding-left: var(--whitey-s-1);
+    padding-right: var(--whitey-s-1);
   }
 
   #write h1{
