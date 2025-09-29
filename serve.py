@@ -23,18 +23,9 @@ from edge_config import (
     get_last_write_body,
     get_effective_env_summary,
 )
-from blob_store import normalize_url_to_pathname, put_markdown, list_all_entries
+from blob_store import normalize_url_to_pathname, put_markdown
 import urllib.parse as _urlparse
 import util
-
-# Auto-load environment variables from a local .env file if present
-try:
-    from dotenv import load_dotenv, find_dotenv
-
-    load_dotenv(dotenv_path=find_dotenv(filename=".env"), override=False)
-except Exception:
-    # If python-dotenv is unavailable, continue without raising
-    pass
 
 app = Flask(__name__)
 logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
@@ -44,7 +35,6 @@ md = MarkItDown()
 
 # In-memory store for the summarization prompt template fetched from GitHub
 SUMMARIZE_PROMPT_TEMPLATE = None
-_BLOB_ENTRIES: list[str] = []
 
 
 def _resolve_github_api_token() -> str:
@@ -141,30 +131,6 @@ except Exception as e:
         logger=logger,
         exc_info=True,
     )
-
-
-def _startup_load_blob_listing_sync():
-    """Synchronously list blob entries into memory for debug matching."""
-    global _BLOB_ENTRIES
-    try:
-        entries = list_all_entries()
-        _BLOB_ENTRIES = entries or []
-        util.log(
-            f"[startup][_startup_load_blob_listing_sync] loaded blob entries count={len(_BLOB_ENTRIES)}",
-            logger=logger,
-        )
-    except Exception as e:
-        util.log(
-            "[startup][_startup_load_blob_listing_sync] failed to list blobs error=%s",
-            repr(e),
-            level=logging.ERROR,
-            logger=logger,
-            exc_info=True,
-        )
-
-
-# Perform synchronous load immediately at import time (safe if token missing; it no-ops)
-# _startup_load_blob_listing_sync()
 
 # Per-request run diagnostics (simple globals, reset at start of scrape)
 EDGE_READ_ATTEMPTS = 0
