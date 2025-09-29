@@ -43,31 +43,42 @@ function ensure_uv(){
 	if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
 		quiet=true
 	fi
-	if [[ ":${PATH:_}:" != *":$HOME/.local/bin:"* ]]; then
-		export PATH="$HOME/.local/bin:$PATH"
-	fi
-	if ! command -v uv 2>&1 1>/dev/null; then
-		message "uv is not installed, installing it with 'curl -LsSf https://astral.sh/uv/install.sh | sh'"
-		curl -LsSf https://astral.sh/uv/install.sh | sh
-		if ! command -v uv 2>&1 1>/dev/null; then
-			message "[ERROR] After installing uv, 'command -v uv' returned a non-zero exit code. uv is probably installed but not in the PATH."
-			return 1
-		fi
-		if ! "$quiet"; then
-			message "uv installed and in the PATH"
-		fi
+    if isdefined uv; then
+        message "uv is installed and in the PATH"
+        return 0
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    message "uv is not installed, installing it with 'curl -LsSf https://astral.sh/uv/install.sh | sh'"
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    if ! isdefined uv; then
+        message "[ERROR] After installing uv, 'command -v uv' returned a non-zero exit code. uv is probably installed but not in the PATH."
+        return 1
+    fi
+    if ! "$quiet"; then
+        message "uv installed and in the PATH"
 	fi
 	return 0
 }
 
 function ensure_vercel_cli(){
-    isdefined vercel && return 0
+    isdefined vercel && {
+        message "vercel-cli is installed and in the PATH"
+        return 0
+    }
     isdefined apt && {
-        message "Running 'apt add vercel-cli'
+        message "Installing vercel-cli with 'apt add vercel-cli'"
         apt add vercel-cli
         return $?
     }
-    message "ERROR: $0 implemented installing only when 'apt' is available. Extend setup.sh $0 to support your current OS's package manager and try again."
+    isdefined npm && {
+        message "Installing vercel-cli with 'npm install -g vercel-cli'"
+        mkdir -p "$HOME/.run/npm-global"
+        npm config set prefix "$HOME/.run/npm-global" >/dev/null
+        export PATH="$HOME/.run/npm-global/bin:$PATH"
+        npm install -g vercel-cli
+        return $?
+    }
+    message "[ERROR] $0 implemented installing only when 'apt' or 'npm' is available. Extend setup.sh $0 to support your current OS's package manager and try again."
     return 1
 }
 
