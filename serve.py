@@ -522,11 +522,10 @@ def summarize_url_endpoint():
             base_path = normalize_url_to_pathname(target_url, _pfx)
             base = base_path[:-3] if base_path.endswith(".md") else base_path
             summary_blob_pathname = f"{base}.summary.md"
-            store_id = os.getenv(
-                "BLOB_STORE_ID", os.getenv("TLDR_SCRAPER_BLOB_STORE_ID", "")
+            summary_blob_url = os.getenv(
+                "BLOB_STORE_BASE_URL", os.getenv("TLDR_SCRAPER_BLOB_STORE_BASE_URL", "")
             ).strip()
-            if store_id:
-                summary_blob_url = f"https://{store_id}.public.blob.vercel-storage.com/{summary_blob_pathname}"
+            if summary_blob_url:
                 resp = requests.get(
                     summary_blob_url,
                     timeout=10,

@@ -65,10 +65,8 @@ def _resolve_rw_token() -> str:
         or ""
     )
 
-
-def _resolve_store_id() -> str | None:
-    return os.getenv("BLOB_STORE_ID") or os.getenv("TLDR_SCRAPER_BLOB_STORE_ID") or None
-
+def _resolve_store_base_url() -> str | None:
+    return os.getenv("BLOB_STORE_BASE_URL") or os.getenv("TLDR_SCRAPER_BLOB_STORE_BASE_URL") or None
 
 def put_markdown(pathname: str, markdown: str) -> str:
     """
@@ -105,9 +103,9 @@ def put_markdown(pathname: str, markdown: str) -> str:
         except Exception:
             pass
 
-    store_id = _resolve_store_id()
-    if store_id:
-        return f"https://{store_id}.public.blob.vercel-storage.com/{pathname}"
+    base_url = _resolve_store_base_url()
+    if base_url:
+        return f"{base_url}/{pathname}"
 
     # Fallback: best-effort extract from CLI stdout
     for tok in (out or "").split():
