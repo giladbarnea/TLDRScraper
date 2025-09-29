@@ -525,25 +525,19 @@ def summarize_url_endpoint():
                     # Inject debug appendix (do not store this; it's only in response)
                     appendix_lines = [
                         "\n\n---\n",
-                        "Debug: Summary cache key candidate and nearby keys\n",
+                        "Debug: Summary cache key candidate and store listing\n",
                         f"- candidate: `{summary_blob_pathname}`\n",
                     ]
                     try:
-                        # Best-effort fuzzy show similar keys from startup listing
                         if _BLOB_ENTRIES:
-                            pfx = summary_blob_pathname.split('/')[-1][:32]
-                            similar = [k for k in _BLOB_ENTRIES if isinstance(k, str) and k.endswith('.summary.md') and pfx in k]
-                            similar = similar[:20]
-                            if similar:
-                                appendix_lines.append("- similar keys:" + "\n")
-                                for k in similar:
+                            appendix_lines.append(f"- store entries ({len(_BLOB_ENTRIES)}):\n")
+                            for k in _BLOB_ENTRIES:
+                                if isinstance(k, str):
                                     appendix_lines.append(f"  - `{k}`\n")
-                            else:
-                                appendix_lines.append("- similar keys: none\n")
                         else:
-                            appendix_lines.append("- similar keys: listing empty or unavailable\n")
+                            appendix_lines.append("- store entries: empty or unavailable\n")
                     except Exception:
-                        appendix_lines.append("- similar keys: error\n")
+                        appendix_lines.append("- store entries: error\n")
                     summary_with_debug = resp.text + "".join(appendix_lines)
                     return jsonify({
                         "success": True,
@@ -640,21 +634,16 @@ def summarize_url_endpoint():
         try:
             appendix_lines = [
                 "\n\n---\n",
-                "Debug: Summary cache key candidate and nearby keys\n",
+                "Debug: Summary cache key candidate and store listing\n",
                 f"- candidate: `{summary_blob_pathname}`\n" if summary_blob_pathname else "- candidate: <unknown>\n",
             ]
-            if _BLOB_ENTRIES and summary_blob_pathname:
-                pfx = summary_blob_pathname.split('/')[-1][:32]
-                similar = [k for k in _BLOB_ENTRIES if isinstance(k, str) and k.endswith('.summary.md') and pfx in k]
-                similar = similar[:20]
-                if similar:
-                    appendix_lines.append("- similar keys:" + "\n")
-                    for k in similar:
+            if _BLOB_ENTRIES:
+                appendix_lines.append(f"- store entries ({len(_BLOB_ENTRIES)}):\n")
+                for k in _BLOB_ENTRIES:
+                    if isinstance(k, str):
                         appendix_lines.append(f"  - `{k}`\n")
-                else:
-                    appendix_lines.append("- similar keys: none\n")
             else:
-                appendix_lines.append("- similar keys: listing empty or unavailable\n")
+                appendix_lines.append("- store entries: empty or unavailable\n")
             summary_text_with_debug = (summary_text or "") + "".join(appendix_lines)
         except Exception:
             summary_text_with_debug = summary_text
