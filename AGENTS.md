@@ -97,8 +97,9 @@ PY
 - If you can emulate a new feature or behavior in your shell, do it. Is the app making a new API call? Try it in your shell. New dependency and Python interface? Try it by running Python via uv, and so on.
 - Keys format: `{YYYY-MM-DD}-{type}`; only write keys for days that have articles. Do not write empty keys.
 - Values should only contain:
-  - `articles: [ { title, url }, ... ]`
-  - Strip all `utm_*` query params before storing.
+  * `articles: [ { title, url }, ... ]`
+  * Strip all `utm_*` query params before storing.
+- Failing early is better than fallbacks. Zero “Just in case” code. Fallback-rich code explodes complexity and often just propagates bugs downstream. If something important fails, fail early and clearly. Bad code should be fixed, not worked around.
 
 ### Development Conventions
 
