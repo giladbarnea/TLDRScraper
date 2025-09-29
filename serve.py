@@ -18,6 +18,7 @@ from blob_store import normalize_url_to_pathname
 import util
 from summarizer import summarize_url
 from blob_cache import blob_cached_json
+from url_blocklist import add_to_blocklist, filter_articles
 
 app = Flask(__name__)
 logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
@@ -251,6 +252,36 @@ def get_prompt_template():
         )
 
 
+@app.route("/api/remove-url", methods=["POST"])
+def remove_url_endpoint():
+    """Add URL to blocklist to hide it from all future views."""
+    try:
+        data = request.get_json() or {}
+        url = (data.get("url") or "").strip()
+
+        if not url or not (url.startswith("http://") or url.startswith("https://")):
+            return jsonify({"success": False, "error": "Invalid or missing url"}), 400
+
+        success = add_to_blocklist(url)
+        if success:
+            return jsonify({"success": True, "message": "URL removed successfully"})
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Failed to update blocklist",
+            }), 500
+
+    except Exception as e:
+        util.log(
+            "[serve.remove_url_endpoint] error error=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
 @app.route("/api/summarize-url", methods=["POST"])
 def summarize_url_endpoint():
     """Summarize a given URL: fetch HTML, convert to Markdown, insert into template, call OpenAI."""
@@ -417,6 +448,7 @@ def fetch_newsletter(date, newsletter_type):
     if cached is not None and cached.get("status") == "hit":
         BLOB_CACHE_HITS += 1
         cached_articles = cached.get("articles", [])
+        cached_articles = filter_articles(cached_articles)
         for a in cached_articles:
             a["fetched_via"] = "hit"
             a["timing_total_ms"] = int(round((time.time() - cache_start) * 1000))
@@ -450,6 +482,7 @@ def fetch_newsletter(date, newsletter_type):
 
         parse_start = time.time()
         articles = parse_articles_from_markdown(markdown_content, date, newsletter_type)
+        articles = filter_articles(articles)
         parse_ms = int(round((time.time() - parse_start) * 1000))
         total_ms = net_ms + convert_ms + parse_ms
         # Tag fetched source for UI: only tag as 'other' when network was used
