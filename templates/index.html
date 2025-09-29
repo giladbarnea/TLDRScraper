@@ -169,6 +169,35 @@
             line-height: 1.7;
         }
 
+        .remove-url-btn {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 4px 8px;
+            font-size: 14px;
+            line-height: 1;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--muted);
+            cursor: pointer;
+            user-select: none;
+            text-decoration: none;
+            vertical-align: middle;
+            min-width: 44px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .remove-url-btn:hover {
+            background: #fee;
+            border-color: #fcc;
+            color: #c00;
+        }
+        .remove-url-btn:active {
+            background: #fcc;
+        }
+
         @media (max-width: 480px) {
             body { padding: 8px; }
             .container { padding: 12px; }
@@ -304,10 +333,19 @@
                         }
                     } catch (_) {}
 
-                    // Open links in new tabs safely
+                    // Open links in new tabs safely and add remove buttons
                     result.querySelectorAll('#write a[href]').forEach(function(a) {
                         a.setAttribute('target', '_blank');
                         a.setAttribute('rel', 'noopener noreferrer');
+                        
+                        // Add remove button next to each article link
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'remove-url-btn';
+                        removeBtn.textContent = '×';
+                        removeBtn.title = 'Remove this URL';
+                        removeBtn.setAttribute('data-url', a.getAttribute('href'));
+                        removeBtn.type = 'button';
+                        a.insertAdjacentElement('afterend', removeBtn);
                     });
 
                     result.style.display = 'block';
@@ -333,6 +371,58 @@
 
         // Initialize default dates on page load
         setDefaultDates();
+
+        // Handle remove button clicks
+        document.addEventListener('click', async function(e) {
+            if (e.target.classList.contains('remove-url-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const btn = e.target;
+                const url = btn.getAttribute('data-url');
+                
+                if (!url) return;
+                
+                btn.disabled = true;
+                btn.textContent = '...';
+                
+                try {
+                    const resp = await fetch('/api/remove-url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url })
+                    });
+                    const data = await resp.json();
+                    
+                    if (data.success) {
+                        const listItem = btn.closest('li');
+                        if (listItem) {
+                            listItem.style.opacity = '0.5';
+                            listItem.style.transition = 'opacity 0.3s';
+                            setTimeout(() => listItem.remove(), 300);
+                        } else {
+                            btn.remove();
+                        }
+                    } else {
+                        btn.textContent = '✗';
+                        btn.title = 'Failed: ' + (data.error || 'Unknown error');
+                        setTimeout(() => {
+                            btn.textContent = '×';
+                            btn.disabled = false;
+                        }, 2000);
+                    }
+                } catch (err) {
+                    btn.textContent = '✗';
+                    btn.title = 'Error: ' + (err?.message || String(err));
+                    setTimeout(() => {
+                        btn.textContent = '×';
+                        btn.disabled = false;
+                    }, 2000);
+                }
+                
+                return;
+            }
+        }, true);
 
         // Intercept link clicks inside the result reading surface to expand inline summaries
         document.addEventListener('click', async function(e) {
