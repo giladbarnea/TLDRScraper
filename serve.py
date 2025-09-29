@@ -12,8 +12,6 @@ from io import BytesIO
 import re
 from bs4 import BeautifulSoup
 import time
-import threading
-import base64
 import json
 
 from edge_config_cache import get_cached_json, put_cached_json
@@ -26,6 +24,7 @@ from edge_config import (
 from blob_store import normalize_url_to_pathname, put_file
 import urllib.parse as _urlparse
 import util
+from summarizer import summarize_url
 
 app = Flask(__name__)
 logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
@@ -33,104 +32,6 @@ logger = logging.getLogger("serve")
 md = MarkItDown()
 
 
-# In-memory store for the summarization prompt template fetched from GitHub
-SUMMARIZE_PROMPT_TEMPLATE = None
-
-
-def _resolve_github_api_token() -> str:
-    return util.resolve_env_var("GITHUB_API_TOKEN", "")
-
-
-def _fetch_summarize_prompt_from_github(
-    owner: str = "giladbarnea",
-    repo: str = "llm-templates",
-    path: str = "text/summarize.md",
-    ref: str = "main",
-) -> str:
-    """Fetch the summarize.md prompt via GitHub Contents API and return it as text."""
-    if SUMMARIZE_PROMPT_TEMPLATE:
-        util.log(
-            "[startup][_fetch_summarize_prompt_from_github] summarize.md template already present, skipping fetch",
-            logger=logger,
-        )
-        return SUMMARIZE_PROMPT_TEMPLATE
-    token = _resolve_github_api_token()
-    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={ref}"
-    headers = {
-        "Accept": "application/vnd.github.v3.raw",
-        "User-Agent": "tldr-scraper/1.0",
-    }
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    resp = requests.get(url, headers=headers, timeout=20)
-    if resp.status_code == 200:
-        # v3.raw returns file content directly
-        return resp.text
-    # Fallback to JSON/base64 if server ignored Accept header
-    if resp.headers.get("Content-Type", "").startswith("application/json"):
-        try:
-            data = resp.json()
-            if isinstance(data, dict) and "content" in data:
-                return base64.b64decode(data["content"]).decode(
-                    "utf-8", errors="replace"
-                )
-        except Exception as e:
-            util.log(
-                "[startup][_fetch_summarize_prompt_from_github] Failed to fetch summarize.md from GitHub status_code=%s error=%s",
-                resp.status_code,
-                repr(e),
-                level=logging.ERROR,
-                logger=logger,
-                exc_info=True,
-            )
-            raise
-
-    formatted_error = {
-        "status_code": resp.status_code,
-        "content_type": resp.headers.get("Content-Type", ""),
-        "headers": dict(resp.headers),
-        "text": resp.text if len(resp.text) < 1000 else resp.text[:1000] + "...",
-    }
-    raise RuntimeError(f"Failed to fetch summarize.md from GitHub: {formatted_error}")
-
-
-def _background_fetch_prompt_once():
-    """Background job that fetches the summarize prompt once and stores it in memory."""
-    global SUMMARIZE_PROMPT_TEMPLATE
-    # Idempotency: if already loaded, do nothing
-    if SUMMARIZE_PROMPT_TEMPLATE:
-        util.log(
-            "[startup][_background_fetch_prompt_once] summarize.md template already present, skipping fetch",
-            logger=logger,
-        )
-        return
-    try:
-        prompt = _fetch_summarize_prompt_from_github()
-        SUMMARIZE_PROMPT_TEMPLATE = prompt
-        util.log(
-            "[startup][_background_fetch_prompt_once] summarize.md template fetched and stored in memory",
-            logger=logger,
-        )
-    except Exception as e:
-        logger.exception(
-            "[startup][_background_fetch_prompt_once] Failed to fetch summarize.md: %s",
-            repr(e),
-            level=logging.ERROR,
-            logger=logger,
-        )
-
-
-# Kick off the background fetch when the module is imported (server startup)
-try:
-    threading.Thread(target=_background_fetch_prompt_once, daemon=True).start()
-except Exception as e:
-    util.log(
-        "[startup] Failed to start background prompt fetch thread error=%s",
-        repr(e),
-        level=logging.ERROR,
-        logger=logger,
-        exc_info=True,
-    )
 
 # Per-request run diagnostics (simple globals, reset at start of scrape)
 EDGE_READ_ATTEMPTS = 0
@@ -312,131 +213,6 @@ def extract_newsletter_content(html):
     return result.text_content
 
 
-def _resolve_openai_api_token() -> str:
-    return util.resolve_env_var("OPENAI_API_TOKEN", "")
-
-
-def _convert_html_to_markdown(html: str) -> str:
-    """Convert raw HTML to Markdown using MarkItDown."""
-    stream = BytesIO(html.encode("utf-8", errors="ignore"))
-    result = md.convert_stream(stream, file_extension=".html")
-    return result.text_content
-
-
-def _insert_page_markdown_into_prompt(template_text: str, page_md: str) -> str:
-    """Insert page_md between <summarize this> tags in template_text."""
-    if not template_text:
-        return f"<summarize this>\n{page_md}\n</summarize this>"
-    open_tag_index = template_text.find("<summarize this>")
-    if open_tag_index == -1:
-        util.log(
-            "[serve._insert_page_markdown_into_prompt] template_text is not empty but no <summarize this> tag found in template_text: %s",
-            template_text,
-            level=logging.WARNING,
-            logger=logger,
-        )
-        return (
-            template_text.rstrip()
-            + f"\n\n<summarize this>\n{page_md}\n</summarize this>\n"
-        )
-    close_tag_index = template_text.find("</summarize this>", open_tag_index)
-    return (
-        template_text[:open_tag_index]
-        + page_md
-        + template_text[close_tag_index + len("</summarize this>") :]
-    )
-
-
-def _call_openai_responses_api(prompt_text: str) -> str:
-    """Call OpenAI Responses API with gpt-5, low reasoning effort, no stream, return text."""
-    util.log(
-        "[serve._call_openai_responses_api] calling OpenAI Responses API with prompt_text=%s",
-        prompt_text[:200] + "..." if len(prompt_text) > 200 else prompt_text,
-        logger=logger,
-    )
-    api_key = _resolve_openai_api_token()
-    if not api_key:
-        raise RuntimeError("OPENAI_API_TOKEN not set")
-
-    url = "https://api.openai.com/v1/responses"
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    body = {
-        "model": "gpt-5",
-        # Per official Responses API, `input` can be a string or content array.
-        # Use simple string input for text-only requests.
-        "input": prompt_text,
-        # Reasoning knobs
-        "reasoning": {"effort": "low"},
-        "stream": False,
-    }
-    # from IPython import embed; embed()
-    resp = requests.post(url, headers=headers, data=json.dumps(body), timeout=600)
-    try:
-        resp.raise_for_status()
-    except Exception as e:
-        util.log(
-            "[serve._call_openai_responses_api] request failed url=%s error=%s",
-            url,
-            repr(e),
-            level=logging.ERROR,
-            exc_info=True,
-            logger=logger,
-        )
-        raise
-    data = resp.json()
-    problems: list[Exception] = []
-
-    # Extract text from Responses API variants
-    # 1) output_text (string or list)
-    if isinstance(data, dict) and "output_text" in data:
-        try:
-            if isinstance(data["output_text"], str):
-                return data["output_text"]
-            if isinstance(data["output_text"], list):
-                return "\n".join([
-                    str(x) for x in data["output_text"] if isinstance(x, str)
-                ])
-        except Exception as e:
-            problems.append(e)
-            pass
-    # 2) output -> content[] -> type=output_text
-    try:
-        outputs = data.get("output") or []
-        texts = []
-        for item in outputs:
-            for c in item.get("content") or []:
-                if c.get("type") in ("output_text", "text") and isinstance(
-                    c.get("text"), str
-                ):
-                    texts.append(c["text"])
-        if texts:
-            return "\n".join(texts)
-    except Exception as e:
-        problems.append(e)
-        pass
-    # 3) choices fallback (compat)
-    try:
-        choices = data.get("choices") or []
-        if choices:
-            msg = choices[0].get("message") or {}
-            content = msg.get("content")
-            if isinstance(content, str):
-                return content
-    except Exception as e:
-        problems.append(e)
-        pass
-    # As last resort, return entire JSON
-    if problems:
-        formatted_problems = "\n".join([repr(e) for e in problems])
-        util.log(
-            "[serve._call_openai_responses_api] Parsing response encountered errors. Returning raw JSON of length %d. url=%s problems=%s",
-            len(str(data)),
-            url,
-            formatted_problems,
-            level=logging.ERROR,
-            logger=logger,
-        )
-    return json.dumps(data)
 
 
 def is_file_url(url):
@@ -475,31 +251,23 @@ def is_file_url(url):
 @app.route("/api/prompt", methods=["GET"])
 def get_prompt_template():
     """Return the loaded summarize.md prompt (for debugging/inspection)."""
-    global SUMMARIZE_PROMPT_TEMPLATE
-    # If not loaded yet, try to load synchronously once
-    if not SUMMARIZE_PROMPT_TEMPLATE:
-        try:
-            SUMMARIZE_PROMPT_TEMPLATE = _fetch_summarize_prompt_from_github()
-        except Exception as e:
-            util.log(
-                "[serve.get_prompt_template] error loading prompt=%s",
-                repr(e),
-                level=logging.ERROR,
-                exc_info=True,
-                logger=logger,
-            )
-            if SUMMARIZE_PROMPT_TEMPLATE:
-                return (
-                    SUMMARIZE_PROMPT_TEMPLATE,
-                    200,
-                    {"Content-Type": "text/plain; charset=utf-8"},
-                )
-            return (
-                f"Error loading prompt: {e!r}",
-                500,
-                {"Content-Type": "text/plain; charset=utf-8"},
-            )
-    return SUMMARIZE_PROMPT_TEMPLATE, 200, {"Content-Type": "text/plain; charset=utf-8"}
+    try:
+        from summarizer import _fetch_summarize_prompt
+        prompt = _fetch_summarize_prompt()
+        return prompt, 200, {"Content-Type": "text/plain; charset=utf-8"}
+    except Exception as e:
+        util.log(
+            "[serve.get_prompt_template] error loading prompt=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return (
+            f"Error loading prompt: {e!r}",
+            500,
+            {"Content-Type": "text/plain; charset=utf-8"},
+        )
 
 
 @app.route("/api/summarize-url", methods=["POST"])
@@ -507,220 +275,45 @@ def summarize_url_endpoint():
     """Summarize a given URL: fetch HTML, convert to Markdown, insert into template, call OpenAI."""
     try:
         data = request.get_json() or {}
-        target_url = (data.get("url") or "").strip()
-        if not target_url or not (
-            target_url.startswith("http://") or target_url.startswith("https://")
-        ):
-            util.log(
-                "[serve.summarize_url_endpoint] invalid or missing url=%s",
-                target_url,
-                level=logging.ERROR,
-                logger=logger,
-            )
+        url = (data.get("url") or "").strip()
+        
+        if not url or not (url.startswith("http://") or url.startswith("https://")):
             return jsonify({"success": False, "error": "Invalid or missing url"}), 400
-        # Try read cached summary
-        base_path = normalize_url_to_pathname(target_url)
+        
+        summary = summarize_url(url)
+        
+        base_path = normalize_url_to_pathname(url)
+        base = base_path[:-3] if base_path.endswith(".md") else base_path
+        summary_blob_pathname = f"{base}-summary.md"
         blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
-        try:
-            base = base_path[:-3] if base_path.endswith(".md") else base_path
-            summary_blob_pathname = f"{base}-summary.md"
-            if blob_base_url:
-                summary_blob_url = f"{blob_base_url}/{summary_blob_pathname}"
-                util.log(
-                    "[serve.summarize_url_endpoint] Trying to get cached summary from blob store url=%s",
-                    summary_blob_url,
-                    logger=logger,
-                )
-                resp = requests.get(
-                    summary_blob_url,
-                    timeout=10,
-                    headers={
-                        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"
-                    },
-                )
-                resp.raise_for_status()
-                util.log(
-                    f"[serve.summarize_url_endpoint] summary cache HIT url={target_url} pathname={summary_blob_pathname}",
-                    logger=logger,
-                )
-                cached_summary = resp.text.strip()
-                # Inject debug appendix (do not store this; it's only in response)
-                appendix_lines = [
-                    "\n\n---\n",
-                    "Debug: Summary cache key candidate\n",
-                    f"- candidate: `{summary_blob_pathname}`\n",
-                ]
-                summary_with_debug = cached_summary + "".join(appendix_lines)
-                return jsonify({
-                    "success": True,
-                    "summary_markdown": summary_with_debug,
-                    "summary_blob_url": summary_blob_url,
-                    "summary_blob_pathname": summary_blob_pathname,
-                    "debug_summary_cache_key": summary_blob_pathname,
-                })
-        except Exception as e:
-            util.log(
-                "[serve.summarize_url_endpoint] summary cache read error url=%s. Trying to fetch cached content of URL instead. error=%s",
-                target_url,
-                repr(e),
-                level=logging.WARNING,
-                logger=logger,
-                exc_info=True,
-            )
-        page_md = None
-
-        # No cached summary -> Try read cached content of URL
-        try:
-            webpage_blob_url = f"{blob_base_url}/{base_path}"
-            util.log(
-                "[serve.summarize_url_endpoint] Trying to get cached content of URL from blob store url=%s",
-                webpage_blob_url,
-                logger=logger,
-            )
-            resp = requests.get(
-                webpage_blob_url,
-                timeout=10,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"},
-            )
-            resp.raise_for_status()
-            util.log(
-                f"[serve.summarize_url_endpoint] webpage cache HIT url={target_url} pathname={base_path}",
-                logger=logger,
-            )
-            html = resp.text.strip()
-            page_md = _convert_html_to_markdown(html)
-        except Exception as e:
-            util.log(
-                "[serve.summarize_url_endpoint] webpage cache read error url=%s. Trying to fetch URL content instead. error=%s",
-                target_url,
-                repr(e),
-                level=logging.WARNING,
-                logger=logger,
-                exc_info=True,
-            )
-
-        # No cached content -> Fetch page manually
-        if not page_md:
-            webpage_response = requests.get(
-                target_url,
-                timeout=30,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"},
-            )
-            try:
-                webpage_response.raise_for_status()
-            except Exception as e:
-                util.log(
-                    "[serve.summarize_url_endpoint] Failed to fetch URL web content url=%s error=%s",
-                    target_url,
-                    repr(e),
-                    level=logging.ERROR,
-                    exc_info=True,
-                    logger=logger,
-                )
-                return jsonify({
-                    "success": False,
-                    "error": f"Network error fetching URL: {repr(e)}",
-                }), 502
-
-            # Fetched manually -> Convert to Markdown and cache in blob store
-            util.log(
-                f"[serve.summarize_url_endpoint] Fetched URL web content url={target_url} pathname={base_path}. Converting to Markdown and trying to cache in blob store",
-                logger=logger,
-            )
-            html = webpage_response.text
-            page_md = _convert_html_to_markdown(html)
-
-            # Persist cleaned Markdown to Vercel Blob with deterministic pathname.
-            try:
-                put_file(base_path, page_md)
-            except Exception as e:
-                util.log(
-                    "[serve.summarize_url_endpoint] blob upload failed url=%s error=%s",
-                    target_url,
-                    repr(e),
-                    level=logging.WARNING,
-                    logger=logger,
-                )
-            else:
-                util.log(
-                    f"[serve.summarize_url_endpoint] Successfully cached URL web content url={target_url} pathname={base_path}",
-                    logger=logger,
-                )
-
-        # Summarize the page using LLM
-        global SUMMARIZE_PROMPT_TEMPLATE
-        if not SUMMARIZE_PROMPT_TEMPLATE:
-            try:
-                SUMMARIZE_PROMPT_TEMPLATE = _fetch_summarize_prompt_from_github()
-            except Exception as e:
-                util.log(
-                    "[serve.summarize_url_endpoint] failed to fetch summarize.md template url=%s error=%s",
-                    target_url,
-                    repr(e),
-                    level=logging.ERROR,
-                    exc_info=True,
-                    logger=logger,
-                )
-        prompt_template = SUMMARIZE_PROMPT_TEMPLATE or ""
-        full_prompt = _insert_page_markdown_into_prompt(prompt_template, page_md)
-        summary_text = _call_openai_responses_api(full_prompt)
-
-        # Cache the summary in blob store
-        summary_blob_url = None
-        summary_blob_pathname = None
-        try:
-            # Derive a deterministic summary pathname based on the page markdown pathname
-            if base_path and isinstance(base_path, str):
-                base = base_path[:-3] if base_path.endswith(".md") else base_path
-                summary_blob_pathname = f"{base}-summary.md"
-            else:
-                # Fallback: recompute from URL (i hate this fallback. upstream code should work period. no maybes.)
-                _base_path = normalize_url_to_pathname(target_url)
-                base = _base_path[:-3] if _base_path.endswith(".md") else _base_path
-                summary_blob_pathname = f"{base}-summary.md"
-            put_file(summary_blob_pathname, summary_text)
-        except Exception as e:
-            util.log(
-                "[serve.summarize_url_endpoint] summary blob upload failed url=%s error=%s",
-                target_url,
-                repr(e),
-                level=logging.WARNING,
-                logger=logger,
-                exc_info=True,
-            )
-        appendix_lines = [
-            "\n\n---\n",
-            "Debug: Summary cache key candidate\n",
+        summary_blob_url = f"{blob_base_url}/{summary_blob_pathname}" if blob_base_url else None
+        
+        debug_appendix = (
+            f"\n\n---\n"
+            f"Debug: Summary cache key candidate\n"
             f"- candidate: `{summary_blob_pathname}`\n"
-            if summary_blob_pathname
-            else "- candidate: <unknown>\n",
-        ]
-        summary_text_with_debug = (summary_text or "") + "".join(appendix_lines)
-
-        resp_payload = {
+        )
+        
+        return jsonify({
             "success": True,
-            "summary_markdown": summary_text_with_debug,
+            "summary_markdown": summary + debug_appendix,
             "summary_blob_url": summary_blob_url,
             "summary_blob_pathname": summary_blob_pathname,
-        }
-        return jsonify(resp_payload)
+        })
+        
     except requests.RequestException as e:
         util.log(
-            "[serve.summarize_url_endpoint] request error url=%s error=%s",
-            target_url,
+            "[serve.summarize_url_endpoint] request error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,
             logger=logger,
         )
-        return jsonify({
-            "success": False,
-            "error": f"Network error fetching URL: {repr(e)}",
-        }), 502
+        return jsonify({"success": False, "error": f"Network error: {repr(e)}"}), 502
+        
     except Exception as e:
         util.log(
-            "[serve.summarize_url_endpoint] error url=%s error=%s",
-            target_url,
+            "[serve.summarize_url_endpoint] error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,
