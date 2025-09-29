@@ -1,3 +1,9 @@
+.run/
+.env
+.env.*
+.env.sh
+.npm-global/
+*.log
 .vercel
 .env*.local
 
