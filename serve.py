@@ -27,6 +27,15 @@ from blob_store import normalize_url_to_pathname, put_markdown, list_all_entries
 import urllib.parse as _urlparse
 import util
 
+# Auto-load environment variables from a local .env file if present
+try:
+    from dotenv import load_dotenv, find_dotenv
+
+    load_dotenv(dotenv_path=find_dotenv(filename=".env"), override=False)
+except Exception:
+    # If python-dotenv is unavailable, continue without raising
+    pass
+
 app = Flask(__name__)
 logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("serve")
