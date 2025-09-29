@@ -141,11 +141,13 @@ def is_sponsored_link(title, url):
 
 
 def is_sponsored_url(url: str) -> bool:
-    """Treat links as sponsored based on UTM query params.
+    """Detect sponsored/advertorial content based on URL patterns and UTM params.
 
     Rules:
-    - If utm_medium=newsletter (case-insensitive) => sponsored
-    - REMOVED: utm_campaign check (was too aggressive, filtering out legitimate articles)
+    - Marketing landing pages (demo, resources, ebooks, pricing, etc.)
+    - utm_medium indicating paid/sponsored placement (email-media-newsletter, thirdparty_advertising, etc.)
+    - utm_content or utm_term indicating paid content
+    - Combination of newsletter utm_medium + marketing campaign names
     """
     try:
         import urllib.parse as urlparse
@@ -154,10 +156,94 @@ def is_sponsored_url(url: str) -> bool:
         query_params = {
             k.lower(): v for k, v in urlparse.parse_qs(parsed.query).items()
         }
-        medium_values = [v.lower() for v in query_params.get("utm_medium", [])]
-        if "newsletter" in medium_values:
+        
+        # Check URL path for marketing/sales pages
+        path_lower = parsed.path.lower()
+        marketing_paths = [
+            '/demo', '/request-demo', '/get-demo', '/book-demo',
+            '/pricing', '/plans',
+            '/resources/', '/ebook', '/whitepaper', '/guide',
+            '/trial', '/signup', '/get-started',
+            '/contact-sales', '/request-info',
+        ]
+        if any(marker in path_lower for marker in marketing_paths):
             return True
-        # REMOVED: utm_campaign check - was filtering out too many legitimate articles
+        
+        # Check utm_medium for sponsored indicators
+        medium_values = [v.lower() for v in query_params.get("utm_medium", [])]
+        sponsored_mediums = [
+            'email-media-newsletter',
+            'thirdparty_advertising',
+            'paid',
+            'sponsor',
+            'sponsored',
+            'cpc',
+            'cpm',
+            'partner',
+        ]
+        if any(medium in ' '.join(medium_values) for medium in sponsored_mediums):
+            return True
+        
+        # Check utm_content or utm_term for "paid" indicator
+        content_values = [v.lower() for v in query_params.get("utm_content", [])]
+        term_values = [v.lower() for v in query_params.get("utm_term", [])]
+        if 'paid' in ' '.join(content_values) or 'paid' in ' '.join(term_values):
+            return True
+        
+        # Check for newsletter-related UTM params (source or medium) with brand campaigns
+        # Indicates paid placement in TLDR newsletters
+        source_values = [v.lower() for v in query_params.get("utm_source", [])]
+        source_str = ' '.join(source_values)
+        medium_str = ' '.join(medium_values)
+        
+        # Check if either source or medium contains "newsletter" or TLDR variant
+        has_newsletter_tracking = (
+            'newsletter' in source_str or 
+            'newsletter' in medium_str or
+            'tldr' in medium_str  # e.g., utm_medium=TLDRAI
+        )
+        
+        if has_newsletter_tracking:
+            campaign_values = [v.lower() for v in query_params.get("utm_campaign", [])]
+            campaign_str = ' '.join(campaign_values)
+            
+            # Get domain info
+            domain_parts = parsed.netloc.lower().replace('www.', '').split('.')
+            domain_name = domain_parts[0] if domain_parts else ''
+            
+            # Known news/content domains (legitimate articles)
+            news_domains = {
+                'cnbc', 'wsj', 'nytimes', 'reuters', 'bloomberg', 'forbes',
+                'techcrunch', 'theverge', 'wired', 'arstechnica', 'nature',
+                'science', 'mit', 'stanford', 'arxiv', 'github', 'medium'
+            }
+            
+            # If it's a known news domain, it's likely legitimate
+            if domain_name in news_domains:
+                return False
+            
+            # For other domains with newsletter tracking, check for sponsored indicators
+            # If campaign contains brand/product names (not just date/newsletter name), it's likely sponsored
+            sponsored_campaign_indicators = [
+                'dg-', 'datadog',  # Datadog
+                'vectara', 'airia', 'callrail', 'rocket',  # Brand names
+                'cpa', 'creator',  # Payment models
+                'paid',
+            ]
+            
+            # Check if campaign contains suspicious indicators
+            has_brand_campaign = any(indicator in campaign_str for indicator in sponsored_campaign_indicators)
+            
+            # Check if the domain matches the campaign (e.g., callrail.com with callrail campaign)
+            domain_in_campaign = domain_name and len(domain_name) > 3 and domain_name in campaign_str
+            
+            # If TLDR is in the medium (utm_medium=TLDRAI), it's a paid placement
+            # unless it's from a known news domain
+            tldr_in_medium = 'tldr' in medium_str
+            
+            if has_brand_campaign or domain_in_campaign or tldr_in_medium:
+                return True
+        
         return False
     except Exception:
         return False
