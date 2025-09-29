@@ -29,11 +29,13 @@ def get_cached_json(
     if not ec_available():
         return None
 
-    # Read via Edge URL only
-    ec_key = f"tldr-cache-{newsletter_type}-{date_str}"
-    ec_val = ec_get_json(ec_key)
+    # Prefer new date-first key; fall back to legacy key for backwards compatibility
+    primary_key = f"{date_str}-{newsletter_type}"
+    ec_val = ec_get_json(primary_key)
     if ec_val is not None:
-        logger.info("[edge_config_cache.get_cached_json] EdgeConfig hit key=%s", ec_key)
+        logger.info(
+            "[edge_config_cache.get_cached_json] EdgeConfig hit key=%s", primary_key
+        )
         return ec_val
     return None
 
@@ -45,28 +47,57 @@ def put_cached_json(
     if not ec_available():
         return None
     date_str = date_value.strftime("%Y-%m-%d")
-    key = f"tldr-cache-{newsletter_type}-{date_str}"
-    # Ensure payload is JSON-serializable (dates as strings)
-    safe_payload = payload
-    try:
-        articles = payload.get("articles") if isinstance(payload, dict) else None
-        if isinstance(articles, list):
-            fixed = []
-            for a in articles:
-                if isinstance(a, dict):
-                    b = dict(a)
-                    if "date" in b and not isinstance(b["date"], str):
-                        try:
-                            b["date"] = b["date"].strftime("%Y-%m-%d")
-                        except Exception:
-                            b["date"] = str(b["date"])
-                    fixed.append(b)
-                else:
-                    fixed.append(a)
-            safe_payload = dict(payload)
-            safe_payload["articles"] = fixed
-    except Exception:
-        pass
+    key = f"{date_str}-{newsletter_type}"
+
+    # Enforce minimal value shape per AGENTS.md: { "articles": [ { "title", "url" } ] }
+    articles = []
+    if isinstance(payload, dict):
+        maybe_articles = payload.get("articles")
+        if isinstance(maybe_articles, list):
+            for item in maybe_articles:
+                if not isinstance(item, dict):
+                    continue
+                title = item.get("title")
+                url = item.get("url")
+                if not isinstance(title, str) or not isinstance(url, str):
+                    continue
+                # Strip utm_* params and normalize URL minimally
+                try:
+                    import urllib.parse as urlparse
+
+                    p = urlparse.urlparse(url)
+                    query_pairs = [
+                        (k, v)
+                        for (k, v) in urlparse.parse_qsl(
+                            p.query, keep_blank_values=True
+                        )
+                        if not k.lower().startswith("utm_")
+                    ]
+                    new_query = urlparse.urlencode(query_pairs, doseq=True)
+                    cleaned_url = urlparse.urlunparse(
+                        (
+                            p.scheme,
+                            p.netloc.lower(),
+                            p.path.rstrip("/") if len(p.path) > 1 and p.path.endswith("/") else p.path,
+                            p.params,
+                            new_query,
+                            p.fragment,
+                        )
+                    )
+                except Exception:
+                    cleaned_url = url
+                articles.append({"title": title.strip(), "url": cleaned_url})
+
+    # Do not write empty keys
+    if not articles:
+        logger.info(
+            "[edge_config_cache.put_cached_json] skip write (no articles) key=%s",
+            key,
+        )
+        return None
+
+    safe_payload = {"articles": articles}
+
     ok = ec_set_json(key, safe_payload)
     logger.info(
         "[edge_config_cache.put_cached_json] EdgeConfig write key=%s ok=%s", key, ok

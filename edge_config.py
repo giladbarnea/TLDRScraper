@@ -82,9 +82,9 @@ def _build_item_url(key: str) -> Optional[str]:
             "",
         ))
         return new_url
-    except Exception:
+    except Exception as e:
         logger.exception(
-            "[edge_config._build_item_url] failed for base=%s key=%s", base, key
+            "[edge_config._build_item_url] failed for base=%s key=%s with error=%s", base, key, repr(e)
         )
         return None
 
@@ -99,14 +99,14 @@ def get_json(key: str) -> Optional[dict]:
             return resp.json()
         if resp.status_code == 404:
             return None
-        logger.info(
+        logger.warning(
             "[edge_config.get_json] non-200 status=%s body=%s",
             resp.status_code,
             resp.text[:300],
         )
         return None
-    except Exception:
-        logger.exception("[edge_config.get_json] request failed url=%s", url)
+    except Exception as e:
+        logger.exception("[edge_config.get_json] request failed url=%s with error=%s", url, repr(e))
         return None
 
 
@@ -153,6 +153,6 @@ def set_json(key: str, value: dict) -> bool:
             _LAST_WRITE_BODY,
         )
         return False
-    except Exception:
-        logger.exception("[edge_config.set_json] request failed url=%s", url)
+    except Exception as e:
+        logger.exception("[edge_config.set_json] request failed url=%s with error=%s", url, repr(e))
         return False

@@ -655,19 +655,36 @@ def fetch_newsletter(date, newsletter_type):
     EDGE_READ_ATTEMPTS += 1
     cache_start = time.time()
     cached = get_cached_json(newsletter_type, date)
-    if cached is not None and cached.get("status") == "hit":
+    if cached is not None and isinstance(cached.get("articles"), list):
         EDGE_READ_HITS += 1
-        cached_articles = cached.get("articles", [])
-        for a in cached_articles:
+        cached_articles_raw = cached.get("articles", [])
+        # Enrich minimal cached items with runtime fields needed downstream
+        cat_label = "TLDR Tech" if newsletter_type == "tech" else "TLDR AI"
+        enriched = []
+        for item in cached_articles_raw:
+            if not isinstance(item, dict):
+                continue
+            title = item.get("title")
+            url = item.get("url")
+            if not isinstance(title, str) or not isinstance(url, str):
+                continue
+            a = {
+                "title": title,
+                "url": url,
+                "category": cat_label,
+                "date": date,
+                "newsletter_type": newsletter_type,
+            }
             a["fetched_via"] = "hit"
             a["timing_total_ms"] = int(round((time.time() - cache_start) * 1000))
+            enriched.append(a)
         _log(
-            f"[serve.fetch_newsletter] cache HIT date={date_str} type={newsletter_type} count={len(cached_articles)}"
+            f"[serve.fetch_newsletter] cache HIT date={date_str} type={newsletter_type} count={len(enriched)}"
         )
         return {
             "date": date,
             "newsletter_type": newsletter_type,
-            "articles": cached_articles,
+            "articles": enriched,
         }
 
     try:
@@ -750,13 +767,19 @@ def fetch_newsletter(date, newsletter_type):
                 pass
             return clean
 
-        sanitized_articles = [_sanitize(a) for a in articles]
-        payload = {
-            "status": "hit",
-            "date": date_str,
-            "newsletter_type": newsletter_type,
-            "articles": sanitized_articles,
-        }
+        # Build minimal payload for cache: { articles: [ { title, url } ] }
+        minimal_articles = []
+        for a in articles:
+            title = a.get("title")
+            url = a.get("url")
+            if not isinstance(title, str) or not isinstance(url, str):
+                continue
+            # Reuse sanitizer to normalize URL and drop timing fields, then reduce to minimal
+            clean = _sanitize(a)
+            title2 = clean.get("title") if isinstance(clean.get("title"), str) else title
+            url2 = clean.get("url") if isinstance(clean.get("url"), str) else url
+            minimal_articles.append({"title": title2.strip(), "url": url2})
+        payload = {"articles": minimal_articles}
         try:
             global EDGE_WRITE_ATTEMPTS, EDGE_WRITE_SUCCESS
             EDGE_WRITE_ATTEMPTS += 1
