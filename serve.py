@@ -133,7 +133,7 @@ def _startup_load_blob_listing_sync():
 
 
 # Perform synchronous load immediately at import time (safe if token missing; it no-ops)
-_startup_load_blob_listing_sync()
+# _startup_load_blob_listing_sync()
 
 # Per-request run diagnostics (simple globals, reset at start of scrape)
 EDGE_READ_ATTEMPTS = 0
@@ -522,7 +522,7 @@ def summarize_url_endpoint():
         try:
             base_path = normalize_url_to_pathname(target_url)
             base = base_path[:-3] if base_path.endswith(".md") else base_path
-            summary_blob_pathname = f"{base}-summary-md"
+            summary_blob_pathname = f"{base}-summary.md"
             summary_blob_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
             if summary_blob_url:
                 resp = requests.get(
@@ -610,7 +610,6 @@ def summarize_url_endpoint():
         try:
             blob_pathname = normalize_url_to_pathname(
                 target_url,
-                util.resolve_env_var("BLOB_STORE_PREFIX", "tldr-scraper-blob"),
             )
             blob_url = put_markdown(blob_pathname, page_md)
         except Exception as e:
@@ -649,12 +648,12 @@ def summarize_url_endpoint():
                     if blob_pathname.endswith(".md")
                     else blob_pathname
                 )
-                summary_blob_pathname = f"{base}-summary-md"
+                summary_blob_pathname = f"{base}-summary.md"
             else:
                 # Fallback: recompute from URL
                 _base_path = normalize_url_to_pathname(target_url)
                 base = _base_path[:-3] if _base_path.endswith(".md") else _base_path
-                summary_blob_pathname = f"{base}-summary-md"
+                summary_blob_pathname = f"{base}-summary.md"
             summary_blob_url = put_markdown(summary_blob_pathname, summary_text or "")
         except Exception as e:
             util.log(
