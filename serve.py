@@ -591,23 +591,80 @@ def canonicalize_url(url) -> str:
     return canonical
 
 
-def _scrape_pathname(start_date, end_date) -> str:
-    """Generate blob pathname for scrape results."""
-    start_str = format_date_for_url(start_date)
-    end_str = format_date_for_url(end_date)
-    return f"scrape-{start_str}-to-{end_str}.json"
+def _scrape_day_pathname(date_str: str) -> str:
+    """Generate blob pathname for a single day's scrape results."""
+    return f"scrape-day-{date_str}.json"
 
 
-@blob_cached_json(
-    pathname_fn=_scrape_pathname,
-    should_cache=lambda result: result.get("success", False),
-    logger=logger,
-)
+def _get_cached_day(date_str: str):
+    """Retrieve cached scrape results for a single day."""
+    pathname = _scrape_day_pathname(date_str)
+    blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
+    
+    if not blob_base_url:
+        return None
+    
+    blob_url = f"{blob_base_url}/{pathname}"
+    try:
+        util.log(
+            f"[serve._get_cached_day] Trying cache for day={date_str} pathname={pathname}",
+            logger=logger,
+        )
+        resp = requests.get(
+            blob_url,
+            timeout=10,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Scraper/1.0)"},
+        )
+        resp.raise_for_status()
+        util.log(
+            f"[serve._get_cached_day] Cache HIT for day={date_str}",
+            logger=logger,
+        )
+        return json.loads(resp.content.decode("utf-8"))
+    except Exception as e:
+        util.log(
+            f"[serve._get_cached_day] Cache MISS for day={date_str} - {repr(e)}",
+            level=logging.WARNING,
+            logger=logger,
+        )
+        return None
+
+
+def _put_cached_day(date_str: str, articles: list):
+    """Cache scrape results for a single day."""
+    pathname = _scrape_day_pathname(date_str)
+    
+    try:
+        from blob_store import put_file
+        
+        payload = {
+            "date": date_str,
+            "articles": articles,
+            "cached_at": datetime.now().isoformat(),
+        }
+        put_file(pathname, json.dumps(payload, indent=2))
+        util.log(
+            f"[serve._put_cached_day] Cached day={date_str} articles={len(articles)}",
+            logger=logger,
+        )
+        return True
+    except Exception as e:
+        util.log(
+            f"[serve._put_cached_day] Failed to cache day={date_str} - {repr(e)}",
+            level=logging.WARNING,
+            logger=logger,
+        )
+        return False
+
+
 def scrape_date_range(start_date, end_date):
-    """Scrape all newsletters in date range"""
+    """Scrape all newsletters in date range, using per-day caching"""
     dates = get_date_range(start_date, end_date)
     newsletter_types = ["tech", "ai"]
 
+    # Get removed URLs once at the start (single source of truth)
+    removed_urls = get_removed_urls()
+    
     all_articles = []
     url_set = set()  # For deduplication by canonical URL
     processed_count = 0
@@ -616,19 +673,71 @@ def scrape_date_range(start_date, end_date):
     hits = 0
     misses = 0
     others = 0
+    day_cache_hits = 0
+    day_cache_misses = 0
 
     for date in dates:
+        date_str = format_date_for_url(date)
+        
+        # Try to get cached results for this entire day
+        cached_day = _get_cached_day(date_str)
+        
+        if cached_day is not None and "articles" in cached_day:
+            # Use cached results for this day
+            day_cache_hits += 1
+            cached_articles = cached_day["articles"]
+            
+            util.log(
+                f"[serve.scrape_date_range] Day cache HIT date={date_str} articles={len(cached_articles)} (before filtering removed URLs)",
+                logger=logger,
+            )
+            
+            # Add all articles from cache to results, filtering removed URLs
+            filtered_count = 0
+            for article in cached_articles:
+                canonical_url = canonicalize_url(article["url"])
+                
+                # Skip if this URL has been removed
+                if canonical_url in removed_urls:
+                    filtered_count += 1
+                    continue
+                
+                if canonical_url not in url_set:
+                    url_set.add(canonical_url)
+                    # Mark as coming from day cache
+                    article["fetched_via"] = "day_cache"
+                    all_articles.append(article)
+                    hits += 1
+            
+            if filtered_count > 0:
+                util.log(
+                    f"[serve.scrape_date_range] Filtered {filtered_count} removed URLs from cached day={date_str}",
+                    logger=logger,
+                )
+            
+            processed_count += len(newsletter_types)
+            continue
+        
+        # Cache miss - need to fetch this day's newsletters
+        day_cache_misses += 1
+        day_articles = []
+        
         for newsletter_type in newsletter_types:
             processed_count += 1
             print(
-                f"Processing {newsletter_type} newsletter for {format_date_for_url(date)} ({processed_count}/{total_count})"
+                f"Processing {newsletter_type} newsletter for {date_str} ({processed_count}/{total_count})"
             )
 
             result = fetch_newsletter(date, newsletter_type)
             if result and result["articles"]:
-                # Deduplicate by canonical URL
+                # Collect articles for this day
                 for article in result["articles"]:
                     canonical_url = canonicalize_url(article["url"])
+                    
+                    # Add to day_articles for caching
+                    day_articles.append(article)
+                    
+                    # Deduplicate by canonical URL for final results
                     if canonical_url not in url_set:
                         url_set.add(canonical_url)
                         all_articles.append(article)
@@ -646,8 +755,31 @@ def scrape_date_range(start_date, end_date):
                 a.get("fetched_via") == "other" for a in (result.get("articles") or [])
             ):
                 time.sleep(0.2)
+        
+        # Cache this day's results for future use
+        if day_articles:
+            # Sanitize articles before caching (remove timing info, etc.)
+            # Also filter out removed URLs at cache time
+            sanitized_day_articles = []
+            for a in day_articles:
+                # Skip removed URLs
+                if canonicalize_url(a["url"]) in removed_urls:
+                    continue
+                    
+                clean = {
+                    k: v
+                    for k, v in a.items()
+                    if k != "fetched_via" and not k.startswith("timing_")
+                }
+                sanitized_day_articles.append(clean)
+            
+            _put_cached_day(date_str, sanitized_day_articles)
+            util.log(
+                f"[serve.scrape_date_range] Cached day={date_str} articles={len(sanitized_day_articles)} (after removing filtered URLs)",
+                logger=logger,
+            )
 
-    removed_urls = get_removed_urls()
+    # Final defensive filter (should be redundant but ensures consistency)
     all_articles = [
         a for a in all_articles
         if canonicalize_url(a["url"]) not in removed_urls
@@ -674,6 +806,8 @@ def scrape_date_range(start_date, end_date):
             "unique_urls": len(url_set),
             "dates_processed": len(dates),
             "dates_with_content": len(grouped_articles),
+            "day_cache_hits": day_cache_hits,
+            "day_cache_misses": day_cache_misses,
             "cache_hits": hits,
             "cache_misses": misses,
             "cache_other": others,
