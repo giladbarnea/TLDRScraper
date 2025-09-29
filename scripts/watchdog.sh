@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-PID_FILE="/workspace/.run/server.pid"
-LOG_FILE="/workspace/server.log"
+WORKDIR="${WORKDIR:-$PWD}"
+PID_FILE="$WORKDIR/.run/server.pid"
+LOG_FILE="$WORKDIR/server.log"
 CHECK_INTERVAL="2"
 if [[ ! -f "$PID_FILE" ]]; then
   echo "watchdog: missing PID file $PID_FILE" >&2
