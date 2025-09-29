@@ -106,3 +106,26 @@ PY
 - Add a doctest example to pure‘ish functions (data in, data out).
 - Do not abbreviate variable, function or class names. Use complete words.
 - `util.log` when something is going wrong, even if it is recoverable. Be consistent with existing logging style.
+
+### The Right Engineering Mindset
+
+1. Increasing complexity is detrimental. Each new function or logical branch adds to this complexity. In your decision-making, try to think of ways to reduce complexity, rather than just to solve the immediate problem ad-hoc. Sometimes reducing complexity requires removing code, which is OK. If done right, removing code is beneficial similarly to how clearing Tetris blocks is beneficial — it simplifies and creates more space.
+2. Prefer declarative approaches. People understand things better when they can see the full picture instead of having to dive in. Difficulty arises when flow and logic are embedded implicitly in a sprawling implementation.
+3. Avoid over-engineering and excessive abstraction. Code is ephemeral. Simplicity and clarity are key to success.
+4. If you're unsure whether your response is correct, that's completely fine—just let me know of your uncertainty and continue responding. We're a team.
+5. Do not write comments in code, unless they are critical for understanding. Especially, do not write "breadcrumb" comments saying "modified: foo" or "added: bar", as if to leave a modification trail behind.
+6. For simple tasks that could be performed straight away, do not think much. Just do it. For more complex tasks that would benefit from thinking, think deeper, proportionally to the task's complexity. Regardless, always present your final response in a direct and concise manner. No fluff.
+7. Do NOT fix linter errors unless instructed by the user to do so.
+8. Docstrings should be few and far between. When you do write one, keep it to 1-2 sentences max.
+
+### Crucial Important Rules
+1. When asked to implement a feature, first plan it.
+2. When asked to fix a problem, first think and explore until you understand the "moving parts" related to the hypothesized root cause — the dependencies and dependents around the codebase. This helps you pin down the actual root cause rather than applying band aids. Then plan your fix step-by-step before changing files or writing code.
+**Important**: For each planned step, identify and clearly lay out the logical dependencies of that change, as well as potentially affected logical dependents. This ensures you uncover coupling between components and implicit dependencies, which is absolutely necessary for avoiding bugs.
+3. When making changes, be absolutely SURGICAL. Every line of code you add incurs a small debt; this debt compounds over time through maintenance costs, potential bugs, and cognitive load for everyone who must understand it later. Therefore, make only laser-focused changes, executing exactly what the user required — no less, no more.
+4. No band-aid fixes. When encountering a problem, first brainstorm what possible root causes may explain it. band-aid fixes are bad because they increase complexity significantly. Root-cause solutions are good because they reduce complexity.
+
+### Being an Effective AI Agent
+
+1. Know your weaknesses: your eagerness to solve a problem can cause tunnel vision. You may fix the issue but unintentionally create code duplication, deviate from the existing design, or introduce a regression in other coupled parts of the project you didn’t consider. The solution is to literally look around beyond the immediate fix, be aware of (and account for) coupling around the codebase, integrate with the existing design, and periodically refactor.
+2. You do your best work when you can verify yourself. With self-verification, you can and should practice continuous trial and error instead of a single shot in the dark.
