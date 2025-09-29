@@ -169,6 +169,47 @@
             line-height: 1.7;
         }
 
+        /* Remove button styling */
+        .remove-url-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            margin-left: 8px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+            vertical-align: middle;
+            transition: background-color 0.2s, color 0.2s;
+            min-width: 44px;
+            min-height: 44px;
+        }
+        .remove-url-btn:hover {
+            background-color: #fee;
+            color: #c00;
+        }
+        .remove-url-btn:active {
+            background-color: #fcc;
+        }
+        .article-item {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 8px;
+        }
+        .article-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .article-item.removing {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
         @media (max-width: 480px) {
             body { padding: 8px; }
             .container { padding: 12px; }
@@ -304,6 +345,33 @@
                         }
                     } catch (_) {}
 
+                    // Wrap each article link with remove button
+                    result.querySelectorAll('#write ol li, #write ul li').forEach(function(li) {
+                        const a = li.querySelector('a[href]');
+                        if (!a || !a.href || a.href.startsWith('#')) return;
+
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'article-item';
+                        
+                        const content = document.createElement('div');
+                        content.className = 'article-content';
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'remove-url-btn';
+                        removeBtn.setAttribute('aria-label', 'Remove this article');
+                        removeBtn.setAttribute('title', 'Remove this article');
+                        removeBtn.textContent = '×';
+                        removeBtn.dataset.url = a.href;
+                        
+                        while (li.firstChild) {
+                            content.appendChild(li.firstChild);
+                        }
+                        
+                        wrapper.appendChild(content);
+                        wrapper.appendChild(removeBtn);
+                        li.appendChild(wrapper);
+                    });
+
                     // Open links in new tabs safely
                     result.querySelectorAll('#write a[href]').forEach(function(a) {
                         a.setAttribute('target', '_blank');
@@ -334,8 +402,60 @@
         // Initialize default dates on page load
         setDefaultDates();
 
-        // Intercept link clicks inside the result reading surface to expand inline summaries
+        // Handle remove button clicks
         document.addEventListener('click', async function(e) {
+            const removeBtn = e.target.closest('.remove-url-btn');
+            if (removeBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const url = removeBtn.dataset.url;
+                if (!url) return;
+
+                if (!confirm('Remove this article? It will be hidden from all views.')) {
+                    return;
+                }
+
+                const articleItem = removeBtn.closest('.article-item');
+                const listItem = removeBtn.closest('li');
+                
+                if (articleItem) {
+                    articleItem.classList.add('removing');
+                }
+
+                try {
+                    const resp = await fetch('/api/remove-url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url })
+                    });
+                    const data = await resp.json();
+
+                    if (data.success) {
+                        if (listItem) {
+                            listItem.style.transition = 'opacity 0.3s, max-height 0.3s';
+                            listItem.style.opacity = '0';
+                            listItem.style.maxHeight = '0';
+                            listItem.style.overflow = 'hidden';
+                            setTimeout(() => {
+                                listItem.remove();
+                            }, 300);
+                        }
+                    } else {
+                        if (articleItem) {
+                            articleItem.classList.remove('removing');
+                        }
+                        alert('Failed to remove article: ' + (data.error || 'Unknown error'));
+                    }
+                } catch (err) {
+                    if (articleItem) {
+                        articleItem.classList.remove('removing');
+                    }
+                    alert('Network error: ' + (err?.message || String(err)));
+                }
+                return;
+            }
+
             const a = e.target.closest('a[href]');
             if (!a) return;
 
