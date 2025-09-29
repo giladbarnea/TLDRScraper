@@ -3,7 +3,7 @@
 .env.*
 .env.sh
 .npm-global/
-server.log
+*.log
 .vercel
 .env*.local
 
