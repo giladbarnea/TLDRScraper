@@ -5,7 +5,6 @@ import hashlib
 import subprocess
 import tempfile
 import urllib.parse
-import json
 
 import util
 
@@ -65,9 +64,9 @@ def _resolve_store_base_url() -> str | None:
     return util.resolve_env_var("BLOB_STORE_BASE_URL", None)
 
 
-def put_markdown(pathname: str, markdown: str) -> str:
+def put_file(pathname: str, content: str) -> str:
     """
-    Upload `markdown` to Vercel Blob at the exact `pathname`, overwriting if it exists.
+    Upload `content` to Vercel Blob at the exact `pathname`, overwriting if it exists.
     Returns the public URL if it can be determined (using CLI output).
     Raises RuntimeError on upload failure.
     """
@@ -76,7 +75,7 @@ def put_markdown(pathname: str, markdown: str) -> str:
         raise RuntimeError("BLOB_READ_WRITE_TOKEN not set")
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as f:
-        f.write(markdown.encode("utf-8"))
+        f.write(content.encode("utf-8"))
         tmp = f.name
     # from IPython import embed
 
@@ -95,22 +94,25 @@ def put_markdown(pathname: str, markdown: str) -> str:
             token,
         ]
         util.log(
-            "[blob_store.put_markdown] Uploading to %s via Vercel CLI",
+            "[blob_store.put_file] Uploading to %s via Vercel CLI...",
             pathname,
         )
         out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
     except subprocess.CalledProcessError as e:
         util.log(
-            "[blob_store.put_markdown] Error uploading to %s: %s via Vercel CLI",
+            "[blob_store.put_file] Error uploading to %s: %s via Vercel CLI. Full error: %s",
             pathname,
             e.output.strip(),
+            repr(e),
             level=logging.ERROR,
             exc_info=True,
         )
-        raise RuntimeError(f"vercel blob put failed: {e.output.strip()}") from e
+        raise RuntimeError(
+            f"vercel blob put failed: {e.output.strip()}. Full error: {repr(e)}"
+        ) from e
     else:
         util.log(
-            "[blob_store.put_markdown] Success uploading to %s via Vercel CLI",
+            "[blob_store.put_file] Success uploading to %s via Vercel CLI.",
             pathname,
         )
     finally:
@@ -128,107 +130,3 @@ def put_markdown(pathname: str, markdown: str) -> str:
         if ".public.blob.vercel-storage.com/" in tok:
             return tok.strip().strip('"').rstrip()
     return ""  # Unknown but upload succeeded
-
-
-def list_all_entries(limit: int | None = None) -> list[str]:
-    """
-    List blob pathnames using the Vercel CLI.
-
-    Attempts JSON output first; falls back to line parsing. Returns a list of
-    pathnames (strings). Best-effort: on any error, returns an empty list.
-    """
-    token = _resolve_rw_token()
-    if not token:
-        return []
-    # Build base command
-    base_cmd = ["vercel", "blob", "list", "--token", token]
-    try:
-        # Prefer JSON when available
-        cmd = base_cmd + ["--json"]
-        util.log(
-            "[blob_store.list_all_entries] Listing all entries via Vercel CLI with --json",
-            level=logging.INFO,
-        )
-        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
-        # Some versions print one JSON object per line; handle array or NDJSON
-        pathnames: list[str] = []
-        try:
-            data = json.loads(out)
-            if isinstance(data, list):
-                for item in data:
-                    # Accept common shapes: {pathname}, {key}, {url}
-                    if isinstance(item, dict):
-                        p = item.get("pathname") or item.get("key") or item.get("name")
-                        if isinstance(p, str):
-                            pathnames.append(p)
-            elif isinstance(data, dict):
-                # Some outputs may wrap under "blobs"
-                items = data.get("blobs") or data.get("items") or []
-                if isinstance(items, list):
-                    for item in items:
-                        if isinstance(item, dict):
-                            p = (
-                                item.get("pathname")
-                                or item.get("key")
-                                or item.get("name")
-                            )
-                            if isinstance(p, str):
-                                pathnames.append(p)
-        except Exception:
-            # Try NDJSON lines
-            for line in (out or "").splitlines():
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    item = json.loads(line)
-                    if isinstance(item, dict):
-                        p = item.get("pathname") or item.get("key") or item.get("name")
-                        if isinstance(p, str):
-                            pathnames.append(p)
-                except Exception:
-                    continue
-        if limit is not None and isinstance(limit, int) and limit > 0:
-            return pathnames[:limit]
-        return pathnames
-    except Exception as e:
-        # Fallback: non-JSON output parsing
-        formatted_error = getattr(e, "output", repr(e)).strip()
-        util.log(
-            "[blob_store.list_all_entries] Error listing all entries via Vercel CLI. Trying without --json. Error: %s",
-            formatted_error,
-            level=logging.ERROR,
-            exc_info=True,
-        )
-        try:
-            out = subprocess.check_output(base_cmd, stderr=subprocess.STDOUT, text=True)
-            candidates: list[str] = []
-            for line in (out or "").splitlines():
-                line = line.strip()
-                if not line:
-                    continue
-                # Heuristic: take tokens that look like pathnames (contain '/'
-                # and end with common suffixes)
-                for tok in line.split():
-                    if "/" in tok and (
-                        tok.endswith(".md") or ".vercel-storage.com/" in tok
-                    ):
-                        # If full URL, extract pathname part
-                        idx = tok.find(".vercel-storage.com/")
-                        if idx != -1:
-                            p = tok[idx + len(".vercel-storage.com/") :]
-                            candidates.append(p)
-                        else:
-                            candidates.append(tok)
-            if limit is not None and isinstance(limit, int) and limit > 0:
-                return candidates[:limit]
-            return candidates
-        except Exception as e:
-            formatted_error = getattr(e, "output", repr(e)).strip()
-            util.log(
-                "[blob_store.list_all_entries] Error listing all entries via Vercel CLI even without --json. Error: %s",
-                formatted_error,
-                level=logging.ERROR,
-                exc_info=True,
-            )
-            return []
