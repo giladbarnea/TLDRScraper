@@ -156,16 +156,9 @@ def _format_final_output(start_date, end_date, grouped_articles):
             output += f"#### {category}\n\n"
 
             for i, article in enumerate(category_articles, 1):
-                status = article.get("fetched_via", "unknown")
-                if status not in ("day_cache", "network"):
-                    status = "unknown"
-                total_ms = article.get("timing_total_ms")
-                if total_ms is not None:
-                    timing_label = f", {total_ms}ms"
-                else:
-                    timing_label = ""
-                title_with_status = f"{article['title']} ({status}{timing_label})"
-                output += f"{i}. [{title_with_status}]({article['url']})\n"
+                domain_name = util.get_domain_name(article['url'])
+                title_with_domain = f"{article['title']} ({domain_name})"
+                output += f"{i}. [{title_with_domain}]({article['url']})\n"
 
             output += "\n"
 
