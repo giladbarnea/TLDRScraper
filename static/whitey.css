@@ -28,8 +28,8 @@
   max-width: 960px;
   margin: 0 auto 2em;
   padding-top: 40px;
-  padding-left: 0;
-  padding-right: 0;
+  padding-left: 1rem;
+  padding-right: 1rem;
 
   color: var(--whitey-text);
   font-family: "Vollkorn", Palatino, Times;
