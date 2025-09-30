@@ -14,7 +14,6 @@ from bs4 import BeautifulSoup
 import time
 import json
 
-from blob_newsletter_cache import get_cached_json, put_cached_json
 from blob_store import normalize_url_to_pathname
 import util
 from summarizer import summarize_url
@@ -26,10 +25,6 @@ app = Flask(__name__)
 logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("serve")
 md = MarkItDown()
-
-
-BLOB_CACHE_HITS = 0
-BLOB_CACHE_MISSES = 0
 
 
 @app.route("/")
@@ -74,8 +69,6 @@ def scrape_newsletters():
             f"[serve.scrape_newsletters] start start_date={data['start_date']} end_date={data['end_date']}",
             logger=logger,
         )
-        global BLOB_CACHE_HITS, BLOB_CACHE_MISSES
-        BLOB_CACHE_HITS = BLOB_CACHE_MISSES = 0
         result = scrape_date_range(start_date, end_date)
         util.log(
             f"[serve.scrape_newsletters] done dates_processed={result['stats']['dates_processed']} total_articles={result['stats']['total_articles']}",
@@ -615,26 +608,8 @@ def fetch_newsletter(date, newsletter_type):
     date_str = format_date_for_url(date)
     url = f"https://tldr.tech/{newsletter_type}/{date_str}"
 
-    # Always try Edge cache read first (no Blob fallback)
-    global BLOB_CACHE_HITS, BLOB_CACHE_MISSES
-    cache_start = time.time()
-    cached = get_cached_json(newsletter_type, date)
-    if cached is not None and cached.get("status") == "hit":
-        BLOB_CACHE_HITS += 1
-        cached_articles = cached.get("articles", [])
-        for a in cached_articles:
-            a["fetched_via"] = "hit"
-            a["timing_total_ms"] = int(round((time.time() - cache_start) * 1000))
-        util.log(
-            f"[serve.fetch_newsletter] cache HIT date={date_str} type={newsletter_type} count={len(cached_articles)}",
-            logger=logger,
-        )
-        return {
-            "date": date,
-            "newsletter_type": newsletter_type,
-            "articles": cached_articles,
-        }
-
+    # Note: Newsletter-level cache removed - day-level cache in scrape_date_range() 
+    # is more efficient and handles all newsletters together
     try:
         net_start = time.time()
         response = requests.get(
@@ -657,90 +632,19 @@ def fetch_newsletter(date, newsletter_type):
         articles = parse_articles_from_markdown(markdown_content, date, newsletter_type)
         parse_ms = int(round((time.time() - parse_start) * 1000))
         total_ms = net_ms + convert_ms + parse_ms
-        # Tag fetched source for UI: only tag as 'other' when network was used
-        fetched_status = "other"
+        # Tag fetched source for UI
         for a in articles:
-            a["fetched_via"] = fetched_status
+            a["fetched_via"] = "network"
             a["timing_total_ms"] = total_ms
             a["timing_fetch_ms"] = net_ms
             a["timing_convert_ms"] = convert_ms
             a["timing_parse_ms"] = parse_ms
-        result = {
+        
+        return {
             "date": date,
             "newsletter_type": newsletter_type,
             "articles": articles,
         }
-
-        # Always write to blob cache for fast repeats
-        def _sanitize(a):
-            clean = {
-                k: v
-                for k, v in a.items()
-                if k != "fetched_via" and not k.startswith("timing_")
-            }
-            try:
-                if "date" in clean and not isinstance(clean["date"], str):
-                    clean["date"] = format_date_for_url(clean["date"])
-                # Strip utm_* params from stored URLs
-                if "url" in clean and isinstance(clean["url"], str):
-                    import urllib.parse as urlparse
-
-                    p = urlparse.urlparse(clean["url"])
-                    # Keep only non-utm_* query params
-                    query_pairs = [
-                        (k, v)
-                        for (k, v) in urlparse.parse_qsl(
-                            p.query, keep_blank_values=True
-                        )
-                        if not k.lower().startswith("utm_")
-                    ]
-                    new_query = urlparse.urlencode(query_pairs, doseq=True)
-                    clean["url"] = urlparse.urlunparse((
-                        p.scheme,
-                        p.netloc.lower(),
-                        p.path.rstrip("/")
-                        if len(p.path) > 1 and p.path.endswith("/")
-                        else p.path,
-                        p.params,
-                        new_query,
-                        p.fragment,
-                    ))
-            except Exception as e:
-                util.log(
-                    "[serve.fetch_newsletter] error sanitizing article url=%s error=%s",
-                    a["url"],
-                    repr(e),
-                    level=logging.WARNING,
-                    logger=logger,
-                )
-                pass
-            return clean
-
-        sanitized_articles = [_sanitize(a) for a in articles]
-        payload = {
-            "status": "hit",
-            "date": date_str,
-            "newsletter_type": newsletter_type,
-            "articles": sanitized_articles,
-        }
-        try:
-            ok = put_cached_json(newsletter_type, date, payload)
-            util.log(
-                f"[serve.fetch_newsletter] wrote cache date={date_str} type={newsletter_type} count={len(sanitized_articles)} ok={bool(ok)}",
-                logger=logger,
-            )
-        except Exception as e:
-            util.log(
-                "[serve.fetch_newsletter] failed writing cache date=%s type=%s error=%s",
-                date_str,
-                newsletter_type,
-                repr(e),
-                level=logging.ERROR,
-                exc_info=True,
-                logger=logger,
-            )
-
-        return result
 
     except requests.RequestException:
         util.log(
@@ -853,9 +757,7 @@ def scrape_date_range(start_date, end_date):
     processed_count = 0
     total_count = len(dates) * len(newsletter_types)
     # Diagnostics
-    hits = 0
-    misses = 0
-    others = 0
+    others = 0  # Network fetches
     day_cache_hits = 0
     day_cache_misses = 0
 
@@ -890,7 +792,6 @@ def scrape_date_range(start_date, end_date):
                     # Mark as coming from day cache
                     article["fetched_via"] = "day_cache"
                     all_articles.append(article)
-                    hits += 1
             
             if filtered_count > 0:
                 util.log(
@@ -924,18 +825,13 @@ def scrape_date_range(start_date, end_date):
                     if canonical_url not in url_set:
                         url_set.add(canonical_url)
                         all_articles.append(article)
-                        # Count source
-                        src = article.get("fetched_via")
-                        if src == "hit":
-                            hits += 1
-                        elif src == "miss":
-                            misses += 1
-                        else:
+                        # Count source - only "network" now since newsletter cache removed
+                        if article.get("fetched_via") == "network":
                             others += 1
 
-            # Rate limiting - be respectful only when we actually fetched from network
+            # Rate limiting - be respectful when we fetched from network
             if result and any(
-                a.get("fetched_via") == "other" for a in (result.get("articles") or [])
+                a.get("fetched_via") == "network" for a in (result.get("articles") or [])
             ):
                 time.sleep(0.2)
         
@@ -991,11 +887,7 @@ def scrape_date_range(start_date, end_date):
             "dates_with_content": len(grouped_articles),
             "day_cache_hits": day_cache_hits,
             "day_cache_misses": day_cache_misses,
-            "cache_hits": hits,
-            "cache_misses": misses,
-            "cache_other": others,
-            "blob_cache_hits": BLOB_CACHE_HITS,
-            "blob_cache_misses": BLOB_CACHE_MISSES,
+            "network_fetches": others,
             "blob_store_present": bool(blob_base_url),
             "cache_mode": cache_mode.get_cache_mode().value,
             "debug_logs": list(util.LOGS),
@@ -1039,14 +931,13 @@ def format_final_output(start_date, end_date, grouped_articles):
 
             # Keep original chronological order within categories
             for i, article in enumerate(category_articles, 1):
-                status = article.get("fetched_via")
-                if status not in ("hit", "miss", "other"):
-                    status = "other"
+                status = article.get("fetched_via", "unknown")
+                # Normalize status labels
+                if status not in ("day_cache", "network"):
+                    status = "unknown"
                 # Timing summary
                 total_ms = article.get("timing_total_ms")
-                if total_ms is not None and status == "other":
-                    timing_label = f", {total_ms}ms"
-                elif total_ms is not None and status == "hit":
+                if total_ms is not None:
                     timing_label = f", {total_ms}ms"
                 else:
                     timing_label = ""
