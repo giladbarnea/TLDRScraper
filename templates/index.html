@@ -210,10 +210,6 @@
             .container { padding: 12px; }
             .form-group { width: 100%; margin-right: 0; }
         }
-        
-        @media (max-width: 42em) {
-            #result { margin-left: -12px; margin-right: -12px; }
-        }
     </style>
 </head>
 <body>
@@ -341,7 +337,7 @@
                     const html = DOMPurify.sanitize(marked.parse(data.output));
 
                     // Inject Whitey reading surface (desktop-faithful + mobile refinements)
-                    const whiteySurface = `<main id="write"><article>${html}</article></main>`;
+                    const whiteySurface = `<main id="write">${html}</main>`;
                     result.innerHTML = statsHtml + '<div id="logs-slot"></div>' + whiteySurface;
 
                     // Safely append logs as plain text (no HTML interpretation)
