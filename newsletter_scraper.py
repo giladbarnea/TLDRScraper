@@ -62,38 +62,6 @@ def _extract_newsletter_content(html):
     return result.text_content
 
 
-def _get_utm_source_category(url):
-    """Extract UTM source from URL and map to category"""
-    import urllib.parse as urlparse
-
-    try:
-        parsed = urlparse.urlparse(url)
-        query_params = urlparse.parse_qs(parsed.query)
-        utm_source = query_params.get("utm_source", [""])[0].lower()
-
-        if utm_source.startswith("tldr"):
-            if utm_source in ["tldrai", "tldr-ai", "tldr_ai"]:
-                return "TLDR AI"
-            elif utm_source in ["tldr", "tldrtech"]:
-                return "TLDR Tech"
-            else:
-                suffix = utm_source[4:]
-                category_name = f"TLDR {suffix.capitalize()}"
-                return category_name
-        else:
-            return None
-
-    except Exception:
-        util.log(
-            "[newsletter_scraper._get_utm_source_category] error url=%s",
-            url,
-            level=logging.ERROR,
-            exc_info=True,
-            logger=logger,
-        )
-        return None
-
-
 def _get_cached_day(date_str: str):
     """Retrieve cached scrape results for a single day."""
     if not cache_mode.can_read():
@@ -179,11 +147,8 @@ def _format_final_output(start_date, end_date, grouped_articles):
                 category_groups[category] = []
             category_groups[category].append(article)
 
-        category_order = []
-        if "TLDR Tech" in category_groups:
-            category_order.append("TLDR Tech")
-        if "TLDR AI" in category_groups:
-            category_order.append("TLDR AI")
+        category_order = ["TLDR Tech", "TLDR AI"]
+        category_order = [c for c in category_order if c in category_groups]
 
         for category in category_order:
             category_articles = category_groups[category]
