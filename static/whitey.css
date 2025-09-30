@@ -79,10 +79,10 @@
 /* Lists */
 #write ul{
   list-style: square;
-  padding-left: 1.5em;
+  padding-left: 1.2em;
 }
 #write ol{
-  padding-left: 1.5em;
+  padding-left: 1.2em;
 }
 
 /* Blockquotes */
