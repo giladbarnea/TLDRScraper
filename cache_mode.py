@@ -12,11 +12,10 @@ Cache modes:
 """
 
 import logging
-import os
 import threading
 from enum import Enum
 from typing import Optional
-from blob_store import put_file, delete_file
+from blob_store import put_file
 import util
 import requests
 
@@ -25,6 +24,7 @@ logger = logging.getLogger("cache_mode")
 
 class CacheMode(Enum):
     """Cache operation modes."""
+
     DISABLED = "disabled"
     READ_ONLY = "read_only"
     WRITE_ONLY = "write_only"
@@ -44,34 +44,36 @@ CACHE_MODE_PATHNAME = "cache-mode.txt"
 def get_cache_mode() -> CacheMode:
     """
     Get the current cache mode.
-    
+
     Thread-safe and web-server-instance-safe via blob storage.
     Returns READ_WRITE as default if not set.
     """
     global _cached_mode
-    
+
     with _lock:
         # First check in-memory cache
         if _cached_mode is not None:
             return _cached_mode
-        
+
         # Try to read from blob storage
         blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
         if blob_base_url:
             blob_url = f"{blob_base_url}/{CACHE_MODE_PATHNAME}"
             try:
                 util.log(
-                    f"[cache_mode.get_cache_mode] Reading mode from blob storage",
+                    "[cache_mode.get_cache_mode] Reading mode from blob storage",
                     logger=logger,
                 )
                 resp = requests.get(
                     blob_url,
                     timeout=10,
-                    headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Scraper/1.0)"},
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Scraper/1.0)"
+                    },
                 )
                 resp.raise_for_status()
                 mode_str = resp.content.decode("utf-8").strip()
-                
+
                 try:
                     mode = CacheMode(mode_str)
                     _cached_mode = mode
@@ -92,7 +94,7 @@ def get_cache_mode() -> CacheMode:
                     level=logging.WARNING,
                     logger=logger,
                 )
-        
+
         # Default to READ_WRITE
         _cached_mode = CacheMode.READ_WRITE
         return _cached_mode
@@ -101,23 +103,23 @@ def get_cache_mode() -> CacheMode:
 def set_cache_mode(mode: CacheMode) -> bool:
     """
     Set the cache mode.
-    
+
     Thread-safe and web-server-instance-safe via blob storage.
     Returns True on success, False on failure.
     """
     global _cached_mode
-    
+
     if not isinstance(mode, CacheMode):
         raise ValueError(f"Invalid cache mode: {mode}")
-    
+
     with _lock:
         try:
             # Write to blob storage first
             put_file(CACHE_MODE_PATHNAME, mode.value)
-            
+
             # Update in-memory cache
             _cached_mode = mode
-            
+
             util.log(
                 f"[cache_mode.set_cache_mode] Set mode to: {mode.value}",
                 logger=logger,
@@ -136,7 +138,7 @@ def set_cache_mode(mode: CacheMode) -> bool:
 def invalidate_mode_cache():
     """
     Invalidate the in-memory cache mode, forcing a reload on next get.
-    
+
     Useful when the mode might have been changed by another instance.
     """
     global _cached_mode
@@ -158,4 +160,3 @@ def can_write() -> bool:
     """Check if cache writes are allowed in current mode."""
     mode = get_cache_mode()
     return mode in (CacheMode.WRITE_ONLY, CacheMode.READ_WRITE)
-

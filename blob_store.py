@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 import hashlib
 import urllib.parse
@@ -54,6 +53,11 @@ def normalize_url_to_pathname(url: str) -> str:
     return f"{base}"
 
 
+def build_scraped_day_cache_key(date_str: str) -> str:
+    """Generate blob pathname for a single day's scrape results."""
+    return f"scrape-day-{date_str}.json"
+
+
 def _resolve_rw_token() -> str:
     return util.resolve_env_var("BLOB_READ_WRITE_TOKEN", "")
 
@@ -77,17 +81,16 @@ def put_file(pathname: str, content: str) -> str:
             "[blob_store.put_file] Uploading to %s via HTTP API...",
             pathname,
         )
-        
+
         import requests
-        import json as json_module
-        
+
         api_url = f"https://blob.vercel-storage.com/{pathname}"
-        
+
         headers = {
             "Authorization": f"Bearer {token}",
             "x-add-random-suffix": "0",
         }
-        
+
         response = requests.put(
             api_url,
             data=content.encode("utf-8"),
@@ -95,16 +98,16 @@ def put_file(pathname: str, content: str) -> str:
             timeout=30,
         )
         response.raise_for_status()
-        
+
         result = response.json()
         url = result.get("url", "")
-        
+
         util.log(
             "[blob_store.put_file] Success uploading to %s via HTTP API.",
             pathname,
         )
         return url
-        
+
     except requests.RequestException as e:
         util.log(
             "[blob_store.put_file] HTTP request error uploading to %s: %s",
@@ -137,7 +140,7 @@ def delete_file(pathname: str) -> bool:
             level=logging.WARNING,
         )
         return False
-    
+
     base_url = _resolve_store_base_url()
     if not base_url:
         util.log(
@@ -148,22 +151,22 @@ def delete_file(pathname: str) -> bool:
 
     try:
         import requests
-        
+
         # The Vercel Blob delete API expects the full URL
         blob_url = f"{base_url}/{pathname}"
-        
+
         util.log(
             "[blob_store.delete_file] Deleting %s from blob storage...",
             pathname,
         )
-        
+
         # Vercel Blob API uses DELETE with the URL in the body
         api_url = "https://blob.vercel-storage.com/delete"
-        
+
         headers = {
             "Authorization": f"Bearer {token}",
         }
-        
+
         # The API expects URLs in the request body
         response = requests.post(
             api_url,
@@ -172,13 +175,13 @@ def delete_file(pathname: str) -> bool:
             timeout=30,
         )
         response.raise_for_status()
-        
+
         util.log(
             "[blob_store.delete_file] Successfully deleted %s",
             pathname,
         )
         return True
-        
+
     except requests.HTTPError as e:
         if e.response and e.response.status_code == 404:
             util.log(
