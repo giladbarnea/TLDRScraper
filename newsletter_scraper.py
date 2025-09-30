@@ -11,7 +11,6 @@ from datetime import datetime
 import util
 from blob_store import build_scraped_day_cache_key
 from removed_urls import get_removed_urls
-import sponsorship_filter
 import cache_mode
 
 logger = logging.getLogger("newsletter_scraper")
@@ -54,23 +53,7 @@ def _extract_newsletter_content(html):
     """Extract newsletter content from HTML using BeautifulSoup"""
     soup = BeautifulSoup(html, "html.parser")
 
-    content_selectors = [
-        '[id*="content"]',
-        '[class*="newsletter"]',
-        '[class*="content"]',
-        "main",
-        "article",
-        ".container",
-    ]
-
-    newsletter_content = None
-    for selector in content_selectors:
-        newsletter_content = soup.select_one(selector)
-        if newsletter_content:
-            break
-
-    if not newsletter_content:
-        newsletter_content = soup.body or soup
+    newsletter_content = soup.body or soup
 
     content_html = str(newsletter_content)
     content_stream = BytesIO(content_html.encode("utf-8"))
@@ -225,28 +208,15 @@ def _format_final_output(start_date, end_date, grouped_articles):
 
 
 def _parse_articles_from_markdown(markdown, date, newsletter_type):
-    """Parse articles from markdown content, using UTM source for categorization"""
+    """Parse articles from markdown content, filtering by '(X minute read)' pattern"""
     lines = markdown.split("\n")
     articles = []
-    in_sponsored_section = False
+    minute_read_pattern = re.compile(r"\((\d+)\s+minute\s+read\)", re.IGNORECASE)
 
     for line in lines:
         line = line.strip()
 
         if not line:
-            continue
-
-        if line.startswith("###") or line.startswith("##"):
-            header_text = re.sub(r"^#+\s*", "", line).strip()
-
-            if sponsorship_filter.is_sponsored_section(header_text):
-                in_sponsored_section = True
-                continue
-            else:
-                in_sponsored_section = False
-            continue
-
-        if in_sponsored_section:
             continue
 
         link_matches = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", line)
@@ -257,14 +227,7 @@ def _parse_articles_from_markdown(markdown, date, newsletter_type):
             if _is_file_url(url):
                 continue
 
-            if sponsorship_filter.is_sponsored_link(title, url):
-                continue
-
-            if sponsorship_filter.is_sponsored_url(url):
-                continue
-
-            category = _get_utm_source_category(url)
-            if not category:
+            if not minute_read_pattern.search(title):
                 continue
 
             title = title.strip()
@@ -272,6 +235,13 @@ def _parse_articles_from_markdown(markdown, date, newsletter_type):
 
             title = re.sub(r"^#+\s*", "", title)
             title = re.sub(r"^\s*\d+\.\s*", "", title)
+
+            if newsletter_type == "tech":
+                category = "TLDR Tech"
+            elif newsletter_type == "ai":
+                category = "TLDR AI"
+            else:
+                category = f"TLDR {newsletter_type.capitalize()}"
 
             articles.append({
                 "title": title,

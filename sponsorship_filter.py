@@ -1,5 +1,3 @@
-
-
 def is_sponsored_section(text):
     """Check if a section header indicates sponsored content"""
     sponsored_indicators = [
