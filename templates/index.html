@@ -167,42 +167,254 @@
             border-radius: 4px;
         }
 
-        /* Flat, inline expansion under links without nested container styling */
-        .inline-summary {
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px dashed var(--border);
-            font-size: 0.96em;
-            line-height: 1.7;
+        /* Article card system - replaces native ol/li */
+        .article-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 20px 0;
+            padding: 0;
+            list-style: none;
         }
 
-        .remove-url-btn {
-            display: inline-block;
-            margin-left: 8px;
-            padding: 4px 8px;
-            font-size: 14px;
-            line-height: 1;
-            background: transparent;
+        .article-card {
+            display: flex;
+            flex-direction: column;
+            background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 4px;
-            color: var(--muted);
-            cursor: pointer;
-            user-select: none;
-            text-decoration: none;
-            vertical-align: middle;
-            min-width: 44px;
-            min-height: 44px;
-            display: inline-flex;
+            border-radius: 8px;
+            padding: 14px 16px;
+            transition: all 0.2s ease;
+            position: relative;
+            animation: cardFadeIn 0.3s ease backwards;
+        }
+        
+        /* Stagger animation for cards */
+        .article-card:nth-child(1) { animation-delay: 0.05s; }
+        .article-card:nth-child(2) { animation-delay: 0.1s; }
+        .article-card:nth-child(3) { animation-delay: 0.15s; }
+        .article-card:nth-child(4) { animation-delay: 0.2s; }
+        .article-card:nth-child(5) { animation-delay: 0.25s; }
+        .article-card:nth-child(n+6) { animation-delay: 0.3s; }
+
+        @keyframes cardFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .article-card:hover {
+            border-color: var(--link);
+            box-shadow: 0 2px 8px rgba(26,115,232,0.12);
+            transform: translateY(-1px);
+        }
+
+        .article-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .article-number {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            display: flex;
             align-items: center;
             justify-content: center;
+            background: var(--bg);
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--muted);
+            margin-top: 2px;
         }
-        .remove-url-btn:hover {
+
+        .article-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .article-link {
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--link);
+            text-decoration: none;
+            word-wrap: break-word;
+            display: block;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .article-link:hover {
+            text-decoration: underline;
+        }
+        
+        /* Add a small external link indicator on hover */
+        .article-link::after {
+            content: '↗';
+            opacity: 0;
+            margin-left: 6px;
+            font-size: 14px;
+            transition: opacity 0.2s ease;
+            color: var(--muted);
+        }
+        
+        .article-link:hover::after {
+            opacity: 0.6;
+        }
+
+        .article-actions {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .article-card:hover .article-actions {
+            opacity: 1;
+        }
+
+        .article-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 18px;
+            padding: 0;
+            margin: 0;
+        }
+
+        .article-btn:hover {
+            background: var(--bg);
+            border-color: var(--muted);
+            color: var(--text);
+        }
+
+        .article-btn.remove-url-btn:hover {
             background: #fee;
             border-color: #fcc;
             color: #c00;
         }
-        .remove-url-btn:active {
-            background: #fcc;
+
+        .article-btn.expand-btn {
+            font-size: 14px;
+        }
+
+        .article-btn.expand-btn.expanded {
+            background: var(--link);
+            border-color: var(--link);
+            color: white;
+        }
+
+        .article-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Inline summary expansion */
+        .inline-summary {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: var(--bg);
+            border-radius: 6px;
+            font-size: 15px;
+            line-height: 1.6;
+            animation: slideDown 0.2s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .inline-summary strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        /* On mobile, always show actions */
+        /* Helper text */
+        .interaction-hint {
+            font-size: 13px;
+            color: var(--muted);
+            text-align: center;
+            margin: 16px 0 8px;
+            padding: 8px 12px;
+            background: var(--bg);
+            border-radius: 6px;
+            opacity: 0.8;
+        }
+        
+        /* Section controls */
+        .section-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+        }
+        
+        .section-btn {
+            padding: 6px 12px;
+            font-size: 13px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .section-btn:hover {
+            background: var(--bg);
+            color: var(--text);
+            border-color: var(--muted);
+        }
+
+        @media (max-width: 768px) {
+            .article-actions {
+                opacity: 1;
+            }
+            
+            .article-card {
+                padding: 12px;
+            }
+            
+            .article-number {
+                width: 24px;
+                height: 24px;
+                font-size: 13px;
+            }
+            
+            .article-link {
+                font-size: 15px;
+            }
+            
+            .interaction-hint {
+                font-size: 12px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -356,19 +568,108 @@
                         }
                     } catch (_) {}
 
-                    // Open links in new tabs safely and add remove buttons
-                    result.querySelectorAll('#write a[href]').forEach(function(a) {
-                        a.setAttribute('target', '_blank');
-                        a.setAttribute('rel', 'noopener noreferrer');
+                    // Transform native ol/li into modern card layout
+                    result.querySelectorAll('#write ol').forEach(function(ol, sectionIndex) {
+                        // Create section controls
+                        const controls = document.createElement('div');
+                        controls.className = 'section-controls';
                         
-                        // Add remove button next to each article link
-                        const removeBtn = document.createElement('button');
-                        removeBtn.className = 'remove-url-btn';
-                        removeBtn.textContent = '×';
-                        removeBtn.title = 'Remove this URL';
-                        removeBtn.setAttribute('data-url', a.getAttribute('href'));
-                        removeBtn.type = 'button';
-                        a.insertAdjacentElement('afterend', removeBtn);
+                        const collapseAllBtn = document.createElement('button');
+                        collapseAllBtn.className = 'section-btn collapse-all-btn';
+                        collapseAllBtn.textContent = 'Collapse All';
+                        collapseAllBtn.type = 'button';
+                        collapseAllBtn.setAttribute('data-section', sectionIndex);
+                        
+                        const expandAllBtn = document.createElement('button');
+                        expandAllBtn.className = 'section-btn expand-all-btn';
+                        expandAllBtn.textContent = 'Expand All';
+                        expandAllBtn.type = 'button';
+                        expandAllBtn.setAttribute('data-section', sectionIndex);
+                        
+                        controls.appendChild(collapseAllBtn);
+                        controls.appendChild(expandAllBtn);
+                        
+                        // Insert controls before the list
+                        ol.parentNode.insertBefore(controls, ol);
+                        
+                        // Create new article list container
+                        const articleList = document.createElement('div');
+                        articleList.className = 'article-list';
+                        articleList.setAttribute('data-section', sectionIndex);
+                        
+                        // Get all list items
+                        const listItems = ol.querySelectorAll('li');
+                        
+                        listItems.forEach(function(li, index) {
+                            const link = li.querySelector('a[href]');
+                            if (!link) return;
+                            
+                            // Create article card
+                            const card = document.createElement('div');
+                            card.className = 'article-card';
+                            
+                            // Create header container
+                            const header = document.createElement('div');
+                            header.className = 'article-header';
+                            
+                            // Create number badge
+                            const number = document.createElement('div');
+                            number.className = 'article-number';
+                            number.textContent = index + 1;
+                            
+                            // Create content container
+                            const content = document.createElement('div');
+                            content.className = 'article-content';
+                            
+                            // Clone and enhance the link
+                            const newLink = link.cloneNode(true);
+                            newLink.className = 'article-link';
+                            newLink.setAttribute('target', '_blank');
+                            newLink.setAttribute('rel', 'noopener noreferrer');
+                            newLink.setAttribute('data-url', link.getAttribute('href'));
+                            
+                            // Create actions container
+                            const actions = document.createElement('div');
+                            actions.className = 'article-actions';
+                            
+                            // Create expand button
+                            const expandBtn = document.createElement('button');
+                            expandBtn.className = 'article-btn expand-btn';
+                            expandBtn.innerHTML = '↓';
+                            expandBtn.title = 'Show summary';
+                            expandBtn.setAttribute('data-url', link.getAttribute('href'));
+                            expandBtn.type = 'button';
+                            
+                            // Create remove button
+                            const removeBtn = document.createElement('button');
+                            removeBtn.className = 'article-btn remove-url-btn';
+                            removeBtn.innerHTML = '×';
+                            removeBtn.title = 'Remove this URL';
+                            removeBtn.setAttribute('data-url', link.getAttribute('href'));
+                            removeBtn.type = 'button';
+                            
+                            // Assemble the card
+                            content.appendChild(newLink);
+                            header.appendChild(number);
+                            header.appendChild(content);
+                            header.appendChild(actions);
+                            actions.appendChild(expandBtn);
+                            actions.appendChild(removeBtn);
+                            card.appendChild(header);
+                            
+                            articleList.appendChild(card);
+                        });
+                        
+                        // Replace the old list with the new card layout
+                        ol.parentNode.replaceChild(articleList, ol);
+                        
+                        // Add a helpful hint after the first article list
+                        if (!document.querySelector('.interaction-hint')) {
+                            const hint = document.createElement('div');
+                            hint.className = 'interaction-hint';
+                            hint.innerHTML = '💡 Click article titles to preview summaries • Ctrl/Cmd+Click to open directly';
+                            articleList.insertAdjacentElement('afterend', hint);
+                        }
                     });
 
                     result.style.display = 'block';
@@ -466,6 +767,48 @@
             }
         });
 
+        // Handle section-level collapse/expand all
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('collapse-all-btn')) {
+                const section = e.target.getAttribute('data-section');
+                const articleList = document.querySelector(`.article-list[data-section="${section}"]`);
+                if (!articleList) return;
+                
+                articleList.querySelectorAll('.inline-summary').forEach(function(summary) {
+                    summary.style.display = 'none';
+                });
+                
+                articleList.querySelectorAll('.expand-btn').forEach(function(btn) {
+                    btn.innerHTML = '↓';
+                    btn.title = 'Show summary';
+                    btn.classList.remove('expanded');
+                });
+            }
+            
+            if (e.target.classList.contains('expand-all-btn')) {
+                const section = e.target.getAttribute('data-section');
+                const articleList = document.querySelector(`.article-list[data-section="${section}"]`);
+                if (!articleList) return;
+                
+                // Trigger click on each expand button that hasn't been clicked yet
+                articleList.querySelectorAll('.article-card').forEach(async function(card) {
+                    const expandBtn = card.querySelector('.expand-btn');
+                    if (!expandBtn) return;
+                    
+                    let summary = card.querySelector('.inline-summary');
+                    if (!summary) {
+                        // Trigger the expand
+                        expandBtn.click();
+                    } else {
+                        summary.style.display = 'block';
+                        expandBtn.innerHTML = '↑';
+                        expandBtn.title = 'Hide summary';
+                        expandBtn.classList.add('expanded');
+                    }
+                });
+            }
+        });
+
         // Handle remove button clicks
         document.addEventListener('click', async function(e) {
             if (e.target.classList.contains('remove-url-btn')) {
@@ -489,11 +832,12 @@
                     const data = await resp.json();
                     
                     if (data.success) {
-                        const listItem = btn.closest('li');
-                        if (listItem) {
-                            listItem.style.opacity = '0.5';
-                            listItem.style.transition = 'opacity 0.3s';
-                            setTimeout(() => listItem.remove(), 300);
+                        const card = btn.closest('.article-card');
+                        if (card) {
+                            card.style.opacity = '0';
+                            card.style.transform = 'translateX(20px)';
+                            card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                            setTimeout(() => card.remove(), 300);
                         } else {
                             btn.remove();
                         }
@@ -518,54 +862,112 @@
             }
         }, true);
 
-        // Intercept link clicks inside the result reading surface to expand inline summaries
+        // Handle expand button and link clicks for summaries
         document.addEventListener('click', async function(e) {
-            const a = e.target.closest('a[href]');
-            if (!a) return;
-
-            // Only intercept links inside the rendered reading surface
-            const write = document.getElementById('write');
-            if (!write || !write.contains(a)) return;
-
-            const href = a.getAttribute('href');
-            if (!href || href.startsWith('#')) return;
-            e.preventDefault();
-
-            // If already expanded, toggle collapse
-            let expander = a.nextElementSibling;
-            if (expander && expander.classList.contains('inline-summary')) {
-                expander.style.display = expander.style.display === 'none' ? 'block' : 'none';
+            // Check if it's an expand button
+            const expandBtn = e.target.closest('.expand-btn');
+            const link = e.target.closest('.article-link');
+            
+            if (!expandBtn && !link) return;
+            
+            const target = expandBtn || link;
+            const card = target.closest('.article-card');
+            if (!card) return;
+            
+            // Only intercept article links, not summary links
+            if (link && !card.contains(link)) return;
+            
+            const url = target.getAttribute('data-url') || target.getAttribute('href');
+            if (!url || url.startsWith('#')) return;
+            
+            // If Ctrl/Cmd+Click on link, open in new tab instead of showing summary
+            if (link && (e.ctrlKey || e.metaKey)) {
+                // Let the default behavior happen (open in new tab)
                 return;
             }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const btn = card.querySelector('.expand-btn');
+            
+            // Check if summary already exists
+            let expander = card.querySelector('.inline-summary');
+            if (expander) {
+                // Toggle visibility
+                if (expander.style.display === 'none') {
+                    expander.style.display = 'block';
+                    if (btn) {
+                        btn.innerHTML = '↑';
+                        btn.title = 'Hide summary';
+                        btn.classList.add('expanded');
+                    }
+                } else {
+                    expander.style.display = 'none';
+                    if (btn) {
+                        btn.innerHTML = '↓';
+                        btn.title = 'Show summary';
+                        btn.classList.remove('expanded');
+                    }
+                }
+                return;
+            }
+            
+            // Update button state
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '⋯';
+                btn.title = 'Loading...';
+            }
 
-            // Create inline summary under the link, flat styling (no nested container)
+            // Create inline summary under the card header
             expander = document.createElement('div');
             expander.className = 'inline-summary';
             expander.textContent = 'Summarizing...';
-            a.insertAdjacentElement('afterend', expander);
+            card.appendChild(expander);
 
             try {
                 const resp = await fetch('/api/summarize-url', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: href })
+                    body: JSON.stringify({ url: url })
                 });
                 const data = await resp.json();
                 if (data.success) {
                     const html = DOMPurify.sanitize(marked.parse(data.summary_markdown || ''));
-                    expander.innerHTML = '<strong>Summary</strong>\n\n' + html;
-                    // Make links inside the inline summary safe/tabbed
+                    expander.innerHTML = '<strong>Summary</strong>' + html;
+                    // Make links inside the inline summary safe/tabbed and don't trigger expansion
                     expander.querySelectorAll('a[href]').forEach(function(a) {
                         a.setAttribute('target', '_blank');
                         a.setAttribute('rel', 'noopener noreferrer');
+                        a.classList.remove('article-link');
                     });
+                    
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '↑';
+                        btn.title = 'Hide summary';
+                        btn.classList.add('expanded');
+                    }
                 } else {
                     expander.classList.add('error');
                     expander.textContent = 'Error: ' + (data.error || 'Failed to summarize');
+                    
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '↓';
+                        btn.title = 'Show summary';
+                    }
                 }
             } catch (err) {
                 expander.classList.add('error');
                 expander.textContent = 'Network error: ' + (err?.message || String(err));
+                
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '↓';
+                    btn.title = 'Show summary';
+                }
             }
         }, true);
     </script>
