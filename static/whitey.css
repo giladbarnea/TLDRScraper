@@ -76,13 +76,19 @@
 #write em, #write i{ font-style: italic; }
 #write strong, #write b{ font-weight: bold; }
 
-/* Lists */
+/* Lists - keep for any remaining traditional lists */
 #write ul{
   list-style: square;
   padding-left: 1.2em;
 }
 #write ol{
   padding-left: 1.2em;
+}
+
+/* Article cards override list styling */
+#write .article-list {
+  padding-left: 0;
+  margin-left: 0;
 }
 
 /* Blockquotes */
