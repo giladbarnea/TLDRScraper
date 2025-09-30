@@ -232,8 +232,20 @@
             </div>
 
             <button type="submit" id="scrapeBtn">Scrape TLDR Newsletters</button>
-            <button type="button" id="invalidateCacheBtn" class="secondary-btn">Clear Cache for These Dates</button>
         </form>
+        
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <label for="cacheModeSelect" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--muted);">Cache Mode:</label>
+            <select id="cacheModeSelect" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; background: var(--surface); color: var(--text); min-height: 44px;">
+                <option value="read_write">Read & Write (Normal)</option>
+                <option value="read_only">Read Only</option>
+                <option value="write_only">Write Only</option>
+                <option value="disabled">Disabled</option>
+            </select>
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: var(--muted);" id="cacheModeDescription">
+                Normal caching: reads from cache, writes on cache miss
+            </p>
+        </div>
 
         <div id="progress" class="progress">
             <div id="progress-text">Initializing...</div>
@@ -308,6 +320,12 @@
                 const data = await response.json();
 
                 if (data.success) {
+                    // Update cache mode selector if present in stats
+                    if (data.stats.cache_mode) {
+                        document.getElementById('cacheModeSelect').value = data.stats.cache_mode;
+                        updateCacheModeDescription(data.stats.cache_mode);
+                    }
+                    
                     // Prepare stats block
                     const statsHtml = `<div class="stats">
                         📊 Stats: ${data.stats.total_articles} articles found,
@@ -315,7 +333,8 @@
                         ${data.stats.dates_with_content}/${data.stats.dates_processed} dates had content<br>
                         🧠 Cache: hits=${data.stats.cache_hits ?? 0}, misses=${data.stats.cache_misses ?? 0}, other=${data.stats.cache_other ?? 0}<br>
                         💾 Blob Cache: hits=${data.stats.blob_cache_hits ?? 0}, misses=${data.stats.blob_cache_misses ?? 0}<br>
-                        ☁️ Blob Store present: ${data.stats.blob_store_present ? 'true' : 'false'}
+                        ☁️ Blob Store present: ${data.stats.blob_store_present ? 'true' : 'false'}<br>
+                        ⚙️ Cache Mode: <strong>${data.stats.cache_mode || 'read_write'}</strong>
                     </div>`;
 
                     // Render Markdown → HTML then sanitize
@@ -379,61 +398,75 @@
 
         // Initialize default dates on page load
         setDefaultDates();
-
-        // Handle cache invalidation button
-        document.getElementById('invalidateCacheBtn').addEventListener('click', async function(e) {
-            e.preventDefault();
-            
-            const startDate = document.getElementById('start_date').value;
-            const endDate = document.getElementById('end_date').value;
-            
-            if (!startDate || !endDate) {
-                alert('Please select both start and end dates first.');
-                return;
+        
+        // Load initial cache mode
+        loadCacheMode();
+        
+        // Helper function to update cache mode description
+        function updateCacheModeDescription(mode) {
+            const descriptions = {
+                'read_write': 'Normal caching: reads from cache, writes on cache miss',
+                'read_only': 'Only read from cache, never write (useful for testing)',
+                'write_only': 'Never read from cache, always write (rebuild cache)',
+                'disabled': 'No caching at all (all fresh data, no writes)'
+            };
+            document.getElementById('cacheModeDescription').textContent = descriptions[mode] || '';
+        }
+        
+        // Load current cache mode from server
+        async function loadCacheMode() {
+            try {
+                const response = await fetch('/api/cache-mode');
+                const data = await response.json();
+                if (data.success && data.cache_mode) {
+                    document.getElementById('cacheModeSelect').value = data.cache_mode;
+                    updateCacheModeDescription(data.cache_mode);
+                }
+            } catch (error) {
+                console.error('Error loading cache mode:', error);
             }
+        }
+        
+        // Handle cache mode selection
+        document.getElementById('cacheModeSelect').addEventListener('change', async function(e) {
+            const select = e.target;
+            const newMode = select.value;
+            const originalValue = select.getAttribute('data-current-value') || 'read_write';
             
-            const confirmed = confirm(
-                `This will clear the newsletter cache for dates ${startDate} to ${endDate}.\n\n` +
-                `The next scrape will fetch fresh data from TLDR.\n\n` +
-                `Note: This does NOT delete article content or summaries, only the newsletter cache.\n\n` +
-                `Continue?`
-            );
-            
-            if (!confirmed) return;
-            
-            const button = e.target;
-            const originalText = button.textContent;
-            button.disabled = true;
-            button.textContent = 'Clearing cache...';
+            select.disabled = true;
             
             try {
-                const response = await fetch('/api/invalidate-cache', {
+                const response = await fetch('/api/cache-mode', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ start_date: startDate, end_date: endDate })
+                    body: JSON.stringify({ cache_mode: newMode })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert(
-                        `Cache cleared successfully!\n\n` +
-                        `Deleted: ${data.deleted} days\n` +
-                        `Failed: ${data.failed} days\n` +
-                        `Total: ${data.total_days} days\n\n` +
-                        (data.errors && data.errors.length > 0 ? 
-                            `Errors:\n${data.errors.join('\n')}` : 
-                            `Next scrape will fetch fresh data.`)
-                    );
+                    select.setAttribute('data-current-value', newMode);
+                    updateCacheModeDescription(newMode);
+                    
+                    // Show brief success indicator
+                    const desc = document.getElementById('cacheModeDescription');
+                    const originalText = desc.textContent;
+                    desc.textContent = '✓ Cache mode updated successfully!';
+                    desc.style.color = '#28a745';
+                    setTimeout(() => {
+                        updateCacheModeDescription(newMode);
+                        desc.style.color = '';
+                    }, 2000);
                 } else {
-                    alert('Error clearing cache: ' + data.error);
+                    alert('Error setting cache mode: ' + data.error);
+                    select.value = originalValue;
                 }
             } catch (error) {
                 alert('Network error: ' + error.message);
-                console.error('Cache invalidation error:', error);
+                console.error('Cache mode error:', error);
+                select.value = originalValue;
             } finally {
-                button.disabled = false;
-                button.textContent = originalText;
+                select.disabled = false;
             }
         });
 
