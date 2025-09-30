@@ -341,7 +341,7 @@
                     const html = DOMPurify.sanitize(marked.parse(data.output));
 
                     // Inject Whitey reading surface (desktop-faithful + mobile refinements)
-                    const whiteySurface = `<main id="write"><article>${html}</article></main>`;
+                    const whiteySurface = `<main id="write">${html}</main>`;
                     result.innerHTML = statsHtml + '<div id="logs-slot"></div>' + whiteySurface;
 
                     // Safely append logs as plain text (no HTML interpretation)
