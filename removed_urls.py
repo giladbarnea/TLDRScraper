@@ -50,10 +50,10 @@ def add_removed_url(url: str) -> bool:
     """Add a URL to the removed set and persist to blob store."""
     removed = get_removed_urls()
     removed.add(url)
-    
+
     try:
         from blob_store import put_file
-        
+
         put_file(REMOVED_URLS_PATHNAME, json.dumps(sorted(list(removed)), indent=2))
         util.log(
             f"[removed_urls.add_removed_url] Added url={url} pathname={REMOVED_URLS_PATHNAME}",
