@@ -28,12 +28,12 @@
   max-width: 960px;
   margin: 0 auto 2em;
   padding-top: 40px;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding-left: 0;
+  padding-right: 0;
 
   color: var(--whitey-text);
   font-family: "Vollkorn", Palatino, Times;
-  line-height: 1.53;      /* matches Typora Whitey’s reading rhythm */
+  line-height: 1.53;      /* matches Typora Whitey's reading rhythm */
   text-align: left;
   background: transparent;
 }
@@ -79,10 +79,10 @@
 /* Lists */
 #write ul{
   list-style: square;
-  padding-left: 1.2em;
+  padding-left: 1.5em;
 }
 #write ol{
-  padding-left: 1.2em;
+  padding-left: 1.5em;
 }
 
 /* Blockquotes */
@@ -120,8 +120,8 @@
   #write{
     font-size: clamp(16px, 0.95rem + 0.6vw, 18px);
     line-height: 1.6;
-    padding-left: var(--whitey-s-1);
-    padding-right: var(--whitey-s-1);
+    padding-left: 0;
+    padding-right: 0;
   }
 
   #write h1{
