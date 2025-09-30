@@ -20,6 +20,7 @@ import util
 from summarizer import summarize_url
 from blob_cache import blob_cached_json
 from removed_urls import get_removed_urls, add_removed_url
+import cache_mode
 
 app = Flask(__name__)
 logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
@@ -353,6 +354,66 @@ def remove_url_endpoint():
     except Exception as e:
         util.log(
             "[serve.remove_url_endpoint] error error=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
+@app.route("/api/cache-mode", methods=["GET"])
+def get_cache_mode_endpoint():
+    """Get the current cache mode."""
+    try:
+        mode = cache_mode.get_cache_mode()
+        return jsonify({
+            "success": True,
+            "cache_mode": mode.value,
+        })
+    except Exception as e:
+        util.log(
+            "[serve.get_cache_mode_endpoint] error error=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
+@app.route("/api/cache-mode", methods=["POST"])
+def set_cache_mode_endpoint():
+    """Set the cache mode."""
+    try:
+        data = request.get_json() or {}
+        mode_str = (data.get("cache_mode") or "").strip().lower()
+        
+        if not mode_str:
+            return jsonify({"success": False, "error": "cache_mode is required"}), 400
+        
+        try:
+            mode = cache_mode.CacheMode(mode_str)
+        except ValueError:
+            valid_modes = [m.value for m in cache_mode.CacheMode]
+            return jsonify({
+                "success": False,
+                "error": f"Invalid cache_mode. Valid values: {', '.join(valid_modes)}",
+            }), 400
+        
+        success = cache_mode.set_cache_mode(mode)
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "cache_mode": mode.value,
+            })
+        else:
+            return jsonify({"success": False, "error": "Failed to set cache mode"}), 500
+    
+    except Exception as e:
+        util.log(
+            "[serve.set_cache_mode_endpoint] error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,
@@ -712,6 +773,10 @@ def _scrape_day_pathname(date_str: str) -> str:
 
 def _get_cached_day(date_str: str):
     """Retrieve cached scrape results for a single day."""
+    # Early return: Check if cache reads are allowed
+    if not cache_mode.can_read():
+        return None
+    
     pathname = _scrape_day_pathname(date_str)
     blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
     
@@ -746,6 +811,10 @@ def _get_cached_day(date_str: str):
 
 def _put_cached_day(date_str: str, articles: list):
     """Cache scrape results for a single day."""
+    # Early return: Check if cache writes are allowed
+    if not cache_mode.can_write():
+        return False
+    
     pathname = _scrape_day_pathname(date_str)
     
     try:
@@ -928,6 +997,7 @@ def scrape_date_range(start_date, end_date):
             "blob_cache_hits": BLOB_CACHE_HITS,
             "blob_cache_misses": BLOB_CACHE_MISSES,
             "blob_store_present": bool(blob_base_url),
+            "cache_mode": cache_mode.get_cache_mode().value,
             "debug_logs": list(util.LOGS),
         },
     }

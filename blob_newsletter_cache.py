@@ -5,6 +5,7 @@ from typing import Optional, Any, Dict
 import requests
 
 import util
+import cache_mode
 
 logger = logging.getLogger("blob_newsletter_cache")
 
@@ -22,6 +23,10 @@ def get_cached_json(
     If a cached JSON exists for (newsletter_type, date), return it as a dict.
     Otherwise return None.
     """
+    # Early return: Check if cache reads are allowed
+    if not cache_mode.can_read():
+        return None
+    
     pathname = _cache_pathname(newsletter_type, date_value)
     blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
 
@@ -62,6 +67,10 @@ def put_cached_json(
     newsletter_type: str, date_value: datetime, payload: Dict[str, Any]
 ) -> Optional[str]:
     """Write cache to Blob store."""
+    # Early return: Check if cache writes are allowed
+    if not cache_mode.can_write():
+        return None
+    
     pathname = _cache_pathname(newsletter_type, date_value)
 
     safe_payload = payload

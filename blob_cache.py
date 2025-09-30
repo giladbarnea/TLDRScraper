@@ -4,6 +4,7 @@ from typing import Callable, TypeVar, Any
 from functools import wraps
 import requests
 import util
+import cache_mode
 
 T = TypeVar("T")
 
@@ -25,7 +26,8 @@ def blob_cached(
             pathname = pathname_fn(arg)
             blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
 
-            if blob_base_url:
+            # Early return: Check if cache reads are allowed
+            if blob_base_url and cache_mode.can_read():
                 blob_url = f"{blob_base_url}/{pathname}"
                 try:
                     util.log(
@@ -52,7 +54,12 @@ def blob_cached(
                         logger=logger,
                     )
 
+            # Execute the function
             result = fn(arg)
+
+            # Early return: Check if cache writes are allowed
+            if not cache_mode.can_write():
+                return result
 
             try:
                 from blob_store import put_file
@@ -95,7 +102,8 @@ def blob_cached_json(
             pathname = pathname_fn(*args, **kwargs)
             blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
 
-            if blob_base_url:
+            # Early return: Check if cache reads are allowed
+            if blob_base_url and cache_mode.can_read():
                 blob_url = f"{blob_base_url}/{pathname}"
                 try:
                     util.log(
@@ -122,7 +130,12 @@ def blob_cached_json(
                         logger=logger,
                     )
 
+            # Execute the function
             result = fn(*args, **kwargs)
+
+            # Early return: Check if cache writes are allowed
+            if not cache_mode.can_write():
+                return result
 
             if should_cache is None or should_cache(result):
                 try:
