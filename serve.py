@@ -117,6 +117,14 @@ def summarize_url_endpoint():
 
         summary = summarize_url(url, cache_only=cache_only)
 
+        # If cache_only and no cached summary, return success=False
+        if summary is None:
+            return jsonify({
+                "success": False,
+                "error": "No cached summary available",
+                "cached": False,
+            })
+
         base_path = normalize_url_to_pathname(url)
         base = base_path[:-3] if base_path.endswith(".md") else base_path
         summary_blob_pathname = f"{base}-summary.md"
@@ -136,6 +144,7 @@ def summarize_url_endpoint():
             "summary_markdown": summary + debug_appendix,
             "summary_blob_url": summary_blob_url,
             "summary_blob_pathname": summary_blob_pathname,
+            "cached": cache_only,  # If we got here with cache_only, it was cached
         })
 
     except requests.RequestException as e:

@@ -20,17 +20,18 @@ def blob_cached(
         pathname_fn: Function that converts the input arg to a blob pathname
         logger: Optional logger for debug output
         
-    Supports cache_only kwarg: if True, raises ValueError on cache miss instead of calling function.
+    Supports cache_only kwarg: if True, returns None on cache miss instead of calling function.
+    Requires wrapped function to have at least one positional arg (the path/URL).
     """
 
     def decorator(fn: Callable[P, R]) -> Callable[P, R]:
         @wraps(fn)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        def wrapper(path: str, *args: P.args, **kwargs: P.kwargs) -> R:
             # Extract cache_only from kwargs (don't pass it to the underlying function)
             cache_only = kwargs.pop('cache_only', False)
             
-            # First arg should be the URL/string for pathname generation
-            pathname = pathname_fn(args[0]) if args else ""
+            # First arg is the URL/string for pathname generation
+            pathname = pathname_fn(path)
             blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
 
             # Early return: Check if cache reads are allowed
@@ -64,23 +65,23 @@ def blob_cached(
                     # If cache_only mode and cache missed, don't call the function
                     if cache_only:
                         util.log(
-                            f"[blob_cache] cache_only=True and cache missed for {fn.__name__}: {pathname}, returning early without calling function",
+                            f"[blob_cache] cache_only=True and cache missed for {fn.__name__}: {pathname}, returning None without calling function",
                             level=logging.INFO,
                             logger=logger,
                         )
-                        raise ValueError(f"No cached result available for {args[0] if args else 'unknown'}")
+                        return None
 
-            # If cache_only but no blob store, also fail
+            # If cache_only but no blob store, also return None
             if cache_only:
                 util.log(
-                    f"[blob_cache] cache_only=True but no blob store configured for {fn.__name__}, returning early",
+                    f"[blob_cache] cache_only=True but no blob store configured for {fn.__name__}, returning None",
                     level=logging.INFO,
                     logger=logger,
                 )
-                raise ValueError(f"No cached result available for {args[0] if args else 'unknown'}")
+                return None
 
             # Execute the function
-            result = fn(*args, **kwargs)
+            result = fn(path, *args, **kwargs)
 
             # Early return: Check if cache writes are allowed
             if not cache_mode.can_write():
