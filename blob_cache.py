@@ -22,7 +22,7 @@ def blob_cached(
 
     def decorator(fn: Callable[[str], T]) -> Callable[[str], T]:
         @wraps(fn)
-        def wrapper(arg: str) -> T:
+        def wrapper(arg: str, **kwargs) -> T:
             pathname = pathname_fn(arg)
             blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
 
@@ -55,7 +55,7 @@ def blob_cached(
                     )
 
             # Execute the function
-            result = fn(arg)
+            result = fn(arg, **kwargs)
 
             # Early return: Check if cache writes are allowed
             if not cache_mode.can_write():

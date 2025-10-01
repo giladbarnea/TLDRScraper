@@ -45,8 +45,24 @@ def url_to_markdown(url: str) -> str:
 
 
 @blob_cached(_url_summary_pathname, logger=logger)
-def summarize_url(url: str) -> str:
-    """Get markdown content from URL and summarize it with LLM."""
+def summarize_url(url: str, cache_only: bool = False) -> str:
+    """Get markdown content from URL and summarize it with LLM.
+    
+    Args:
+        url: The URL to summarize
+        cache_only: If True, only return cached summaries (raises exception if not cached)
+    
+    Returns:
+        The summary markdown
+        
+    Raises:
+        ValueError: If cache_only=True and summary is not cached
+    """
+    # Note: cache_only logic is handled by checking the cache first via decorator
+    # If we get here with cache_only=True, it means cache missed
+    if cache_only:
+        raise ValueError(f"No cached summary available for {url}")
+    
     markdown = url_to_markdown(url)
 
     template = _fetch_summarize_prompt()
