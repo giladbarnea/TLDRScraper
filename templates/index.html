@@ -312,6 +312,13 @@
             color: #c00;
         }
 
+        .article-btn.remove-url-btn:disabled {
+            background: #f3f4f6;
+            border-color: var(--border);
+            color: #a1a1aa;
+            cursor: not-allowed;
+        }
+
         .article-btn.expand-btn {
             font-size: 14px;
         }
@@ -483,6 +490,25 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
     <script>
+        const removalDisabledModes = new Set(['read_only', 'disabled']);
+
+        function getActiveCacheMode() {
+            const select = document.getElementById('cacheModeSelect');
+            if (!select) return 'read_write';
+            return select.getAttribute('data-current-value') || select.value || 'read_write';
+        }
+
+        function shouldDisableRemovals() {
+            return removalDisabledModes.has(getActiveCacheMode());
+        }
+
+        function updateRemoveButtonsState() {
+            const disable = shouldDisableRemovals();
+            document.querySelectorAll('.remove-url-btn').forEach((btn) => {
+                btn.disabled = disable;
+            });
+        }
+
         // Set default dates
         function setDefaultDates() {
             const today = new Date();
@@ -544,8 +570,11 @@
                 if (data.success) {
                     // Update cache mode selector if present in stats
                     if (data.stats.cache_mode) {
-                        document.getElementById('cacheModeSelect').value = data.stats.cache_mode;
+                        const select = document.getElementById('cacheModeSelect');
+                        select.value = data.stats.cache_mode;
+                        select.setAttribute('data-current-value', data.stats.cache_mode);
                         updateCacheModeDescription(data.stats.cache_mode);
+                        updateRemoveButtonsState();
                     }
                     
                     // Prepare stats block
@@ -661,6 +690,7 @@
                             removeBtn.title = 'Remove this URL';
                             removeBtn.setAttribute('data-url', link.getAttribute('href'));
                             removeBtn.type = 'button';
+                            removeBtn.disabled = shouldDisableRemovals();
                             
                             // Assemble the card
                             content.appendChild(newLink);
@@ -770,8 +800,11 @@
                 const response = await fetch('/api/cache-mode');
                 const data = await response.json();
                 if (data.success && data.cache_mode) {
-                    document.getElementById('cacheModeSelect').value = data.cache_mode;
+                    const select = document.getElementById('cacheModeSelect');
+                    select.value = data.cache_mode;
+                    select.setAttribute('data-current-value', data.cache_mode);
                     updateCacheModeDescription(data.cache_mode);
+                    updateRemoveButtonsState();
                 }
             } catch (error) {
                 console.error('Error loading cache mode:', error);
@@ -798,7 +831,8 @@
                 if (data.success) {
                     select.setAttribute('data-current-value', newMode);
                     updateCacheModeDescription(newMode);
-                    
+                    updateRemoveButtonsState();
+
                     // Show brief success indicator
                     const desc = document.getElementById('cacheModeDescription');
                     const originalText = desc.textContent;
@@ -871,9 +905,13 @@
                 
                 const btn = e.target;
                 const url = btn.getAttribute('data-url');
-                
+
+                if (btn.disabled) {
+                    return;
+                }
+
                 if (!url) return;
-                
+
                 btn.disabled = true;
                 btn.textContent = '...';
                 
@@ -900,7 +938,7 @@
                         btn.title = 'Failed: ' + (data.error || 'Unknown error');
                         setTimeout(() => {
                             btn.textContent = '×';
-                            btn.disabled = false;
+                            btn.disabled = shouldDisableRemovals();
                         }, 2000);
                     }
                 } catch (err) {
@@ -908,7 +946,7 @@
                     btn.title = 'Error: ' + (err?.message || String(err));
                     setTimeout(() => {
                         btn.textContent = '×';
-                        btn.disabled = false;
+                        btn.disabled = shouldDisableRemovals();
                     }, 2000);
                 }
                 
