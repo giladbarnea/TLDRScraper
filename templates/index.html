@@ -306,6 +306,32 @@
             color: var(--text);
         }
 
+        .article-btn.copy-summary-btn {
+            display: none;
+            font-size: 16px;
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+
+        .article-btn.copy-summary-btn.visible {
+            display: inline-flex;
+            background: #f3f4f6;
+            border-color: rgba(15, 23, 42, 0.08);
+            color: #1f2937;
+        }
+
+        .article-btn.copy-summary-btn.visible:hover {
+            background: #e5e7eb;
+            border-color: rgba(15, 23, 42, 0.12);
+            color: #111827;
+        }
+
+        .article-btn.copy-summary-btn.copied {
+            background: #22c55e;
+            border-color: #16a34a;
+            color: white;
+            transform: scale(1.05);
+        }
+
         .article-btn.remove-url-btn:hover {
             background: #fee;
             border-color: #fcc;
@@ -336,6 +362,28 @@
 
         .article-btn:active {
             transform: scale(0.95);
+        }
+
+        #copyToast {
+            position: fixed;
+            left: 50%;
+            bottom: 32px;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(15, 23, 42, 0.85);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 14px;
+            letter-spacing: 0.01em;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 999;
+        }
+
+        #copyToast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
 
         /* Inline summary expansion - 75% old style, 25% new */
@@ -482,6 +530,8 @@
     <!-- Client-side MD→HTML + sanitization for dynamic results -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
+    <div id="copyToast">Copied to clipboard</div>
+
     <script>
         // Set default dates
         function setDefaultDates() {
@@ -491,6 +541,31 @@
 
             document.getElementById('end_date').value = today.toISOString().split('T')[0];
             document.getElementById('start_date').value = weekAgo.toISOString().split('T')[0];
+        }
+
+        const copyToast = document.getElementById('copyToast');
+        let copyToastTimeout;
+
+        function showCopyToast() {
+            clearTimeout(copyToastTimeout);
+            copyToast.classList.add('show');
+            copyToastTimeout = setTimeout(function() {
+                copyToast.classList.remove('show');
+            }, 2000);
+        }
+
+        function toggleCopyButton(card, shouldShow) {
+            const copyBtn = card.querySelector('.copy-summary-btn');
+            if (shouldShow) {
+                copyBtn.classList.add('visible');
+                copyBtn.classList.remove('copied');
+                copyBtn.textContent = '📋';
+                return;
+            }
+
+            copyBtn.classList.remove('visible');
+            copyBtn.classList.remove('copied');
+            copyBtn.textContent = '📋';
         }
 
         // Form submission handler - use backend API
@@ -617,15 +692,19 @@
                         listItems.forEach(function(li, index) {
                             const link = li.querySelector('a[href]');
                             if (!link) return;
-                            
+
                             // Create article card
                             const card = document.createElement('div');
                             card.className = 'article-card';
-                            
+                            const urlValue = link.getAttribute('href');
+                            const titleText = link.textContent.trim();
+                            card.setAttribute('data-url', urlValue);
+                            card.setAttribute('data-title', titleText);
+
                             // Create header container
                             const header = document.createElement('div');
                             header.className = 'article-header';
-                            
+
                             // Create number badge
                             const number = document.createElement('div');
                             number.className = 'article-number';
@@ -640,37 +719,45 @@
                             newLink.className = 'article-link';
                             newLink.setAttribute('target', '_blank');
                             newLink.setAttribute('rel', 'noopener noreferrer');
-                            newLink.setAttribute('data-url', link.getAttribute('href'));
-                            
+                            newLink.setAttribute('data-url', urlValue);
+
                             // Create actions container
                             const actions = document.createElement('div');
                             actions.className = 'article-actions';
-                            
+
                             // Create expand button
                             const expandBtn = document.createElement('button');
                             expandBtn.className = 'article-btn expand-btn';
                             expandBtn.innerHTML = '↓';
                             expandBtn.title = 'Show summary';
-                            expandBtn.setAttribute('data-url', link.getAttribute('href'));
+                            expandBtn.setAttribute('data-url', urlValue);
                             expandBtn.type = 'button';
-                            
+
+                            const copyBtn = document.createElement('button');
+                            copyBtn.className = 'article-btn copy-summary-btn';
+                            copyBtn.innerHTML = '📋';
+                            copyBtn.title = 'Copy summary';
+                            copyBtn.type = 'button';
+                            copyBtn.setAttribute('data-url', urlValue);
+
                             // Create remove button
                             const removeBtn = document.createElement('button');
                             removeBtn.className = 'article-btn remove-url-btn';
                             removeBtn.innerHTML = '×';
                             removeBtn.title = 'Remove this URL';
-                            removeBtn.setAttribute('data-url', link.getAttribute('href'));
+                            removeBtn.setAttribute('data-url', urlValue);
                             removeBtn.type = 'button';
-                            
+
                             // Assemble the card
                             content.appendChild(newLink);
                             header.appendChild(number);
                             header.appendChild(content);
                             header.appendChild(actions);
                             actions.appendChild(expandBtn);
+                            actions.appendChild(copyBtn);
                             actions.appendChild(removeBtn);
                             card.appendChild(header);
-                            
+
                             articleList.appendChild(card);
                         });
                         
@@ -827,11 +914,13 @@
                 const section = e.target.getAttribute('data-section');
                 const articleList = document.querySelector(`.article-list[data-section="${section}"]`);
                 if (!articleList) return;
-                
+
                 articleList.querySelectorAll('.inline-summary').forEach(function(summary) {
                     summary.style.display = 'none';
+                    const card = summary.closest('.article-card');
+                    toggleCopyButton(card, false);
                 });
-                
+
                 articleList.querySelectorAll('.expand-btn').forEach(function(btn) {
                     btn.innerHTML = '↓';
                     btn.title = 'Show summary';
@@ -858,10 +947,33 @@
                         expandBtn.innerHTML = '↑';
                         expandBtn.title = 'Hide summary';
                         expandBtn.classList.add('expanded');
+                        toggleCopyButton(card, true);
                     }
                 });
             }
         });
+
+        document.addEventListener('click', async function(e) {
+            if (e.target.classList.contains('copy-summary-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const btn = e.target;
+                const card = btn.closest('.article-card');
+                const payload = `---\ntitle: ${card.getAttribute('data-title')}\nurl: ${card.getAttribute('data-url')}\n---\n${card.getAttribute('data-summary')}`;
+                await navigator.clipboard.writeText(payload);
+                navigator.vibrate(10);
+                btn.classList.add('copied');
+                btn.textContent = '✓';
+                showCopyToast();
+                setTimeout(function() {
+                    btn.classList.remove('copied');
+                    btn.textContent = '📋';
+                }, 2000);
+
+                return;
+            }
+        }, true);
 
         // Handle remove button clicks
         document.addEventListener('click', async function(e) {
@@ -956,6 +1068,7 @@
                         btn.title = 'Hide summary';
                         btn.classList.add('expanded');
                     }
+                    toggleCopyButton(card, true);
                 } else {
                     expander.style.display = 'none';
                     if (btn) {
@@ -963,6 +1076,7 @@
                         btn.title = 'Show summary';
                         btn.classList.remove('expanded');
                     }
+                    toggleCopyButton(card, false);
                 }
                 return;
             }
@@ -989,6 +1103,7 @@
                     btn.title = 'Hide summary';
                     btn.classList.add('expanded');
                 }
+                toggleCopyButton(card, true);
                 return;
             }
             
@@ -1032,25 +1147,28 @@
                         btn.classList.add('expanded');
                         btn.classList.add('loaded');
                     }
+                    toggleCopyButton(card, true);
                 } else {
                     expander.classList.add('error');
                     expander.textContent = 'Error: ' + (data.error || 'Failed to summarize');
-                    
+
                     if (btn) {
                         btn.disabled = false;
                         btn.innerHTML = '↓';
                         btn.title = 'Show summary';
                     }
+                    toggleCopyButton(card, false);
                 }
             } catch (err) {
                 expander.classList.add('error');
                 expander.textContent = 'Network error: ' + (err?.message || String(err));
-                
+
                 if (btn) {
                     btn.disabled = false;
                     btn.innerHTML = '↓';
                     btn.title = 'Show summary';
                 }
+                toggleCopyButton(card, false);
             }
         }, true);
     </script>
