@@ -321,6 +321,18 @@
             border-color: var(--link);
             color: white;
         }
+        
+        .article-btn.expand-btn.cached {
+            background: #e8f5e9;
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+        
+        .article-btn.expand-btn.cached.expanded {
+            background: #4caf50;
+            border-color: #4caf50;
+            color: white;
+        }
 
         .article-btn:active {
             transform: scale(0.95);
@@ -677,6 +689,9 @@
                     result.style.display = 'block';
                     result.className = 'success';
                     document.getElementById('progress-fill').style.width = '100%';
+                    
+                    // Prefetch cached summaries for first 10 URLs
+                    prefetchCachedSummaries();
                 } else {
                     result.style.display = 'block';
                     result.className = 'error';
@@ -694,6 +709,43 @@
             progress.style.display = 'none';
             button.disabled = false;
         });
+
+        // Prefetch cached summaries for first 10 URLs with staggered requests
+        async function prefetchCachedSummaries() {
+            const allExpandButtons = document.querySelectorAll('.expand-btn');
+            const first10 = Array.from(allExpandButtons).slice(0, 10);
+            
+            first10.forEach((btn, index) => {
+                setTimeout(async () => {
+                    const url = btn.getAttribute('data-url');
+                    if (!url) return;
+                    
+                    try {
+                        const resp = await fetch('/api/summarize-url', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: url, cache_only: true })
+                        });
+                        const data = await resp.json();
+                        
+                        if (data.success) {
+                            // Mark button as having cached summary
+                            btn.classList.add('cached');
+                            btn.title = 'Show cached summary';
+                            
+                            // Store the cached summary data
+                            const card = btn.closest('.article-card');
+                            if (card) {
+                                card.setAttribute('data-cached-summary', data.summary_markdown || '');
+                            }
+                        }
+                    } catch (err) {
+                        // Silently ignore errors - these are just prefetch attempts
+                        console.debug('Prefetch failed for', url, err);
+                    }
+                }, index * 250); // Stagger by 250ms
+            });
+        }
 
         // Initialize default dates on page load
         setDefaultDates();
@@ -915,6 +967,31 @@
                 return;
             }
             
+            // Check if we have a cached summary already
+            const cachedSummary = card.getAttribute('data-cached-summary');
+            
+            if (cachedSummary) {
+                // Use cached summary immediately
+                expander = document.createElement('div');
+                expander.className = 'inline-summary';
+                const html = DOMPurify.sanitize(marked.parse(cachedSummary));
+                expander.innerHTML = '<strong>Summary</strong>' + html;
+                // Make links inside the inline summary safe/tabbed and don't trigger expansion
+                expander.querySelectorAll('a[href]').forEach(function(a) {
+                    a.setAttribute('target', '_blank');
+                    a.setAttribute('rel', 'noopener noreferrer');
+                    a.classList.remove('article-link');
+                });
+                card.appendChild(expander);
+                
+                if (btn) {
+                    btn.innerHTML = '↑';
+                    btn.title = 'Hide summary';
+                    btn.classList.add('expanded');
+                }
+                return;
+            }
+            
             // Update button state
             if (btn) {
                 btn.disabled = true;
@@ -945,11 +1022,15 @@
                         a.classList.remove('article-link');
                     });
                     
+                    // Cache the summary for future use
+                    card.setAttribute('data-cached-summary', data.summary_markdown || '');
+                    
                     if (btn) {
                         btn.disabled = false;
                         btn.innerHTML = '↑';
                         btn.title = 'Hide summary';
                         btn.classList.add('expanded');
+                        btn.classList.add('cached');
                     }
                 } else {
                     expander.classList.add('error');

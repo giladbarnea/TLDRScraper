@@ -103,15 +103,27 @@ def get_prompt_template():
 
 @app.route("/api/summarize-url", methods=["POST"])
 def summarize_url_endpoint():
-    """Summarize a given URL: fetch HTML, convert to Markdown, insert into template, call OpenAI."""
+    """Summarize a given URL: fetch HTML, convert to Markdown, insert into template, call OpenAI.
+    
+    Accepts optional 'cache_only' parameter to only return cached summaries.
+    """
     try:
         data = request.get_json() or {}
         url = (data.get("url") or "").strip()
+        cache_only = data.get("cache_only", False)
 
         if not url or not (url.startswith("http://") or url.startswith("https://")):
             return jsonify({"success": False, "error": "Invalid or missing url"}), 400
 
-        summary = summarize_url(url)
+        summary = summarize_url(url, cache_only=cache_only)
+
+        # If cache_only and no cached summary, return success=False
+        if summary is None:
+            return jsonify({
+                "success": False,
+                "error": "No cached summary available",
+                "cached": False,
+            })
 
         base_path = normalize_url_to_pathname(url)
         base = base_path[:-3] if base_path.endswith(".md") else base_path
@@ -132,6 +144,7 @@ def summarize_url_endpoint():
             "summary_markdown": summary + debug_appendix,
             "summary_blob_url": summary_blob_url,
             "summary_blob_pathname": summary_blob_pathname,
+            "cached": cache_only,  # If we got here with cache_only, it was cached
         })
 
     except requests.RequestException as e:
