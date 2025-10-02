@@ -130,10 +130,33 @@ def _put_cached_day(date_str: str, articles: list):
 
 
 def _format_final_output(start_date, end_date, grouped_articles):
-    """Format the final output according to requirements"""
+    """Format the final output according to requirements.
+
+    >>> grouped = {
+    ...     "2024-01-02": [
+    ...         {
+    ...             "category": "TLDR Tech",
+    ...             "title": "Second (1 minute read)",
+    ...             "url": "https://example.com/second",
+    ...         }
+    ...     ],
+    ...     "2024-01-03": [
+    ...         {
+    ...             "category": "TLDR Tech",
+    ...             "title": "Third (1 minute read)",
+    ...             "url": "https://example.com/third",
+    ...         }
+    ...     ],
+    ... }
+    >>> result = _format_final_output(
+    ...     datetime(2024, 1, 1), datetime(2024, 1, 3), grouped
+    ... )
+    >>> result.index("2024-01-03") < result.index("2024-01-02")
+    True
+    """
     output = f"# TLDR Newsletter Articles ({util.format_date_for_url(start_date)} to {util.format_date_for_url(end_date)})\n\n"
 
-    sorted_dates = sorted(grouped_articles.keys())
+    sorted_dates = sorted(grouped_articles.keys(), reverse=True)
 
     for date_str in sorted_dates:
         articles = grouped_articles[date_str]
