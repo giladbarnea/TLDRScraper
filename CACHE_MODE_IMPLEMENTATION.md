@@ -84,12 +84,9 @@ The implementation follows a **transparent, early-return pattern** that affects 
    - Shows success confirmation after mode change
 
 3. **Added**: Summary Loading Feature
-   - Automatically loads summaries for first 10 URLs after scraping
-   - Staggered requests (250ms delay) to avoid overwhelming the server
-   - Visual indicators: buttons turn green when summary is loaded
-   - Instant display when user clicks expand (no waiting)
-   - Uses `cache_only=true` parameter to only fetch from blob store (no LLM calls)
-   - Client-side storage in `data-summary` attribute for instant access
+   - Automatically loads summaries for first 10 URLs after scraping (staggered 250ms)
+   - Uses `cache_only=true` to fetch from blob store only (no LLM calls)
+   - Green visual indicator when loaded, instant display on click
 
 4. **Stats Display**:
    - Cache mode now appears in stats block after scraping
@@ -110,45 +107,9 @@ The implementation follows a **transparent, early-return pattern** that affects 
 
 ## Summary Loading Feature
 
-### Overview
-After scraping newsletters, the UI automatically loads summaries for the first 10 URLs in the background. This provides instant access to summaries without waiting for LLM calls.
+On scrape complete, automatically loads summaries for first 10 URLs with staggered requests (250ms). Uses `cache_only=true` to fetch from blob store only (no LLM calls). Buttons turn green when loaded; summaries display instantly on click.
 
-### How It Works
-1. **Trigger**: Automatically runs after successful scrape completion
-2. **Scope**: First 10 URLs only (to avoid overwhelming server)
-3. **Method**: Staggered requests with 250ms delay between each
-4. **Efficiency**: Uses `cache_only=true` to only fetch from blob store (no LLM calls)
-5. **Visual Feedback**: Buttons turn green when summary is loaded
-6. **Client Storage**: Summaries stored in `data-summary` attribute for instant display
-
-### User Experience
-- **Before loading**: Expand button shows default state
-- **After loading**: Button turns green (indicates summary is ready)
-- **On click**: Summary displays instantly (no network request needed)
-- **On click (not loaded)**: Fetches summary normally (may call LLM if not cached)
-
-### Technical Details
-```javascript
-// Function: loadSummaries()
-// - Queries first 10 .expand-btn elements
-// - Sends POST to /api/summarize-url with cache_only=true
-// - On success: Adds 'loaded' class and stores summary in data-summary
-// - On failure: Silently ignores (user can still fetch manually)
-```
-
-### Backend Support
-- `blob_cache.py`: `cache_only` parameter returns `None` on cache miss instead of calling function
-- `summarizer.py`: Passes `cache_only` through to decorated function
-- `serve.py`: Returns `success: false` when `cache_only=true` and no cache available
-
-### CSS Styling
-```css
-.article-btn.expand-btn.loaded {
-  background: #e8f5e9;      /* Light green background */
-  border-color: #4caf50;    /* Green border */
-  color: #2e7d32;           /* Dark green text */
-}
-```
+**Implementation**: `blob_cache.py` returns `None` on cache miss when `cache_only=true`. Client stores in `data-summary` attribute, adds `.loaded` CSS class (green styling).
 
 ## Usage Examples
 
@@ -158,7 +119,6 @@ After scraping newsletters, the UI automatically loads summaries for the first 1
 3. Mode is applied immediately to all subsequent operations
 4. Scrape newsletters to see mode in action
 5. Check stats block to confirm current mode
-6. Notice first 10 URLs turn green as summaries load in background
 
 ### Via API
 ```bash
