@@ -187,6 +187,60 @@ def remove_url_endpoint():
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
+@app.route("/api/check-summaries", methods=["POST"])
+def check_summaries_endpoint():
+    """Check which URLs have cached summaries available."""
+    try:
+        data = request.get_json() or {}
+        urls = data.get("urls", [])
+        
+        if not isinstance(urls, list):
+            return jsonify({"success": False, "error": "urls must be an array"}), 400
+        
+        blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
+        if not blob_base_url:
+            # No blob store configured, no summaries cached
+            return jsonify({"success": True, "cached_urls": []})
+        
+        cached_urls = []
+        
+        for url in urls:
+            if not isinstance(url, str) or not url.strip():
+                continue
+                
+            url = url.strip()
+            
+            # Generate the expected summary pathname
+            base_path = normalize_url_to_pathname(url)
+            base = base_path[:-3] if base_path.endswith(".md") else base_path
+            summary_pathname = f"{base}-summary.md"
+            summary_url = f"{blob_base_url}/{summary_pathname}"
+            
+            # Check if the summary exists with a HEAD request
+            try:
+                resp = requests.head(summary_url, timeout=5)
+                if resp.status_code == 200:
+                    cached_urls.append(url)
+            except Exception:
+                # If HEAD fails, the summary doesn't exist or isn't accessible
+                pass
+        
+        return jsonify({
+            "success": True,
+            "cached_urls": cached_urls,
+        })
+        
+    except Exception as e:
+        util.log(
+            "[serve.check_summaries_endpoint] error error=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
 @app.route("/api/cache-mode", methods=["GET"])
 def get_cache_mode_endpoint():
     """Get the current cache mode."""
