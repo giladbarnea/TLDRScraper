@@ -46,7 +46,14 @@ def url_to_markdown(url: str) -> str:
 
 @blob_cached(_url_summary_pathname, logger=logger)
 def summarize_url(url: str) -> str:
-    """Get markdown content from URL and summarize it with LLM."""
+    """Get markdown content from URL and summarize it with LLM.
+    
+    Args:
+        url: The URL to summarize
+    
+    Returns:
+        The summary markdown
+    """
     markdown = url_to_markdown(url)
 
     template = _fetch_summarize_prompt()
