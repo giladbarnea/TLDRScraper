@@ -128,40 +128,6 @@ Request → can_read()=false → Skip cache read
 - **_put_cached_day()**
   - Early return if `not can_write()`
 
-## Data Flow Example
-
-### Example: Scraping newsletters with different modes
-
-#### Mode: read_write (normal)
-```
-1. User clicks "Scrape"
-2. serve.py checks day cache
-   → _get_cached_day() → can_read()=true → Try blob → Cache hit!
-3. Returns cached data
-4. Stats show: cache_mode=read_write, day_cache_hits=1
-```
-
-#### Mode: write_only (rebuild cache)
-```
-1. User sets mode to write_only
-2. User clicks "Scrape"
-3. serve.py checks day cache
-   → _get_cached_day() → can_read()=false → Skip cache
-4. Fetches fresh from TLDR
-5. _put_cached_day() → can_write()=true → Writes new cache
-6. Stats show: cache_mode=write_only, day_cache_misses=1
-```
-
-#### Mode: disabled (no cache)
-```
-1. User sets mode to disabled
-2. User clicks "Scrape"
-3. serve.py checks day cache
-   → _get_cached_day() → can_read()=false → Skip cache
-4. Fetches fresh from TLDR
-5. _put_cached_day() → can_write()=false → Skip write
-6. Stats show: cache_mode=disabled, day_cache_misses=1
-```
 
 ## Thread Safety Implementation
 
@@ -283,36 +249,6 @@ Stats now include cache mode:
    - Logs warning
    - Overwrites on next set
 
-## Testing Strategy
-
-### Unit Tests (Conceptual)
-```python
-def test_cache_mode_read_write():
-    cache_mode.set_cache_mode(CacheMode.READ_WRITE)
-    assert cache_mode.can_read() == True
-    assert cache_mode.can_write() == True
-
-def test_cache_mode_read_only():
-    cache_mode.set_cache_mode(CacheMode.READ_ONLY)
-    assert cache_mode.can_read() == True
-    assert cache_mode.can_write() == False
-
-def test_cache_mode_write_only():
-    cache_mode.set_cache_mode(CacheMode.WRITE_ONLY)
-    assert cache_mode.can_read() == False
-    assert cache_mode.can_write() == True
-
-def test_cache_mode_disabled():
-    cache_mode.set_cache_mode(CacheMode.DISABLED)
-    assert cache_mode.can_read() == False
-    assert cache_mode.can_write() == False
-```
-
-### Integration Tests
-1. Set mode via API → Verify cache behavior
-2. Set mode in UI → Scrape → Check stats
-3. Multi-instance: Set mode in instance A → Verify in instance B
-4. Restart server → Verify mode persists
 
 ## Performance Considerations
 
