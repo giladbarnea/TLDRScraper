@@ -322,6 +322,17 @@
             color: white;
         }
 
+        .article-btn.expand-btn.cached {
+            background: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .article-btn.expand-btn.cached:hover {
+            background: #218838;
+            border-color: #1e7e34;
+        }
+
         .article-btn:active {
             transform: scale(0.95);
         }
@@ -677,6 +688,11 @@
                     result.style.display = 'block';
                     result.className = 'success';
                     document.getElementById('progress-fill').style.width = '100%';
+                    
+                    // Check for cached summaries after a short delay to allow cache writes to complete
+                    setTimeout(function() {
+                        checkForCachedSummaries();
+                    }, 2000);
                 } else {
                     result.style.display = 'block';
                     result.className = 'error';
@@ -903,13 +919,20 @@
                         btn.innerHTML = '↑';
                         btn.title = 'Hide summary';
                         btn.classList.add('expanded');
+                        btn.classList.remove('cached');
                     }
                 } else {
                     expander.style.display = 'none';
                     if (btn) {
                         btn.innerHTML = '↓';
-                        btn.title = 'Show summary';
                         btn.classList.remove('expanded');
+                        // Restore cached status if summary was cached
+                        if (btn.classList.contains('was-cached')) {
+                            btn.classList.add('cached');
+                            btn.title = 'Summary cached - click to view';
+                        } else {
+                            btn.title = 'Show summary';
+                        }
                     }
                 }
                 return;
@@ -950,6 +973,9 @@
                         btn.innerHTML = '↑';
                         btn.title = 'Hide summary';
                         btn.classList.add('expanded');
+                        btn.classList.remove('cached');
+                        // Mark that this summary is cached so we can restore the indicator on collapse
+                        btn.classList.add('was-cached');
                     }
                 } else {
                     expander.classList.add('error');
@@ -972,6 +998,44 @@
                 }
             }
         }, true);
+
+        // Check which URLs have cached summaries and update button appearance
+        async function checkForCachedSummaries() {
+            // Gather all article URLs from the page
+            const allLinks = document.querySelectorAll('.article-link[data-url]');
+            const urls = Array.from(allLinks).map(link => link.getAttribute('data-url')).filter(url => url);
+            
+            if (urls.length === 0) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/check-summaries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls: urls })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.cached_urls && data.cached_urls.length > 0) {
+                    // Update buttons for cached URLs
+                    const cachedUrlSet = new Set(data.cached_urls);
+                    
+                    // Iterate through all expand buttons and check if their URL is cached
+                    document.querySelectorAll('.expand-btn[data-url]').forEach(function(btn) {
+                        const btnUrl = btn.getAttribute('data-url');
+                        if (cachedUrlSet.has(btnUrl) && !btn.classList.contains('expanded')) {
+                            btn.classList.add('cached');
+                            btn.classList.add('was-cached');
+                            btn.title = 'Summary cached - click to view';
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error checking cached summaries:', error);
+            }
+        }
     </script>
 </body>
 </html>
