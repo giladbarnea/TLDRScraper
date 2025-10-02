@@ -83,7 +83,12 @@ The implementation follows a **transparent, early-return pattern** that affects 
    - Displays descriptive text for each mode
    - Shows success confirmation after mode change
 
-3. **Stats Display**:
+3. **Added**: Summary Loading Feature
+   - Automatically loads summaries for first 10 URLs after scraping (staggered 250ms)
+   - Uses `cache_only=true` to fetch from blob store only (no LLM calls)
+   - Green visual indicator when loaded, instant display on click
+
+4. **Stats Display**:
    - Cache mode now appears in stats block after scraping
    - Format: `⚙️ Cache Mode: **read_write**`
    - Updates automatically after scrape completion
@@ -94,10 +99,17 @@ The implementation follows a **transparent, early-return pattern** that affects 
    - `cache_mode.py` - Core cache mode management
 
 2. **Modified Files**:
-   - `blob_cache.py` - Added mode checks to decorators
+   - `blob_cache.py` - Added mode checks to decorators, added `cache_only` parameter support
    - `blob_newsletter_cache.py` - Added mode checks to get/put functions
-   - `serve.py` - Added mode checks to day cache, added API endpoints, added mode to stats
-   - `templates/index.html` - Removed clear cache button, added mode selector, updated stats display
+   - `serve.py` - Added mode checks to day cache, added API endpoints, added mode to stats, added `cache_only` parameter to `/api/summarize-url`
+   - `summarizer.py` - Added `cache_only` parameter support to `summarize_url()`
+   - `templates/index.html` - Removed clear cache button, added mode selector, updated stats display, added summary loading with visual indicators
+
+## Summary Loading Feature
+
+On scrape complete, automatically loads summaries for first 10 URLs with staggered requests (250ms). Uses `cache_only=true` to fetch from blob store only (no LLM calls). Buttons turn green when loaded; summaries display instantly on click.
+
+**Implementation**: `blob_cache.py` returns `None` on cache miss when `cache_only=true`. Client stores in `data-summary` attribute, adds `.loaded` CSS class (green styling).
 
 ## Usage Examples
 
