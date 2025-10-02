@@ -155,30 +155,6 @@ curl -X POST http://localhost:5001/api/cache-mode \
 5. **Early Return**: Clean, readable code with minimal nesting
 6. **No Breaking Changes**: Default mode is `read_write` (normal behavior)
 
-## Testing Recommendations
-
-1. **Read-Only Mode**:
-   - Set mode to read-only
-   - Scrape with existing cache - should use cache
-   - Delete a cache file and scrape again - should fail to fetch that day
-
-2. **Write-Only Mode**:
-   - Set mode to write-only
-   - Scrape - should always fetch fresh data
-   - Check blob storage - should see updated cache files
-   - Set back to read_write and scrape - should use newly rebuilt cache
-
-3. **Disabled Mode**:
-   - Set mode to disabled
-   - Scrape - should always fetch fresh, never write
-   - Check blob storage - no new cache files
-
-4. **Multi-Instance**:
-   - Run two server instances
-   - Change mode in one instance
-   - Wait a few seconds (for in-memory cache to expire if needed)
-   - Make request in second instance
-   - Should reflect the mode change
 
 ## Notes
 
