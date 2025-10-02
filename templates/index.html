@@ -322,13 +322,13 @@
             color: white;
         }
         
-        .article-btn.expand-btn.cached {
+        .article-btn.expand-btn.loaded {
             background: #e8f5e9;
             border-color: #4caf50;
             color: #2e7d32;
         }
         
-        .article-btn.expand-btn.cached.expanded {
+        .article-btn.expand-btn.loaded.expanded {
             background: #4caf50;
             border-color: #4caf50;
             color: white;
@@ -729,14 +729,14 @@
                         const data = await resp.json();
                         
                         if (data.success) {
-                            // Mark button as having cached summary
-                            btn.classList.add('cached');
-                            btn.title = 'Show cached summary';
+                            // Mark button as having loaded summary
+                            btn.classList.add('loaded');
+                            btn.title = 'Show summary';
                             
-                            // Store the cached summary data
+                            // Store the summary data
                             const card = btn.closest('.article-card');
                             if (card) {
-                                card.setAttribute('data-cached-summary', data.summary_markdown || '');
+                                card.setAttribute('data-summary', data.summary_markdown || '');
                             }
                         }
                     } catch (err) {
@@ -967,14 +967,14 @@
                 return;
             }
             
-            // Check if we have a cached summary already
-            const cachedSummary = card.getAttribute('data-cached-summary');
+            // Check if we have a loaded summary already
+            const loadedSummary = card.getAttribute('data-summary');
             
-            if (cachedSummary) {
-                // Use cached summary immediately
+            if (loadedSummary) {
+                // Use loaded summary immediately
                 expander = document.createElement('div');
                 expander.className = 'inline-summary';
-                const html = DOMPurify.sanitize(marked.parse(cachedSummary));
+                const html = DOMPurify.sanitize(marked.parse(loadedSummary));
                 expander.innerHTML = '<strong>Summary</strong>' + html;
                 // Make links inside the inline summary safe/tabbed and don't trigger expansion
                 expander.querySelectorAll('a[href]').forEach(function(a) {
@@ -1022,15 +1022,15 @@
                         a.classList.remove('article-link');
                     });
                     
-                    // Cache the summary for future use
-                    card.setAttribute('data-cached-summary', data.summary_markdown || '');
+                    // Store the summary for future use
+                    card.setAttribute('data-summary', data.summary_markdown || '');
                     
                     if (btn) {
                         btn.disabled = false;
                         btn.innerHTML = '↑';
                         btn.title = 'Hide summary';
                         btn.classList.add('expanded');
-                        btn.classList.add('cached');
+                        btn.classList.add('loaded');
                     }
                 } else {
                     expander.classList.add('error');
