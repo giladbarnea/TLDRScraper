@@ -690,8 +690,8 @@
                     result.className = 'success';
                     document.getElementById('progress-fill').style.width = '100%';
                     
-                    // Prefetch cached summaries for first 10 URLs
-                    prefetchCachedSummaries();
+                    // Load summaries for first 10 URLs
+                    loadSummaries();
                 } else {
                     result.style.display = 'block';
                     result.className = 'error';
@@ -710,8 +710,8 @@
             button.disabled = false;
         });
 
-        // Prefetch cached summaries for first 10 URLs with staggered requests
-        async function prefetchCachedSummaries() {
+        // Load summaries for first 10 URLs with staggered requests
+        async function loadSummaries() {
             const allExpandButtons = document.querySelectorAll('.expand-btn');
             const first10 = Array.from(allExpandButtons).slice(0, 10);
             
@@ -740,8 +740,8 @@
                             }
                         }
                     } catch (err) {
-                        // Silently ignore errors - these are just prefetch attempts
-                        console.debug('Prefetch failed for', url, err);
+                        // Silently ignore errors - these are just load attempts
+                        console.debug('Load failed for', url, err);
                     }
                 }, index * 250); // Stagger by 250ms
             });
