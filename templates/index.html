@@ -187,6 +187,34 @@
             transition: all 0.2s ease;
             position: relative;
             animation: cardFadeIn 0.3s ease backwards;
+            touch-action: pan-y;
+            user-select: none;
+        }
+
+        .article-card.swiping {
+            transition: none;
+        }
+
+        .article-card.swiped-left {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+
+        .article-card .swipe-delete-indicator {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #ef4444;
+            font-size: 24px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+
+        .article-card.showing-delete-indicator .swipe-delete-indicator {
+            opacity: 1;
         }
         
         /* Stagger animation for cards */
@@ -299,6 +327,7 @@
             border-radius: 6px 0 0 6px !important;
             border-right: none !important;
             white-space: nowrap;
+            background: transparent !important;
         }
 
         .expand-btn.collapsed-state {
@@ -307,10 +336,19 @@
 
         .expand-btn.expanded {
             border-radius: 6px 0 0 6px !important;
+            background: transparent !important;
+        }
+
+        .expand-btn.loaded {
+            background: transparent !important;
+        }
+        
+        .expand-btn.loaded.expanded {
+            background: transparent !important;
         }
 
         .expand-chevron-btn {
-            width: 24px !important;
+            width: 48px !important;
             height: 32px;
             display: flex;
             align-items: center;
@@ -338,6 +376,16 @@
             background: var(--bg);
             border-color: var(--link);
             color: var(--link);
+        }
+
+        /* Ensure dropdown floats above everything */
+        .article-card {
+            position: relative;
+            z-index: 1;
+        }
+
+        .article-card:has(.effort-dropdown.visible) {
+            z-index: 1001;
         }
 
         /* Floating dropdown menu */
@@ -459,18 +507,7 @@
             height: 18px;
         }
 
-        .article-btn.remove-url-btn:hover {
-            background: #fee;
-            border-color: #fcc;
-            color: #c00;
-        }
-
-        .article-btn.remove-url-btn:disabled {
-            background: #f3f4f6;
-            border-color: var(--border);
-            color: #a1a1aa;
-            cursor: not-allowed;
-        }
+        /* Remove button styles removed - using swipe gesture instead */
 
         .article-btn.expand-btn {
             font-size: 14px;
@@ -633,7 +670,7 @@
             }
             
             .expand-chevron-btn {
-                width: 20px !important;
+                width: 40px !important;
             }
             
             .effort-dropdown {
@@ -713,11 +750,98 @@
             return removalDisabledModes.has(getActiveCacheMode());
         }
 
-        function updateRemoveButtonsState() {
-            const disable = shouldDisableRemovals();
-            document.querySelectorAll('.remove-url-btn').forEach((btn) => {
-                btn.disabled = disable;
-            });
+        // Swipe gesture handler for card removal
+        function setupSwipeGesture(card) {
+            let startX = 0;
+            let currentX = 0;
+            let isDragging = false;
+            let startTime = 0;
+
+            function handleTouchStart(e) {
+                // Don't interfere with button clicks or other interactions
+                if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.effort-dropdown')) {
+                    return;
+                }
+
+                startX = e.touches[0].clientX;
+                currentX = startX;
+                startTime = Date.now();
+                isDragging = true;
+                card.classList.add('swiping');
+            }
+
+            function handleTouchMove(e) {
+                if (!isDragging) return;
+
+                currentX = e.touches[0].clientX;
+                const diff = currentX - startX;
+
+                // Only allow swipe left
+                if (diff < 0) {
+                    const translateX = Math.max(diff, -100);
+                    card.style.transform = `translateX(${translateX}px)`;
+                    
+                    // Show delete indicator when swiped enough
+                    if (diff < -50) {
+                        card.classList.add('showing-delete-indicator');
+                    } else {
+                        card.classList.remove('showing-delete-indicator');
+                    }
+                }
+            }
+
+            async function handleTouchEnd(e) {
+                if (!isDragging) return;
+
+                const diff = currentX - startX;
+                const duration = Date.now() - startTime;
+                const velocity = Math.abs(diff) / duration;
+
+                isDragging = false;
+                card.classList.remove('swiping');
+
+                // Delete if swiped far enough or fast enough
+                const shouldDelete = diff < -100 || (diff < -50 && velocity > 0.3);
+
+                if (shouldDelete && !shouldDisableRemovals()) {
+                    // Trigger deletion
+                    card.classList.add('swiped-left');
+                    const url = card.getAttribute('data-url');
+                    
+                    setTimeout(async () => {
+                        try {
+                            const resp = await fetch('/api/remove-url', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ url: url })
+                            });
+                            const data = await resp.json();
+                            
+                            if (data.success) {
+                                setTimeout(() => card.remove(), 300);
+                            } else {
+                                // Revert on error
+                                card.style.transform = '';
+                                card.classList.remove('swiped-left', 'showing-delete-indicator');
+                                alert('Failed to remove: ' + (data.error || 'Unknown error'));
+                            }
+                        } catch (err) {
+                            // Revert on error
+                            card.style.transform = '';
+                            card.classList.remove('swiped-left', 'showing-delete-indicator');
+                            alert('Error: ' + err.message);
+                        }
+                    }, 200);
+                } else {
+                    // Snap back
+                    card.style.transform = '';
+                    card.classList.remove('showing-delete-indicator');
+                }
+            }
+
+            card.addEventListener('touchstart', handleTouchStart, { passive: true });
+            card.addEventListener('touchmove', handleTouchMove, { passive: true });
+            card.addEventListener('touchend', handleTouchEnd, { passive: true });
         }
 
         // Set default dates
@@ -1057,14 +1181,10 @@
                             copyBtn.type = 'button';
                             copyBtn.setAttribute('data-url', urlValue);
 
-                            // Create remove button
-                            const removeBtn = document.createElement('button');
-                            removeBtn.className = 'article-btn remove-url-btn';
-                            removeBtn.innerHTML = '×';
-                            removeBtn.title = 'Remove this URL';
-                            removeBtn.setAttribute('data-url', urlValue);
-                            removeBtn.type = 'button';
-                            removeBtn.disabled = shouldDisableRemovals();
+                            // Create swipe delete indicator
+                            const deleteIndicator = document.createElement('div');
+                            deleteIndicator.className = 'swipe-delete-indicator';
+                            deleteIndicator.innerHTML = '🗑️';
 
                             // Assemble the card
                             content.appendChild(newLink);
@@ -1073,11 +1193,12 @@
                             header.appendChild(actions);
                             actions.appendChild(expandBtnContainer);
                             actions.appendChild(copyBtn);
-                            actions.appendChild(removeBtn);
                             card.appendChild(header);
+                            card.appendChild(deleteIndicator);
 
                             setCardSummaryEffort(card, 'low');
                             setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown);
+                            setupSwipeGesture(card);
 
                             articleList.appendChild(card);
                         });
@@ -1089,7 +1210,7 @@
                         if (!document.querySelector('.interaction-hint')) {
                             const hint = document.createElement('div');
                             hint.className = 'interaction-hint';
-                            hint.innerHTML = '💡 Click titles or "Summarize" to show summaries • Use ▾ to choose reasoning effort • Ctrl/Cmd+Click to open directly';
+                            hint.innerHTML = '💡 Click titles or "Summarize" to show summaries • Use ▾ to choose reasoning effort • Swipe left to delete • Ctrl/Cmd+Click to open directly';
                             articleList.insertAdjacentElement('afterend', hint);
                         }
                     });
@@ -1299,62 +1420,7 @@
             return;
         }, true);
 
-        // Handle remove button clicks
-        document.addEventListener('click', async function(e) {
-            if (e.target.classList.contains('remove-url-btn')) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const btn = e.target;
-                const url = btn.getAttribute('data-url');
-
-                if (btn.disabled) {
-                    return;
-                }
-
-                if (!url) return;
-
-                btn.disabled = true;
-                btn.textContent = '...';
-                
-                try {
-                    const resp = await fetch('/api/remove-url', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: url })
-                    });
-                    const data = await resp.json();
-                    
-                    if (data.success) {
-                        const card = btn.closest('.article-card');
-                        if (card) {
-                            card.style.opacity = '0';
-                            card.style.transform = 'translateX(20px)';
-                            card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                            setTimeout(() => card.remove(), 300);
-                        } else {
-                            btn.remove();
-                        }
-                    } else {
-                        btn.textContent = '✗';
-                        btn.title = 'Failed: ' + (data.error || 'Unknown error');
-                        setTimeout(() => {
-                            btn.textContent = '×';
-                            btn.disabled = shouldDisableRemovals();
-                        }, 2000);
-                    }
-                } catch (err) {
-                    btn.textContent = '✗';
-                    btn.title = 'Error: ' + (err?.message || String(err));
-                    setTimeout(() => {
-                        btn.textContent = '×';
-                        btn.disabled = shouldDisableRemovals();
-                    }, 2000);
-                }
-                
-                return;
-            }
-        }, true);
+        // Remove button handler removed - now using swipe gesture
 
         // Handle expand button and link clicks for summaries
         document.addEventListener('click', async function(e) {
