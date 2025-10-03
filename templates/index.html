@@ -1028,7 +1028,6 @@
                         select.value = data.stats.cache_mode;
                         select.setAttribute('data-current-value', data.stats.cache_mode);
                         updateCacheModeDescription(data.stats.cache_mode);
-                        updateRemoveButtonsState();
                     }
                     
                     // Prepare stats block
@@ -1307,7 +1306,6 @@
                     select.value = data.cache_mode;
                     select.setAttribute('data-current-value', data.cache_mode);
                     updateCacheModeDescription(data.cache_mode);
-                    updateRemoveButtonsState();
                 }
             } catch (error) {
                 console.error('Error loading cache mode:', error);
@@ -1334,7 +1332,6 @@
                 if (data.success) {
                     select.setAttribute('data-current-value', newMode);
                     updateCacheModeDescription(newMode);
-                    updateRemoveButtonsState();
 
                     // Show brief success indicator
                     const desc = document.getElementById('cacheModeDescription');
