@@ -184,7 +184,7 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 14px 16px;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
             position: relative;
             animation: cardFadeIn 0.3s ease backwards;
             touch-action: pan-y;
@@ -1557,6 +1557,11 @@
                 }
                 toggleCopyButton(card, true);
                 markArticleAsRead(card);
+                
+                // Smooth scroll to the card's new position after repositioning
+                setTimeout(() => {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 50);
                 return;
             }
             
@@ -1616,6 +1621,11 @@
                     }
                     toggleCopyButton(card, true);
                     markArticleAsRead(card);
+                    
+                    // Smooth scroll to the card's new position after repositioning
+                    setTimeout(() => {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 50);
                 } else {
                     expander.classList.add('error');
                     expander.textContent = 'Error: ' + (data.error || 'Failed to summarize');
