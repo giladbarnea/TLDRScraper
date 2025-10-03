@@ -340,11 +340,25 @@
         }
 
         .expand-btn.loaded {
-            background: transparent !important;
+            background: #22c55e !important;
+            color: white !important;
+            border-color: #22c55e !important;
+        }
+        
+        .expand-btn.loaded:hover {
+            background: #16a34a !important;
+            border-color: #16a34a !important;
         }
         
         .expand-btn.loaded.expanded {
             background: transparent !important;
+            color: var(--text) !important;
+            border-color: var(--border) !important;
+        }
+
+        .expand-btn.loaded.expanded:hover {
+            background: var(--bg) !important;
+            color: var(--text) !important;
         }
 
         .expand-chevron-btn {
@@ -877,10 +891,10 @@
         }
 
         const SUMMARY_EFFORT_OPTIONS = [
-            { value: 'minimal', label: 'Minimal reasoning effort' },
-            { value: 'low', label: 'Low reasoning effort' },
-            { value: 'medium', label: 'Medium reasoning effort' },
-            { value: 'high', label: 'High reasoning effort' }
+            { value: 'minimal', label: 'Minimal reasoning' },
+            { value: 'low', label: 'Low reasoning' },
+            { value: 'medium', label: 'Medium reasoning' },
+            { value: 'high', label: 'High reasoning' }
         ];
 
         function normalizeSummaryEffort(value) {
@@ -907,8 +921,10 @@
                 const expandBtnReset = card.querySelector('.expand-btn');
                 if (expandBtnReset) {
                     expandBtnReset.classList.remove('expanded');
-                    expandBtnReset.innerHTML = '↓';
-                    expandBtnReset.title = 'Show summary';
+                    expandBtnReset.classList.remove('loaded');
+                    expandBtnReset.classList.add('collapsed-state');
+                    expandBtnReset.innerHTML = 'Summarize';
+                    expandBtnReset.title = 'Show summary with default reasoning effort';
                 }
                 toggleCopyButton(card, false);
             }
@@ -1264,7 +1280,8 @@
                             }
                             // Mark button as having loaded summary
                             btn.classList.add('loaded');
-                            btn.title = 'Show summary';
+                            btn.innerHTML = 'Available';
+                            btn.title = 'Summary cached - click to show';
 
                             // Store the summary data
                             if (card) {
@@ -1369,10 +1386,13 @@
                 });
 
                 articleList.querySelectorAll('.expand-btn').forEach(function(btn) {
-                    btn.innerHTML = 'Summarize';
-                    btn.title = 'Show summary with default reasoning effort';
+                    const isLoaded = btn.classList.contains('loaded');
+                    btn.innerHTML = isLoaded ? 'Available' : 'Summarize';
+                    btn.title = isLoaded ? 'Summary cached - click to show' : 'Show summary with default reasoning effort';
                     btn.classList.remove('expanded');
-                    btn.classList.add('collapsed-state');
+                    if (!isLoaded) {
+                        btn.classList.add('collapsed-state');
+                    }
                 });
             }
             
@@ -1396,6 +1416,7 @@
                         expandBtn.title = 'Hide summary';
                         expandBtn.classList.add('expanded');
                         expandBtn.classList.remove('collapsed-state');
+                        // If it was loaded, keep the loaded state for when it collapses again
                         toggleCopyButton(card, true);
                     }
                 });
@@ -1470,10 +1491,14 @@
                 } else {
                     expander.style.display = 'none';
                     if (btn) {
-                        btn.innerHTML = 'Summarize';
-                        btn.title = 'Show summary with default reasoning effort';
+                        // Check if summary is loaded (cached)
+                        const isLoaded = btn.classList.contains('loaded');
+                        btn.innerHTML = isLoaded ? 'Available' : 'Summarize';
+                        btn.title = isLoaded ? 'Summary cached - click to show' : 'Show summary with default reasoning effort';
                         btn.classList.remove('expanded');
-                        btn.classList.add('collapsed-state');
+                        if (!isLoaded) {
+                            btn.classList.add('collapsed-state');
+                        }
                     }
                     toggleCopyButton(card, false);
                 }
@@ -1502,6 +1527,7 @@
                     btn.title = 'Hide summary';
                     btn.classList.add('expanded');
                     btn.classList.remove('collapsed-state');
+                    btn.classList.add('loaded');
                 }
                 toggleCopyButton(card, true);
                 return;
