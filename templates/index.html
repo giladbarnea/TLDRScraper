@@ -283,21 +283,50 @@
             opacity: 1;
         }
 
+        /* Advanced mode selector - replaces expand button temporarily */
         .summary-effort-select {
             display: none;
             height: 32px;
-            border: 1px solid var(--border);
+            border: 1px solid var(--link);
             border-radius: 6px;
             background: #fff;
             color: var(--text);
-            font-size: 12px;
-            padding: 0 8px;
+            font-size: 13px;
+            padding: 0 24px 0 8px;
             cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 6px center;
+            box-shadow: 0 2px 4px rgba(26,115,232,0.15);
         }
 
         .summary-effort-select.visible {
             display: inline-flex;
             align-items: center;
+        }
+
+        /* Effort level label for better UX */
+        .effort-indicator {
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--muted);
+            background: var(--surface);
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .expand-btn:hover .effort-indicator,
+        .expand-btn:focus .effort-indicator {
+            opacity: 1;
         }
 
         .article-btn {
@@ -491,6 +520,19 @@
                 padding: 12px;
             }
             
+            .article-header {
+                flex-wrap: wrap;
+            }
+            
+            /* Move actions below content on mobile */
+            .article-actions {
+                width: 100%;
+                margin-left: 36px; /* Align with content (number width + gap) */
+                margin-top: 8px;
+                justify-content: flex-start;
+                gap: 8px;
+            }
+            
             .article-number {
                 width: 24px;
                 height: 24px;
@@ -499,6 +541,13 @@
             
             .article-link {
                 font-size: 15px;
+            }
+            
+            /* Make selector more compact on mobile */
+            .summary-effort-select {
+                font-size: 12px;
+                padding: 0 20px 0 6px;
+                min-width: 70px;
             }
             
             .interaction-hint {
@@ -613,10 +662,10 @@
         }
 
         const SUMMARY_EFFORT_OPTIONS = [
-            { value: 'minimal', label: 'Minimal' },
-            { value: 'low', label: 'Low' },
-            { value: 'medium', label: 'Medium' },
-            { value: 'high', label: 'High' }
+            { value: 'minimal', label: 'Minimal', shortLabel: 'Min' },
+            { value: 'low', label: 'Low', shortLabel: 'Low' },
+            { value: 'medium', label: 'Medium', shortLabel: 'Med' },
+            { value: 'high', label: 'High', shortLabel: 'High' }
         ];
 
         function normalizeSummaryEffort(value) {
@@ -663,14 +712,14 @@
 
             function hideSelect() {
                 effortSelect.classList.remove('visible');
-                effortSelect.style.display = 'none';
+                expandBtn.style.display = 'flex';
                 delete expandBtn.dataset.skipNextClick;
             }
 
             function showSelect() {
                 effortSelect.value = getCardSummaryEffort(card);
                 effortSelect.classList.add('visible');
-                effortSelect.style.display = 'inline-flex';
+                expandBtn.style.display = 'none';
                 expandBtn.dataset.skipNextClick = 'true';
                 requestAnimationFrame(() => {
                     effortSelect.focus();
@@ -880,11 +929,14 @@
 
                             const effortSelect = document.createElement('select');
                             effortSelect.className = 'summary-effort-select';
-                            effortSelect.setAttribute('aria-label', 'Summary detail level');
+                            effortSelect.setAttribute('aria-label', 'Summary reasoning effort');
+                            effortSelect.setAttribute('title', 'Select reasoning effort level');
                             SUMMARY_EFFORT_OPTIONS.forEach((option) => {
                                 const opt = document.createElement('option');
                                 opt.value = option.value;
-                                opt.textContent = option.label;
+                                // Use short label for the dropdown for mobile-friendliness
+                                opt.textContent = option.shortLabel || option.label;
+                                opt.setAttribute('data-full-label', option.label);
                                 effortSelect.appendChild(opt);
                             });
 
@@ -929,7 +981,7 @@
                         if (!document.querySelector('.interaction-hint')) {
                             const hint = document.createElement('div');
                             hint.className = 'interaction-hint';
-                            hint.innerHTML = '💡 Click article titles to preview summaries • Ctrl/Cmd+Click to open directly';
+                            hint.innerHTML = '💡 Click titles to show summaries • Long press ↓ for reasoning effort options • Ctrl/Cmd+Click to open directly';
                             articleList.insertAdjacentElement('afterend', hint);
                         }
                     });
