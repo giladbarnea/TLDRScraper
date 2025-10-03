@@ -283,50 +283,133 @@
             opacity: 1;
         }
 
-        /* Advanced mode selector - replaces expand button temporarily */
-        .summary-effort-select {
-            display: none;
-            height: 32px;
-            border: 1px solid var(--link);
-            border-radius: 6px;
-            background: #fff;
-            color: var(--text);
-            font-size: 13px;
-            padding: 0 24px 0 8px;
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 6px center;
-            box-shadow: 0 2px 4px rgba(26,115,232,0.15);
-        }
-
-        .summary-effort-select.visible {
-            display: inline-flex;
+        /* Split button for summarize action */
+        .expand-btn-container {
+            position: relative;
+            display: flex;
             align-items: center;
+            height: 32px;
         }
 
-        /* Effort level label for better UX */
-        .effort-indicator {
-            position: absolute;
-            top: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 10px;
-            font-weight: 600;
-            color: var(--muted);
-            background: var(--surface);
-            padding: 2px 6px;
-            border-radius: 4px;
+        .expand-btn {
+            width: auto !important;
+            padding: 0 10px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 6px 0 0 6px !important;
+            border-right: none !important;
             white-space: nowrap;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s ease;
         }
 
-        .expand-btn:hover .effort-indicator,
-        .expand-btn:focus .effort-indicator {
-            opacity: 1;
+        .expand-btn.collapsed-state {
+            /* When not expanded, show 'Summarize' */
+        }
+
+        .expand-btn.expanded {
+            border-radius: 6px 0 0 6px !important;
+        }
+
+        .expand-chevron-btn {
+            width: 24px !important;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-left: 1px solid rgba(0,0,0,0.08) !important;
+            border-radius: 0 6px 6px 0;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 14px;
+            padding: 0;
+            margin: 0;
+            position: relative;
+        }
+
+        .expand-chevron-btn:hover {
+            background: var(--bg);
+            border-color: var(--muted);
+            color: var(--text);
+        }
+
+        .expand-chevron-btn.active {
+            background: var(--bg);
+            border-color: var(--link);
+            color: var(--link);
+        }
+
+        /* Floating dropdown menu */
+        .effort-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            min-width: 200px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08);
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+            animation: dropdownSlideIn 0.15s ease;
+        }
+
+        .effort-dropdown.visible {
+            display: block;
+        }
+
+        @keyframes dropdownSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .effort-dropdown-item {
+            padding: 10px 14px;
+            font-size: 14px;
+            color: var(--text);
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            transition: background-color 0.1s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .effort-dropdown-item:hover {
+            background: var(--bg);
+        }
+
+        .effort-dropdown-item:active {
+            background: #e5e7eb;
+        }
+
+        .effort-dropdown-item:not(:last-child) {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .effort-dropdown-item .effort-label {
+            flex: 1;
+        }
+
+        .effort-dropdown-item .effort-icon {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            opacity: 0.5;
         }
 
         .article-btn {
@@ -543,11 +626,19 @@
                 font-size: 15px;
             }
             
-            /* Make selector more compact on mobile */
-            .summary-effort-select {
+            /* Make split button more compact on mobile */
+            .expand-btn {
                 font-size: 12px;
-                padding: 0 20px 0 6px;
-                min-width: 70px;
+                padding: 0 8px;
+            }
+            
+            .expand-chevron-btn {
+                width: 20px !important;
+            }
+            
+            .effort-dropdown {
+                min-width: 180px;
+                font-size: 13px;
             }
             
             .interaction-hint {
@@ -662,10 +753,10 @@
         }
 
         const SUMMARY_EFFORT_OPTIONS = [
-            { value: 'minimal', label: 'Minimal', shortLabel: 'Min' },
-            { value: 'low', label: 'Low', shortLabel: 'Low' },
-            { value: 'medium', label: 'Medium', shortLabel: 'Med' },
-            { value: 'high', label: 'High', shortLabel: 'High' }
+            { value: 'minimal', label: 'Minimal reasoning effort' },
+            { value: 'low', label: 'Low reasoning effort' },
+            { value: 'medium', label: 'Medium reasoning effort' },
+            { value: 'high', label: 'High reasoning effort' }
         ];
 
         function normalizeSummaryEffort(value) {
@@ -704,59 +795,58 @@
             }
         }
 
-        function setupSummaryEffortControls(card, expandBtn, effortSelect) {
-            if (!card || !expandBtn || !effortSelect) return;
+        function setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown) {
+            if (!card || !expandBtn || !chevronBtn || !dropdown) return;
 
-            const LONG_PRESS_DURATION = 600;
-            let longPressTimer = null;
-
-            function hideSelect() {
-                effortSelect.classList.remove('visible');
-                expandBtn.style.display = 'flex';
-                delete expandBtn.dataset.skipNextClick;
+            function hideDropdown() {
+                dropdown.classList.remove('visible');
+                chevronBtn.classList.remove('active');
             }
 
-            function showSelect() {
-                effortSelect.value = getCardSummaryEffort(card);
-                effortSelect.classList.add('visible');
-                expandBtn.style.display = 'none';
-                expandBtn.dataset.skipNextClick = 'true';
-                requestAnimationFrame(() => {
-                    effortSelect.focus();
+            function showDropdown() {
+                dropdown.classList.add('visible');
+                chevronBtn.classList.add('active');
+            }
+
+            function toggleDropdown(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                if (dropdown.classList.contains('visible')) {
+                    hideDropdown();
+                } else {
+                    showDropdown();
+                }
+            }
+
+            // Chevron button toggles dropdown
+            chevronBtn.addEventListener('click', toggleDropdown);
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!dropdown.contains(event.target) && 
+                    !chevronBtn.contains(event.target) &&
+                    dropdown.classList.contains('visible')) {
+                    hideDropdown();
+                }
+            });
+
+            // Handle dropdown item clicks
+            dropdown.querySelectorAll('.effort-dropdown-item').forEach(item => {
+                item.addEventListener('click', async function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const effort = this.getAttribute('data-effort');
+                    setCardSummaryEffort(card, effort);
+                    hideDropdown();
+                    
+                    // Trigger the expand/summarize action with the selected effort
+                    expandBtn.click();
                 });
-            }
-
-            function startPress(event) {
-                if (expandBtn.disabled) return;
-                if (event.type === 'mousedown' && event.button !== 0) return;
-                clearTimeout(longPressTimer);
-                longPressTimer = setTimeout(() => {
-                    showSelect();
-                }, LONG_PRESS_DURATION);
-            }
-
-            function cancelPress() {
-                clearTimeout(longPressTimer);
-            }
-
-            expandBtn.addEventListener('mousedown', startPress);
-            expandBtn.addEventListener('touchstart', startPress);
-            expandBtn.addEventListener('mouseup', cancelPress);
-            expandBtn.addEventListener('mouseleave', cancelPress);
-            expandBtn.addEventListener('touchend', cancelPress);
-            expandBtn.addEventListener('touchcancel', cancelPress);
-            expandBtn.addEventListener('touchmove', cancelPress);
-
-            effortSelect.addEventListener('change', (event) => {
-                setCardSummaryEffort(card, event.target.value || 'low');
-                hideSelect();
             });
 
-            effortSelect.addEventListener('blur', () => {
-                hideSelect();
-            });
-
-            hideSelect();
+            hideDropdown();
         }
 
         // Form submission handler - use backend API
@@ -919,26 +1009,46 @@
                             const actions = document.createElement('div');
                             actions.className = 'article-actions';
 
-                            // Create expand button
+                            // Create split button container
+                            const expandBtnContainer = document.createElement('div');
+                            expandBtnContainer.className = 'expand-btn-container';
+
+                            // Create main expand button
                             const expandBtn = document.createElement('button');
-                            expandBtn.className = 'article-btn expand-btn';
-                            expandBtn.innerHTML = '↓';
-                            expandBtn.title = 'Show summary';
+                            expandBtn.className = 'article-btn expand-btn collapsed-state';
+                            expandBtn.innerHTML = 'Summarize';
+                            expandBtn.title = 'Show summary with default reasoning effort';
                             expandBtn.setAttribute('data-url', urlValue);
                             expandBtn.type = 'button';
 
-                            const effortSelect = document.createElement('select');
-                            effortSelect.className = 'summary-effort-select';
-                            effortSelect.setAttribute('aria-label', 'Summary reasoning effort');
-                            effortSelect.setAttribute('title', 'Select reasoning effort level');
+                            // Create chevron button
+                            const chevronBtn = document.createElement('button');
+                            chevronBtn.className = 'article-btn expand-chevron-btn';
+                            chevronBtn.innerHTML = '▾';
+                            chevronBtn.title = 'Choose reasoning effort level';
+                            chevronBtn.type = 'button';
+
+                            // Create dropdown menu
+                            const dropdown = document.createElement('div');
+                            dropdown.className = 'effort-dropdown';
+                            
                             SUMMARY_EFFORT_OPTIONS.forEach((option) => {
-                                const opt = document.createElement('option');
-                                opt.value = option.value;
-                                // Use short label for the dropdown for mobile-friendliness
-                                opt.textContent = option.shortLabel || option.label;
-                                opt.setAttribute('data-full-label', option.label);
-                                effortSelect.appendChild(opt);
+                                const item = document.createElement('button');
+                                item.className = 'effort-dropdown-item';
+                                item.type = 'button';
+                                item.setAttribute('data-effort', option.value);
+                                
+                                const label = document.createElement('span');
+                                label.className = 'effort-label';
+                                label.textContent = option.label;
+                                
+                                item.appendChild(label);
+                                dropdown.appendChild(item);
                             });
+
+                            expandBtnContainer.appendChild(expandBtn);
+                            expandBtnContainer.appendChild(chevronBtn);
+                            expandBtnContainer.appendChild(dropdown);
 
                             const copyBtn = document.createElement('button');
                             copyBtn.className = 'article-btn copy-summary-btn';
@@ -961,15 +1071,13 @@
                             header.appendChild(number);
                             header.appendChild(content);
                             header.appendChild(actions);
-                            actions.appendChild(expandBtn);
-                            actions.appendChild(effortSelect);
+                            actions.appendChild(expandBtnContainer);
                             actions.appendChild(copyBtn);
                             actions.appendChild(removeBtn);
                             card.appendChild(header);
 
                             setCardSummaryEffort(card, 'low');
-                            effortSelect.value = getCardSummaryEffort(card);
-                            setupSummaryEffortControls(card, expandBtn, effortSelect);
+                            setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown);
 
                             articleList.appendChild(card);
                         });
@@ -981,7 +1089,7 @@
                         if (!document.querySelector('.interaction-hint')) {
                             const hint = document.createElement('div');
                             hint.className = 'interaction-hint';
-                            hint.innerHTML = '💡 Click titles to show summaries • Long press ↓ for reasoning effort options • Ctrl/Cmd+Click to open directly';
+                            hint.innerHTML = '💡 Click titles or "Summarize" to show summaries • Use ▾ to choose reasoning effort • Ctrl/Cmd+Click to open directly';
                             articleList.insertAdjacentElement('afterend', hint);
                         }
                     });
@@ -1143,9 +1251,10 @@
                 });
 
                 articleList.querySelectorAll('.expand-btn').forEach(function(btn) {
-                    btn.innerHTML = '↓';
-                    btn.title = 'Show summary';
+                    btn.innerHTML = 'Summarize';
+                    btn.title = 'Show summary with default reasoning effort';
                     btn.classList.remove('expanded');
+                    btn.classList.add('collapsed-state');
                 });
             }
             
@@ -1165,9 +1274,10 @@
                         expandBtn.click();
                     } else {
                         summary.style.display = 'block';
-                        expandBtn.innerHTML = '↑';
+                        expandBtn.innerHTML = 'Hide';
                         expandBtn.title = 'Hide summary';
                         expandBtn.classList.add('expanded');
+                        expandBtn.classList.remove('collapsed-state');
                         toggleCopyButton(card, true);
                     }
                 });
@@ -1248,12 +1358,12 @@
 
         // Handle expand button and link clicks for summaries
         document.addEventListener('click', async function(e) {
-            // Check if it's an expand button
-            const expandBtn = e.target.closest('.expand-btn');
+            // Check if it's an expand button (but not chevron or dropdown)
+            const expandBtn = e.target.closest('.expand-btn:not(.expand-chevron-btn)');
             const link = e.target.closest('.article-link');
-
-            if (expandBtn && expandBtn.dataset.skipNextClick === 'true') {
-                delete expandBtn.dataset.skipNextClick;
+            
+            // Ignore clicks on chevron button or dropdown items
+            if (e.target.closest('.expand-chevron-btn') || e.target.closest('.effort-dropdown-item')) {
                 return;
             }
 
@@ -1288,17 +1398,19 @@
                 if (expander.style.display === 'none') {
                     expander.style.display = 'block';
                     if (btn) {
-                        btn.innerHTML = '↑';
+                        btn.innerHTML = 'Hide';
                         btn.title = 'Hide summary';
                         btn.classList.add('expanded');
+                        btn.classList.remove('collapsed-state');
                     }
                     toggleCopyButton(card, true);
                 } else {
                     expander.style.display = 'none';
                     if (btn) {
-                        btn.innerHTML = '↓';
-                        btn.title = 'Show summary';
+                        btn.innerHTML = 'Summarize';
+                        btn.title = 'Show summary with default reasoning effort';
                         btn.classList.remove('expanded');
+                        btn.classList.add('collapsed-state');
                     }
                     toggleCopyButton(card, false);
                 }
@@ -1323,9 +1435,10 @@
                 card.appendChild(expander);
                 
                 if (btn) {
-                    btn.innerHTML = '↑';
+                    btn.innerHTML = 'Hide';
                     btn.title = 'Hide summary';
                     btn.classList.add('expanded');
+                    btn.classList.remove('collapsed-state');
                 }
                 toggleCopyButton(card, true);
                 return;
@@ -1334,8 +1447,8 @@
             // Update button state
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '⋯';
-                btn.title = 'Loading...';
+                btn.innerHTML = 'Loading...';
+                btn.title = 'Loading summary...';
             }
 
             // Create inline summary under the card header
@@ -1355,8 +1468,9 @@
                     if (getCardSummaryEffort(card) !== summaryEffort) {
                         if (btn) {
                             btn.disabled = false;
-                            btn.innerHTML = '↓';
-                            btn.title = 'Show summary';
+                            btn.innerHTML = 'Summarize';
+                            btn.title = 'Show summary with default reasoning effort';
+                            btn.classList.add('collapsed-state');
                         }
                         if (expander && expander.parentNode) {
                             expander.remove();
@@ -1378,9 +1492,10 @@
                     
                     if (btn) {
                         btn.disabled = false;
-                        btn.innerHTML = '↑';
+                        btn.innerHTML = 'Hide';
                         btn.title = 'Hide summary';
                         btn.classList.add('expanded');
+                        btn.classList.remove('collapsed-state');
                         btn.classList.add('loaded');
                     }
                     toggleCopyButton(card, true);
@@ -1390,8 +1505,9 @@
 
                     if (btn) {
                         btn.disabled = false;
-                        btn.innerHTML = '↓';
-                        btn.title = 'Show summary';
+                        btn.innerHTML = 'Summarize';
+                        btn.title = 'Show summary with default reasoning effort';
+                        btn.classList.add('collapsed-state');
                     }
                     toggleCopyButton(card, false);
                 }
@@ -1401,8 +1517,9 @@
 
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = '↓';
-                    btn.title = 'Show summary';
+                    btn.innerHTML = 'Summarize';
+                    btn.title = 'Show summary with default reasoning effort';
+                    btn.classList.add('collapsed-state');
                 }
                 toggleCopyButton(card, false);
             }
