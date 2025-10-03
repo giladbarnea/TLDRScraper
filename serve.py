@@ -141,16 +141,9 @@ def summarize_url_endpoint():
             else None
         )
 
-        debug_appendix = (
-            f"\n\n---\n"
-            f"Debug: Summary cache key candidate\n"
-            f"- candidate: `{summary_blob_pathname_value}`\n"
-            f"- effort: `{summary_effort}`\n"
-        )
-
         return jsonify({
             "success": True,
-            "summary_markdown": summary + debug_appendix,
+            "summary_markdown": summary,
             "summary_blob_url": summary_blob_url,
             "summary_blob_pathname": summary_blob_pathname_value,
         })
