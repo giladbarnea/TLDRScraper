@@ -619,31 +619,7 @@
             opacity: 0.8;
         }
         
-        /* Section controls */
-        .section-controls {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            justify-content: flex-end;
-            margin-bottom: 12px;
-        }
-        
-        .section-btn {
-            padding: 6px 12px;
-            font-size: 13px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--muted);
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        
-        .section-btn:hover {
-            background: var(--bg);
-            color: var(--text);
-            border-color: var(--muted);
-        }
+        /* Section controls removed - expand all functionality removed */
 
         @media (max-width: 768px) {
             .article-actions {
@@ -1082,32 +1058,9 @@
 
                     // Transform native ol/li into modern card layout
                     result.querySelectorAll('#write ol').forEach(function(ol, sectionIndex) {
-                        // Create section controls
-                        const controls = document.createElement('div');
-                        controls.className = 'section-controls';
-                        
-                        const collapseAllBtn = document.createElement('button');
-                        collapseAllBtn.className = 'section-btn collapse-all-btn';
-                        collapseAllBtn.textContent = 'Collapse All';
-                        collapseAllBtn.type = 'button';
-                        collapseAllBtn.setAttribute('data-section', sectionIndex);
-                        
-                        const expandAllBtn = document.createElement('button');
-                        expandAllBtn.className = 'section-btn expand-all-btn';
-                        expandAllBtn.textContent = 'Expand All';
-                        expandAllBtn.type = 'button';
-                        expandAllBtn.setAttribute('data-section', sectionIndex);
-                        
-                        controls.appendChild(collapseAllBtn);
-                        controls.appendChild(expandAllBtn);
-                        
-                        // Insert controls before the list
-                        ol.parentNode.insertBefore(controls, ol);
-                        
                         // Create new article list container
                         const articleList = document.createElement('div');
                         articleList.className = 'article-list';
-                        articleList.setAttribute('data-section', sectionIndex);
                         
                         // Get all list items
                         const listItems = ol.querySelectorAll('li');
@@ -1372,56 +1325,7 @@
             }
         });
 
-        // Handle section-level collapse/expand all
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('collapse-all-btn')) {
-                const section = e.target.getAttribute('data-section');
-                const articleList = document.querySelector(`.article-list[data-section="${section}"]`);
-                if (!articleList) return;
-                
-                articleList.querySelectorAll('.inline-summary').forEach(function(summary) {
-                    summary.style.display = 'none';
-                    const card = summary.closest('.article-card');
-                    toggleCopyButton(card, false);
-                });
-
-                articleList.querySelectorAll('.expand-btn').forEach(function(btn) {
-                    const isLoaded = btn.classList.contains('loaded');
-                    btn.innerHTML = isLoaded ? 'Available' : 'Summarize';
-                    btn.title = isLoaded ? 'Summary cached - click to show' : 'Show summary with default reasoning effort';
-                    btn.classList.remove('expanded');
-                    if (!isLoaded) {
-                        btn.classList.add('collapsed-state');
-                    }
-                });
-            }
-            
-            if (e.target.classList.contains('expand-all-btn')) {
-                const section = e.target.getAttribute('data-section');
-                const articleList = document.querySelector(`.article-list[data-section="${section}"]`);
-                if (!articleList) return;
-                
-                // Trigger click on each expand button that hasn't been clicked yet
-                articleList.querySelectorAll('.article-card').forEach(async function(card) {
-                    const expandBtn = card.querySelector('.expand-btn');
-                    if (!expandBtn) return;
-                    
-                    let summary = card.querySelector('.inline-summary');
-                    if (!summary) {
-                        // Trigger the expand
-                        expandBtn.click();
-                    } else {
-                        summary.style.display = 'block';
-                        expandBtn.innerHTML = 'Hide';
-                        expandBtn.title = 'Hide summary';
-                        expandBtn.classList.add('expanded');
-                        expandBtn.classList.remove('collapsed-state');
-                        // If it was loaded, keep the loaded state for when it collapses again
-                        toggleCopyButton(card, true);
-                    }
-                });
-            }
-        });
+        // Expand all functionality removed
 
         document.addEventListener('click', async function(e) {
             const btn = e.target.closest('.copy-summary-btn');
