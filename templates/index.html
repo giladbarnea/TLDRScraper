@@ -217,6 +217,62 @@
             opacity: 1;
         }
         
+        /* Article state styling - 3-stack system */
+        /* Unread (top) - bold and engaging */
+        .article-card.unread .article-link {
+            font-weight: 600;
+        }
+        
+        /* Read (middle) - plain and less prominent */
+        .article-card.read .article-link {
+            font-weight: normal;
+            color: var(--muted);
+        }
+        
+        /* Removed (bottom) - completed to-do style */
+        .article-card.removed {
+            background: #f8f8f8;
+            opacity: 0.7;
+            border-color: #d0d0d0;
+        }
+        
+        .article-card.removed:hover {
+            transform: none !important;
+            box-shadow: none;
+            border-color: #d0d0d0;
+        }
+        
+        .article-card.removed .article-link {
+            color: #888;
+            text-decoration: line-through;
+            cursor: default;
+            pointer-events: none;
+        }
+        
+        .article-card.removed .article-link::after {
+            display: none;
+        }
+        
+        .article-card.removed .article-actions {
+            display: none;
+        }
+        
+        .article-card.removed .article-number {
+            background: #e0e0e0;
+            color: #888;
+        }
+        
+        /* Category boundaries */
+        .article-card.category-first {
+            border-top: 3px solid var(--link);
+            padding-top: 16px;
+            margin-top: 12px;
+        }
+        
+        .article-card.removed.category-first {
+            border-top: 2px dashed #d0d0d0;
+        }
+        
         /* Stagger animation for cards */
         .article-card:nth-child(1) { animation-delay: 0.05s; }
         .article-card:nth-child(2) { animation-delay: 0.1s; }
@@ -328,10 +384,6 @@
             border-right: none !important;
             white-space: nowrap;
             background: transparent !important;
-        }
-
-        .expand-btn.collapsed-state {
-            /* When not expanded, show 'Summarize' */
         }
 
         .expand-btn.expanded {
@@ -805,11 +857,14 @@
                 const shouldDelete = diff < -100 || (diff < -50 && velocity > 0.3);
 
                 if (shouldDelete && !shouldDisableRemovals()) {
-                    // Trigger deletion
-                    card.classList.add('swiped-left');
+                    // Trigger removal (reposition to bottom, don't delete from DOM)
                     const url = card.getAttribute('data-url');
                     
-                    setTimeout(async () => {
+                    // Reset transform first
+                    card.style.transform = '';
+                    card.classList.remove('showing-delete-indicator');
+                    
+                    (async () => {
                         try {
                             const resp = await fetch('/api/remove-url', {
                                 method: 'POST',
@@ -819,20 +874,15 @@
                             const data = await resp.json();
                             
                             if (data.success) {
-                                setTimeout(() => card.remove(), 300);
+                                // Mark as removed and reposition
+                                markArticleAsRemoved(card);
                             } else {
-                                // Revert on error
-                                card.style.transform = '';
-                                card.classList.remove('swiped-left', 'showing-delete-indicator');
                                 alert('Failed to remove: ' + (data.error || 'Unknown error'));
                             }
                         } catch (err) {
-                            // Revert on error
-                            card.style.transform = '';
-                            card.classList.remove('swiped-left', 'showing-delete-indicator');
                             alert('Error: ' + err.message);
                         }
-                    }, 200);
+                    })();
                 } else {
                     // Snap back
                     card.style.transform = '';
@@ -865,6 +915,52 @@
             copyToastTimeout = setTimeout(function() {
                 copyToast.classList.remove('show');
             }, 2000);
+        }
+        
+        // Article state management - 3-stack system
+        function getArticleState(card) {
+            if (card.classList.contains('removed')) return 2;
+            if (card.classList.contains('read')) return 1;
+            return 0; // unread
+        }
+        
+        function sortArticlesByState(articleList) {
+            const cards = Array.from(articleList.querySelectorAll('.article-card'));
+            cards.sort((a, b) => getArticleState(a) - getArticleState(b));
+            cards.forEach((card, index) => {
+                articleList.appendChild(card);
+                const number = card.querySelector('.article-number');
+                if (number) number.textContent = index + 1;
+            });
+            markCategoryBoundaries(articleList);
+        }
+        
+        function markCategoryBoundaries(articleList) {
+            const cards = Array.from(articleList.querySelectorAll('.article-card'));
+            let lastState = -1;
+            cards.forEach(card => {
+                const state = getArticleState(card);
+                card.classList.remove('category-first');
+                if (state !== lastState && lastState !== -1) {
+                    card.classList.add('category-first');
+                }
+                lastState = state;
+            });
+        }
+        
+        function markArticleAsRead(card) {
+            if (card.classList.contains('removed')) return;
+            card.classList.remove('unread');
+            card.classList.add('read');
+            const articleList = card.closest('.article-list');
+            if (articleList) sortArticlesByState(articleList);
+        }
+        
+        function markArticleAsRemoved(card) {
+            card.classList.remove('unread', 'read');
+            card.classList.add('removed');
+            const articleList = card.closest('.article-list');
+            if (articleList) sortArticlesByState(articleList);
         }
 
         function toggleCopyButton(card, shouldShow) {
@@ -1082,10 +1178,15 @@
 
                             // Create article card
                             const card = document.createElement('div');
-                            card.className = 'article-card';
                             const urlValue = link.getAttribute('href');
                             const titleText = link.textContent.trim();
-                            card.setAttribute('data-url', urlValue);
+                            
+                            // Check if article is marked as removed via URL parameter
+                            const isRemoved = urlValue.includes('?data-removed=true');
+                            const cleanUrl = urlValue.replace('?data-removed=true', '');
+                            
+                            card.className = 'article-card ' + (isRemoved ? 'removed' : 'unread');
+                            card.setAttribute('data-url', cleanUrl);
                             card.setAttribute('data-title', titleText);
 
                             // Create header container
@@ -1106,7 +1207,8 @@
                             newLink.className = 'article-link';
                             newLink.setAttribute('target', '_blank');
                             newLink.setAttribute('rel', 'noopener noreferrer');
-                            newLink.setAttribute('data-url', urlValue);
+                            newLink.setAttribute('data-url', cleanUrl);
+                            newLink.setAttribute('href', cleanUrl);
 
                             // Create actions container
                             const actions = document.createElement('div');
@@ -1121,7 +1223,7 @@
                             expandBtn.className = 'article-btn expand-btn collapsed-state';
                             expandBtn.innerHTML = 'Summarize';
                             expandBtn.title = 'Show summary with default reasoning effort';
-                            expandBtn.setAttribute('data-url', urlValue);
+                            expandBtn.setAttribute('data-url', cleanUrl);
                             expandBtn.type = 'button';
 
                             // Create chevron button
@@ -1158,7 +1260,7 @@
                             copyBtn.innerHTML = clipboardIconMarkup;
                             copyBtn.title = 'Copy summary';
                             copyBtn.type = 'button';
-                            copyBtn.setAttribute('data-url', urlValue);
+                            copyBtn.setAttribute('data-url', cleanUrl);
 
                             // Create swipe delete indicator
                             const deleteIndicator = document.createElement('div');
@@ -1169,18 +1271,26 @@
                             content.appendChild(newLink);
                             header.appendChild(number);
                             header.appendChild(content);
-                            header.appendChild(actions);
-                            actions.appendChild(expandBtnContainer);
-                            actions.appendChild(copyBtn);
+                            
+                            // Only add actions if not removed
+                            if (!isRemoved) {
+                                header.appendChild(actions);
+                                actions.appendChild(expandBtnContainer);
+                                actions.appendChild(copyBtn);
+                                card.appendChild(deleteIndicator);
+                                
+                                setCardSummaryEffort(card, 'low');
+                                setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown);
+                                setupSwipeGesture(card);
+                            }
+                            
                             card.appendChild(header);
-                            card.appendChild(deleteIndicator);
-
-                            setCardSummaryEffort(card, 'low');
-                            setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown);
-                            setupSwipeGesture(card);
 
                             articleList.appendChild(card);
                         });
+                        
+                        // Sort articles by state after creation
+                        sortArticlesByState(articleList);
                         
                         // Replace the old list with the new card layout
                         ol.parentNode.replaceChild(articleList, ol);
@@ -1247,9 +1357,10 @@
                             btn.innerHTML = 'Available';
                             btn.title = 'Summary cached - click to show';
 
-                            // Store the summary data
+                            // Store the summary data and mark as read
                             if (card) {
                                 card.setAttribute('data-summary', data.summary_markdown || '');
+                                markArticleAsRead(card);
                             }
                         }
                     } catch (err) {
@@ -1445,6 +1556,7 @@
                     btn.classList.add('loaded');
                 }
                 toggleCopyButton(card, true);
+                markArticleAsRead(card);
                 return;
             }
             
@@ -1503,6 +1615,7 @@
                         btn.classList.add('loaded');
                     }
                     toggleCopyButton(card, true);
+                    markArticleAsRead(card);
                 } else {
                     expander.classList.add('error');
                     expander.textContent = 'Error: ' + (data.error || 'Failed to summarize');
