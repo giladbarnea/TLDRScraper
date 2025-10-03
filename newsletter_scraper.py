@@ -180,8 +180,26 @@ def _format_final_output(start_date, end_date, grouped_articles):
 
             for i, article in enumerate(category_articles, 1):
                 domain_name = util.get_domain_name(article['url'])
-                title_with_domain = f"{article['title']} ({domain_name})"
-                output += f"{i}. [{title_with_domain}]({article['url']})\n"
+                is_removed = article.get("removed", False)
+                
+                # Format title based on removed state
+                if is_removed:
+                    # For removed articles: remove "(N minutes read)" and truncate to 10 chars
+                    import re
+                    title = article['title']
+                    # Remove "(N minutes read)" pattern
+                    title = re.sub(r'\s*\(\d+\s+minutes?\s+read\)', '', title, flags=re.IGNORECASE)
+                    # Truncate to 10 characters
+                    if len(title) > 10:
+                        title = title[:10] + '...'
+                    title_with_domain = f"{title} ({domain_name})"
+                else:
+                    # Normal article: include full title with domain
+                    title_with_domain = f"{article['title']} ({domain_name})"
+                
+                # Add data-removed attribute via data URL parameter (will be parsed by frontend)
+                removed_marker = f"?data-removed=true" if is_removed else ""
+                output += f"{i}. [{title_with_domain}]({article['url']}{removed_marker})\n"
 
             output += "\n"
 
@@ -313,28 +331,19 @@ def scrape_date_range(start_date, end_date):
             cached_articles = cached_day["articles"]
 
             util.log(
-                f"[newsletter_scraper.scrape_date_range] Day cache HIT date={date_str} articles={len(cached_articles)} (before filtering removed URLs)",
+                f"[newsletter_scraper.scrape_date_range] Day cache HIT date={date_str} articles={len(cached_articles)}",
                 logger=logger,
             )
 
-            filtered_count = 0
             for article in cached_articles:
                 canonical_url = util.canonicalize_url(article["url"])
-
-                if canonical_url in removed_urls:
-                    filtered_count += 1
-                    continue
 
                 if canonical_url not in url_set:
                     url_set.add(canonical_url)
                     article["fetched_via"] = "day_cache"
+                    # Mark as removed if in removed set
+                    article["removed"] = article.get("removed", False) or canonical_url in removed_urls
                     all_articles.append(article)
-
-            if filtered_count > 0:
-                util.log(
-                    f"[newsletter_scraper.scrape_date_range] Filtered {filtered_count} removed URLs from cached day={date_str}",
-                    logger=logger,
-                )
 
             processed_count += len(newsletter_types)
             continue
@@ -357,6 +366,8 @@ def scrape_date_range(start_date, end_date):
 
                     if canonical_url not in url_set:
                         url_set.add(canonical_url)
+                        # Mark as removed if in removed set
+                        article["removed"] = article.get("removed", False) or canonical_url in removed_urls
                         all_articles.append(article)
                         if article.get("fetched_via") == "network":
                             others += 1
@@ -370,25 +381,21 @@ def scrape_date_range(start_date, end_date):
         if day_articles:
             sanitized_day_articles = []
             for a in day_articles:
-                if util.canonicalize_url(a["url"]) in removed_urls:
-                    continue
-
                 clean = {
                     k: v
                     for k, v in a.items()
                     if k != "fetched_via" and not k.startswith("timing_")
                 }
+                # Mark as removed if in removed set
+                canonical_url = util.canonicalize_url(a["url"])
+                clean["removed"] = a.get("removed", False) or canonical_url in removed_urls
                 sanitized_day_articles.append(clean)
 
             _put_cached_day(date_str, sanitized_day_articles)
             util.log(
-                f"[newsletter_scraper.scrape_date_range] Cached day={date_str} articles={len(sanitized_day_articles)} (after removing filtered URLs)",
+                f"[newsletter_scraper.scrape_date_range] Cached day={date_str} articles={len(sanitized_day_articles)}",
                 logger=logger,
             )
-
-    all_articles = [
-        a for a in all_articles if util.canonicalize_url(a["url"]) not in removed_urls
-    ]
 
     grouped_articles = {}
     for article in all_articles:
