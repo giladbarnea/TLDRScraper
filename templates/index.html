@@ -283,6 +283,23 @@
             opacity: 1;
         }
 
+        .summary-effort-select {
+            display: none;
+            height: 32px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--text);
+            font-size: 12px;
+            padding: 0 8px;
+            cursor: pointer;
+        }
+
+        .summary-effort-select.visible {
+            display: inline-flex;
+            align-items: center;
+        }
+
         .article-btn {
             width: 32px;
             height: 32px;
@@ -595,6 +612,104 @@
             copyBtn.classList.remove('visible');
         }
 
+        const SUMMARY_EFFORT_OPTIONS = [
+            { value: 'minimal', label: 'Minimal' },
+            { value: 'low', label: 'Low' },
+            { value: 'medium', label: 'Medium' },
+            { value: 'high', label: 'High' }
+        ];
+
+        function normalizeSummaryEffort(value) {
+            if (typeof value !== 'string') return 'low';
+            const normalized = value.trim().toLowerCase();
+            return SUMMARY_EFFORT_OPTIONS.some((opt) => opt.value === normalized) ? normalized : 'low';
+        }
+
+        function getCardSummaryEffort(card) {
+            if (!card) return 'low';
+            return normalizeSummaryEffort(card.getAttribute('data-summary-effort') || 'low');
+        }
+
+        function setCardSummaryEffort(card, value) {
+            if (!card) return;
+            const previousEffort = normalizeSummaryEffort(card.getAttribute('data-summary-effort') || 'low');
+            const effort = normalizeSummaryEffort(value);
+            if (previousEffort !== effort) {
+                card.removeAttribute('data-summary');
+                const existingSummary = card.querySelector('.inline-summary');
+                if (existingSummary) {
+                    existingSummary.remove();
+                }
+                const expandBtnReset = card.querySelector('.expand-btn');
+                if (expandBtnReset) {
+                    expandBtnReset.classList.remove('expanded');
+                    expandBtnReset.innerHTML = '↓';
+                    expandBtnReset.title = 'Show summary';
+                }
+                toggleCopyButton(card, false);
+            }
+            card.setAttribute('data-summary-effort', effort);
+            const expandBtn = card.querySelector('.expand-btn');
+            if (expandBtn) {
+                expandBtn.dataset.summaryEffort = effort;
+            }
+        }
+
+        function setupSummaryEffortControls(card, expandBtn, effortSelect) {
+            if (!card || !expandBtn || !effortSelect) return;
+
+            const LONG_PRESS_DURATION = 600;
+            let longPressTimer = null;
+
+            function hideSelect() {
+                effortSelect.classList.remove('visible');
+                effortSelect.style.display = 'none';
+                delete expandBtn.dataset.skipNextClick;
+            }
+
+            function showSelect() {
+                effortSelect.value = getCardSummaryEffort(card);
+                effortSelect.classList.add('visible');
+                effortSelect.style.display = 'inline-flex';
+                expandBtn.dataset.skipNextClick = 'true';
+                requestAnimationFrame(() => {
+                    effortSelect.focus();
+                });
+            }
+
+            function startPress(event) {
+                if (expandBtn.disabled) return;
+                if (event.type === 'mousedown' && event.button !== 0) return;
+                clearTimeout(longPressTimer);
+                longPressTimer = setTimeout(() => {
+                    showSelect();
+                }, LONG_PRESS_DURATION);
+            }
+
+            function cancelPress() {
+                clearTimeout(longPressTimer);
+            }
+
+            expandBtn.addEventListener('mousedown', startPress);
+            expandBtn.addEventListener('touchstart', startPress);
+            expandBtn.addEventListener('mouseup', cancelPress);
+            expandBtn.addEventListener('mouseleave', cancelPress);
+            expandBtn.addEventListener('touchend', cancelPress);
+            expandBtn.addEventListener('touchcancel', cancelPress);
+            expandBtn.addEventListener('touchmove', cancelPress);
+
+            effortSelect.addEventListener('change', (event) => {
+                setCardSummaryEffort(card, event.target.value || 'low');
+                hideSelect();
+            });
+
+            effortSelect.addEventListener('blur', () => {
+                hideSelect();
+            });
+
+            hideSelect();
+        }
+
         // Form submission handler - use backend API
         document.getElementById('scrapeForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -763,6 +878,16 @@
                             expandBtn.setAttribute('data-url', urlValue);
                             expandBtn.type = 'button';
 
+                            const effortSelect = document.createElement('select');
+                            effortSelect.className = 'summary-effort-select';
+                            effortSelect.setAttribute('aria-label', 'Summary detail level');
+                            SUMMARY_EFFORT_OPTIONS.forEach((option) => {
+                                const opt = document.createElement('option');
+                                opt.value = option.value;
+                                opt.textContent = option.label;
+                                effortSelect.appendChild(opt);
+                            });
+
                             const copyBtn = document.createElement('button');
                             copyBtn.className = 'article-btn copy-summary-btn';
                             copyBtn.innerHTML = clipboardIconMarkup;
@@ -785,10 +910,15 @@
                             header.appendChild(content);
                             header.appendChild(actions);
                             actions.appendChild(expandBtn);
+                            actions.appendChild(effortSelect);
                             actions.appendChild(copyBtn);
                             actions.appendChild(removeBtn);
                             card.appendChild(header);
-                            
+
+                            setCardSummaryEffort(card, 'low');
+                            effortSelect.value = getCardSummaryEffort(card);
+                            setupSummaryEffortControls(card, expandBtn, effortSelect);
+
                             articleList.appendChild(card);
                         });
                         
@@ -837,22 +967,26 @@
                 setTimeout(async () => {
                     const url = btn.getAttribute('data-url');
                     if (!url) return;
-                    
+                    const card = btn.closest('.article-card');
+                    const summaryEffort = getCardSummaryEffort(card);
+
                     try {
                         const resp = await fetch('/api/summarize-url', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ url: url, cache_only: true })
+                            body: JSON.stringify({ url: url, cache_only: true, summary_effort: summaryEffort })
                         });
                         const data = await resp.json();
-                        
+
                         if (data.success) {
+                            if (card && getCardSummaryEffort(card) !== summaryEffort) {
+                                return;
+                            }
                             // Mark button as having loaded summary
                             btn.classList.add('loaded');
                             btn.title = 'Show summary';
-                            
+
                             // Store the summary data
-                            const card = btn.closest('.article-card');
                             if (card) {
                                 card.setAttribute('data-summary', data.summary_markdown || '');
                             }
@@ -1065,7 +1199,12 @@
             // Check if it's an expand button
             const expandBtn = e.target.closest('.expand-btn');
             const link = e.target.closest('.article-link');
-            
+
+            if (expandBtn && expandBtn.dataset.skipNextClick === 'true') {
+                delete expandBtn.dataset.skipNextClick;
+                return;
+            }
+
             if (!expandBtn && !link) return;
             
             const target = expandBtn || link;
@@ -1088,6 +1227,7 @@
             e.stopPropagation();
             
             const btn = card.querySelector('.expand-btn');
+            const summaryEffort = getCardSummaryEffort(card);
             
             // Check if summary already exists
             let expander = card.querySelector('.inline-summary');
@@ -1156,10 +1296,22 @@
                 const resp = await fetch('/api/summarize-url', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url })
+                    body: JSON.stringify({ url: url, summary_effort: summaryEffort })
                 });
                 const data = await resp.json();
                 if (data.success) {
+                    if (getCardSummaryEffort(card) !== summaryEffort) {
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = '↓';
+                            btn.title = 'Show summary';
+                        }
+                        if (expander && expander.parentNode) {
+                            expander.remove();
+                        }
+                        toggleCopyButton(card, false);
+                        return;
+                    }
                     const html = DOMPurify.sanitize(marked.parse(data.summary_markdown || ''));
                     expander.innerHTML = '<strong>Summary</strong>' + html;
                     // Make links inside the inline summary safe/tabbed and don't trigger expansion
