@@ -29,9 +29,9 @@ def blob_cached(
         def wrapper(path: str, *args: P.args, **kwargs: P.kwargs) -> R:
             # Extract cache_only from kwargs (don't pass it to the underlying function)
             cache_only = kwargs.pop('cache_only', False)
-            
+
             # First arg is the URL/string for pathname generation
-            pathname = pathname_fn(path)
+            pathname = pathname_fn(path, *args, **kwargs)
             blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
 
             # Early return: Check if cache reads are allowed
