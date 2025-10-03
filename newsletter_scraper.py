@@ -9,12 +9,30 @@ import json
 from datetime import datetime
 
 import util
-from blob_store import build_scraped_day_cache_key
+from blob_store import build_scraped_day_cache_key, normalize_url_to_pathname
 from removed_urls import get_removed_urls
 import cache_mode
 
 logger = logging.getLogger("newsletter_scraper")
 md = MarkItDown()
+
+
+def _check_summary_exists(url: str) -> bool:
+    """Check if a summary exists for the given URL in blob store."""
+    blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
+    if not blob_base_url:
+        return False
+    
+    base_path = normalize_url_to_pathname(url)
+    base = base_path[:-3] if base_path.endswith(".md") else base_path
+    summary_pathname = f"{base}-summary.md"
+    blob_url = f"{blob_base_url}/{summary_pathname}"
+    
+    try:
+        resp = requests.head(blob_url, timeout=5)
+        return resp.status_code == 200
+    except Exception:
+        return False
 
 
 def _is_file_url(url):
@@ -131,6 +149,8 @@ def _put_cached_day(date_str: str, articles: list):
 
 def _format_final_output(start_date, end_date, grouped_articles):
     """Format the final output according to requirements.
+    
+    Now includes data-state attribute in links to pass state to frontend.
 
     >>> grouped = {
     ...     "2024-01-02": [
@@ -138,6 +158,7 @@ def _format_final_output(start_date, end_date, grouped_articles):
     ...             "category": "TLDR Tech",
     ...             "title": "Second (1 minute read)",
     ...             "url": "https://example.com/second",
+    ...             "state": "unread",
     ...         }
     ...     ],
     ...     "2024-01-03": [
@@ -145,6 +166,7 @@ def _format_final_output(start_date, end_date, grouped_articles):
     ...             "category": "TLDR Tech",
     ...             "title": "Third (1 minute read)",
     ...             "url": "https://example.com/third",
+    ...             "state": "unread",
     ...         }
     ...     ],
     ... }
@@ -178,10 +200,16 @@ def _format_final_output(start_date, end_date, grouped_articles):
 
             output += f"#### {category}\n\n"
 
+            # Sort articles by state: unread first, then read, then removed
+            state_order = {"unread": 0, "read": 1, "removed": 2}
+            category_articles.sort(key=lambda a: state_order.get(a.get("state", "unread"), 0))
+
             for i, article in enumerate(category_articles, 1):
                 domain_name = util.get_domain_name(article['url'])
                 title_with_domain = f"{article['title']} ({domain_name})"
-                output += f"{i}. [{title_with_domain}]({article['url']})\n"
+                state = article.get('state', 'unread')
+                # Include state as HTML comment that frontend can parse
+                output += f"{i}. [{title_with_domain}]({article['url']})<!--state:{state}-->\n"
 
             output += "\n"
 
@@ -289,7 +317,13 @@ def _fetch_newsletter(date, newsletter_type):
 
 
 def scrape_date_range(start_date, end_date):
-    """Scrape all newsletters in date range, using per-day caching"""
+    """Scrape all newsletters in date range, using per-day caching.
+    
+    Now includes removed URLs in the response with state field:
+    - "unread": not removed, no summary exists
+    - "read": not removed, summary exists  
+    - "removed": marked as removed
+    """
     dates = util.get_date_range(start_date, end_date)
     newsletter_types = ["tech", "ai"]
 
@@ -313,28 +347,17 @@ def scrape_date_range(start_date, end_date):
             cached_articles = cached_day["articles"]
 
             util.log(
-                f"[newsletter_scraper.scrape_date_range] Day cache HIT date={date_str} articles={len(cached_articles)} (before filtering removed URLs)",
+                f"[newsletter_scraper.scrape_date_range] Day cache HIT date={date_str} articles={len(cached_articles)}",
                 logger=logger,
             )
 
-            filtered_count = 0
             for article in cached_articles:
                 canonical_url = util.canonicalize_url(article["url"])
-
-                if canonical_url in removed_urls:
-                    filtered_count += 1
-                    continue
 
                 if canonical_url not in url_set:
                     url_set.add(canonical_url)
                     article["fetched_via"] = "day_cache"
                     all_articles.append(article)
-
-            if filtered_count > 0:
-                util.log(
-                    f"[newsletter_scraper.scrape_date_range] Filtered {filtered_count} removed URLs from cached day={date_str}",
-                    logger=logger,
-                )
 
             processed_count += len(newsletter_types)
             continue
@@ -370,9 +393,6 @@ def scrape_date_range(start_date, end_date):
         if day_articles:
             sanitized_day_articles = []
             for a in day_articles:
-                if util.canonicalize_url(a["url"]) in removed_urls:
-                    continue
-
                 clean = {
                     k: v
                     for k, v in a.items()
@@ -382,13 +402,25 @@ def scrape_date_range(start_date, end_date):
 
             _put_cached_day(date_str, sanitized_day_articles)
             util.log(
-                f"[newsletter_scraper.scrape_date_range] Cached day={date_str} articles={len(sanitized_day_articles)} (after removing filtered URLs)",
+                f"[newsletter_scraper.scrape_date_range] Cached day={date_str} articles={len(sanitized_day_articles)}",
                 logger=logger,
             )
 
-    all_articles = [
-        a for a in all_articles if util.canonicalize_url(a["url"]) not in removed_urls
-    ]
+    # Determine state for each article
+    util.log(
+        f"[newsletter_scraper.scrape_date_range] Determining article states for {len(all_articles)} articles",
+        logger=logger,
+    )
+    
+    for article in all_articles:
+        canonical_url = util.canonicalize_url(article["url"])
+        
+        if canonical_url in removed_urls:
+            article["state"] = "removed"
+        elif _check_summary_exists(article["url"]):
+            article["state"] = "read"
+        else:
+            article["state"] = "unread"
 
     grouped_articles = {}
     for article in all_articles:

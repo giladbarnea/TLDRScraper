@@ -188,6 +188,53 @@
             position: relative;
             animation: cardFadeIn 0.3s ease backwards;
         }
+
+        /* State-specific styling */
+        /* Unread articles - bold and prominent */
+        .article-card[data-state="unread"] .article-link {
+            font-weight: 700;
+            color: var(--link);
+        }
+
+        /* Read articles - plain and less prominent */
+        .article-card[data-state="read"] .article-link {
+            font-weight: 400;
+            color: var(--muted);
+        }
+
+        /* Removed articles - completed to-do style */
+        .article-card[data-state="removed"] {
+            background: #f8f9fa;
+            opacity: 0.7;
+        }
+
+        .article-card[data-state="removed"] .article-link {
+            color: #6c757d;
+            text-decoration: line-through;
+            font-weight: 400;
+        }
+
+        .article-card[data-state="removed"]:hover {
+            border-color: var(--border);
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Category boundaries - first item in each state gets a distinctive border */
+        .article-card[data-category-first="true"] {
+            border-top: 3px solid var(--link);
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .article-card[data-state="read"][data-category-first="true"] {
+            border-top-color: var(--muted);
+        }
+
+        .article-card[data-state="removed"][data-category-first="true"] {
+            border-top-color: #dee2e6;
+        }
         
         /* Stagger animation for cards */
         .article-card:nth-child(1) { animation-delay: 0.05s; }
@@ -353,16 +400,11 @@
             color: white;
         }
         
-        .article-btn.expand-btn.loaded {
-            background: #e8f5e9;
-            border-color: #4caf50;
-            color: #2e7d32;
-        }
-        
-        .article-btn.expand-btn.loaded.expanded {
-            background: #4caf50;
-            border-color: #4caf50;
-            color: white;
+        /* Remove green styling for read/loaded state - keep it plain */
+        .article-card[data-state="read"] .article-btn.expand-btn:not(.expanded) {
+            background: transparent;
+            border-color: var(--border);
+            color: var(--muted);
         }
 
         .article-btn:active {
@@ -723,6 +765,11 @@
                             const link = li.querySelector('a[href]');
                             if (!link) return;
 
+                            // Parse state from HTML comment (format: <!--state:unread-->)
+                            const liHtml = li.innerHTML;
+                            const stateMatch = liHtml.match(/<!--state:(\w+)-->/);
+                            const articleState = stateMatch ? stateMatch[1] : 'unread';
+
                             // Create article card
                             const card = document.createElement('div');
                             card.className = 'article-card';
@@ -730,6 +777,7 @@
                             const titleText = link.textContent.trim();
                             card.setAttribute('data-url', urlValue);
                             card.setAttribute('data-title', titleText);
+                            card.setAttribute('data-state', articleState);
 
                             // Create header container
                             const header = document.createElement('div');
@@ -751,45 +799,77 @@
                             newLink.setAttribute('rel', 'noopener noreferrer');
                             newLink.setAttribute('data-url', urlValue);
 
+                            // Handle removed articles: truncate title and strip "(N minutes read)"
+                            if (articleState === 'removed') {
+                                let linkText = newLink.textContent;
+                                // Remove "(N minutes read)" pattern
+                                linkText = linkText.replace(/\s*\(\d+\s+minutes?\s+read\)/gi, '');
+                                // Truncate to 10 chars + "..."
+                                if (linkText.length > 10) {
+                                    linkText = linkText.substring(0, 10) + '...';
+                                }
+                                newLink.textContent = linkText;
+                            }
+
                             // Create actions container
                             const actions = document.createElement('div');
                             actions.className = 'article-actions';
 
-                            // Create expand button
-                            const expandBtn = document.createElement('button');
-                            expandBtn.className = 'article-btn expand-btn';
-                            expandBtn.innerHTML = '↓';
-                            expandBtn.title = 'Show summary';
-                            expandBtn.setAttribute('data-url', urlValue);
-                            expandBtn.type = 'button';
+                            // Create expand button (not for removed articles)
+                            if (articleState !== 'removed') {
+                                const expandBtn = document.createElement('button');
+                                expandBtn.className = 'article-btn expand-btn';
+                                expandBtn.innerHTML = '↓';
+                                expandBtn.title = 'Show summary';
+                                expandBtn.setAttribute('data-url', urlValue);
+                                expandBtn.type = 'button';
+                                actions.appendChild(expandBtn);
 
-                            const copyBtn = document.createElement('button');
-                            copyBtn.className = 'article-btn copy-summary-btn';
-                            copyBtn.innerHTML = clipboardIconMarkup;
-                            copyBtn.title = 'Copy summary';
-                            copyBtn.type = 'button';
-                            copyBtn.setAttribute('data-url', urlValue);
+                                const copyBtn = document.createElement('button');
+                                copyBtn.className = 'article-btn copy-summary-btn';
+                                copyBtn.innerHTML = clipboardIconMarkup;
+                                copyBtn.title = 'Copy summary';
+                                copyBtn.type = 'button';
+                                copyBtn.setAttribute('data-url', urlValue);
+                                actions.appendChild(copyBtn);
 
-                            // Create remove button
-                            const removeBtn = document.createElement('button');
-                            removeBtn.className = 'article-btn remove-url-btn';
-                            removeBtn.innerHTML = '×';
-                            removeBtn.title = 'Remove this URL';
-                            removeBtn.setAttribute('data-url', urlValue);
-                            removeBtn.type = 'button';
-                            removeBtn.disabled = shouldDisableRemovals();
+                                // Mark as read if state is read
+                                if (articleState === 'read') {
+                                    card.setAttribute('data-summary-loaded', 'true');
+                                }
+                            }
+
+                            // Create remove button (only for non-removed articles)
+                            if (articleState !== 'removed') {
+                                const removeBtn = document.createElement('button');
+                                removeBtn.className = 'article-btn remove-url-btn';
+                                removeBtn.innerHTML = '×';
+                                removeBtn.title = 'Remove this URL';
+                                removeBtn.setAttribute('data-url', urlValue);
+                                removeBtn.type = 'button';
+                                removeBtn.disabled = shouldDisableRemovals();
+                                actions.appendChild(removeBtn);
+                            }
 
                             // Assemble the card
                             content.appendChild(newLink);
                             header.appendChild(number);
                             header.appendChild(content);
                             header.appendChild(actions);
-                            actions.appendChild(expandBtn);
-                            actions.appendChild(copyBtn);
-                            actions.appendChild(removeBtn);
                             card.appendChild(header);
                             
                             articleList.appendChild(card);
+                        });
+                        
+                        // Mark category boundaries (first item in each state group)
+                        const cards = articleList.querySelectorAll('.article-card');
+                        let lastState = null;
+                        cards.forEach(function(card) {
+                            const currentState = card.getAttribute('data-state');
+                            if (currentState !== lastState) {
+                                card.setAttribute('data-category-first', 'true');
+                                lastState = currentState;
+                            }
                         });
                         
                         // Replace the old list with the new card layout
@@ -847,10 +927,6 @@
                         const data = await resp.json();
                         
                         if (data.success) {
-                            // Mark button as having loaded summary
-                            btn.classList.add('loaded');
-                            btn.title = 'Show summary';
-                            
                             // Store the summary data
                             const card = btn.closest('.article-card');
                             if (card) {
@@ -1003,6 +1079,30 @@
             return;
         }, true);
 
+        // Helper function to reposition card and update category boundaries
+        function repositionCard(card, articleList) {
+            // Remove any collapse/expand state
+            const summary = card.querySelector('.inline-summary');
+            if (summary) {
+                summary.remove();
+            }
+            
+            // Append to end of the article list
+            articleList.appendChild(card);
+            
+            // Recalculate category boundaries for this list
+            const allCards = articleList.querySelectorAll('.article-card');
+            let lastState = null;
+            allCards.forEach(function(c) {
+                c.removeAttribute('data-category-first');
+                const currentState = c.getAttribute('data-state');
+                if (currentState !== lastState) {
+                    c.setAttribute('data-category-first', 'true');
+                    lastState = currentState;
+                }
+            });
+        }
+
         // Handle remove button clicks
         document.addEventListener('click', async function(e) {
             if (e.target.classList.contains('remove-url-btn')) {
@@ -1031,11 +1131,40 @@
                     
                     if (data.success) {
                         const card = btn.closest('.article-card');
-                        if (card) {
-                            card.style.opacity = '0';
-                            card.style.transform = 'translateX(20px)';
+                        const articleList = card ? card.closest('.article-list') : null;
+                        
+                        if (card && articleList) {
+                            // Change state to removed
+                            card.setAttribute('data-state', 'removed');
+                            
+                            // Update title: truncate and remove "(N minutes read)"
+                            const link = card.querySelector('.article-link');
+                            if (link) {
+                                let linkText = link.textContent;
+                                linkText = linkText.replace(/\s*\(\d+\s+minutes?\s+read\)/gi, '');
+                                if (linkText.length > 10) {
+                                    linkText = linkText.substring(0, 10) + '...';
+                                }
+                                link.textContent = linkText;
+                            }
+                            
+                            // Remove expand and remove buttons
+                            const expandBtn = card.querySelector('.expand-btn');
+                            const copyBtn = card.querySelector('.copy-summary-btn');
+                            if (expandBtn) expandBtn.remove();
+                            if (copyBtn) copyBtn.remove();
+                            btn.remove();
+                            
+                            // Animate and reposition
+                            card.style.opacity = '0.5';
+                            card.style.transform = 'translateX(10px)';
                             card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                            setTimeout(() => card.remove(), 300);
+                            
+                            setTimeout(() => {
+                                card.style.opacity = '';
+                                card.style.transform = '';
+                                repositionCard(card, articleList);
+                            }, 300);
                         } else {
                             btn.remove();
                         }
@@ -1172,12 +1301,27 @@
                     // Store the summary for future use
                     card.setAttribute('data-summary', data.summary_markdown || '');
                     
+                    // Mark card as read and reposition if it was unread
+                    const currentState = card.getAttribute('data-state');
+                    if (currentState === 'unread') {
+                        card.setAttribute('data-state', 'read');
+                        const articleList = card.closest('.article-list');
+                        if (articleList) {
+                            // Collapse the summary first, then reposition to read section
+                            if (expander) {
+                                expander.style.display = 'none';
+                            }
+                            setTimeout(() => {
+                                repositionCard(card, articleList);
+                            }, 100);
+                        }
+                    }
+                    
                     if (btn) {
                         btn.disabled = false;
                         btn.innerHTML = '↑';
                         btn.title = 'Hide summary';
                         btn.classList.add('expanded');
-                        btn.classList.add('loaded');
                     }
                     toggleCopyButton(card, true);
                 } else {
