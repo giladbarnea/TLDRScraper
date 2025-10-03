@@ -9,12 +9,16 @@ from datetime import datetime
 import requests
 
 from blob_store import (
-    normalize_url_to_pathname,
     build_scraped_day_cache_key,
     delete_file,
 )
 import util
-from summarizer import summarize_url, _fetch_summarize_prompt
+from summarizer import (
+    summarize_url,
+    _fetch_summarize_prompt,
+    summary_blob_pathname,
+    normalize_reasoning_effort,
+)
 from removed_urls import add_removed_url
 import cache_mode
 from newsletter_scraper import scrape_date_range
@@ -111,11 +115,17 @@ def summarize_url_endpoint():
         data = request.get_json() or {}
         url = (data.get("url") or "").strip()
         cache_only = data.get("cache_only", False)
+        raw_reasoning_effort = data.get("reasoning_effort")
+        if raw_reasoning_effort is None:
+            raw_reasoning_effort = data.get("summary_effort", "low")
+        reasoning_effort = normalize_reasoning_effort(raw_reasoning_effort)
 
         if not url or not (url.startswith("http://") or url.startswith("https://")):
             return jsonify({"success": False, "error": "Invalid or missing url"}), 400
 
-        summary = summarize_url(url, cache_only=cache_only)
+        summary = summarize_url(
+            url, reasoning_effort=reasoning_effort, cache_only=cache_only
+        )
 
         # If cache_only and no cached summary, return success=False
         if summary is None:
@@ -124,25 +134,28 @@ def summarize_url_endpoint():
                 "error": "No cached summary available",
             })
 
-        base_path = normalize_url_to_pathname(url)
-        base = base_path[:-3] if base_path.endswith(".md") else base_path
-        summary_blob_pathname = f"{base}-summary.md"
+        summary_blob_pathname_value = summary_blob_pathname(
+            url, reasoning_effort=reasoning_effort
+        )
         blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
         summary_blob_url = (
-            f"{blob_base_url}/{summary_blob_pathname}" if blob_base_url else None
+            f"{blob_base_url}/{summary_blob_pathname_value}"
+            if blob_base_url
+            else None
         )
 
         debug_appendix = (
             f"\n\n---\n"
             f"Debug: Summary cache key candidate\n"
-            f"- candidate: `{summary_blob_pathname}`\n"
+            f"- candidate: `{summary_blob_pathname_value}`\n"
+            f"- effort: `{reasoning_effort}`\n"
         )
 
         return jsonify({
             "success": True,
             "summary_markdown": summary + debug_appendix,
             "summary_blob_url": summary_blob_url,
-            "summary_blob_pathname": summary_blob_pathname,
+            "summary_blob_pathname": summary_blob_pathname_value,
         })
 
     except requests.RequestException as e:

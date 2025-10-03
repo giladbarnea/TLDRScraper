@@ -13,17 +13,40 @@ md = MarkItDown()
 
 _PROMPT_CACHE = None
 
+REASONING_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
 
-def _url_content_pathname(url: str) -> str:
+
+def normalize_reasoning_effort(value: str) -> str:
+    """Normalize reasoning effort value to a supported option."""
+    if not isinstance(value, str):
+        return "low"
+
+    normalized = value.strip().lower()
+    if normalized in REASONING_EFFORT_OPTIONS:
+        return normalized
+
+    return "low"
+
+
+def _url_content_pathname(url: str, *args, **kwargs) -> str:
     """Generate blob pathname for URL content."""
     return normalize_url_to_pathname(url)
 
 
-def _url_summary_pathname(url: str) -> str:
+def _url_summary_pathname(url: str, *args, **kwargs) -> str:
     """Generate blob pathname for URL summary."""
     base_path = normalize_url_to_pathname(url)
     base = base_path[:-3] if base_path.endswith(".md") else base_path
-    return f"{base}-summary.md"
+    reasoning_effort = normalize_reasoning_effort(
+        kwargs.get("reasoning_effort", "low")
+    )
+    suffix = "" if reasoning_effort == "low" else f"-{reasoning_effort}"
+    return f"{base}-summary{suffix}.md"
+
+
+def summary_blob_pathname(url: str, reasoning_effort: str = "low") -> str:
+    """Expose summary blob pathname generation for external use."""
+    return _url_summary_pathname(url, reasoning_effort=reasoning_effort)
 
 
 @blob_cached(_url_content_pathname, logger=logger)
@@ -45,20 +68,22 @@ def url_to_markdown(url: str) -> str:
 
 
 @blob_cached(_url_summary_pathname, logger=logger)
-def summarize_url(url: str) -> str:
+def summarize_url(url: str, reasoning_effort: str = "low") -> str:
     """Get markdown content from URL and summarize it with LLM.
-    
+
     Args:
         url: The URL to summarize
-    
+        reasoning_effort: OpenAI reasoning effort level
+
     Returns:
         The summary markdown
     """
+    effort = normalize_reasoning_effort(reasoning_effort)
     markdown = url_to_markdown(url)
 
     template = _fetch_summarize_prompt()
     prompt = _insert_markdown_into_template(template, markdown)
-    summary = _call_llm(prompt)
+    summary = _call_llm(prompt, reasoning_effort=effort)
 
     return summary
 
@@ -124,7 +149,7 @@ def _insert_markdown_into_template(template: str, markdown: str) -> str:
     return template[:open_idx] + markdown + template[close_idx + len(close_tag) :]
 
 
-def _call_llm(prompt: str) -> str:
+def _call_llm(prompt: str, reasoning_effort: str = "low") -> str:
     """Call OpenAI API with prompt."""
     api_key = util.resolve_env_var("OPENAI_API_TOKEN", "")
     if not api_key:
@@ -135,7 +160,7 @@ def _call_llm(prompt: str) -> str:
     body = {
         "model": "gpt-5",
         "input": prompt,
-        "reasoning": {"effort": "low"},
+        "reasoning": {"effort": normalize_reasoning_effort(reasoning_effort)},
         "stream": False,
     }
 
