@@ -187,6 +187,34 @@
             transition: all 0.2s ease;
             position: relative;
             animation: cardFadeIn 0.3s ease backwards;
+            touch-action: pan-y;
+            user-select: none;
+        }
+
+        .article-card.swiping {
+            transition: none;
+        }
+
+        .article-card.swiped-left {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+
+        .article-card .swipe-delete-indicator {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #ef4444;
+            font-size: 24px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+
+        .article-card.showing-delete-indicator .swipe-delete-indicator {
+            opacity: 1;
         }
         
         /* Stagger animation for cards */
@@ -283,21 +311,178 @@
             opacity: 1;
         }
 
-        .summary-effort-select {
-            display: none;
+        /* Split button for summarize action */
+        .expand-btn-container {
+            position: relative;
+            display: flex;
+            align-items: center;
             height: 32px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background: #fff;
-            color: var(--text);
-            font-size: 12px;
-            padding: 0 8px;
-            cursor: pointer;
         }
 
-        .summary-effort-select.visible {
-            display: inline-flex;
+        .expand-btn {
+            width: auto !important;
+            padding: 0 10px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 6px 0 0 6px !important;
+            border-right: none !important;
+            white-space: nowrap;
+            background: transparent !important;
+        }
+
+        .expand-btn.collapsed-state {
+            /* When not expanded, show 'Summarize' */
+        }
+
+        .expand-btn.expanded {
+            border-radius: 6px 0 0 6px !important;
+            background: transparent !important;
+        }
+
+        .expand-btn.loaded {
+            background: #22c55e !important;
+            color: white !important;
+            border-color: #22c55e !important;
+        }
+        
+        .expand-btn.loaded:hover {
+            background: #16a34a !important;
+            border-color: #16a34a !important;
+        }
+        
+        .expand-btn.loaded.expanded {
+            background: transparent !important;
+            color: var(--text) !important;
+            border-color: var(--border) !important;
+        }
+
+        .expand-btn.loaded.expanded:hover {
+            background: var(--bg) !important;
+            color: var(--text) !important;
+        }
+
+        .expand-chevron-btn {
+            width: 48px !important;
+            height: 32px;
+            display: flex;
             align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-left: 1px solid rgba(0,0,0,0.08) !important;
+            border-radius: 0 6px 6px 0;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 14px;
+            padding: 0;
+            margin: 0;
+            position: relative;
+        }
+
+        .expand-chevron-btn:hover {
+            background: var(--bg);
+            border-color: var(--muted);
+            color: var(--text);
+        }
+
+        .expand-chevron-btn.active {
+            background: var(--bg);
+            border-color: var(--link);
+            color: var(--link);
+        }
+
+        /* Ensure dropdown floats above everything */
+        .article-card {
+            position: relative;
+            z-index: 1;
+        }
+
+        .article-card:has(.effort-dropdown.visible) {
+            z-index: 1001;
+        }
+
+        /* Floating dropdown menu */
+        .effort-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            min-width: 200px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08);
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+            animation: dropdownSlideIn 0.15s ease;
+        }
+
+        .effort-dropdown.visible {
+            display: block;
+        }
+
+        @keyframes dropdownSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .effort-dropdown-item {
+            /* Reset inherited styles */
+            margin: 0;
+            padding: 0;
+            border: none;
+            background: none;
+            font-family: inherit;
+            
+            /* Layout */
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            width: 100%;
+            min-height: 44px;
+            padding: 0 14px;
+            
+            /* Typography - reset line-height and vertical spacing */
+            font-size: 14px;
+            line-height: normal;
+            vertical-align: middle;
+            color: var(--text);
+            text-align: left;
+            
+            /* Interaction */
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+            
+            /* Remove any default button styling */
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .effort-dropdown-item:hover {
+            background: var(--bg);
+        }
+
+        .effort-dropdown-item:active {
+            background: #e5e7eb;
+        }
+
+        .effort-dropdown-item:not(:last-child) {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .effort-dropdown-item .effort-label {
+            flex: 1;
+            line-height: normal;
+            vertical-align: middle;
+            margin: 0;
+            padding: 0;
         }
 
         .article-btn {
@@ -347,18 +532,7 @@
             height: 18px;
         }
 
-        .article-btn.remove-url-btn:hover {
-            background: #fee;
-            border-color: #fcc;
-            color: #c00;
-        }
-
-        .article-btn.remove-url-btn:disabled {
-            background: #f3f4f6;
-            border-color: var(--border);
-            color: #a1a1aa;
-            cursor: not-allowed;
-        }
+        /* Remove button styles removed - using swipe gesture instead */
 
         .article-btn.expand-btn {
             font-size: 14px;
@@ -456,31 +630,7 @@
             opacity: 0.8;
         }
         
-        /* Section controls */
-        .section-controls {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            justify-content: flex-end;
-            margin-bottom: 12px;
-        }
-        
-        .section-btn {
-            padding: 6px 12px;
-            font-size: 13px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--muted);
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        
-        .section-btn:hover {
-            background: var(--bg);
-            color: var(--text);
-            border-color: var(--muted);
-        }
+        /* Section controls removed - expand all functionality removed */
 
         @media (max-width: 768px) {
             .article-actions {
@@ -491,6 +641,19 @@
                 padding: 12px;
             }
             
+            .article-header {
+                flex-wrap: wrap;
+            }
+            
+            /* Move actions below content on mobile */
+            .article-actions {
+                width: 100%;
+                margin-left: 36px; /* Align with content (number width + gap) */
+                margin-top: 8px;
+                justify-content: flex-start;
+                gap: 8px;
+            }
+            
             .article-number {
                 width: 24px;
                 height: 24px;
@@ -499,6 +662,21 @@
             
             .article-link {
                 font-size: 15px;
+            }
+            
+            /* Make split button more compact on mobile */
+            .expand-btn {
+                font-size: 12px;
+                padding: 0 8px;
+            }
+            
+            .expand-chevron-btn {
+                width: 40px !important;
+            }
+            
+            .effort-dropdown {
+                min-width: 180px;
+                font-size: 13px;
             }
             
             .interaction-hint {
@@ -573,11 +751,98 @@
             return removalDisabledModes.has(getActiveCacheMode());
         }
 
-        function updateRemoveButtonsState() {
-            const disable = shouldDisableRemovals();
-            document.querySelectorAll('.remove-url-btn').forEach((btn) => {
-                btn.disabled = disable;
-            });
+        // Swipe gesture handler for card removal
+        function setupSwipeGesture(card) {
+            let startX = 0;
+            let currentX = 0;
+            let isDragging = false;
+            let startTime = 0;
+
+            function handleTouchStart(e) {
+                // Don't interfere with button clicks or other interactions
+                if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.effort-dropdown')) {
+                    return;
+                }
+
+                startX = e.touches[0].clientX;
+                currentX = startX;
+                startTime = Date.now();
+                isDragging = true;
+                card.classList.add('swiping');
+            }
+
+            function handleTouchMove(e) {
+                if (!isDragging) return;
+
+                currentX = e.touches[0].clientX;
+                const diff = currentX - startX;
+
+                // Only allow swipe left
+                if (diff < 0) {
+                    const translateX = Math.max(diff, -100);
+                    card.style.transform = `translateX(${translateX}px)`;
+                    
+                    // Show delete indicator when swiped enough
+                    if (diff < -50) {
+                        card.classList.add('showing-delete-indicator');
+                    } else {
+                        card.classList.remove('showing-delete-indicator');
+                    }
+                }
+            }
+
+            async function handleTouchEnd(e) {
+                if (!isDragging) return;
+
+                const diff = currentX - startX;
+                const duration = Date.now() - startTime;
+                const velocity = Math.abs(diff) / duration;
+
+                isDragging = false;
+                card.classList.remove('swiping');
+
+                // Delete if swiped far enough or fast enough
+                const shouldDelete = diff < -100 || (diff < -50 && velocity > 0.3);
+
+                if (shouldDelete && !shouldDisableRemovals()) {
+                    // Trigger deletion
+                    card.classList.add('swiped-left');
+                    const url = card.getAttribute('data-url');
+                    
+                    setTimeout(async () => {
+                        try {
+                            const resp = await fetch('/api/remove-url', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ url: url })
+                            });
+                            const data = await resp.json();
+                            
+                            if (data.success) {
+                                setTimeout(() => card.remove(), 300);
+                            } else {
+                                // Revert on error
+                                card.style.transform = '';
+                                card.classList.remove('swiped-left', 'showing-delete-indicator');
+                                alert('Failed to remove: ' + (data.error || 'Unknown error'));
+                            }
+                        } catch (err) {
+                            // Revert on error
+                            card.style.transform = '';
+                            card.classList.remove('swiped-left', 'showing-delete-indicator');
+                            alert('Error: ' + err.message);
+                        }
+                    }, 200);
+                } else {
+                    // Snap back
+                    card.style.transform = '';
+                    card.classList.remove('showing-delete-indicator');
+                }
+            }
+
+            card.addEventListener('touchstart', handleTouchStart, { passive: true });
+            card.addEventListener('touchmove', handleTouchMove, { passive: true });
+            card.addEventListener('touchend', handleTouchEnd, { passive: true });
         }
 
         // Set default dates
@@ -613,10 +878,10 @@
         }
 
         const SUMMARY_EFFORT_OPTIONS = [
-            { value: 'minimal', label: 'Minimal' },
-            { value: 'low', label: 'Low' },
-            { value: 'medium', label: 'Medium' },
-            { value: 'high', label: 'High' }
+            { value: 'minimal', label: 'Minimal reasoning' },
+            { value: 'low', label: 'Low reasoning' },
+            { value: 'medium', label: 'Medium reasoning' },
+            { value: 'high', label: 'High reasoning' }
         ];
 
         function normalizeSummaryEffort(value) {
@@ -643,8 +908,10 @@
                 const expandBtnReset = card.querySelector('.expand-btn');
                 if (expandBtnReset) {
                     expandBtnReset.classList.remove('expanded');
-                    expandBtnReset.innerHTML = '↓';
-                    expandBtnReset.title = 'Show summary';
+                    expandBtnReset.classList.remove('loaded');
+                    expandBtnReset.classList.add('collapsed-state');
+                    expandBtnReset.innerHTML = 'Summarize';
+                    expandBtnReset.title = 'Show summary with default reasoning effort';
                 }
                 toggleCopyButton(card, false);
             }
@@ -655,59 +922,58 @@
             }
         }
 
-        function setupSummaryEffortControls(card, expandBtn, effortSelect) {
-            if (!card || !expandBtn || !effortSelect) return;
+        function setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown) {
+            if (!card || !expandBtn || !chevronBtn || !dropdown) return;
 
-            const LONG_PRESS_DURATION = 600;
-            let longPressTimer = null;
-
-            function hideSelect() {
-                effortSelect.classList.remove('visible');
-                effortSelect.style.display = 'none';
-                delete expandBtn.dataset.skipNextClick;
+            function hideDropdown() {
+                dropdown.classList.remove('visible');
+                chevronBtn.classList.remove('active');
             }
 
-            function showSelect() {
-                effortSelect.value = getCardSummaryEffort(card);
-                effortSelect.classList.add('visible');
-                effortSelect.style.display = 'inline-flex';
-                expandBtn.dataset.skipNextClick = 'true';
-                requestAnimationFrame(() => {
-                    effortSelect.focus();
+            function showDropdown() {
+                dropdown.classList.add('visible');
+                chevronBtn.classList.add('active');
+            }
+
+            function toggleDropdown(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                if (dropdown.classList.contains('visible')) {
+                    hideDropdown();
+                } else {
+                    showDropdown();
+                }
+            }
+
+            // Chevron button toggles dropdown
+            chevronBtn.addEventListener('click', toggleDropdown);
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!dropdown.contains(event.target) && 
+                    !chevronBtn.contains(event.target) &&
+                    dropdown.classList.contains('visible')) {
+                    hideDropdown();
+                }
+            });
+
+            // Handle dropdown item clicks
+            dropdown.querySelectorAll('.effort-dropdown-item').forEach(item => {
+                item.addEventListener('click', async function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const effort = this.getAttribute('data-effort');
+                    setCardSummaryEffort(card, effort);
+                    hideDropdown();
+                    
+                    // Trigger the expand/summarize action with the selected effort
+                    expandBtn.click();
                 });
-            }
-
-            function startPress(event) {
-                if (expandBtn.disabled) return;
-                if (event.type === 'mousedown' && event.button !== 0) return;
-                clearTimeout(longPressTimer);
-                longPressTimer = setTimeout(() => {
-                    showSelect();
-                }, LONG_PRESS_DURATION);
-            }
-
-            function cancelPress() {
-                clearTimeout(longPressTimer);
-            }
-
-            expandBtn.addEventListener('mousedown', startPress);
-            expandBtn.addEventListener('touchstart', startPress);
-            expandBtn.addEventListener('mouseup', cancelPress);
-            expandBtn.addEventListener('mouseleave', cancelPress);
-            expandBtn.addEventListener('touchend', cancelPress);
-            expandBtn.addEventListener('touchcancel', cancelPress);
-            expandBtn.addEventListener('touchmove', cancelPress);
-
-            effortSelect.addEventListener('change', (event) => {
-                setCardSummaryEffort(card, event.target.value || 'low');
-                hideSelect();
             });
 
-            effortSelect.addEventListener('blur', () => {
-                hideSelect();
-            });
-
-            hideSelect();
+            hideDropdown();
         }
 
         // Form submission handler - use backend API
@@ -765,7 +1031,6 @@
                         select.value = data.stats.cache_mode;
                         select.setAttribute('data-current-value', data.stats.cache_mode);
                         updateCacheModeDescription(data.stats.cache_mode);
-                        updateRemoveButtonsState();
                     }
                     
                     // Prepare stats block
@@ -804,32 +1069,9 @@
 
                     // Transform native ol/li into modern card layout
                     result.querySelectorAll('#write ol').forEach(function(ol, sectionIndex) {
-                        // Create section controls
-                        const controls = document.createElement('div');
-                        controls.className = 'section-controls';
-                        
-                        const collapseAllBtn = document.createElement('button');
-                        collapseAllBtn.className = 'section-btn collapse-all-btn';
-                        collapseAllBtn.textContent = 'Collapse All';
-                        collapseAllBtn.type = 'button';
-                        collapseAllBtn.setAttribute('data-section', sectionIndex);
-                        
-                        const expandAllBtn = document.createElement('button');
-                        expandAllBtn.className = 'section-btn expand-all-btn';
-                        expandAllBtn.textContent = 'Expand All';
-                        expandAllBtn.type = 'button';
-                        expandAllBtn.setAttribute('data-section', sectionIndex);
-                        
-                        controls.appendChild(collapseAllBtn);
-                        controls.appendChild(expandAllBtn);
-                        
-                        // Insert controls before the list
-                        ol.parentNode.insertBefore(controls, ol);
-                        
                         // Create new article list container
                         const articleList = document.createElement('div');
                         articleList.className = 'article-list';
-                        articleList.setAttribute('data-section', sectionIndex);
                         
                         // Get all list items
                         const listItems = ol.querySelectorAll('li');
@@ -870,23 +1112,46 @@
                             const actions = document.createElement('div');
                             actions.className = 'article-actions';
 
-                            // Create expand button
+                            // Create split button container
+                            const expandBtnContainer = document.createElement('div');
+                            expandBtnContainer.className = 'expand-btn-container';
+
+                            // Create main expand button
                             const expandBtn = document.createElement('button');
-                            expandBtn.className = 'article-btn expand-btn';
-                            expandBtn.innerHTML = '↓';
-                            expandBtn.title = 'Show summary';
+                            expandBtn.className = 'article-btn expand-btn collapsed-state';
+                            expandBtn.innerHTML = 'Summarize';
+                            expandBtn.title = 'Show summary with default reasoning effort';
                             expandBtn.setAttribute('data-url', urlValue);
                             expandBtn.type = 'button';
 
-                            const effortSelect = document.createElement('select');
-                            effortSelect.className = 'summary-effort-select';
-                            effortSelect.setAttribute('aria-label', 'Summary detail level');
+                            // Create chevron button
+                            const chevronBtn = document.createElement('button');
+                            chevronBtn.className = 'article-btn expand-chevron-btn';
+                            chevronBtn.innerHTML = '▾';
+                            chevronBtn.title = 'Choose reasoning effort level';
+                            chevronBtn.type = 'button';
+
+                            // Create dropdown menu
+                            const dropdown = document.createElement('div');
+                            dropdown.className = 'effort-dropdown';
+                            
                             SUMMARY_EFFORT_OPTIONS.forEach((option) => {
-                                const opt = document.createElement('option');
-                                opt.value = option.value;
-                                opt.textContent = option.label;
-                                effortSelect.appendChild(opt);
+                                const item = document.createElement('button');
+                                item.className = 'effort-dropdown-item';
+                                item.type = 'button';
+                                item.setAttribute('data-effort', option.value);
+                                
+                                const label = document.createElement('span');
+                                label.className = 'effort-label';
+                                label.textContent = option.label;
+                                
+                                item.appendChild(label);
+                                dropdown.appendChild(item);
                             });
+
+                            expandBtnContainer.appendChild(expandBtn);
+                            expandBtnContainer.appendChild(chevronBtn);
+                            expandBtnContainer.appendChild(dropdown);
 
                             const copyBtn = document.createElement('button');
                             copyBtn.className = 'article-btn copy-summary-btn';
@@ -895,29 +1160,24 @@
                             copyBtn.type = 'button';
                             copyBtn.setAttribute('data-url', urlValue);
 
-                            // Create remove button
-                            const removeBtn = document.createElement('button');
-                            removeBtn.className = 'article-btn remove-url-btn';
-                            removeBtn.innerHTML = '×';
-                            removeBtn.title = 'Remove this URL';
-                            removeBtn.setAttribute('data-url', urlValue);
-                            removeBtn.type = 'button';
-                            removeBtn.disabled = shouldDisableRemovals();
+                            // Create swipe delete indicator
+                            const deleteIndicator = document.createElement('div');
+                            deleteIndicator.className = 'swipe-delete-indicator';
+                            deleteIndicator.innerHTML = '🗑️';
 
                             // Assemble the card
                             content.appendChild(newLink);
                             header.appendChild(number);
                             header.appendChild(content);
                             header.appendChild(actions);
-                            actions.appendChild(expandBtn);
-                            actions.appendChild(effortSelect);
+                            actions.appendChild(expandBtnContainer);
                             actions.appendChild(copyBtn);
-                            actions.appendChild(removeBtn);
                             card.appendChild(header);
+                            card.appendChild(deleteIndicator);
 
                             setCardSummaryEffort(card, 'low');
-                            effortSelect.value = getCardSummaryEffort(card);
-                            setupSummaryEffortControls(card, expandBtn, effortSelect);
+                            setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown);
+                            setupSwipeGesture(card);
 
                             articleList.appendChild(card);
                         });
@@ -929,7 +1189,7 @@
                         if (!document.querySelector('.interaction-hint')) {
                             const hint = document.createElement('div');
                             hint.className = 'interaction-hint';
-                            hint.innerHTML = '💡 Click article titles to preview summaries • Ctrl/Cmd+Click to open directly';
+                            hint.innerHTML = '💡 Click titles or "Summarize" to show summaries • Use ▾ to choose reasoning effort • Swipe left to delete • Ctrl/Cmd+Click to open directly';
                             articleList.insertAdjacentElement('afterend', hint);
                         }
                     });
@@ -984,7 +1244,8 @@
                             }
                             // Mark button as having loaded summary
                             btn.classList.add('loaded');
-                            btn.title = 'Show summary';
+                            btn.innerHTML = 'Available';
+                            btn.title = 'Summary cached - click to show';
 
                             // Store the summary data
                             if (card) {
@@ -1026,7 +1287,6 @@
                     select.value = data.cache_mode;
                     select.setAttribute('data-current-value', data.cache_mode);
                     updateCacheModeDescription(data.cache_mode);
-                    updateRemoveButtonsState();
                 }
             } catch (error) {
                 console.error('Error loading cache mode:', error);
@@ -1053,7 +1313,6 @@
                 if (data.success) {
                     select.setAttribute('data-current-value', newMode);
                     updateCacheModeDescription(newMode);
-                    updateRemoveButtonsState();
 
                     // Show brief success indicator
                     const desc = document.getElementById('cacheModeDescription');
@@ -1077,50 +1336,7 @@
             }
         });
 
-        // Handle section-level collapse/expand all
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('collapse-all-btn')) {
-                const section = e.target.getAttribute('data-section');
-                const articleList = document.querySelector(`.article-list[data-section="${section}"]`);
-                if (!articleList) return;
-                
-                articleList.querySelectorAll('.inline-summary').forEach(function(summary) {
-                    summary.style.display = 'none';
-                    const card = summary.closest('.article-card');
-                    toggleCopyButton(card, false);
-                });
-
-                articleList.querySelectorAll('.expand-btn').forEach(function(btn) {
-                    btn.innerHTML = '↓';
-                    btn.title = 'Show summary';
-                    btn.classList.remove('expanded');
-                });
-            }
-            
-            if (e.target.classList.contains('expand-all-btn')) {
-                const section = e.target.getAttribute('data-section');
-                const articleList = document.querySelector(`.article-list[data-section="${section}"]`);
-                if (!articleList) return;
-                
-                // Trigger click on each expand button that hasn't been clicked yet
-                articleList.querySelectorAll('.article-card').forEach(async function(card) {
-                    const expandBtn = card.querySelector('.expand-btn');
-                    if (!expandBtn) return;
-                    
-                    let summary = card.querySelector('.inline-summary');
-                    if (!summary) {
-                        // Trigger the expand
-                        expandBtn.click();
-                    } else {
-                        summary.style.display = 'block';
-                        expandBtn.innerHTML = '↑';
-                        expandBtn.title = 'Hide summary';
-                        expandBtn.classList.add('expanded');
-                        toggleCopyButton(card, true);
-                    }
-                });
-            }
-        });
+        // Expand all functionality removed
 
         document.addEventListener('click', async function(e) {
             const btn = e.target.closest('.copy-summary-btn');
@@ -1137,71 +1353,16 @@
             return;
         }, true);
 
-        // Handle remove button clicks
-        document.addEventListener('click', async function(e) {
-            if (e.target.classList.contains('remove-url-btn')) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const btn = e.target;
-                const url = btn.getAttribute('data-url');
-
-                if (btn.disabled) {
-                    return;
-                }
-
-                if (!url) return;
-
-                btn.disabled = true;
-                btn.textContent = '...';
-                
-                try {
-                    const resp = await fetch('/api/remove-url', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: url })
-                    });
-                    const data = await resp.json();
-                    
-                    if (data.success) {
-                        const card = btn.closest('.article-card');
-                        if (card) {
-                            card.style.opacity = '0';
-                            card.style.transform = 'translateX(20px)';
-                            card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                            setTimeout(() => card.remove(), 300);
-                        } else {
-                            btn.remove();
-                        }
-                    } else {
-                        btn.textContent = '✗';
-                        btn.title = 'Failed: ' + (data.error || 'Unknown error');
-                        setTimeout(() => {
-                            btn.textContent = '×';
-                            btn.disabled = shouldDisableRemovals();
-                        }, 2000);
-                    }
-                } catch (err) {
-                    btn.textContent = '✗';
-                    btn.title = 'Error: ' + (err?.message || String(err));
-                    setTimeout(() => {
-                        btn.textContent = '×';
-                        btn.disabled = shouldDisableRemovals();
-                    }, 2000);
-                }
-                
-                return;
-            }
-        }, true);
+        // Remove button handler removed - now using swipe gesture
 
         // Handle expand button and link clicks for summaries
         document.addEventListener('click', async function(e) {
-            // Check if it's an expand button
-            const expandBtn = e.target.closest('.expand-btn');
+            // Check if it's an expand button (but not chevron or dropdown)
+            const expandBtn = e.target.closest('.expand-btn:not(.expand-chevron-btn)');
             const link = e.target.closest('.article-link');
-
-            if (expandBtn && expandBtn.dataset.skipNextClick === 'true') {
-                delete expandBtn.dataset.skipNextClick;
+            
+            // Ignore clicks on chevron button or dropdown items
+            if (e.target.closest('.expand-chevron-btn') || e.target.closest('.effort-dropdown-item')) {
                 return;
             }
 
@@ -1236,17 +1397,23 @@
                 if (expander.style.display === 'none') {
                     expander.style.display = 'block';
                     if (btn) {
-                        btn.innerHTML = '↑';
+                        btn.innerHTML = 'Hide';
                         btn.title = 'Hide summary';
                         btn.classList.add('expanded');
+                        btn.classList.remove('collapsed-state');
                     }
                     toggleCopyButton(card, true);
                 } else {
                     expander.style.display = 'none';
                     if (btn) {
-                        btn.innerHTML = '↓';
-                        btn.title = 'Show summary';
+                        // Check if summary is loaded (cached)
+                        const isLoaded = btn.classList.contains('loaded');
+                        btn.innerHTML = isLoaded ? 'Available' : 'Summarize';
+                        btn.title = isLoaded ? 'Summary cached - click to show' : 'Show summary with default reasoning effort';
                         btn.classList.remove('expanded');
+                        if (!isLoaded) {
+                            btn.classList.add('collapsed-state');
+                        }
                     }
                     toggleCopyButton(card, false);
                 }
@@ -1271,9 +1438,11 @@
                 card.appendChild(expander);
                 
                 if (btn) {
-                    btn.innerHTML = '↑';
+                    btn.innerHTML = 'Hide';
                     btn.title = 'Hide summary';
                     btn.classList.add('expanded');
+                    btn.classList.remove('collapsed-state');
+                    btn.classList.add('loaded');
                 }
                 toggleCopyButton(card, true);
                 return;
@@ -1282,8 +1451,8 @@
             // Update button state
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '⋯';
-                btn.title = 'Loading...';
+                btn.innerHTML = 'Loading...';
+                btn.title = 'Loading summary...';
             }
 
             // Create inline summary under the card header
@@ -1303,8 +1472,9 @@
                     if (getCardSummaryEffort(card) !== summaryEffort) {
                         if (btn) {
                             btn.disabled = false;
-                            btn.innerHTML = '↓';
-                            btn.title = 'Show summary';
+                            btn.innerHTML = 'Summarize';
+                            btn.title = 'Show summary with default reasoning effort';
+                            btn.classList.add('collapsed-state');
                         }
                         if (expander && expander.parentNode) {
                             expander.remove();
@@ -1326,9 +1496,10 @@
                     
                     if (btn) {
                         btn.disabled = false;
-                        btn.innerHTML = '↑';
+                        btn.innerHTML = 'Hide';
                         btn.title = 'Hide summary';
                         btn.classList.add('expanded');
+                        btn.classList.remove('collapsed-state');
                         btn.classList.add('loaded');
                     }
                     toggleCopyButton(card, true);
@@ -1338,8 +1509,9 @@
 
                     if (btn) {
                         btn.disabled = false;
-                        btn.innerHTML = '↓';
-                        btn.title = 'Show summary';
+                        btn.innerHTML = 'Summarize';
+                        btn.title = 'Show summary with default reasoning effort';
+                        btn.classList.add('collapsed-state');
                     }
                     toggleCopyButton(card, false);
                 }
@@ -1349,8 +1521,9 @@
 
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = '↓';
-                    btn.title = 'Show summary';
+                    btn.innerHTML = 'Summarize';
+                    btn.title = 'Show summary with default reasoning effort';
+                    btn.classList.add('collapsed-state');
                 }
                 toggleCopyButton(card, false);
             }
