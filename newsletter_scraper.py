@@ -228,7 +228,7 @@ def _parse_articles_from_markdown(markdown, date, newsletter_type):
                 "title": title,
                 "url": url,
                 "category": category,
-                "date": date,
+                "date": util.format_date_for_url(date),
                 "newsletter_type": newsletter_type,
             })
 
@@ -272,7 +272,7 @@ def _fetch_newsletter(date, newsletter_type):
             a["timing_parse_ms"] = parse_ms
 
         return {
-            "date": date,
+            "date": util.format_date_for_url(date),
             "newsletter_type": newsletter_type,
             "articles": articles,
         }
@@ -392,7 +392,13 @@ def scrape_date_range(start_date, end_date):
 
     grouped_articles = {}
     for article in all_articles:
-        date_str = util.format_date_for_url(article["date"])
+        # article["date"] should already be a string, but handle both cases
+        date_val = article["date"]
+        if isinstance(date_val, str):
+            date_str = date_val
+        else:
+            date_str = util.format_date_for_url(date_val)
+        
         if date_str not in grouped_articles:
             grouped_articles[date_str] = []
         grouped_articles[date_str].append(article)
