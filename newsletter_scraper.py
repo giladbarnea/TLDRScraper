@@ -264,6 +264,7 @@ def _fetch_newsletter(date, newsletter_type):
             url,
             timeout=30,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Scraper/1.0)"},
+            allow_redirects=False,
         )
         net_ms = int(round((time.time() - net_start) * 1000))
 
@@ -271,6 +272,9 @@ def _fetch_newsletter(date, newsletter_type):
             return None
 
         response.raise_for_status()
+
+        if response.is_redirect:
+            return None
 
         convert_start = time.time()
         markdown_content = _extract_newsletter_content(response.text)
