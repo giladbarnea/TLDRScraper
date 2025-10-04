@@ -798,6 +798,10 @@
     <div id="copyToast">Copied to clipboard</div>
 
     <script>
+        /**
+         * CacheModeAwareness syncs the selector with backend cache mode so removal gating reflects server policy.
+         */
+        // #region -------[ CacheModeAwareness ]-------
         const removalDisabledModes = new Set(['read_only', 'disabled']);
 
         function getActiveCacheMode() {
@@ -810,79 +814,94 @@
             return removalDisabledModes.has(getActiveCacheMode());
         }
 
-        // Remove button click handler
-        async function handleRemoveButtonClick(button) {
-            if (shouldDisableRemovals()) {
-                alert('Removal is disabled in ' + getActiveCacheMode() + ' mode');
-                return;
+        function updateCacheModeDescription(mode) {
+            const descriptions = {
+                'read_write': 'Normal caching: reads from cache, writes on cache miss',
+                'read_only': 'Only read from cache, never write (useful for testing)',
+                'write_only': 'Never read from cache, always write (rebuild cache)',
+                'disabled': 'No caching at all (all fresh data, no writes)'
+            };
+            const descriptionEl = document.getElementById('cacheModeDescription');
+            if (descriptionEl) {
+                descriptionEl.textContent = descriptions[mode] || '';
             }
+        }
 
-            const card = button.closest('.article-card');
-            if (!card) return;
-
-            const url = card.getAttribute('data-url');
-            if (!url) return;
-
-            // Set removing state
-            card.classList.add('removing');
-            button.classList.add('removing');
-
+        async function loadCacheMode() {
             try {
-                const resp = await fetch('/api/remove-url', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url })
-                });
-                const data = await resp.json();
-
-                if (data.success) {
-                    // Transition to removed state
-                    card.classList.remove('removing');
-                    button.classList.remove('removing');
-                    markArticleAsRemoved(card);
-                } else {
-                    // Revert removing state on error
-                    card.classList.remove('removing');
-                    button.classList.remove('removing');
-                    alert('Failed to remove: ' + (data.error || 'Unknown error'));
+                const response = await fetch('/api/cache-mode');
+                const data = await response.json();
+                if (data.success && data.cache_mode) {
+                    const select = document.getElementById('cacheModeSelect');
+                    if (select) {
+                        select.value = data.cache_mode;
+                        select.setAttribute('data-current-value', data.cache_mode);
+                    }
+                    updateCacheModeDescription(data.cache_mode);
                 }
-            } catch (err) {
-                // Revert removing state on error
-                card.classList.remove('removing');
-                button.classList.remove('removing');
-                alert('Error: ' + err.message);
+            } catch (error) {
+                console.error('Error loading cache mode:', error);
             }
         }
 
-        // Set default dates
-        function setDefaultDates() {
-            const today = new Date();
-            const weekAgo = new Date(today);
-            weekAgo.setDate(today.getDate() - 7);
+        function bindCacheModeSelector() {
+            const select = document.getElementById('cacheModeSelect');
+            if (!select) return;
 
-            document.getElementById('end_date').value = today.toISOString().split('T')[0];
-            document.getElementById('start_date').value = weekAgo.toISOString().split('T')[0];
+            select.addEventListener('change', async function(e) {
+                const control = e.target;
+                const newMode = control.value;
+                const originalValue = control.getAttribute('data-current-value') || 'read_write';
+
+                control.disabled = true;
+
+                try {
+                    const response = await fetch('/api/cache-mode', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cache_mode: newMode })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        control.setAttribute('data-current-value', newMode);
+                        updateCacheModeDescription(newMode);
+
+                        const desc = document.getElementById('cacheModeDescription');
+                        if (desc) {
+                            desc.textContent = '✓ Cache mode updated successfully!';
+                            desc.style.color = '#28a745';
+                            setTimeout(() => {
+                                updateCacheModeDescription(newMode);
+                                desc.style.color = '';
+                            }, 2000);
+                        }
+                    } else {
+                        alert('Error setting cache mode: ' + data.error);
+                        control.value = originalValue;
+                    }
+                } catch (error) {
+                    alert('Network error: ' + error.message);
+                    console.error('Cache mode error:', error);
+                    control.value = originalValue;
+                } finally {
+                    control.disabled = false;
+                }
+            });
         }
+        // #endregion
 
-        const clipboardIconMarkup = '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-        const copyToast = document.getElementById('copyToast');
-        let copyToastTimeout;
-
-        function showCopyToast() {
-            clearTimeout(copyToastTimeout);
-            copyToast.classList.add('show');
-            copyToastTimeout = setTimeout(function() {
-                copyToast.classList.remove('show');
-            }, 2000);
-        }
-        
-        // Article state management - 3-stack system
+        /**
+         * ArticleStateTracks keeps article cards ordered by unread, read, and removed outcomes for every downstream flow.
+         */
+        // #region -------[ ArticleStateTracks ]-------
         function getArticleState(card) {
             if (card.classList.contains('removed')) return 2;
             if (card.classList.contains('read')) return 1;
-            return 0; // unread
+            return 0;
         }
-        
+
         function sortArticlesByState(articleList) {
             const cards = Array.from(articleList.querySelectorAll('.article-card'));
             cards.sort((a, b) => getArticleState(a) - getArticleState(b));
@@ -893,7 +912,7 @@
             });
             markCategoryBoundaries(articleList);
         }
-        
+
         function markCategoryBoundaries(articleList) {
             const cards = Array.from(articleList.querySelectorAll('.article-card'));
             let lastState = -1;
@@ -906,7 +925,7 @@
                 lastState = state;
             });
         }
-        
+
         function markArticleAsRead(card) {
             if (card.classList.contains('removed')) return;
             card.classList.remove('unread');
@@ -914,24 +933,19 @@
             const articleList = card.closest('.article-list');
             if (articleList) sortArticlesByState(articleList);
         }
-        
+
         function markArticleAsRemoved(card) {
             card.classList.remove('unread', 'read');
             card.classList.add('removed');
             const articleList = card.closest('.article-list');
             if (articleList) sortArticlesByState(articleList);
         }
+        // #endregion
 
-        function toggleCopyButton(card, shouldShow) {
-            const copyBtn = card.querySelector('.copy-summary-btn');
-            if (shouldShow) {
-                copyBtn.classList.add('visible');
-                return;
-            }
-
-            copyBtn.classList.remove('visible');
-        }
-
+        /**
+         * SummaryEffortSelector stores the per-card reasoning level introduced in PR #34 and resets cached summaries on change.
+         */
+        // #region -------[ SummaryEffortSelector ]-------
         const SUMMARY_EFFORT_OPTIONS = [
             { value: 'minimal', label: 'Minimal reasoning' },
             { value: 'low', label: 'Low reasoning' },
@@ -993,7 +1007,7 @@
             function toggleDropdown(event) {
                 event.preventDefault();
                 event.stopPropagation();
-                
+
                 if (dropdown.classList.contains('visible')) {
                     hideDropdown();
                 } else {
@@ -1001,299 +1015,86 @@
                 }
             }
 
-            // Chevron button toggles dropdown
             chevronBtn.addEventListener('click', toggleDropdown);
 
-            // Close dropdown when clicking outside
             document.addEventListener('click', function(event) {
-                if (!dropdown.contains(event.target) && 
+                if (!dropdown.contains(event.target) &&
                     !chevronBtn.contains(event.target) &&
                     dropdown.classList.contains('visible')) {
                     hideDropdown();
                 }
             });
 
-            // Handle dropdown item clicks
             dropdown.querySelectorAll('.effort-dropdown-item').forEach(item => {
                 item.addEventListener('click', async function(event) {
                     event.preventDefault();
                     event.stopPropagation();
-                    
+
                     const effort = this.getAttribute('data-effort');
                     setCardSummaryEffort(card, effort);
                     hideDropdown();
-                    
-                    // Trigger the expand/summarize action with the selected effort
+
                     expandBtn.click();
                 });
             });
 
             hideDropdown();
         }
+        // #endregion
 
-        // Form submission handler - use backend API
-        document.getElementById('scrapeForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        /**
+         * SummaryClipboard exposes the copy-to-clipboard affordance added in commit 6d6000f4 and its toast feedback loop.
+         */
+        // #region -------[ SummaryClipboard ]-------
+        const clipboardIconMarkup = '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+        const copyToast = document.getElementById('copyToast');
+        let copyToastTimeout;
 
-            const startDate = document.getElementById('start_date').value;
-            const endDate = document.getElementById('end_date').value;
+        function showCopyToast() {
+            if (!copyToast) return;
+            clearTimeout(copyToastTimeout);
+            copyToast.classList.add('show');
+            copyToastTimeout = setTimeout(function() {
+                copyToast.classList.remove('show');
+            }, 2000);
+        }
 
-            const button = document.getElementById('scrapeBtn');
-            const progress = document.getElementById('progress');
-            const result = document.getElementById('result');
-
-            // Validate dates
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-
-            if (start > end) {
-                result.style.display = 'block';
-                result.className = 'error';
-                result.textContent = 'Start date must be before or equal to end date.';
+        function toggleCopyButton(card, shouldShow) {
+            const copyBtn = card.querySelector('.copy-summary-btn');
+            if (!copyBtn) return;
+            if (shouldShow) {
+                copyBtn.classList.add('visible');
                 return;
             }
+            copyBtn.classList.remove('visible');
+        }
 
-            // Check if date range exceeds 31 days (inclusive)
-            const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-            if (daysDiff >= 31) {
-                result.style.display = 'block';
-                result.className = 'error';
-                result.textContent = 'Date range cannot exceed 31 days. Please select a smaller range.';
-                return;
-            }
+        function bindCopySummaryFlow() {
+            document.addEventListener('click', async function(e) {
+                const btn = e.target.closest('.copy-summary-btn');
+                if (!btn) return;
 
-            // Show progress, hide previous results
-            button.disabled = true;
-            progress.style.display = 'block';
-            result.style.display = 'none';
+                e.preventDefault();
+                e.stopPropagation();
 
-            document.getElementById('progress-text').textContent = 'Scraping newsletters... This may take several minutes.';
-            document.getElementById('progress-fill').style.width = '50%';
+                const card = btn.closest('.article-card');
+                if (!card) return;
 
-            try {
-                const response = await fetch('/api/scrape', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ start_date: startDate, end_date: endDate })
-                });
+                const payload = `---\ntitle: ${card.getAttribute('data-title')}\nurl: ${card.getAttribute('data-url')}\n---\n${card.getAttribute('data-summary')}`;
+                await navigator.clipboard.writeText(payload);
+                showCopyToast();
+            }, true);
+        }
+        // #endregion
 
-                const data = await response.json();
-
-                if (data.success) {
-                    // Update cache mode selector if present in stats
-                    if (data.stats.cache_mode) {
-                        const select = document.getElementById('cacheModeSelect');
-                        select.value = data.stats.cache_mode;
-                        select.setAttribute('data-current-value', data.stats.cache_mode);
-                        updateCacheModeDescription(data.stats.cache_mode);
-                    }
-                    
-                    // Prepare stats block
-                    const statsHtml = `<div class="stats">
-                        📊 Stats: ${data.stats.total_articles} articles found,
-                        ${data.stats.unique_urls} unique URLs,
-                        ${data.stats.dates_with_content}/${data.stats.dates_processed} dates had content<br>
-                        🧠 Cache: hits=${data.stats.cache_hits ?? 0}, misses=${data.stats.cache_misses ?? 0}, other=${data.stats.cache_other ?? 0}<br>
-                        💾 Blob Cache: hits=${data.stats.blob_cache_hits ?? 0}, misses=${data.stats.blob_cache_misses ?? 0}<br>
-                        ☁️ Blob Store present: ${data.stats.blob_store_present ? 'true' : 'false'}<br>
-                        ⚙️ Cache Mode: <strong>${data.stats.cache_mode || 'read_write'}</strong>
-                    </div>`;
-
-                    // Render Markdown → HTML then sanitize
-                    const html = DOMPurify.sanitize(marked.parse(data.output));
-
-                    // Inject Whitey reading surface (desktop-faithful + mobile refinements)
-                    const whiteySurface = `<main id="write">${html}</main>`;
-                    result.innerHTML = statsHtml + '<div id="logs-slot"></div>' + whiteySurface;
-
-                    // Safely append logs as plain text (no HTML interpretation)
-                    try {
-                        if (Array.isArray(data.stats.debug_logs) && data.stats.debug_logs.length) {
-                            const slot = document.getElementById('logs-slot');
-                            const details = document.createElement('details');
-                            const summary = document.createElement('summary');
-                            summary.textContent = 'Debug logs';
-                            const pre = document.createElement('pre');
-                            pre.style.whiteSpace = 'pre-wrap';
-                            pre.textContent = data.stats.debug_logs.map(l => String(l)).join('\n');
-                            details.appendChild(summary);
-                            details.appendChild(pre);
-                            slot.appendChild(details);
-                        }
-                    } catch (_) {}
-
-                    // Transform native ol/li into modern card layout
-                    result.querySelectorAll('#write ol').forEach(function(ol, sectionIndex) {
-                        // Create new article list container
-                        const articleList = document.createElement('div');
-                        articleList.className = 'article-list';
-                        
-                        // Get all list items
-                        const listItems = ol.querySelectorAll('li');
-                        
-                        listItems.forEach(function(li, index) {
-                            const link = li.querySelector('a[href]');
-                            if (!link) return;
-
-                            // Create article card
-                            const card = document.createElement('div');
-                            const urlValue = link.getAttribute('href');
-                            const titleText = link.textContent.trim();
-                            
-                            // Check if article is marked as removed via URL parameter
-                            const isRemoved = urlValue.includes('?data-removed=true');
-                            const cleanUrl = urlValue.replace('?data-removed=true', '');
-                            
-                            card.className = 'article-card ' + (isRemoved ? 'removed' : 'unread');
-                            card.setAttribute('data-url', cleanUrl);
-                            card.setAttribute('data-title', titleText);
-
-                            // Create header container
-                            const header = document.createElement('div');
-                            header.className = 'article-header';
-
-                            // Create number badge
-                            const number = document.createElement('div');
-                            number.className = 'article-number';
-                            number.textContent = index + 1;
-
-                            // Create content container
-                            const content = document.createElement('div');
-                            content.className = 'article-content';
-
-                            // Clone and enhance the link
-                            const newLink = link.cloneNode(true);
-                            newLink.className = 'article-link';
-                            newLink.setAttribute('target', '_blank');
-                            newLink.setAttribute('rel', 'noopener noreferrer');
-                            newLink.setAttribute('data-url', cleanUrl);
-                            newLink.setAttribute('href', cleanUrl);
-
-                            // Create actions container
-                            const actions = document.createElement('div');
-                            actions.className = 'article-actions';
-
-                            // Create split button container
-                            const expandBtnContainer = document.createElement('div');
-                            expandBtnContainer.className = 'expand-btn-container';
-
-                            // Create main expand button
-                            const expandBtn = document.createElement('button');
-                            expandBtn.className = 'article-btn expand-btn collapsed-state';
-                            expandBtn.innerHTML = 'Summarize';
-                            expandBtn.title = 'Show summary with default reasoning effort';
-                            expandBtn.setAttribute('data-url', cleanUrl);
-                            expandBtn.type = 'button';
-
-                            // Create chevron button
-                            const chevronBtn = document.createElement('button');
-                            chevronBtn.className = 'article-btn expand-chevron-btn';
-                            chevronBtn.innerHTML = '▾';
-                            chevronBtn.title = 'Choose reasoning effort level';
-                            chevronBtn.type = 'button';
-
-                            // Create dropdown menu
-                            const dropdown = document.createElement('div');
-                            dropdown.className = 'effort-dropdown';
-                            
-                            SUMMARY_EFFORT_OPTIONS.forEach((option) => {
-                                const item = document.createElement('button');
-                                item.className = 'effort-dropdown-item';
-                                item.type = 'button';
-                                item.setAttribute('data-effort', option.value);
-                                
-                                const label = document.createElement('span');
-                                label.className = 'effort-label';
-                                label.textContent = option.label;
-                                
-                                item.appendChild(label);
-                                dropdown.appendChild(item);
-                            });
-
-                            expandBtnContainer.appendChild(expandBtn);
-                            expandBtnContainer.appendChild(chevronBtn);
-                            expandBtnContainer.appendChild(dropdown);
-
-                            const copyBtn = document.createElement('button');
-                            copyBtn.className = 'article-btn copy-summary-btn';
-                            copyBtn.innerHTML = clipboardIconMarkup;
-                            copyBtn.title = 'Copy summary';
-                            copyBtn.type = 'button';
-                            copyBtn.setAttribute('data-url', cleanUrl);
-
-                            // Create remove button
-                            const removeBtn = document.createElement('button');
-                            removeBtn.className = 'article-btn remove-btn';
-                            removeBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-                            removeBtn.title = 'Remove article';
-                            removeBtn.type = 'button';
-                            removeBtn.setAttribute('data-url', cleanUrl);
-
-                            // Assemble the card
-                            content.appendChild(newLink);
-                            header.appendChild(number);
-                            header.appendChild(content);
-                            
-                            // Only add actions if not removed
-                            if (!isRemoved) {
-                                header.appendChild(actions);
-                                actions.appendChild(expandBtnContainer);
-                                actions.appendChild(copyBtn);
-                                actions.appendChild(removeBtn);
-                                
-                                setCardSummaryEffort(card, 'low');
-                                setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown);
-                            }
-                            
-                            card.appendChild(header);
-
-                            articleList.appendChild(card);
-                        });
-                        
-                        // Sort articles by state after creation
-                        sortArticlesByState(articleList);
-                        
-                        // Replace the old list with the new card layout
-                        ol.parentNode.replaceChild(articleList, ol);
-                        
-                        // Add a helpful hint after the first article list
-                        if (!document.querySelector('.interaction-hint')) {
-                            const hint = document.createElement('div');
-                            hint.className = 'interaction-hint';
-                            hint.innerHTML = '💡 Click titles or "Summarize" to show summaries • Use ▾ to choose reasoning effort • Click X to remove • Ctrl/Cmd+Click to open directly';
-                            articleList.insertAdjacentElement('afterend', hint);
-                        }
-                    });
-
-                    result.style.display = 'block';
-                    result.className = 'success';
-                    document.getElementById('progress-fill').style.width = '100%';
-                    
-                    // Load summaries for first 10 URLs
-                    loadSummaries();
-                } else {
-                    result.style.display = 'block';
-                    result.className = 'error';
-                    result.textContent = 'Error: ' + data.error;
-                }
-
-            } catch (error) {
-                result.style.display = 'block';
-                result.className = 'error';
-                result.textContent = 'Network error: ' + error.message;
-                console.error('Scraping error:', error);
-            }
-
-            // Hide progress, re-enable button
-            progress.style.display = 'none';
-            button.disabled = false;
-        });
-
-        // Load summaries for first 10 URLs with staggered requests
+        /**
+         * SummaryDelivery handles inline summary retrieval, honoring cache-only hints and live fetches from the summarize endpoint.
+         */
+        // #region -------[ SummaryDelivery ]-------
         async function loadSummaries() {
             const allExpandButtons = document.querySelectorAll('.expand-btn');
             const first10 = Array.from(allExpandButtons).slice(0, 10);
-            
+
             first10.forEach((btn, index) => {
                 setTimeout(async () => {
                     const url = btn.getAttribute('data-url');
@@ -1313,273 +1114,95 @@
                             if (card && getCardSummaryEffort(card) !== summaryEffort) {
                                 return;
                             }
-                            // Mark button as having loaded summary
                             btn.classList.add('loaded');
                             btn.innerHTML = 'Available';
                             btn.title = 'Summary cached - click to show';
 
-                            // Store the summary data and mark as read
                             if (card) {
                                 card.setAttribute('data-summary', data.summary_markdown || '');
                                 markArticleAsRead(card);
                             }
                         }
                     } catch (err) {
-                        // Silently ignore errors - these are just load attempts
                         console.debug('Load failed for', url, err);
                     }
-                }, index * 250); // Stagger by 250ms
+                }, index * 250);
             });
         }
 
-        // Initialize default dates on page load
-        setDefaultDates();
-        
-        // Load initial cache mode
-        loadCacheMode();
-        
-        // Helper function to update cache mode description
-        function updateCacheModeDescription(mode) {
-            const descriptions = {
-                'read_write': 'Normal caching: reads from cache, writes on cache miss',
-                'read_only': 'Only read from cache, never write (useful for testing)',
-                'write_only': 'Never read from cache, always write (rebuild cache)',
-                'disabled': 'No caching at all (all fresh data, no writes)'
-            };
-            document.getElementById('cacheModeDescription').textContent = descriptions[mode] || '';
-        }
-        
-        // Load current cache mode from server
-        async function loadCacheMode() {
-            try {
-                const response = await fetch('/api/cache-mode');
-                const data = await response.json();
-                if (data.success && data.cache_mode) {
-                    const select = document.getElementById('cacheModeSelect');
-                    select.value = data.cache_mode;
-                    select.setAttribute('data-current-value', data.cache_mode);
-                    updateCacheModeDescription(data.cache_mode);
+        function bindSummaryExpansion() {
+            document.addEventListener('click', async function(e) {
+                const expandBtn = e.target.closest('.expand-btn:not(.expand-chevron-btn)');
+                const link = e.target.closest('.article-link');
+
+                if (e.target.closest('.expand-chevron-btn') || e.target.closest('.effort-dropdown-item')) {
+                    return;
                 }
-            } catch (error) {
-                console.error('Error loading cache mode:', error);
-            }
-        }
-        
-        // Handle cache mode selection
-        document.getElementById('cacheModeSelect').addEventListener('change', async function(e) {
-            const select = e.target;
-            const newMode = select.value;
-            const originalValue = select.getAttribute('data-current-value') || 'read_write';
-            
-            select.disabled = true;
-            
-            try {
-                const response = await fetch('/api/cache-mode', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cache_mode: newMode })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    select.setAttribute('data-current-value', newMode);
-                    updateCacheModeDescription(newMode);
 
-                    // Show brief success indicator
-                    const desc = document.getElementById('cacheModeDescription');
-                    const originalText = desc.textContent;
-                    desc.textContent = '✓ Cache mode updated successfully!';
-                    desc.style.color = '#28a745';
-                    setTimeout(() => {
-                        updateCacheModeDescription(newMode);
-                        desc.style.color = '';
-                    }, 2000);
-                } else {
-                    alert('Error setting cache mode: ' + data.error);
-                    select.value = originalValue;
+                if (!expandBtn && !link) return;
+
+                const target = expandBtn || link;
+                const card = target.closest('.article-card');
+                if (!card) return;
+
+                if (link && !card.contains(link)) return;
+
+                const url = target.getAttribute('data-url') || target.getAttribute('href');
+                if (!url || url.startsWith('#')) return;
+
+                if (link && (e.ctrlKey || e.metaKey)) {
+                    return;
                 }
-            } catch (error) {
-                alert('Network error: ' + error.message);
-                console.error('Cache mode error:', error);
-                select.value = originalValue;
-            } finally {
-                select.disabled = false;
-            }
-        });
 
-        // Expand all functionality removed
+                e.preventDefault();
+                e.stopPropagation();
 
-        document.addEventListener('click', async function(e) {
-            const btn = e.target.closest('.copy-summary-btn');
-            if (!btn) return;
+                const btn = card.querySelector('.expand-btn');
+                const summaryEffort = getCardSummaryEffort(card);
 
-            e.preventDefault();
-            e.stopPropagation();
-
-            const card = btn.closest('.article-card');
-            const payload = `---\ntitle: ${card.getAttribute('data-title')}\nurl: ${card.getAttribute('data-url')}\n---\n${card.getAttribute('data-summary')}`;
-            await navigator.clipboard.writeText(payload);
-            showCopyToast();
-
-            return;
-        }, true);
-
-        // Handle remove button clicks
-        document.addEventListener('click', async function(e) {
-            const removeBtn = e.target.closest('.remove-btn');
-            if (!removeBtn) return;
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            await handleRemoveButtonClick(removeBtn);
-        }, true);
-
-        // Handle expand button and link clicks for summaries
-        document.addEventListener('click', async function(e) {
-            // Check if it's an expand button (but not chevron or dropdown)
-            const expandBtn = e.target.closest('.expand-btn:not(.expand-chevron-btn)');
-            const link = e.target.closest('.article-link');
-            
-            // Ignore clicks on chevron button or dropdown items
-            if (e.target.closest('.expand-chevron-btn') || e.target.closest('.effort-dropdown-item')) {
-                return;
-            }
-
-            if (!expandBtn && !link) return;
-            
-            const target = expandBtn || link;
-            const card = target.closest('.article-card');
-            if (!card) return;
-            
-            // Only intercept article links, not summary links
-            if (link && !card.contains(link)) return;
-            
-            const url = target.getAttribute('data-url') || target.getAttribute('href');
-            if (!url || url.startsWith('#')) return;
-            
-            // If Ctrl/Cmd+Click on link, open in new tab instead of showing summary
-            if (link && (e.ctrlKey || e.metaKey)) {
-                // Let the default behavior happen (open in new tab)
-                return;
-            }
-            
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const btn = card.querySelector('.expand-btn');
-            const summaryEffort = getCardSummaryEffort(card);
-            
-            // Check if summary already exists
-            let expander = card.querySelector('.inline-summary');
-            if (expander) {
-                // Toggle visibility
-                if (expander.style.display === 'none') {
-                    expander.style.display = 'block';
-                    if (btn) {
-                        btn.innerHTML = 'Hide';
-                        btn.title = 'Hide summary';
-                        btn.classList.add('expanded');
-                        btn.classList.remove('collapsed-state');
-                    }
-                    toggleCopyButton(card, true);
-                } else {
-                    expander.style.display = 'none';
-                    if (btn) {
-                        // Check if summary is loaded (cached)
-                        const isLoaded = btn.classList.contains('loaded');
-                        btn.innerHTML = isLoaded ? 'Available' : 'Summarize';
-                        btn.title = isLoaded ? 'Summary cached - click to show' : 'Show summary with default reasoning effort';
-                        btn.classList.remove('expanded');
-                        if (!isLoaded) {
-                            btn.classList.add('collapsed-state');
-                        }
-                    }
-                    toggleCopyButton(card, false);
-                    
-                    // Mark as read and reposition when user hides the summary
-                    markArticleAsRead(card);
-                }
-                return;
-            }
-            
-            // Check if we have a loaded summary already
-            const loadedSummary = card.getAttribute('data-summary');
-            
-            if (loadedSummary) {
-                // Use loaded summary immediately
-                expander = document.createElement('div');
-                expander.className = 'inline-summary';
-                const html = DOMPurify.sanitize(marked.parse(loadedSummary));
-                expander.innerHTML = '<strong>Summary</strong>' + html;
-                // Make links inside the inline summary safe/tabbed and don't trigger expansion
-                expander.querySelectorAll('a[href]').forEach(function(a) {
-                    a.setAttribute('target', '_blank');
-                    a.setAttribute('rel', 'noopener noreferrer');
-                    a.classList.remove('article-link');
-                });
-                card.appendChild(expander);
-                
-                if (btn) {
-                    btn.innerHTML = 'Hide';
-                    btn.title = 'Hide summary';
-                    btn.classList.add('expanded');
-                    btn.classList.remove('collapsed-state');
-                    btn.classList.add('loaded');
-                }
-                toggleCopyButton(card, true);
-                return;
-            }
-            
-            // Update button state
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = 'Loading...';
-                btn.title = 'Loading summary...';
-            }
-
-            // Create inline summary under the card header
-            expander = document.createElement('div');
-            expander.className = 'inline-summary';
-            expander.textContent = 'Summarizing...';
-            card.appendChild(expander);
-
-            try {
-                const resp = await fetch('/api/summarize-url', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url, summary_effort: summaryEffort })
-                });
-                const data = await resp.json();
-                if (data.success) {
-                    if (getCardSummaryEffort(card) !== summaryEffort) {
+                let expander = card.querySelector('.inline-summary');
+                if (expander) {
+                    if (expander.style.display === 'none') {
+                        expander.style.display = 'block';
                         if (btn) {
-                            btn.disabled = false;
-                            btn.innerHTML = 'Summarize';
-                            btn.title = 'Show summary with default reasoning effort';
-                            btn.classList.add('collapsed-state');
+                            btn.innerHTML = 'Hide';
+                            btn.title = 'Hide summary';
+                            btn.classList.add('expanded');
+                            btn.classList.remove('collapsed-state');
                         }
-                        if (expander && expander.parentNode) {
-                            expander.remove();
+                        toggleCopyButton(card, true);
+                    } else {
+                        expander.style.display = 'none';
+                        if (btn) {
+                            const isLoaded = btn.classList.contains('loaded');
+                            btn.innerHTML = isLoaded ? 'Available' : 'Summarize';
+                            btn.title = isLoaded ? 'Summary cached - click to show' : 'Show summary with default reasoning effort';
+                            btn.classList.remove('expanded');
+                            if (!isLoaded) {
+                                btn.classList.add('collapsed-state');
+                            }
                         }
                         toggleCopyButton(card, false);
-                        return;
+                        markArticleAsRead(card);
                     }
-                    const html = DOMPurify.sanitize(marked.parse(data.summary_markdown || ''));
+                    return;
+                }
+
+                const loadedSummary = card.getAttribute('data-summary');
+
+                if (loadedSummary) {
+                    expander = document.createElement('div');
+                    expander.className = 'inline-summary';
+                    const html = DOMPurify.sanitize(marked.parse(loadedSummary));
                     expander.innerHTML = '<strong>Summary</strong>' + html;
-                    // Make links inside the inline summary safe/tabbed and don't trigger expansion
                     expander.querySelectorAll('a[href]').forEach(function(a) {
                         a.setAttribute('target', '_blank');
                         a.setAttribute('rel', 'noopener noreferrer');
                         a.classList.remove('article-link');
                     });
-                    
-                    // Store the summary for future use
-                    card.setAttribute('data-summary', data.summary_markdown || '');
-                    
+                    card.appendChild(expander);
+
                     if (btn) {
-                        btn.disabled = false;
                         btn.innerHTML = 'Hide';
                         btn.title = 'Hide summary';
                         btn.classList.add('expanded');
@@ -1587,9 +1210,75 @@
                         btn.classList.add('loaded');
                     }
                     toggleCopyButton(card, true);
-                } else {
+                    return;
+                }
+
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = 'Loading...';
+                    btn.title = 'Loading summary...';
+                }
+
+                expander = document.createElement('div');
+                expander.className = 'inline-summary';
+                expander.textContent = 'Summarizing...';
+                card.appendChild(expander);
+
+                try {
+                    const resp = await fetch('/api/summarize-url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url, summary_effort: summaryEffort })
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        if (getCardSummaryEffort(card) !== summaryEffort) {
+                            if (btn) {
+                                btn.disabled = false;
+                                btn.innerHTML = 'Summarize';
+                                btn.title = 'Show summary with default reasoning effort';
+                                btn.classList.add('collapsed-state');
+                            }
+                            if (expander && expander.parentNode) {
+                                expander.remove();
+                            }
+                            toggleCopyButton(card, false);
+                            return;
+                        }
+                        const html = DOMPurify.sanitize(marked.parse(data.summary_markdown || ''));
+                        expander.innerHTML = '<strong>Summary</strong>' + html;
+                        expander.querySelectorAll('a[href]').forEach(function(a) {
+                            a.setAttribute('target', '_blank');
+                            a.setAttribute('rel', 'noopener noreferrer');
+                            a.classList.remove('article-link');
+                        });
+
+                        card.setAttribute('data-summary', data.summary_markdown || '');
+
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = 'Hide';
+                            btn.title = 'Hide summary';
+                            btn.classList.add('expanded');
+                            btn.classList.remove('collapsed-state');
+                            btn.classList.add('loaded');
+                        }
+                        toggleCopyButton(card, true);
+                    } else {
+                        expander.classList.add('error');
+                        expander.textContent = 'Error: ' + (data.error || 'Failed to summarize');
+
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = 'Summarize';
+                            btn.title = 'Show summary with default reasoning effort';
+                            btn.classList.add('collapsed-state');
+                        }
+                        toggleCopyButton(card, false);
+                    }
+                } catch (err) {
                     expander.classList.add('error');
-                    expander.textContent = 'Error: ' + (data.error || 'Failed to summarize');
+                    expander.textContent = 'Network error: ' + (err?.message || String(err));
 
                     if (btn) {
                         btn.disabled = false;
@@ -1599,19 +1288,334 @@
                     }
                     toggleCopyButton(card, false);
                 }
-            } catch (err) {
-                expander.classList.add('error');
-                expander.textContent = 'Network error: ' + (err?.message || String(err));
+            }, true);
+        }
+        // #endregion
 
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = 'Summarize';
-                    btn.title = 'Show summary with default reasoning effort';
-                    btn.classList.add('collapsed-state');
-                }
-                toggleCopyButton(card, false);
+        /**
+         * ScrapeIntake validates date ranges, calls /api/scrape, and reconstructs the article card surface for downstream features.
+         */
+        // #region -------[ ScrapeIntake ]-------
+        function setDefaultDates() {
+            const today = new Date();
+            const weekAgo = new Date(today);
+            weekAgo.setDate(today.getDate() - 7);
+
+            const endInput = document.getElementById('end_date');
+            const startInput = document.getElementById('start_date');
+            if (endInput) {
+                endInput.value = today.toISOString().split('T')[0];
             }
-        }, true);
+            if (startInput) {
+                startInput.value = weekAgo.toISOString().split('T')[0];
+            }
+        }
+
+        function bindScrapeForm() {
+            const form = document.getElementById('scrapeForm');
+            if (!form) return;
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const startDate = document.getElementById('start_date').value;
+                const endDate = document.getElementById('end_date').value;
+
+                const button = document.getElementById('scrapeBtn');
+                const progress = document.getElementById('progress');
+                const result = document.getElementById('result');
+
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+
+                if (start > end) {
+                    result.style.display = 'block';
+                    result.className = 'error';
+                    result.textContent = 'Start date must be before or equal to end date.';
+                    return;
+                }
+
+                const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                if (daysDiff >= 31) {
+                    result.style.display = 'block';
+                    result.className = 'error';
+                    result.textContent = 'Date range cannot exceed 31 days. Please select a smaller range.';
+                    return;
+                }
+
+                button.disabled = true;
+                progress.style.display = 'block';
+                result.style.display = 'none';
+
+                document.getElementById('progress-text').textContent = 'Scraping newsletters... This may take several minutes.';
+                document.getElementById('progress-fill').style.width = '50%';
+
+                try {
+                    const response = await fetch('/api/scrape', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ start_date: startDate, end_date: endDate })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        if (data.stats.cache_mode) {
+                            const select = document.getElementById('cacheModeSelect');
+                            if (select) {
+                                select.value = data.stats.cache_mode;
+                                select.setAttribute('data-current-value', data.stats.cache_mode);
+                            }
+                            updateCacheModeDescription(data.stats.cache_mode);
+                        }
+
+                        const statsHtml = `<div class="stats">
+                            📊 Stats: ${data.stats.total_articles} articles found,
+                            ${data.stats.unique_urls} unique URLs,
+                            ${data.stats.dates_with_content}/${data.stats.dates_processed} dates had content<br>
+                            🧠 Cache: hits=${data.stats.cache_hits ?? 0}, misses=${data.stats.cache_misses ?? 0}, other=${data.stats.cache_other ?? 0}<br>
+                            💾 Blob Cache: hits=${data.stats.blob_cache_hits ?? 0}, misses=${data.stats.blob_cache_misses ?? 0}<br>
+                            ☁️ Blob Store present: ${data.stats.blob_store_present ? 'true' : 'false'}<br>
+                            ⚙️ Cache Mode: <strong>${data.stats.cache_mode || 'read_write'}</strong>
+                        </div>`;
+
+                        const html = DOMPurify.sanitize(marked.parse(data.output));
+
+                        const whiteySurface = `<main id="write">${html}</main>`;
+                        result.innerHTML = statsHtml + '<div id="logs-slot"></div>' + whiteySurface;
+
+                        try {
+                            if (Array.isArray(data.stats.debug_logs) && data.stats.debug_logs.length) {
+                                const slot = document.getElementById('logs-slot');
+                                if (slot) {
+                                    const details = document.createElement('details');
+                                    const summary = document.createElement('summary');
+                                    summary.textContent = 'Debug logs';
+                                    const pre = document.createElement('pre');
+                                    pre.style.whiteSpace = 'pre-wrap';
+                                    pre.textContent = data.stats.debug_logs.map(l => String(l)).join('\n');
+                                    details.appendChild(summary);
+                                    details.appendChild(pre);
+                                    slot.appendChild(details);
+                                }
+                            }
+                        } catch (_) {}
+
+                        result.querySelectorAll('#write ol').forEach(function(ol) {
+                            const articleList = document.createElement('div');
+                            articleList.className = 'article-list';
+
+                            const listItems = ol.querySelectorAll('li');
+
+                            listItems.forEach(function(li, index) {
+                                const link = li.querySelector('a[href]');
+                                if (!link) return;
+
+                                const card = document.createElement('div');
+                                const urlValue = link.getAttribute('href');
+                                const titleText = link.textContent.trim();
+
+                                const isRemoved = urlValue.includes('?data-removed=true');
+                                const cleanUrl = urlValue.replace('?data-removed=true', '');
+
+                                card.className = 'article-card ' + (isRemoved ? 'removed' : 'unread');
+                                card.setAttribute('data-url', cleanUrl);
+                                card.setAttribute('data-title', titleText);
+
+                                const header = document.createElement('div');
+                                header.className = 'article-header';
+
+                                const number = document.createElement('div');
+                                number.className = 'article-number';
+                                number.textContent = index + 1;
+
+                                const content = document.createElement('div');
+                                content.className = 'article-content';
+
+                                const newLink = link.cloneNode(true);
+                                newLink.className = 'article-link';
+                                newLink.setAttribute('target', '_blank');
+                                newLink.setAttribute('rel', 'noopener noreferrer');
+                                newLink.setAttribute('data-url', cleanUrl);
+                                newLink.setAttribute('href', cleanUrl);
+
+                                const actions = document.createElement('div');
+                                actions.className = 'article-actions';
+
+                                const expandBtnContainer = document.createElement('div');
+                                expandBtnContainer.className = 'expand-btn-container';
+
+                                const expandBtn = document.createElement('button');
+                                expandBtn.className = 'article-btn expand-btn collapsed-state';
+                                expandBtn.innerHTML = 'Summarize';
+                                expandBtn.title = 'Show summary with default reasoning effort';
+                                expandBtn.setAttribute('data-url', cleanUrl);
+                                expandBtn.type = 'button';
+
+                                const chevronBtn = document.createElement('button');
+                                chevronBtn.className = 'article-btn expand-chevron-btn';
+                                chevronBtn.innerHTML = '▾';
+                                chevronBtn.title = 'Choose reasoning effort level';
+                                chevronBtn.type = 'button';
+
+                                const dropdown = document.createElement('div');
+                                dropdown.className = 'effort-dropdown';
+
+                                SUMMARY_EFFORT_OPTIONS.forEach((option) => {
+                                    const item = document.createElement('button');
+                                    item.className = 'effort-dropdown-item';
+                                    item.type = 'button';
+                                    item.setAttribute('data-effort', option.value);
+
+                                    const label = document.createElement('span');
+                                    label.className = 'effort-label';
+                                    label.textContent = option.label;
+
+                                    item.appendChild(label);
+                                    dropdown.appendChild(item);
+                                });
+
+                                expandBtnContainer.appendChild(expandBtn);
+                                expandBtnContainer.appendChild(chevronBtn);
+                                expandBtnContainer.appendChild(dropdown);
+
+                                const copyBtn = document.createElement('button');
+                                copyBtn.className = 'article-btn copy-summary-btn';
+                                copyBtn.innerHTML = clipboardIconMarkup;
+                                copyBtn.title = 'Copy summary';
+                                copyBtn.type = 'button';
+                                copyBtn.setAttribute('data-url', cleanUrl);
+
+                                const removeBtn = document.createElement('button');
+                                removeBtn.className = 'article-btn remove-btn';
+                                removeBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                                removeBtn.title = 'Remove article';
+                                removeBtn.type = 'button';
+                                removeBtn.setAttribute('data-url', cleanUrl);
+
+                                content.appendChild(newLink);
+                                header.appendChild(number);
+                                header.appendChild(content);
+
+                                if (!isRemoved) {
+                                    header.appendChild(actions);
+                                    actions.appendChild(expandBtnContainer);
+                                    actions.appendChild(copyBtn);
+                                    actions.appendChild(removeBtn);
+
+                                    setCardSummaryEffort(card, 'low');
+                                    setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown);
+                                }
+
+                                card.appendChild(header);
+
+                                articleList.appendChild(card);
+                            });
+
+                            sortArticlesByState(articleList);
+
+                            ol.parentNode.replaceChild(articleList, ol);
+
+                            if (!document.querySelector('.interaction-hint')) {
+                                const hint = document.createElement('div');
+                                hint.className = 'interaction-hint';
+                                hint.innerHTML = '💡 Click titles or "Summarize" to show summaries • Use ▾ to choose reasoning effort • Click X to remove • Ctrl/Cmd+Click to open directly';
+                                articleList.insertAdjacentElement('afterend', hint);
+                            }
+                        });
+
+                        result.style.display = 'block';
+                        result.className = 'success';
+                        document.getElementById('progress-fill').style.width = '100%';
+
+                        loadSummaries();
+                    } else {
+                        result.style.display = 'block';
+                        result.className = 'error';
+                        result.textContent = 'Error: ' + data.error;
+                    }
+
+                } catch (error) {
+                    result.style.display = 'block';
+                    result.className = 'error';
+                    result.textContent = 'Network error: ' + error.message;
+                    console.error('Scraping error:', error);
+                }
+
+                progress.style.display = 'none';
+                button.disabled = false;
+            });
+        }
+        // #endregion
+
+        /**
+         * RemovalLifecycle enforces cache-mode gating and updates UI after /api/remove-url, introduced in remove-button refactor.
+         */
+        // #region -------[ RemovalLifecycle ]-------
+        async function handleRemoveButtonClick(button) {
+            if (shouldDisableRemovals()) {
+                alert('Removal is disabled in ' + getActiveCacheMode() + ' mode');
+                return;
+            }
+
+            const card = button.closest('.article-card');
+            if (!card) return;
+
+            const url = card.getAttribute('data-url');
+            if (!url) return;
+
+            card.classList.add('removing');
+            button.classList.add('removing');
+
+            try {
+                const resp = await fetch('/api/remove-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                const data = await resp.json();
+
+                if (data.success) {
+                    card.classList.remove('removing');
+                    button.classList.remove('removing');
+                    markArticleAsRemoved(card);
+                } else {
+                    card.classList.remove('removing');
+                    button.classList.remove('removing');
+                    alert('Failed to remove: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                card.classList.remove('removing');
+                button.classList.remove('removing');
+                alert('Error: ' + err.message);
+            }
+        }
+
+        function bindRemovalFlow() {
+            document.addEventListener('click', async function(e) {
+                const removeBtn = e.target.closest('.remove-btn');
+                if (!removeBtn) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                await handleRemoveButtonClick(removeBtn);
+            }, true);
+        }
+        // #endregion
+
+        /**
+         * AppBootstrap wires feature bindings so the UI state machine starts in sync with backend data.
+         */
+        // #region -------[ AppBootstrap ]-------
+        setDefaultDates();
+        loadCacheMode();
+        bindCacheModeSelector();
+        bindScrapeForm();
+        bindCopySummaryFlow();
+        bindRemovalFlow();
+        bindSummaryExpansion();
+        // #endregion
     </script>
 </body>
 </html>
