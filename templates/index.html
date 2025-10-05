@@ -751,9 +751,24 @@
 
         .date-header-container {
             display: flex;
-            align-items: baseline;
+            align-items: center;
             justify-content: space-between;
             width: 100%;
+            margin: 0;
+        }
+
+        .date-header-container h3 {
+            text-align: left !important;
+            margin: 0 !important;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            font-style: normal !important;
+        }
+
+        .date-header-container .clear-date-cache-btn {
+            flex-shrink: 0;
+            width: auto;
             margin: 0;
         }
 
