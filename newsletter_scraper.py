@@ -418,9 +418,20 @@ def scrape_date_range(start_date, end_date):
 
     blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
 
+    articles_data = []
+    for article in all_articles:
+        articles_data.append({
+            "url": article["url"],
+            "title": article["title"],
+            "date": article["date"],
+            "category": article["category"],
+            "removed": article.get("removed", False),
+        })
+
     return {
         "success": True,
         "output": output,
+        "articles": articles_data,
         "stats": {
             "total_articles": len(all_articles),
             "unique_urls": len(url_set),
