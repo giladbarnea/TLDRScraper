@@ -159,18 +159,14 @@ def _try_read_cache_json(
 ) -> Any | None:
     blob_url = f"{blob_base_url}/{pathname}"
     try:
-        util.log(
-            f"[{fn_name}] Trying cache: {pathname}", logger=logger
-        )
+        util.log(f"[{fn_name}] Trying cache: {pathname}", logger=logger)
         resp = requests.get(
             blob_url,
             timeout=10,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
         )
         resp.raise_for_status()
-        util.log(
-            f"[{fn_name}] ✔ Cache hit: {pathname}", logger=logger
-        )
+        util.log(f"[{fn_name}] ✔ Cache hit: {pathname}", logger=logger)
         return json.loads(resp.content.decode("utf-8"))
     except Exception as e:
         util.log(
@@ -186,9 +182,7 @@ def _try_write_cache_json(pathname: str, data: Any, fn_name: str, logger) -> Non
         from blob_store import put_file
 
         put_file(pathname, json.dumps(data, indent=2))
-        util.log(
-            f"[{fn_name}] ✔ Cached result: {pathname}", logger=logger
-        )
+        util.log(f"[{fn_name}] ✔ Cached result: {pathname}", logger=logger)
     except Exception as e:
         util.log(
             f"[{fn_name}] ✘ Failed to cache: {pathname} - {repr(e)}",

@@ -334,6 +334,106 @@ def invalidate_cache_endpoint():
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
+@app.route("/api/invalidate-date-cache", methods=["POST"])
+def invalidate_date_cache_endpoint():
+    """Invalidate all cached data (newsletter, URL content, summaries) for a specific date."""
+    try:
+        data = request.get_json() or {}
+
+        if "date" not in data:
+            return jsonify({
+                "success": False,
+                "error": "date is required",
+            }), 400
+
+        date_str = data["date"]
+
+        from blob_store import normalize_url_to_pathname
+        from summarizer import SUMMARY_EFFORT_OPTIONS
+
+        deleted_files = []
+        failed_files = []
+
+        day_cache_pathname = build_scraped_day_cache_key(date_str)
+
+        blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
+        if not blob_base_url:
+            return jsonify({
+                "success": False,
+                "error": "BLOB_STORE_BASE_URL not configured",
+            }), 500
+
+        try:
+            blob_url = f"{blob_base_url}/{day_cache_pathname}"
+            response = requests.get(blob_url, timeout=10)
+            response.raise_for_status()
+            cached_day = response.json()
+            articles = cached_day.get("articles", [])
+        except Exception as e:
+            util.log(
+                f"[serve.invalidate_date_cache_endpoint] Could not fetch day cache for date={date_str}: {repr(e)}",
+                level=logging.WARNING,
+                logger=logger,
+            )
+            articles = []
+
+        urls_to_process = set()
+        for article in articles:
+            url = article.get("url")
+            if url:
+                canonical = util.canonicalize_url(url)
+                urls_to_process.add(canonical)
+
+        for url in urls_to_process:
+            url_base_pathname = normalize_url_to_pathname(url)
+            url_base = (
+                url_base_pathname[:-3]
+                if url_base_pathname.endswith(".md")
+                else url_base_pathname
+            )
+
+            content_pathname = url_base_pathname
+            if delete_file(content_pathname):
+                deleted_files.append(content_pathname)
+            else:
+                failed_files.append(content_pathname)
+
+            for effort in SUMMARY_EFFORT_OPTIONS:
+                suffix = "" if effort == "low" else f"-{effort}"
+                summary_pathname = f"{url_base}-summary{suffix}.md"
+                if delete_file(summary_pathname):
+                    deleted_files.append(summary_pathname)
+
+        if delete_file(day_cache_pathname):
+            deleted_files.append(day_cache_pathname)
+        else:
+            failed_files.append(day_cache_pathname)
+
+        util.log(
+            f"[serve.invalidate_date_cache_endpoint] Deleted {len(deleted_files)} files for date={date_str}",
+            logger=logger,
+        )
+
+        return jsonify({
+            "success": True,
+            "date": date_str,
+            "deleted_count": len(deleted_files),
+            "failed_count": len(failed_files),
+            "deleted_files": deleted_files[:10],
+            "failed_files": failed_files if failed_files else None,
+        })
+
+    except Exception as e:
+        util.log(
+            "[serve.invalidate_date_cache_endpoint] error error=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
