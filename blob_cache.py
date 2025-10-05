@@ -27,81 +27,43 @@ def blob_cached(
     def decorator(fn: Callable[P, R]) -> Callable[P, R]:
         @wraps(fn)
         def wrapper(path: str, *args: P.args, **kwargs: P.kwargs) -> R:
-            # Extract cache_only from kwargs (don't pass it to the underlying function)
             cache_only = kwargs.pop('cache_only', False)
-
-            # First arg is the URL/string for pathname generation
             pathname = pathname_fn(path, *args, **kwargs)
+            
+            # PHASE 1: Early exit if cache_only and cache unavailable
             blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
-
-            # Early return: Check if cache reads are allowed
-            if blob_base_url and cache_mode.can_read():
-                blob_url = f"{blob_base_url}/{pathname}"
-                try:
-                    util.log(
-                        f"[blob_cache] Trying cache for {fn.__name__}: {pathname}",
-                        logger=logger,
-                    )
-                    resp = requests.get(
-                        blob_url,
-                        timeout=10,
-                        headers={
-                            "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"
-                        },
-                    )
-                    resp.raise_for_status()
-                    util.log(
-                        f"[blob_cache] Cache HIT for {fn.__name__}: {pathname}",
-                        logger=logger,
-                    )
-                    return resp.content.decode("utf-8").strip()
-                except Exception as e:
-                    util.log(
-                        f"[blob_cache] Cache MISS for {fn.__name__}: {pathname} - {repr(e)}",
-                        level=logging.WARNING,
-                        logger=logger,
-                    )
-                    
-                    # If cache_only mode and cache missed, don't call the function
-                    if cache_only:
-                        util.log(
-                            f"[blob_cache] cache_only=True and cache missed for {fn.__name__}: {pathname}, returning None without calling function",
-                            level=logging.INFO,
-                            logger=logger,
-                        )
-                        return None
-
-            # If cache_only but no blob store, also return None
-            if cache_only:
+            cache_read_available = blob_base_url and cache_mode.can_read()
+            
+            if cache_only and not cache_read_available:
                 util.log(
-                    f"[blob_cache] cache_only=True but no blob store configured for {fn.__name__}, returning None",
+                    f"[blob_cache] cache_only=True but cache unavailable for {fn.__name__}: {pathname}",
                     level=logging.INFO,
                     logger=logger,
                 )
                 return None
-
-            # Execute the function
+            
+            # PHASE 2: Attempt cache read (cohesive, decoupled)
+            if cache_read_available:
+                cached_result = _try_read_cache(blob_base_url, pathname, fn.__name__, logger)
+                if cached_result is not None:
+                    return cached_result
+                
+                if cache_only:
+                    util.log(
+                        f"[blob_cache] cache_only=True but cache missed for {fn.__name__}: {pathname}",
+                        level=logging.INFO,
+                        logger=logger,
+                    )
+                    return None
+            
+            # PHASE 3: Execute function (mandatory at this point)
             result = fn(path, *args, **kwargs)
-
-            # Early return: Check if cache writes are allowed
-            if not cache_mode.can_write():
-                return result
-
-            try:
-                from blob_store import put_file
-
-                put_file(pathname, result)
-                util.log(
-                    f"[blob_cache] Cached result for {fn.__name__}: {pathname}",
-                    logger=logger,
-                )
-            except Exception as e:
-                util.log(
-                    f"[blob_cache] Failed to cache {fn.__name__}: {pathname} - {repr(e)}",
-                    level=logging.WARNING,
-                    logger=logger,
-                )
-
+            
+            # PHASE 4: Attempt cache write (cohesive, decoupled, independent)
+            if cache_mode.can_write():
+                _try_write_cache(pathname, result, fn.__name__, logger)
+            
+            # PHASE 5: Return result
             return result
 
         return wrapper
@@ -127,60 +89,87 @@ def blob_cached_json(
         def wrapper(*args, **kwargs):
             pathname = pathname_fn(*args, **kwargs)
             blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
-
-            # Early return: Check if cache reads are allowed
+            
+            # PHASE 1: Attempt cache read (cohesive, decoupled)
             if blob_base_url and cache_mode.can_read():
-                blob_url = f"{blob_base_url}/{pathname}"
-                try:
-                    util.log(
-                        f"[blob_cache_json] Trying cache for {fn.__name__}: {pathname}",
-                        logger=logger,
-                    )
-                    resp = requests.get(
-                        blob_url,
-                        timeout=10,
-                        headers={
-                            "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"
-                        },
-                    )
-                    resp.raise_for_status()
-                    util.log(
-                        f"[blob_cache_json] Cache HIT for {fn.__name__}: {pathname}",
-                        logger=logger,
-                    )
-                    return json.loads(resp.content.decode("utf-8"))
-                except Exception as e:
-                    util.log(
-                        f"[blob_cache_json] Cache MISS for {fn.__name__}: {pathname} - {repr(e)}",
-                        level=logging.WARNING,
-                        logger=logger,
-                    )
-
-            # Execute the function
+                cached_result = _try_read_cache_json(blob_base_url, pathname, fn.__name__, logger)
+                if cached_result is not None:
+                    return cached_result
+            
+            # PHASE 2: Execute function (mandatory at this point)
             result = fn(*args, **kwargs)
-
-            # Early return: Check if cache writes are allowed
-            if not cache_mode.can_write():
-                return result
-
-            if should_cache is None or should_cache(result):
-                try:
-                    from blob_store import put_file
-
-                    put_file(pathname, json.dumps(result, indent=2))
-                    util.log(
-                        f"[blob_cache_json] Cached result for {fn.__name__}: {pathname}",
-                        logger=logger,
-                    )
-                except Exception as e:
-                    util.log(
-                        f"[blob_cache_json] Failed to cache {fn.__name__}: {pathname} - {repr(e)}",
-                        level=logging.WARNING,
-                        logger=logger,
-                    )
-
+            
+            # PHASE 3: Attempt cache write (cohesive, decoupled, independent)
+            if cache_mode.can_write() and (should_cache is None or should_cache(result)):
+                _try_write_cache_json(pathname, result, fn.__name__, logger)
+            
+            # PHASE 4: Return result
             return result
-
+        
         return wrapper
-
+    
     return decorator
+
+def _try_read_cache(blob_base_url: str, pathname: str, fn_name: str, logger) -> str | None:
+    blob_url = f"{blob_base_url}/{pathname}"
+    try:
+        util.log(f"[blob_cache] Trying cache for {fn_name}: {pathname}", logger=logger)
+        resp = requests.get(
+            blob_url,
+            timeout=10,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"}
+        )
+        resp.raise_for_status()
+        util.log(f"[blob_cache] ✔ Cache hit for {fn_name}: {pathname}", logger=logger)
+        return resp.content.decode("utf-8").strip()
+    except Exception as e:
+        util.log(
+            f"[blob_cache] ✘ Cache miss for {fn_name}: {pathname} - {repr(e)}",
+            level=logging.WARNING,
+            logger=logger,
+        )
+        return None
+
+def _try_write_cache(pathname: str, content: str, fn_name: str, logger) -> None:
+    try:
+        from blob_store import put_file
+        put_file(pathname, content)
+        util.log(f"[blob_cache] Cached result for {fn_name}: {pathname}", logger=logger)
+    except Exception as e:
+        util.log(
+            f"[blob_cache] Failed to cache {fn_name}: {pathname} - {repr(e)}",
+            level=logging.WARNING,
+            logger=logger,
+        )
+
+def _try_read_cache_json(blob_base_url: str, pathname: str, fn_name: str, logger) -> Any | None:
+    blob_url = f"{blob_base_url}/{pathname}"
+    try:
+        util.log(f"[blob_cache_json] Trying cache for {fn_name}: {pathname}", logger=logger)
+        resp = requests.get(
+            blob_url,
+            timeout=10,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"}
+        )
+        resp.raise_for_status()
+        util.log(f"[blob_cache_json] Cache HIT for {fn_name}: {pathname}", logger=logger)
+        return json.loads(resp.content.decode("utf-8"))
+    except Exception as e:
+        util.log(
+            f"[blob_cache_json] Cache MISS for {fn_name}: {pathname} - {repr(e)}",
+            level=logging.WARNING,
+            logger=logger,
+        )
+        return None
+
+def _try_write_cache_json(pathname: str, data: Any, fn_name: str, logger) -> None:
+    try:
+        from blob_store import put_file
+        put_file(pathname, json.dumps(data, indent=2))
+        util.log(f"[blob_cache_json] Cached result for {fn_name}: {pathname}", logger=logger)
+    except Exception as e:
+        util.log(
+            f"[blob_cache_json] Failed to cache {fn_name}: {pathname} - {repr(e)}",
+            level=logging.WARNING,
+            logger=logger,
+        )
