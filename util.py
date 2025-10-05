@@ -53,78 +53,78 @@ def canonicalize_url(url) -> str:
 def get_domain_name(url) -> str:
     """Extract a friendly domain name from a URL"""
     import urllib.parse as urlparse
-    
+
     try:
         parsed = urlparse.urlparse(url)
         hostname = parsed.netloc.lower()
-        
+
         # Remove www. prefix if present
-        if hostname.startswith('www.'):
+        if hostname.startswith("www."):
             hostname = hostname[4:]
-        
+
         # Remove port number if present
-        hostname = hostname.split(':')[0]
-        
+        hostname = hostname.split(":")[0]
+
         # Map common domains to friendly names
         domain_map = {
-            'google.com': 'Google',
-            'youtube.com': 'YouTube',
-            'github.com': 'GitHub',
-            'stackoverflow.com': 'Stack Overflow',
-            'reddit.com': 'Reddit',
-            'twitter.com': 'Twitter',
-            'x.com': 'X',
-            'facebook.com': 'Facebook',
-            'linkedin.com': 'LinkedIn',
-            'medium.com': 'Medium',
-            'techcrunch.com': 'TechCrunch',
-            'theverge.com': 'The Verge',
-            'arstechnica.com': 'Ars Technica',
-            'wired.com': 'Wired',
-            'engadget.com': 'Engadget',
-            'reuters.com': 'Reuters',
-            'bloomberg.com': 'Bloomberg',
-            'nytimes.com': 'New York Times',
-            'washingtonpost.com': 'Washington Post',
-            'bbc.com': 'BBC',
-            'bbc.co.uk': 'BBC',
-            'cnn.com': 'CNN',
-            'theguardian.com': 'The Guardian',
-            'forbes.com': 'Forbes',
-            'wsj.com': 'Wall Street Journal',
-            'arxiv.org': 'arXiv',
-            'nature.com': 'Nature',
-            'science.org': 'Science',
-            'openai.com': 'OpenAI',
-            'anthropic.com': 'Anthropic',
-            'deepmind.com': 'DeepMind',
-            'microsoft.com': 'Microsoft',
-            'apple.com': 'Apple',
-            'amazon.com': 'Amazon',
-            'netflix.com': 'Netflix',
-            'spotify.com': 'Spotify',
-            'slack.com': 'Slack',
-            'discord.com': 'Discord',
-            'notion.so': 'Notion',
-            'figma.com': 'Figma',
-            'vercel.com': 'Vercel',
-            'netlify.com': 'Netlify',
+            "google.com": "Google",
+            "youtube.com": "YouTube",
+            "github.com": "GitHub",
+            "stackoverflow.com": "Stack Overflow",
+            "reddit.com": "Reddit",
+            "twitter.com": "Twitter",
+            "x.com": "X",
+            "facebook.com": "Facebook",
+            "linkedin.com": "LinkedIn",
+            "medium.com": "Medium",
+            "techcrunch.com": "TechCrunch",
+            "theverge.com": "The Verge",
+            "arstechnica.com": "Ars Technica",
+            "wired.com": "Wired",
+            "engadget.com": "Engadget",
+            "reuters.com": "Reuters",
+            "bloomberg.com": "Bloomberg",
+            "nytimes.com": "New York Times",
+            "washingtonpost.com": "Washington Post",
+            "bbc.com": "BBC",
+            "bbc.co.uk": "BBC",
+            "cnn.com": "CNN",
+            "theguardian.com": "The Guardian",
+            "forbes.com": "Forbes",
+            "wsj.com": "Wall Street Journal",
+            "arxiv.org": "arXiv",
+            "nature.com": "Nature",
+            "science.org": "Science",
+            "openai.com": "OpenAI",
+            "anthropic.com": "Anthropic",
+            "deepmind.com": "DeepMind",
+            "microsoft.com": "Microsoft",
+            "apple.com": "Apple",
+            "amazon.com": "Amazon",
+            "netflix.com": "Netflix",
+            "spotify.com": "Spotify",
+            "slack.com": "Slack",
+            "discord.com": "Discord",
+            "notion.so": "Notion",
+            "figma.com": "Figma",
+            "vercel.com": "Vercel",
+            "netlify.com": "Netlify",
         }
-        
+
         if hostname in domain_map:
             return domain_map[hostname]
-        
+
         # For unmapped domains, capitalize the main part
         # e.g., "example.com" -> "Example"
-        parts = hostname.split('.')
+        parts = hostname.split(".")
         if len(parts) >= 2:
             # Use the second-to-last part (main domain name)
             main_part = parts[-2]
             return main_part.capitalize()
         elif len(parts) == 1:
             return parts[0].capitalize()
-        
+
         return hostname.capitalize()
-    
+
     except Exception:
         return "Unknown"
