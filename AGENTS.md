@@ -92,15 +92,17 @@ PY
   * URL content: `{normalized-url}.md` (e.g., `example-com-article-title.md`)
   * Summaries: `{normalized-url}-summary.md`
   * Scrape results: `scrape-{start-date}-to-{end-date}.json`
-- Strip all `utm_*` query params before storing URLs.
-- Failing early is better than fallbacks. Zero "Just in case" code. Fallback-rich code explodes complexity and often just propagates bugs downstream. If something important fails, fail early and clearly. Broken code should be fixed, not worked around.
 
 ### Development Conventions
 
-- Always use `util.resolve_env_var` to get environment variables.
-- Add a doctest example to pure-ish functions (data in, data out).
-- Do not abbreviate variable, function or class names. Use complete words.
-- `util.log` when something is going wrong, even if it is recoverable. Be consistent with existing logging style.
+1. Always use `util.resolve_env_var` to get environment variables.
+2. Add a doctest example to pure-ish functions (data in, data out).
+3. Do not abbreviate variable, function or class names. Use complete words.
+4. `util.log` when something is going wrong, even if it is recoverable. Be consistent with existing logging style.
+5. Failing early is better than fallbacks. Zero "Just in case" code. Fallback-rich code explodes complexity and often just propagates bugs downstream. If something important fails, fail early and clearly. Broken code should be fixed, not worked around.
+6. Make sure to write highly cohesive, decoupled logic.
+7. Utilize existing logic when possible. Do not re-implement anything.
+8. Aim for flat, optimized logical branches. Avoid deeply nested, duplicate-y code.
 
 ### The Right Engineering Mindset
 
