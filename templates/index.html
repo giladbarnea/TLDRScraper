@@ -1092,14 +1092,35 @@
          */
         // #region -------[ SummaryDelivery ]-------
         async function loadSummaries() {
-            const allExpandButtons = document.querySelectorAll('.expand-btn');
-            const first10 = Array.from(allExpandButtons).slice(0, 10);
+            const allCards = Array.from(document.querySelectorAll('.article-card'));
+            
+            const cardsByDate = {};
+            allCards.forEach(card => {
+                const date = card.getAttribute('data-date');
+                if (date) {
+                    if (!cardsByDate[date]) {
+                        cardsByDate[date] = [];
+                    }
+                    cardsByDate[date].push(card);
+                }
+            });
 
-            first10.forEach((btn, index) => {
+            const sortedDates = Object.keys(cardsByDate).sort().reverse();
+            const twoMostRecentDates = sortedDates.slice(0, 2);
+
+            const cardsToLoad = [];
+            twoMostRecentDates.forEach(date => {
+                cardsToLoad.push(...cardsByDate[date]);
+            });
+
+            cardsToLoad.forEach((card, index) => {
                 setTimeout(async () => {
+                    const btn = card.querySelector('.expand-btn');
+                    if (!btn) return;
+
                     const url = btn.getAttribute('data-url');
                     if (!url) return;
-                    const card = btn.closest('.article-card');
+                    
                     const summaryEffort = getCardSummaryEffort(card);
 
                     try {
@@ -1369,6 +1390,13 @@
                             updateCacheModeDescription(data.stats.cache_mode);
                         }
 
+                        const urlToDateMap = {};
+                        if (data.articles) {
+                            data.articles.forEach(article => {
+                                urlToDateMap[article.url] = article.date;
+                            });
+                        }
+
                         const statsHtml = `<div class="stats">
                             📊 Stats: ${data.stats.total_articles} articles found,
                             ${data.stats.unique_urls} unique URLs,
@@ -1421,6 +1449,11 @@
                                 card.className = 'article-card ' + (isRemoved ? 'removed' : 'unread');
                                 card.setAttribute('data-url', cleanUrl);
                                 card.setAttribute('data-title', titleText);
+                                
+                                const articleDate = urlToDateMap[cleanUrl];
+                                if (articleDate) {
+                                    card.setAttribute('data-date', articleDate);
+                                }
 
                                 const header = document.createElement('div');
                                 header.className = 'article-header';
