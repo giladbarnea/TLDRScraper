@@ -179,27 +179,32 @@ def _format_final_output(start_date, end_date, grouped_articles):
             output += f"#### {category}\n\n"
 
             for i, article in enumerate(category_articles, 1):
-                domain_name = util.get_domain_name(article['url'])
+                domain_name = util.get_domain_name(article["url"])
                 is_removed = article.get("removed", False)
-                
+
                 # Format title based on removed state
                 if is_removed:
                     # For removed articles: remove "(N minutes read)" and truncate to 10 chars
                     import re
-                    title = article['title']
+
+                    title = article["title"]
                     # Remove "(N minutes read)" pattern
-                    title = re.sub(r'\s*\(\d+\s+minutes?\s+read\)', '', title, flags=re.IGNORECASE)
+                    title = re.sub(
+                        r"\s*\(\d+\s+minutes?\s+read\)", "", title, flags=re.IGNORECASE
+                    )
                     # Truncate to 10 characters
                     if len(title) > 10:
-                        title = title[:10] + '...'
+                        title = title[:10] + "..."
                     title_with_domain = f"{title} ({domain_name})"
                 else:
                     # Normal article: include full title with domain
                     title_with_domain = f"{article['title']} ({domain_name})"
-                
+
                 # Add data-removed attribute via data URL parameter (will be parsed by frontend)
-                removed_marker = f"?data-removed=true" if is_removed else ""
-                output += f"{i}. [{title_with_domain}]({article['url']}{removed_marker})\n"
+                removed_marker = "?data-removed=true" if is_removed else ""
+                output += (
+                    f"{i}. [{title_with_domain}]({article['url']}{removed_marker})\n"
+                )
 
             output += "\n"
 
@@ -346,7 +351,9 @@ def scrape_date_range(start_date, end_date):
                     url_set.add(canonical_url)
                     article["fetched_via"] = "day_cache"
                     # Mark as removed if in removed set
-                    article["removed"] = article.get("removed", False) or canonical_url in removed_urls
+                    article["removed"] = (
+                        article.get("removed", False) or canonical_url in removed_urls
+                    )
                     all_articles.append(article)
 
             processed_count += len(newsletter_types)
@@ -371,7 +378,10 @@ def scrape_date_range(start_date, end_date):
                     if canonical_url not in url_set:
                         url_set.add(canonical_url)
                         # Mark as removed if in removed set
-                        article["removed"] = article.get("removed", False) or canonical_url in removed_urls
+                        article["removed"] = (
+                            article.get("removed", False)
+                            or canonical_url in removed_urls
+                        )
                         all_articles.append(article)
                         if article.get("fetched_via") == "network":
                             others += 1
@@ -392,7 +402,9 @@ def scrape_date_range(start_date, end_date):
                 }
                 # Mark as removed if in removed set
                 canonical_url = util.canonicalize_url(a["url"])
-                clean["removed"] = a.get("removed", False) or canonical_url in removed_urls
+                clean["removed"] = (
+                    a.get("removed", False) or canonical_url in removed_urls
+                )
                 sanitized_day_articles.append(clean)
 
             _put_cached_day(date_str, sanitized_day_articles)
@@ -409,7 +421,7 @@ def scrape_date_range(start_date, end_date):
             date_str = date_val
         else:
             date_str = util.format_date_for_url(date_val)
-        
+
         if date_str not in grouped_articles:
             grouped_articles[date_str] = []
         grouped_articles[date_str].append(article)

@@ -108,7 +108,7 @@ def get_prompt_template():
 @app.route("/api/summarize-url", methods=["POST"])
 def summarize_url_endpoint():
     """Summarize a given URL: fetch HTML, convert to Markdown, insert into template, call OpenAI.
-    
+
     Accepts optional 'cache_only' parameter to only return cached summaries.
     """
     try:
@@ -136,9 +136,7 @@ def summarize_url_endpoint():
         )
         blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
         summary_blob_url = (
-            f"{blob_base_url}/{summary_blob_pathname_value}"
-            if blob_base_url
-            else None
+            f"{blob_base_url}/{summary_blob_pathname_value}" if blob_base_url else None
         )
 
         return jsonify({

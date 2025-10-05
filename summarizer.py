@@ -100,10 +100,13 @@ def _fetch_summarize_prompt(
     token = util.resolve_env_var("GITHUB_API_TOKEN", "")
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={ref}"
 
-    headers = {
-        "Accept": "application/vnd.github.v3.raw",
-        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
-    
+    headers = (
+        {
+            "Accept": "application/vnd.github.v3.raw",
+            "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+        },
+    )
+
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
