@@ -286,40 +286,61 @@ def invalidate_cache_endpoint():
 
         dates = util.get_date_range(start_date, end_date)
 
+        # Build list of potential cache entries
+        potential_pathnames = []
+        for date in dates:
+            date_str = util.format_date_for_url(date)
+            pathname = build_scraped_day_cache_key(date_str)
+            potential_pathnames.append(pathname)
+
+        # Check which entries actually exist
+        from blob_store import list_existing_entries
+        existing_entries = list_existing_entries(potential_pathnames)
+        
+        util.log(
+            f"[serve.invalidate_cache_endpoint] Found {len(existing_entries)} existing entries out of {len(potential_pathnames)} potential entries",
+            logger=logger,
+        )
+
         deleted_count = 0
         failed_count = 0
         errors = []
 
-        for date in dates:
-            date_str = util.format_date_for_url(date)
-            pathname = build_scraped_day_cache_key(date_str)
-
+        for pathname in existing_entries:
             try:
                 success = delete_file(pathname)
                 if success:
                     deleted_count += 1
                     util.log(
-                        f"[serve.invalidate_cache_endpoint] Deleted cache for day={date_str}",
+                        f"[serve.invalidate_cache_endpoint] Deleted cache for pathname={pathname}",
                         logger=logger,
                     )
                 else:
                     failed_count += 1
-                    errors.append(f"{date_str}: delete returned false")
+                    errors.append(f"{pathname}: delete returned false")
             except Exception as e:
                 failed_count += 1
-                error_msg = f"{date_str}: {repr(e)}"
+                error_msg = f"{pathname}: {repr(e)}"
                 errors.append(error_msg)
                 util.log(
-                    f"[serve.invalidate_cache_endpoint] Failed to delete cache for day={date_str} error={repr(e)}",
+                    f"[serve.invalidate_cache_endpoint] Failed to delete cache for pathname={pathname} error={repr(e)}",
                     level=logging.WARNING,
                     logger=logger,
                 )
 
+        # Log final summary
+        util.log(
+            f"[serve.invalidate_cache_endpoint] Completed: {deleted_count} successful deletions, {failed_count} failed deletions out of {len(existing_entries)} existing entries",
+            logger=logger,
+        )
+
+        overall_success = failed_count == 0
         return jsonify({
-            "success": True,
+            "success": overall_success,
             "deleted": deleted_count,
             "failed": failed_count,
-            "total_days": len(dates),
+            "total_existing_entries": len(existing_entries),
+            "total_potential_entries": len(potential_pathnames),
             "errors": errors if errors else None,
         })
 

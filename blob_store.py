@@ -205,3 +205,37 @@ def delete_file(pathname: str) -> bool:
             level=logging.WARNING,
         )
         return False
+
+
+def check_file_exists(pathname: str) -> bool:
+    """
+    Check if a file exists in Vercel Blob storage at the given pathname.
+    Returns True if file exists, False otherwise.
+    """
+    base_url = _resolve_store_base_url()
+    if not base_url:
+        return False
+
+    try:
+        import requests
+
+        blob_url = f"{base_url}/{pathname}"
+        response = requests.head(blob_url, timeout=10)
+        return response.status_code == 200
+
+    except Exception:
+        return False
+
+
+def list_existing_entries(pathnames: list[str]) -> list[str]:
+    """
+    Check which of the given pathnames exist in blob storage.
+    Returns a list of pathnames that actually exist.
+    """
+    existing_entries = []
+    
+    for pathname in pathnames:
+        if check_file_exists(pathname):
+            existing_entries.append(pathname)
+    
+    return existing_entries
