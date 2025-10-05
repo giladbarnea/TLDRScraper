@@ -1390,6 +1390,13 @@
                             updateCacheModeDescription(data.stats.cache_mode);
                         }
 
+                        const urlToDateMap = {};
+                        if (data.articles) {
+                            data.articles.forEach(article => {
+                                urlToDateMap[article.url] = article.date;
+                            });
+                        }
+
                         const statsHtml = `<div class="stats">
                             📊 Stats: ${data.stats.total_articles} articles found,
                             ${data.stats.unique_urls} unique URLs,
@@ -1426,19 +1433,6 @@
                             const articleList = document.createElement('div');
                             articleList.className = 'article-list';
 
-                            let dateForThisList = null;
-                            let prevElement = ol.previousElementSibling;
-                            while (prevElement) {
-                                if (prevElement.tagName === 'H3') {
-                                    const dateMatch = prevElement.textContent.match(/\d{4}-\d{2}-\d{2}/);
-                                    if (dateMatch) {
-                                        dateForThisList = dateMatch[0];
-                                    }
-                                    break;
-                                }
-                                prevElement = prevElement.previousElementSibling;
-                            }
-
                             const listItems = ol.querySelectorAll('li');
 
                             listItems.forEach(function(li, index) {
@@ -1455,8 +1449,10 @@
                                 card.className = 'article-card ' + (isRemoved ? 'removed' : 'unread');
                                 card.setAttribute('data-url', cleanUrl);
                                 card.setAttribute('data-title', titleText);
-                                if (dateForThisList) {
-                                    card.setAttribute('data-date', dateForThisList);
+                                
+                                const articleDate = urlToDateMap[cleanUrl];
+                                if (articleDate) {
+                                    card.setAttribute('data-date', articleDate);
                                 }
 
                                 const header = document.createElement('div');
