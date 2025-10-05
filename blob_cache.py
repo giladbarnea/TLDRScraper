@@ -46,7 +46,7 @@ def blob_cached(
                         blob_url,
                         timeout=10,
                         headers={
-                            "User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"
+                            "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"
                         },
                     )
                     resp.raise_for_status()
@@ -140,7 +140,7 @@ def blob_cached_json(
                         blob_url,
                         timeout=10,
                         headers={
-                            "User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"
+                            "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"
                         },
                     )
                     resp.raise_for_status()

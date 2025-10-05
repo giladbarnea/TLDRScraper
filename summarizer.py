@@ -55,7 +55,7 @@ def url_to_markdown(url: str) -> str:
     response = requests.get(
         url,
         timeout=30,
-        headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Summarizer/1.0)"},
+        headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
     )
     response.raise_for_status()
 
@@ -102,8 +102,8 @@ def _fetch_summarize_prompt(
 
     headers = {
         "Accept": "application/vnd.github.v3.raw",
-        "User-Agent": "tldr-scraper/1.0",
-    }
+        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+    
     if token:
         headers["Authorization"] = f"Bearer {token}"
 

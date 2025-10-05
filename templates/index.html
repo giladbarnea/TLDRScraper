@@ -1319,8 +1319,8 @@
         // #region -------[ ScrapeIntake ]-------
         function setDefaultDates() {
             const today = new Date();
-            const weekAgo = new Date(today);
-            weekAgo.setDate(today.getDate() - 7);
+            const threeDaysAgo = new Date(today);
+            threeDaysAgo.setDate(today.getDate() - 3);
 
             const endInput = document.getElementById('end_date');
             const startInput = document.getElementById('start_date');
@@ -1328,7 +1328,7 @@
                 endInput.value = today.toISOString().split('T')[0];
             }
             if (startInput) {
-                startInput.value = weekAgo.toISOString().split('T')[0];
+                startInput.value = threeDaysAgo.toISOString().split('T')[0];
             }
         }
 
