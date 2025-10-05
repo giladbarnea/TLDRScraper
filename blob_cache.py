@@ -36,8 +36,8 @@ def blob_cached(
 
             if cache_only and not cache_read_available:
                 util.log(
-                    f"[blob_cache] cache_only=True but cache unavailable for {fn.__name__}: {pathname}",
-                    level=logging.INFO,
+                    f"[{fn.__name__}] blob_cached: cache_only=True but cache unavailable: {pathname}",
+                    level=logging.WARNING,
                     logger=logger,
                 )
                 return None
@@ -52,7 +52,7 @@ def blob_cached(
 
                 if cache_only:
                     util.log(
-                        f"[blob_cache] cache_only=True but cache missed for {fn.__name__}: {pathname}",
+                        f"[{fn.__name__}] blob_cached: cache_only=True but cache missed: {pathname}",
                         level=logging.INFO,
                         logger=logger,
                     )
@@ -122,18 +122,18 @@ def _try_read_cache(
 ) -> str | None:
     blob_url = f"{blob_base_url}/{pathname}"
     try:
-        util.log(f"[blob_cache] Trying cache for {fn_name}: {pathname}", logger=logger)
+        util.log(f"[{fn_name}] Trying cache: {pathname}", logger=logger)
         resp = requests.get(
             blob_url,
             timeout=10,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
         )
         resp.raise_for_status()
-        util.log(f"[blob_cache] ✔ Cache hit for {fn_name}: {pathname}", logger=logger)
+        util.log(f"[{fn_name}] ✔ Cache hit: {pathname}", logger=logger)
         return resp.content.decode("utf-8").strip()
     except Exception as e:
         util.log(
-            f"[blob_cache] ✘ Cache miss for {fn_name}: {pathname} - {repr(e)}",
+            f"[{fn_name}] ✘ Cache miss: {pathname} - {repr(e)}",
             level=logging.WARNING,
             logger=logger,
         )
@@ -145,10 +145,10 @@ def _try_write_cache(pathname: str, content: str, fn_name: str, logger) -> None:
         from blob_store import put_file
 
         put_file(pathname, content)
-        util.log(f"[blob_cache] Cached result for {fn_name}: {pathname}", logger=logger)
+        util.log(f"[{fn_name}] ✔ Cached result: {pathname}", logger=logger)
     except Exception as e:
         util.log(
-            f"[blob_cache] Failed to cache {fn_name}: {pathname} - {repr(e)}",
+            f"[{fn_name}] ✘ Failed to cache: {pathname} - {repr(e)}",
             level=logging.WARNING,
             logger=logger,
         )
@@ -160,7 +160,7 @@ def _try_read_cache_json(
     blob_url = f"{blob_base_url}/{pathname}"
     try:
         util.log(
-            f"[blob_cache_json] Trying cache for {fn_name}: {pathname}", logger=logger
+            f"[{fn_name}] Trying cache: {pathname}", logger=logger
         )
         resp = requests.get(
             blob_url,
@@ -169,12 +169,12 @@ def _try_read_cache_json(
         )
         resp.raise_for_status()
         util.log(
-            f"[blob_cache_json] Cache HIT for {fn_name}: {pathname}", logger=logger
+            f"[{fn_name}] ✔ Cache hit: {pathname}", logger=logger
         )
         return json.loads(resp.content.decode("utf-8"))
     except Exception as e:
         util.log(
-            f"[blob_cache_json] Cache MISS for {fn_name}: {pathname} - {repr(e)}",
+            f"[{fn_name}] ✘ Cache miss: {pathname} - {repr(e)}",
             level=logging.WARNING,
             logger=logger,
         )
@@ -187,11 +187,11 @@ def _try_write_cache_json(pathname: str, data: Any, fn_name: str, logger) -> Non
 
         put_file(pathname, json.dumps(data, indent=2))
         util.log(
-            f"[blob_cache_json] Cached result for {fn_name}: {pathname}", logger=logger
+            f"[{fn_name}] ✔ Cached result: {pathname}", logger=logger
         )
     except Exception as e:
         util.log(
-            f"[blob_cache_json] Failed to cache {fn_name}: {pathname} - {repr(e)}",
+            f"[{fn_name}] ✘ Failed to cache: {pathname} - {repr(e)}",
             level=logging.WARNING,
             logger=logger,
         )
