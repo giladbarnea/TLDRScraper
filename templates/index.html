@@ -1633,6 +1633,14 @@
                         result.className = 'success';
                         document.getElementById('progress-fill').style.width = '100%';
 
+                        // Smooth scroll to first main#write h1 after scrape completion
+                        setTimeout(() => {
+                            const firstH1 = document.querySelector('main#write h1');
+                            if (firstH1) {
+                                firstH1.scrollIntoView({ behavior: 'smooth' });
+                            }
+                        }, 100);
+
                         loadSummaries();
                     } else {
                         result.style.display = 'block';
