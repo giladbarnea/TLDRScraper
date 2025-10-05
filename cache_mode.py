@@ -49,6 +49,9 @@ def get_cache_mode() -> CacheMode:
     Returns READ_WRITE as default if not set.
     """
     global _cached_mode
+    
+    if util.resolve_env_var("FORCE_CACHE_MODE", "").strip():
+        return CacheMode(util.resolve_env_var("FORCE_CACHE_MODE", "").strip())
 
     with _lock:
         # First check in-memory cache
