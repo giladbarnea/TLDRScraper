@@ -113,12 +113,12 @@ def summarize_url_endpoint():
     """
     try:
         data = request.get_json() or {}
-        url = (data.get("url") or "").strip()
+        url = data.get("url").strip()
+        if not url:
+            return jsonify({"success": False, "error": "Missing url"}), 400
+        url = util.canonicalize_url(url)
         cache_only = data.get("cache_only", False)
         summary_effort = normalize_summary_effort(data.get("summary_effort", "low"))
-
-        if not url or not (url.startswith("http://") or url.startswith("https://")):
-            return jsonify({"success": False, "error": "Invalid or missing url"}), 400
 
         summary = summarize_url(
             url, summary_effort=summary_effort, cache_only=cache_only
@@ -342,7 +342,7 @@ if __name__ == "__main__":
         port=5001,
         debug=True,
         threaded=False,
-        use_reloader=False,
+        use_reloader=True,
         use_evalex=True,
         processes=1,
         use_debugger=True,
