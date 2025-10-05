@@ -1092,14 +1092,35 @@
          */
         // #region -------[ SummaryDelivery ]-------
         async function loadSummaries() {
-            const allExpandButtons = document.querySelectorAll('.expand-btn');
-            const first10 = Array.from(allExpandButtons).slice(0, 10);
+            const allCards = Array.from(document.querySelectorAll('.article-card'));
+            
+            const cardsByDate = {};
+            allCards.forEach(card => {
+                const date = card.getAttribute('data-date');
+                if (date) {
+                    if (!cardsByDate[date]) {
+                        cardsByDate[date] = [];
+                    }
+                    cardsByDate[date].push(card);
+                }
+            });
 
-            first10.forEach((btn, index) => {
+            const sortedDates = Object.keys(cardsByDate).sort().reverse();
+            const twoMostRecentDates = sortedDates.slice(0, 2);
+
+            const cardsToLoad = [];
+            twoMostRecentDates.forEach(date => {
+                cardsToLoad.push(...cardsByDate[date]);
+            });
+
+            cardsToLoad.forEach((card, index) => {
                 setTimeout(async () => {
+                    const btn = card.querySelector('.expand-btn');
+                    if (!btn) return;
+
                     const url = btn.getAttribute('data-url');
                     if (!url) return;
-                    const card = btn.closest('.article-card');
+                    
                     const summaryEffort = getCardSummaryEffort(card);
 
                     try {
@@ -1405,6 +1426,19 @@
                             const articleList = document.createElement('div');
                             articleList.className = 'article-list';
 
+                            let dateForThisList = null;
+                            let prevElement = ol.previousElementSibling;
+                            while (prevElement) {
+                                if (prevElement.tagName === 'H3') {
+                                    const dateMatch = prevElement.textContent.match(/\d{4}-\d{2}-\d{2}/);
+                                    if (dateMatch) {
+                                        dateForThisList = dateMatch[0];
+                                    }
+                                    break;
+                                }
+                                prevElement = prevElement.previousElementSibling;
+                            }
+
                             const listItems = ol.querySelectorAll('li');
 
                             listItems.forEach(function(li, index) {
@@ -1421,6 +1455,9 @@
                                 card.className = 'article-card ' + (isRemoved ? 'removed' : 'unread');
                                 card.setAttribute('data-url', cleanUrl);
                                 card.setAttribute('data-title', titleText);
+                                if (dateForThisList) {
+                                    card.setAttribute('data-date', dateForThisList);
+                                }
 
                                 const header = document.createElement('div');
                                 header.className = 'article-header';
