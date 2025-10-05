@@ -748,6 +748,52 @@
             .container { padding: 12px; }
             .form-group { width: 100%; margin-right: 0; }
         }
+
+        .date-header-container {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            width: 100%;
+            margin: 0;
+        }
+
+        .clear-date-cache-btn {
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            opacity: 0.6;
+        }
+
+        .clear-date-cache-btn:hover {
+            opacity: 1;
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #dc2626;
+        }
+
+        .clear-date-cache-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .clear-date-cache-btn.clearing::after {
+            content: '...';
+            animation: dots 1s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
     </style>
 </head>
 <body>
@@ -1429,6 +1475,32 @@
                             }
                         } catch (_) {}
 
+                        result.querySelectorAll('#write h2, #write h3').forEach(function(header) {
+                            const headerText = header.textContent.trim();
+                            const dateMatch = headerText.match(/\d{4}-\d{2}-\d{2}/);
+                            
+                            if (dateMatch) {
+                                const date = dateMatch[0];
+                                
+                                const container = document.createElement('div');
+                                container.className = 'date-header-container';
+                                
+                                const newHeader = header.cloneNode(true);
+                                
+                                const clearBtn = document.createElement('button');
+                                clearBtn.className = 'clear-date-cache-btn';
+                                clearBtn.textContent = 'Clear Cache';
+                                clearBtn.title = 'Remove all cached data (content & summaries) for this date';
+                                clearBtn.type = 'button';
+                                clearBtn.setAttribute('data-date', date);
+                                
+                                container.appendChild(newHeader);
+                                container.appendChild(clearBtn);
+                                
+                                header.parentNode.replaceChild(container, header);
+                            }
+                        });
+
                         result.querySelectorAll('#write ol').forEach(function(ol) {
                             const articleList = document.createElement('div');
                             articleList.className = 'article-list';
@@ -1638,6 +1710,87 @@
         // #endregion
 
         /**
+         * DateCacheClear removes all cached data for a specific date from blob storage.
+         */
+        // #region -------[ DateCacheClear ]-------
+        async function handleClearDateCache(button) {
+            if (shouldDisableRemovals()) {
+                alert('Cache clearing is disabled in ' + getActiveCacheMode() + ' mode');
+                return;
+            }
+
+            const date = button.getAttribute('data-date');
+            if (!date) return;
+
+            if (!confirm(`Clear all cached data for ${date}?\n\nThis will remove:\n• Newsletter cache\n• All article content\n• All summaries (all effort levels)`)) {
+                return;
+            }
+
+            button.disabled = true;
+            button.classList.add('clearing');
+            const originalText = button.textContent;
+            button.textContent = 'Clearing';
+
+            try {
+                const resp = await fetch('/api/invalidate-date-cache', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: date })
+                });
+                const data = await resp.json();
+
+                if (data.success) {
+                    button.textContent = 'Cleared!';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.disabled = false;
+                        button.classList.remove('clearing');
+                    }, 2000);
+                    
+                    const result = document.getElementById('result');
+                    const cards = result.querySelectorAll(`.article-card[data-date="${date}"]`);
+                    cards.forEach(card => {
+                        card.removeAttribute('data-summary');
+                        const summary = card.querySelector('.inline-summary');
+                        if (summary) summary.remove();
+                        
+                        const expandBtn = card.querySelector('.expand-btn');
+                        if (expandBtn) {
+                            expandBtn.classList.remove('expanded', 'loaded');
+                            expandBtn.innerHTML = 'Summarize';
+                            expandBtn.title = 'Show summary with default reasoning effort';
+                        }
+                        
+                        toggleCopyButton(card, false);
+                    });
+                } else {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                    button.classList.remove('clearing');
+                    alert('Failed to clear cache: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                button.textContent = originalText;
+                button.disabled = false;
+                button.classList.remove('clearing');
+                alert('Error: ' + err.message);
+            }
+        }
+
+        function bindDateCacheClear() {
+            document.addEventListener('click', async function(e) {
+                const clearBtn = e.target.closest('.clear-date-cache-btn');
+                if (!clearBtn) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                await handleClearDateCache(clearBtn);
+            }, true);
+        }
+        // #endregion
+
+        /**
          * AppBootstrap wires feature bindings so the UI state machine starts in sync with backend data.
          */
         // #region -------[ AppBootstrap ]-------
@@ -1647,6 +1800,7 @@
         bindScrapeForm();
         bindCopySummaryFlow();
         bindRemovalFlow();
+        bindDateCacheClear();
         bindSummaryExpansion();
         // #endregion
     </script>
