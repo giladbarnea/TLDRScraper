@@ -212,10 +212,11 @@ def _format_final_output(start_date, end_date, grouped_articles):
 
 
 def _parse_articles_from_markdown(markdown, date, newsletter_type):
-    """Parse articles from markdown content, filtering by '(X minute read)' pattern"""
+    """Parse articles from markdown content, filtering by '(X minute read)' or '(GitHub Repo)' pattern"""
     lines = markdown.split("\n")
     articles = []
     minute_read_pattern = re.compile(r"\((\d+)\s+minute\s+read\)", re.IGNORECASE)
+    github_repo_pattern = re.compile(r"\(GitHub\s+Repo\)", re.IGNORECASE)
 
     for line in lines:
         line = line.strip()
@@ -231,7 +232,7 @@ def _parse_articles_from_markdown(markdown, date, newsletter_type):
             if _is_file_url(url):
                 continue
 
-            if not minute_read_pattern.search(title):
+            if not (minute_read_pattern.search(title) or github_repo_pattern.search(title)):
                 continue
 
             title = title.strip()
