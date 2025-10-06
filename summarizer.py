@@ -182,18 +182,16 @@ def _fetch_summarize_prompt(
     if _PROMPT_CACHE:
         return _PROMPT_CACHE
 
-    token = util.resolve_env_var("GITHUB_API_TOKEN", "")
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={ref}"
 
-    headers = (
-        {
-            "Accept": "application/vnd.github.v3.raw",
-            "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
-        },
-    )
+    headers = {
+        "Accept": "application/vnd.github.v3.raw",
+        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+    }
 
+    token = util.resolve_env_var("GITHUB_API_TOKEN", "")
     if token:
-        headers["Authorization"] = f"Bearer {token}"
+        headers["Authorization"] = f"token {token}"
 
     resp = requests.get(url, headers=headers, timeout=20)
 
