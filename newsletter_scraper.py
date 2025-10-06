@@ -347,6 +347,7 @@ def scrape_date_range(start_date, end_date):
 
             for article in cached_articles:
                 canonical_url = util.canonicalize_url(article["url"])
+                article["url"] = canonical_url
 
                 if canonical_url not in url_set:
                     url_set.add(canonical_url)
@@ -373,6 +374,7 @@ def scrape_date_range(start_date, end_date):
             if result and result["articles"]:
                 for article in result["articles"]:
                     canonical_url = util.canonicalize_url(article["url"])
+                    article["url"] = canonical_url
 
                     day_articles.append(article)
 
