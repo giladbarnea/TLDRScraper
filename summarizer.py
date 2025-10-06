@@ -1,6 +1,7 @@
 import logging
 import requests
 import json
+import re
 from io import BytesIO
 from markitdown import MarkItDown
 
@@ -47,10 +48,94 @@ def summary_blob_pathname(url: str, summary_effort: str = "low") -> str:
     return _url_summary_pathname(url, summary_effort=summary_effort)
 
 
+def _is_github_repo_url(url: str) -> bool:
+    """Check if URL is a GitHub repository URL."""
+    pattern = r"^https?://(?:www\.)?github\.com/([^/]+)/([^/?#]+)/?(?:\?.*)?(?:#.*)?$"
+    return bool(re.match(pattern, url))
+
+
+def _fetch_github_readme(url: str) -> str:
+    """Fetch README.md content from a GitHub repository URL."""
+    match = re.match(
+        r"^https?://(?:www\.)?github\.com/([^/]+)/([^/?#]+)/?(?:\?.*)?(?:#.*)?$", url
+    )
+    if not match:
+        raise ValueError(f"Invalid GitHub repo URL: {url}")
+
+    owner, repo = match.groups()
+
+    raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/README.md"
+    util.log(
+        f"[summarizer._fetch_github_readme] Trying raw fetch from {raw_url}",
+        logger=logger,
+    )
+
+    try:
+        response = requests.get(
+            raw_url,
+            timeout=30,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+        )
+        response.raise_for_status()
+        util.log(
+            f"[summarizer._fetch_github_readme] Raw fetch succeeded for {raw_url}",
+            logger=logger,
+        )
+        return response.text
+    except requests.HTTPError as e:
+        if e.response and e.response.status_code == 404:
+            master_url = f"https://raw.githubusercontent.com/{owner}/{repo}/master/README.md"
+            util.log(
+                f"[summarizer._fetch_github_readme] Main branch not found, trying master: {master_url}",
+                logger=logger,
+            )
+            try:
+                response = requests.get(
+                    master_url,
+                    timeout=30,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"
+                    },
+                )
+                response.raise_for_status()
+                util.log(
+                    f"[summarizer._fetch_github_readme] Master branch fetch succeeded for {master_url}",
+                    logger=logger,
+                )
+                return response.text
+            except Exception:
+                pass
+
+    util.log(
+        f"[summarizer._fetch_github_readme] Raw README not found, trying direct page fetch from {url}",
+        logger=logger,
+    )
+
+    response = requests.get(
+        url,
+        timeout=30,
+        headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+    )
+    response.raise_for_status()
+
+    stream = BytesIO(response.text.encode("utf-8", errors="ignore"))
+    result = md.convert_stream(stream, file_extension=".html")
+    content = result.text_content
+
+    util.log(
+        f"[summarizer._fetch_github_readme] Direct fetch succeeded for {url}",
+        logger=logger,
+    )
+    return content
+
+
 @blob_cached(_url_content_pathname, logger=logger)
 def url_to_markdown(url: str) -> str:
-    """Fetch URL and convert to markdown."""
+    """Fetch URL and convert to markdown. For GitHub repos, fetches README.md."""
     util.log(f"[summarizer.url_to_markdown] Fetching {url}", logger=logger)
+
+    if _is_github_repo_url(url):
+        return _fetch_github_readme(url)
 
     response = requests.get(
         url,
