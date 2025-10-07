@@ -144,7 +144,7 @@ def _fetch_github_readme(url: str) -> str:
     )
 
     try:
-        response = requests.get(
+        response = util.fetch_url_with_fallback(
             url,
             timeout=30,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
@@ -177,7 +177,7 @@ def url_to_markdown(url: str) -> str:
         return _fetch_github_readme(url)
 
     try:
-        response = requests.get(
+        response = util.fetch_url_with_fallback(
             url,
             timeout=30,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},

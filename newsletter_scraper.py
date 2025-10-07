@@ -266,7 +266,7 @@ def _fetch_newsletter(date, newsletter_type):
 
     try:
         net_start = time.time()
-        response = requests.get(
+        response = util.fetch_url_with_fallback(
             url,
             timeout=30,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
