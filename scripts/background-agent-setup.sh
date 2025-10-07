@@ -3,8 +3,6 @@ set -o pipefail
 
 if [[ -f scripts/common.sh ]]; then
   source scripts/common.sh
-elif [[ -f common.sh ]]; then
-  source common.sh
 else
   echo "[error] Run this script from the project root directory. Current PWD: $PWD" >&2
 fi
@@ -70,7 +68,7 @@ function main() {
   message "[background-agent-setup] Watchdog PID: $(cat "$RUN_DIR/watchdog.pid")"
   ps -o pid,cmd -p "$(cat "$RUN_DIR/server.pid")" || true
 
-  message "[background-agent-setup] Quick endpoint checks..."
+  message "[background-agent-setup] Quick endpoint checks... ATTENTION: these are outdated and will probably fail. Fix them."
   echo "-- / --"
   curl -sS "http://localhost:$PORT/" | head -c 200 || true
   echo
@@ -91,12 +89,6 @@ Useful follow-ups:
   - tail -n 200 "$LOG_FILE"
   - tail -F "$LOG_FILE"
   - curl -sS localhost:$PORT/ | head
-  - curl -sS -H 'Content-Type: application/json' -d '{"url":"https://example.com"}' localhost:$PORT/api/summarize-url
-  - curl -sS localhost:$PORT/api/prompt
-
-Notes:
-  - To enable blob uploads, set BLOB_READ_WRITE_TOKEN in "$ENV_FILE" and rerun.
-  - To avoid GitHub 401 in /api/prompt, set GITHUB_API_TOKEN in "$ENV_FILE" and restart.
 EOT
 }
 
