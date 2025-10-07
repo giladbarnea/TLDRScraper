@@ -77,10 +77,11 @@ PY
 - Use `jq -S .` for sorted pretty-printing; `to_entries | length` for counts.
 - If you can emulate a new feature or behavior in your shell, do it. Is the app making a new API call? Try it in your shell. New dependency and Python interface? Try it by running Python via uv, and so on.
 - Blob pathname format varies by cache type:
-  * Newsletters: `newsletter-{type}-{YYYY-MM-DD}.json` (e.g., `newsletter-ai-2025-09-20.json`)
-  * URL content: `{normalized-url}.md` (e.g., `example-com-article-title.md`)
-  * Summaries: `{normalized-url}-summary.md`
-  * Scrape results: `scrape-{start-date}-to-{end-date}.json`
+  * Scraped Day Results: `scrape-day-{YYYY-MM-DD}.json` (e.g., `scrape-day-2025-09-20.json`)
+  * URL Content: `{normalized-url}.md` (e.g., `example-com-article-title.md`)
+  * Summaries: `{normalized-url}-summary.md` or `{normalized-url}-summary-{effort}.md`
+  * Removed URLs: `removed-urls.json`
+  * Cache Mode: `cache-mode.txt`
 
 ### Development Conventions
 
