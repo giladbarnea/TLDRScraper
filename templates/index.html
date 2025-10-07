@@ -1516,6 +1516,27 @@
                             }
                         });
 
+                        // Ensure TLDR AI appears before TLDR Tech within the same date section
+                        const writeRoot = result.querySelector('#write');
+                        Array.from(writeRoot.querySelectorAll('.date-header-container')).forEach(function(container) {
+                            let node = container.nextElementSibling;
+                            let aiHeading = null;
+                            let techHeading = null;
+                            while (node && !(node.classList && node.classList.contains('date-header-container'))) {
+                                if (node.tagName === 'H4') {
+                                    const text = (node.textContent || '').trim();
+                                    if (!aiHeading && /TLDR\s*AI/i.test(text)) aiHeading = node;
+                                    if (!techHeading && /TLDR\s*Tech/i.test(text)) techHeading = node;
+                                }
+                                node = node.nextElementSibling;
+                            }
+                            if (aiHeading && techHeading && (techHeading.compareDocumentPosition(aiHeading) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+                                const aiList = (aiHeading.nextElementSibling && aiHeading.nextElementSibling.tagName === 'OL') ? aiHeading.nextElementSibling : null;
+                                container.parentNode.insertBefore(aiHeading, techHeading);
+                                if (aiList) container.parentNode.insertBefore(aiList, techHeading);
+                            }
+                        });
+
                         result.querySelectorAll('#write ol').forEach(function(ol) {
                             const articleList = document.createElement('div');
                             articleList.className = 'article-list';
