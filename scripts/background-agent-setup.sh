@@ -105,6 +105,7 @@ function print_server_and_watchdog_pids() {
 function smoke_test() {
   main --quiet
   message "[background-agent-setup.sh smoke_test] Quick endpoint checks..."
+  local local_yyyymmdd="$(date +%Y-%m-%d)"
   echo "-- / --"
   curl -sS "http://localhost:$PORT/" | head -c 200 || true
   echo
@@ -113,6 +114,24 @@ function smoke_test() {
   echo
   echo "-- /api/prompt --"
   curl -sS "http://localhost:$PORT/api/prompt" | head -c 200 || true
+  echo
+  echo "-- /api/scrape --"
+  curl -sS -H 'Content-Type: application/json' -d "{\"start_date\":\"$local_yyyymmdd\", \"end_date\":\"$local_yyyymmdd\"}" "http://localhost:$PORT/api/scrape" | head -c 200 || true
+  echo
+  echo "-- /api/remove-url --"
+  curl -sS -H 'Content-Type: application/json' -d '{"url":"http://example.com/removed"}' "http://localhost:$PORT/api/remove-url" | head -c 200 || true
+  echo
+  echo "-- /api/cache-mode (GET) --"
+  curl -sS "http://localhost:$PORT/api/cache-mode" | head -c 200 || true
+  echo
+  echo "-- /api/cache-mode (POST) --"
+  curl -sS -H 'Content-Type: application/json' -d '{"cache_mode":"disabled"}' "http://localhost:$PORT/api/cache-mode" | head -c 200 || true
+  echo
+  echo "-- /api/invalidate-cache --"
+  curl -sS -H 'Content-Type: application/json' -d "{\"start_date\":\"$local_yyyymmdd\", \"end_date\":\"$local_yyyymmdd\"}" "http://localhost:$PORT/api/invalidate-cache" | head -c 200 || true
+  echo
+  echo "-- /api/invalidate-date-cache --"
+  curl -sS -H 'Content-Type: application/json' -d "{\"date\":\"$local_yyyymmdd\"}" "http://localhost:$PORT/api/invalidate-date-cache" | head -c 200 || true
   echo
 
   message "[background-agent-setup.sh smoke_test] Tail last 40 log lines:"
