@@ -1,0 +1,1 @@
+env | grep -e BLOB -e TLDR -e TOKEN -e API
