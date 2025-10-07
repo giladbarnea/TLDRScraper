@@ -67,7 +67,7 @@ def get_cache_mode() -> CacheMode:
                     "[cache_mode.get_cache_mode] Reading mode from blob storage",
                     logger=logger,
                 )
-                resp = requests.get(
+                resp = util.fetch_url_with_fallback(
                     blob_url,
                     timeout=10,
                     headers={

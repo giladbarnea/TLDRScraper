@@ -79,7 +79,7 @@ def _get_cached_day(date_str: str):
             f"[newsletter_scraper._get_cached_day] Trying cache for day={date_str} pathname={pathname}",
             logger=logger,
         )
-        resp = requests.get(
+        resp = util.fetch_url_with_fallback(
             blob_url,
             timeout=10,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
@@ -266,7 +266,7 @@ def _fetch_newsletter(date, newsletter_type):
 
     try:
         net_start = time.time()
-        response = requests.get(
+        response = util.fetch_url_with_fallback(
             url,
             timeout=30,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},

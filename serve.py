@@ -386,7 +386,7 @@ def invalidate_date_cache_endpoint():
 
         try:
             blob_url = f"{blob_base_url}/{day_cache_pathname}"
-            response = requests.get(blob_url, timeout=10)
+            response = util.fetch_url_with_fallback(blob_url, timeout=10)
             response.raise_for_status()
             cached_day = response.json()
             articles = cached_day.get("articles", [])

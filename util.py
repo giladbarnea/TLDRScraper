@@ -128,3 +128,98 @@ def get_domain_name(url) -> str:
 
     except Exception:
         return "Unknown"
+
+
+def fetch_url_with_fallback(url, timeout=30, headers=None, allow_redirects=True):
+    """
+    Fetch URL with 403 fallback using curl_cffi.
+    
+    Args:
+        url: URL to fetch
+        timeout: Request timeout in seconds
+        headers: Optional headers dict
+        allow_redirects: Whether to follow redirects
+        
+    Returns:
+        requests.Response object or curl_cffi Response object
+        
+    Raises:
+        requests.RequestException or curl_cffi.RequestError if both methods fail
+    """
+    import requests
+    from curl_cffi import requests as cfre
+    
+    if headers is None:
+        headers = {"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"}
+    
+    # First attempt with regular requests
+    try:
+        response = requests.get(
+            url,
+            timeout=timeout,
+            headers=headers,
+            allow_redirects=allow_redirects,
+        )
+        
+        # If we get a 403, try the fallback
+        if response.status_code == 403:
+            log(
+                f"[util.fetch_url_with_fallback] Got 403 for {url}, trying curl_cffi fallback",
+                level=logging.WARNING,
+            )
+            
+            # Use curl_cffi with Chrome impersonation
+            fallback_response = cfre.get(
+                url,
+                impersonate="chrome131",
+                timeout=timeout,
+                allow_redirects=allow_redirects,
+                headers={
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Referer": "https://www.google.com/",
+                    **headers,
+                },
+            )
+            
+            log(
+                f"[util.fetch_url_with_fallback] curl_cffi fallback successful for {url}",
+                level=logging.INFO,
+            )
+            
+            return fallback_response
+        else:
+            return response
+            
+    except requests.RequestException as e:
+        log(
+            f"[util.fetch_url_with_fallback] requests failed for {url}: {e}, trying curl_cffi fallback",
+            level=logging.WARNING,
+        )
+        
+        # If requests fails entirely, try curl_cffi as fallback
+        try:
+            fallback_response = cfre.get(
+                url,
+                impersonate="chrome131",
+                timeout=timeout,
+                allow_redirects=allow_redirects,
+                headers={
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Referer": "https://www.google.com/",
+                    **headers,
+                },
+            )
+            
+            log(
+                f"[util.fetch_url_with_fallback] curl_cffi fallback successful for {url}",
+                level=logging.INFO,
+            )
+            
+            return fallback_response
+            
+        except Exception as fallback_error:
+            log(
+                f"[util.fetch_url_with_fallback] Both requests and curl_cffi failed for {url}: requests={e}, curl_cffi={fallback_error}",
+                level=logging.ERROR,
+            )
+            raise e  # Re-raise the original requests error
