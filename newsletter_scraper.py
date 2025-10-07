@@ -271,7 +271,6 @@ def _fetch_newsletter(date, newsletter_type):
             timeout=30,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
             allow_redirects=False,
-            is_scraping=True,
         )
         net_ms = int(round((time.time() - net_start) * 1000))
 

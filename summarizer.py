@@ -148,7 +148,6 @@ def _fetch_github_readme(url: str) -> str:
             url,
             timeout=30,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
-            is_scraping=True,
         )
         if response.status_code == 403:
             return _fetch_via_jina_reader(url)
@@ -182,7 +181,6 @@ def url_to_markdown(url: str) -> str:
             url,
             timeout=30,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
-            is_scraping=True,
         )
         if response.status_code == 403:
             # Return reader text directly; it is already markdown-like
