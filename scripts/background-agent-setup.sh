@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
-set -eo pipefail
+set -o pipefail
+
+if [[ -f scripts/common.sh ]]; then
+  source scripts/common.sh
+elif [[ -f common.sh ]]; then
+  source common.sh
+else
+  echo "[error] Run this script from the project root directory. Current PWD: $PWD" >&2
+fi
 
 function main() {
   WORKDIR="${WORKDIR:-$PWD}"
   if [[ ! -f "$WORKDIR/serve.py" ]]; then
-    echo "[error] Run this script from the project root directory." >&2
+    echo "[error] Run this script from the project root directory. Current PWD: $PWD" >&2
     return 1
   fi
   RUN_DIR="$WORKDIR/.run"
@@ -13,7 +21,7 @@ function main() {
   PORT="${PORT:-5001}"
 
   message "[background-agent-setup] Working directory: $WORKDIR"
-  cd "$WORKDIR"
+  cd "$WORKDIR" 
   mkdir -p "$RUN_DIR" "$SCRIPTS_DIR"
 
   source "$WORKDIR/setup.sh"
@@ -32,10 +40,15 @@ function main() {
   npm install
 
   if [[ ! -f "$ENV_FILE" ]]; then
-    message "[background-agent-setup] Generating .env from current environment..."
+    message "[background-agent-setup] .env file was not found. Any relevant environment variables available in your current session will be printed soon. Make sure these are available when you run the server. Do not write them to disk."
     ENV_FILE="$WORKDIR/.env"
-    ENV_KEYS_REGEX='^(OPENAI_API_TOKEN|GITHUB_API_TOKEN|BLOB_READ_WRITE_TOKEN|BLOB_STORE_BASE_URL|LOG_LEVEL|TLDR_SCRAPER_.*)='
-    env | egrep "$ENV_KEYS_REGEX" | sort | sed 's/^export \{0,1\}//' > "$ENV_FILE" || true
+    ENV_KEYS_REGEX='(OPENAI|GITHUB| BLOB|TLDR)'
+    env | egrep "$ENV_KEYS_REGEX" | sort -u
+    message "[background-agent-setup] Environment variables printing is complete. If nothing was printed, stop and tell the user. You cannot test the app in this state. To continue development, you need:
+- an OpenAI API key
+- a GitHub API key
+- a few Blob Store keys to read, write and list entries"
+  return 1
   fi
 
 
