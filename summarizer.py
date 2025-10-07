@@ -6,6 +6,7 @@ from io import BytesIO
 from markitdown import MarkItDown
 
 import util
+import urllib.parse as urlparse
 from blob_cache import blob_cached
 from blob_store import normalize_url_to_pathname
 
@@ -52,6 +53,37 @@ def _is_github_repo_url(url: str) -> bool:
     """Check if URL is a GitHub repository URL."""
     pattern = r"^https?://(?:www\.)?github\.com/([^/]+)/([^/?#]+)/?(?:\?.*)?(?:#.*)?$"
     return bool(re.match(pattern, url))
+
+
+def _build_jina_reader_url(url: str) -> str:
+    """Build r.jina.ai reader URL for a target page.
+
+    >>> _build_jina_reader_url('https://openai.com/index/introducing-agentkit')
+    'https://r.jina.ai/http://openai.com/index/introducing-agentkit'
+    >>> _build_jina_reader_url('https://example.com/path?x=1')
+    'https://r.jina.ai/http://example.com/path?x=1'
+    """
+    parsed = urlparse.urlparse(url)
+    # Use http scheme within the reader path; it will follow redirects as needed
+    target = f"http://{parsed.netloc}{parsed.path}"
+    if parsed.query:
+        target += f"?{parsed.query}"
+    return f"https://r.jina.ai/{target}"
+
+
+def _fetch_via_jina_reader(url: str) -> str:
+    reader_url = _build_jina_reader_url(url)
+    util.log(
+        f"[summarizer] Falling back to Jina reader for 403 url={url}",
+        logger=logger,
+    )
+    resp = requests.get(
+        reader_url,
+        timeout=10,
+        headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+    )
+    resp.raise_for_status()
+    return resp.text
 
 
 def _fetch_github_readme(url: str) -> str:
@@ -111,12 +143,19 @@ def _fetch_github_readme(url: str) -> str:
         logger=logger,
     )
 
-    response = requests.get(
-        url,
-        timeout=30,
-        headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
-    )
-    response.raise_for_status()
+    try:
+        response = requests.get(
+            url,
+            timeout=30,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+        )
+        if response.status_code == 403:
+            return _fetch_via_jina_reader(url)
+        response.raise_for_status()
+    except requests.HTTPError as e:
+        if getattr(e, "response", None) is not None and e.response.status_code == 403:
+            return _fetch_via_jina_reader(url)
+        raise
 
     stream = BytesIO(response.text.encode("utf-8", errors="ignore"))
     result = md.convert_stream(stream, file_extension=".html")
@@ -137,12 +176,20 @@ def url_to_markdown(url: str) -> str:
     if _is_github_repo_url(url):
         return _fetch_github_readme(url)
 
-    response = requests.get(
-        url,
-        timeout=30,
-        headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
-    )
-    response.raise_for_status()
+    try:
+        response = requests.get(
+            url,
+            timeout=30,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+        )
+        if response.status_code == 403:
+            # Return reader text directly; it is already markdown-like
+            return _fetch_via_jina_reader(url)
+        response.raise_for_status()
+    except requests.HTTPError as e:
+        if getattr(e, "response", None) is not None and e.response.status_code == 403:
+            return _fetch_via_jina_reader(url)
+        raise
 
     stream = BytesIO(response.text.encode("utf-8", errors="ignore"))
     result = md.convert_stream(stream, file_extension=".html")
