@@ -77,7 +77,7 @@ def _fetch_via_jina_reader(url: str) -> str:
         f"[summarizer] Falling back to Jina reader for 403 url={url}",
         logger=logger,
     )
-    resp = util.fetch_url_with_fallback(
+    resp = requests.get(
         reader_url,
         timeout=10,
         headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
@@ -103,7 +103,7 @@ def _fetch_github_readme(url: str) -> str:
     )
 
     try:
-        response = util.fetch_url_with_fallback(
+        response = requests.get(
             raw_url,
             timeout=30,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
@@ -122,7 +122,7 @@ def _fetch_github_readme(url: str) -> str:
                 logger=logger,
             )
             try:
-                response = util.fetch_url_with_fallback(
+                response = requests.get(
                     master_url,
                     timeout=30,
                     headers={
@@ -148,6 +148,7 @@ def _fetch_github_readme(url: str) -> str:
             url,
             timeout=30,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+            is_scraping=True,
         )
         if response.status_code == 403:
             return _fetch_via_jina_reader(url)
@@ -181,6 +182,7 @@ def url_to_markdown(url: str) -> str:
             url,
             timeout=30,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+            is_scraping=True,
         )
         if response.status_code == 403:
             # Return reader text directly; it is already markdown-like

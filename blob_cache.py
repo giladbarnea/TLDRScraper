@@ -123,7 +123,7 @@ def _try_read_cache(
     blob_url = f"{blob_base_url}/{pathname}"
     try:
         util.log(f"[{fn_name}] Trying cache: {pathname}", logger=logger)
-        resp = util.fetch_url_with_fallback(
+        resp = requests.get(
             blob_url,
             timeout=10,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
@@ -160,7 +160,7 @@ def _try_read_cache_json(
     blob_url = f"{blob_base_url}/{pathname}"
     try:
         util.log(f"[{fn_name}] Trying cache: {pathname}", logger=logger)
-        resp = util.fetch_url_with_fallback(
+        resp = requests.get(
             blob_url,
             timeout=10,
             headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
