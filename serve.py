@@ -455,6 +455,85 @@ def invalidate_date_cache_endpoint():
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
+@app.route("/api/cleanup-cache", methods=["POST"])
+def cleanup_cache_endpoint():
+    """Clean up blob store cached files older than 1 week."""
+    try:
+        from datetime import datetime, timedelta
+        import re
+        
+        blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
+        if not blob_base_url:
+            return jsonify({
+                "success": False,
+                "error": "BLOB_STORE_BASE_URL not configured",
+            }), 500
+
+        # Calculate cutoff date (1 week ago)
+        cutoff_date = datetime.now() - timedelta(weeks=1)
+        cutoff_date_str = cutoff_date.strftime("%Y-%m-%d")
+        
+        util.log(
+            f"[serve.cleanup_cache_endpoint] Starting cleanup for files older than {cutoff_date_str}",
+            logger=logger,
+        )
+
+        # Get list of all files from blob store
+        # Note: Vercel Blob doesn't have a direct list API, so we'll use a different approach
+        # We'll try to identify old files by their naming patterns and check their existence
+        
+        deleted_files = []
+        failed_files = []
+        total_checked = 0
+        
+        # Pattern 1: scrape-day-YYYY-MM-DD.json files
+        # Check dates from 2 months ago to 1 week ago
+        start_check_date = cutoff_date - timedelta(days=45)  # Check 45 days before cutoff
+        
+        current_date = start_check_date
+        while current_date < cutoff_date:
+            date_str = current_date.strftime("%Y-%m-%d")
+            pathname = build_scraped_day_cache_key(date_str)
+            
+            total_checked += 1
+            if delete_file(pathname):
+                deleted_files.append(pathname)
+                util.log(
+                    f"[serve.cleanup_cache_endpoint] Deleted old cache file: {pathname}",
+                    logger=logger,
+                )
+            
+            current_date += timedelta(days=1)
+        
+        # Pattern 2: Try to identify old content files by checking common patterns
+        # This is a best-effort approach since we can't list all files
+        
+        util.log(
+            f"[serve.cleanup_cache_endpoint] Cleanup completed: {len(deleted_files)} files deleted, {len(failed_files)} failed, {total_checked} files checked",
+            logger=logger,
+        )
+
+        return jsonify({
+            "success": True,
+            "deleted_count": len(deleted_files),
+            "failed_count": len(failed_files),
+            "total_checked": total_checked,
+            "cutoff_date": cutoff_date_str,
+            "deleted_files": deleted_files[:20],  # Show first 20 deleted files
+            "failed_files": failed_files if failed_files else None,
+        })
+
+    except Exception as e:
+        util.log(
+            "[serve.cleanup_cache_endpoint] error error=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",

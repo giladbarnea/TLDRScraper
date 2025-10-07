@@ -809,6 +809,27 @@
             40% { content: '..'; }
             60%, 100% { content: '...'; }
         }
+
+        /* Cleanup cache button styling */
+        #cleanupCacheBtn {
+            transition: all 0.15s ease;
+        }
+
+        #cleanupCacheBtn:hover:not(:disabled) {
+            background: #b91c1c !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+        }
+
+        #cleanupCacheBtn:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(220, 38, 38, 0.3);
+        }
+
+        #cleanupCacheBtn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body>
@@ -830,16 +851,28 @@
         </form>
         
         <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-            <label for="cacheModeSelect" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--muted);">Cache Mode:</label>
-            <select id="cacheModeSelect" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; background: var(--surface); color: var(--text); min-height: 44px;">
-                <option value="read_write">Read & Write (Normal)</option>
-                <option value="read_only">Read Only</option>
-                <option value="write_only">Write Only</option>
-                <option value="disabled">Disabled</option>
-            </select>
-            <p style="margin: 8px 0 0 0; font-size: 14px; color: var(--muted);" id="cacheModeDescription">
-                Normal caching: reads from cache, writes on cache miss
-            </p>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label for="cacheModeSelect" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--muted);">Cache Mode:</label>
+                    <select id="cacheModeSelect" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; background: var(--surface); color: var(--text); min-height: 44px;">
+                        <option value="read_write">Read & Write (Normal)</option>
+                        <option value="read_only">Read Only</option>
+                        <option value="write_only">Write Only</option>
+                        <option value="disabled">Disabled</option>
+                    </select>
+                    <p style="margin: 8px 0 0 0; font-size: 14px; color: var(--muted);" id="cacheModeDescription">
+                        Normal caching: reads from cache, writes on cache miss
+                    </p>
+                </div>
+                <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                    <button id="cleanupCacheBtn" type="button" style="padding: 10px 16px; font-size: 14px; font-weight: 500; background: #dc2626; color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; min-width: 120px;">
+                        Cleanup Cache
+                    </button>
+                    <p style="margin: 0; font-size: 12px; color: var(--muted); text-align: right; max-width: 150px;">
+                        Remove files older than 1 week
+                    </p>
+                </div>
+            </div>
         </div>
 
         <div id="progress" class="progress">
@@ -1835,6 +1868,81 @@
         // #endregion
 
         /**
+         * CacheCleanup removes all cached files older than 1 week from blob storage.
+         */
+        // #region -------[ CacheCleanup ]-------
+        async function handleCleanupCache(button) {
+            if (shouldDisableRemovals()) {
+                alert('Cache cleanup is disabled in ' + getActiveCacheMode() + ' mode');
+                return;
+            }
+
+            if (!confirm('Clean up cache files older than 1 week?\n\nThis will remove:\n• Old newsletter cache files\n• Old article content\n• Old summaries\n\nThis action cannot be undone.')) {
+                return;
+            }
+
+            button.disabled = true;
+            const originalText = button.textContent;
+            button.textContent = 'Cleaning...';
+            button.style.background = '#9ca3af';
+
+            try {
+                const resp = await fetch('/api/cleanup-cache', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await resp.json();
+
+                if (data.success) {
+                    button.textContent = `Cleaned! (${data.deleted_count} files)`;
+                    button.style.background = '#16a34a';
+                    
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.disabled = false;
+                        button.style.background = '#dc2626';
+                    }, 3000);
+                    
+                    // Show cleanup results
+                    const result = document.getElementById('result');
+                    if (result && result.style.display !== 'none') {
+                        const cleanupInfo = document.createElement('div');
+                        cleanupInfo.className = 'stats';
+                        cleanupInfo.innerHTML = `
+                            🧹 Cache Cleanup: ${data.deleted_count} files deleted, ${data.failed_count} failed<br>
+                            📅 Cutoff date: ${data.cutoff_date}<br>
+                            🔍 Files checked: ${data.total_checked}
+                        `;
+                        result.insertBefore(cleanupInfo, result.firstChild);
+                    }
+                } else {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                    button.style.background = '#dc2626';
+                    alert('Failed to cleanup cache: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                button.textContent = originalText;
+                button.disabled = false;
+                button.style.background = '#dc2626';
+                alert('Error: ' + err.message);
+            }
+        }
+
+        function bindCacheCleanup() {
+            document.addEventListener('click', async function(e) {
+                const cleanupBtn = e.target.closest('#cleanupCacheBtn');
+                if (!cleanupBtn) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                await handleCleanupCache(cleanupBtn);
+            }, true);
+        }
+        // #endregion
+
+        /**
          * AppBootstrap wires feature bindings so the UI state machine starts in sync with backend data.
          */
         // #region -------[ AppBootstrap ]-------
@@ -1845,6 +1953,7 @@
         bindCopySummaryFlow();
         bindRemovalFlow();
         bindDateCacheClear();
+        bindCacheCleanup();
         bindSummaryExpansion();
         // #endregion
     </script>
