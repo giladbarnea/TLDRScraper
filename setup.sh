@@ -25,7 +25,7 @@ decolor () {
 }
 
 function message(){
-	local string=$1
+	local string="$1"
 	local string_length=${#string}
 	if [[ $string_length -gt 80 ]]; then
 		string_length=80
@@ -42,48 +42,44 @@ function ensure_uv(){
 	local quiet=false
 	if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
 		quiet=true
+    elif [[ "$1" == "--quiet=true" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=false" ]]; then
+        quiet=false
 	fi
     if isdefined uv; then
-        message "uv is installed and in the PATH"
+        message "[setup.sh ensure_uv] uv is installed and in PATH"
         return 0
     fi
     export PATH="$HOME/.local/bin:$PATH"
-    message "uv is not installed, installing it with 'curl -LsSf https://astral.sh/uv/install.sh | sh'"
+    message "[setup.sh ensure_uv] uv is not installed, installing it with 'curl -LsSf https://astral.sh/uv/install.sh | sh'" >&2
     curl -LsSf https://astral.sh/uv/install.sh | sh
     if ! isdefined uv; then
-        message "[ERROR] After installing uv, 'command -v uv' returned a non-zero exit code. uv is probably installed but not in the PATH."
+        message "[setup.sh ensure_uv] [ERROR] After installing uv, 'command -v uv' returned a non-zero exit code. uv is probably installed but not in PATH." >&2
         return 1
     fi
-    if ! "$quiet"; then
-        message "uv installed and in the PATH"
-	fi
+    [[ "$quiet" == false ]] && message "[setup.sh ensure_uv] uv installed and in the PATH"
 	return 0
 }
 
-function ensure_node_npm(){
-    if isdefined node && isdefined npm; then
-        message "node and npm are installed and in the PATH"
-        return 0
-    fi
-    message "[ERROR] node and npm are required for Vercel Blob SDK. Please install Node.js and npm, then try again."
-    return 1
-}
-
 function uv_sync(){
-    ensure_uv -q
-    message "Running naive silent 'uv sync'"
-    if uv sync 1>/dev/null 2>&1; then
-        message "Successfully ran uv sync. Use 'uv run python3 ...' to run Python."
+    local quiet=false
+    if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=true" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=false" ]]; then
+        quiet=false
+    fi
+    ensure_uv --quiet="$quiet" || return 1
+    [[ "$quiet" == false ]] && message "[setup.sh uv_sync] Running naive silent 'uv sync'"
+    local uv_sync_output
+    if uv_sync_output=$(uv sync 2>&1); then
+        [[ "$quiet" == false ]] && message "[setup.sh uv_sync] Successfully ran uv sync. Use 'uv run python3 ...' to run Python."
         return 0
     else
-        message "ERROR: $0 failed to uv sync. If pyproject.toml and/or requirements.txt specify a vercel-wsgi dependency, comment it out and try again."
+        message "[setup.sh uv_sync] ERROR: $0 failed to uv sync. Output:" >&2
+        echo "$uv_sync_output" >&2
         return 1
     fi
-    
-    
 }
-
-ensure_uv
-ensure_node_npm
-uv_sync
-

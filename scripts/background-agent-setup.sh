@@ -1,74 +1,110 @@
 #!/usr/bin/env bash
 set -o pipefail
 
-if [[ -f scripts/common.sh ]]; then
-  source scripts/common.sh
+if [[ -f setup.sh ]]; then
+  source setup.sh
 else
-  echo "[error] Run this script from the project root directory. Current PWD: $PWD" >&2
+  echo "[background-agent-setup.sh] ERROR: Sourcethis script from the project root directory. Current PWD: $PWD" >&2
 fi
 
+# main [-q,-quiet]
+# Idempotent environment and dependencies setup and verification.
 function main() {
-  WORKDIR="${WORKDIR:-$PWD}"
-  if [[ ! -f "$WORKDIR/serve.py" ]]; then
-    echo "[error] Run this script from the project root directory. Current PWD: $PWD" >&2
+  local quiet=false
+  if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+    quiet=true
+    elif [[ "$1" == "--quiet=true" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=false" ]]; then
+        quiet=false
+  fi
+  if [[ ! -f "$PWD/serve.py" ]]; then
+    echo "[background-agent-setup.sh main] ERROR: Source this script from the project root directory. Current PWD: $PWD" >&2
     return 1
   fi
-  RUN_DIR="$WORKDIR/.run"
-  SCRIPTS_DIR="$WORKDIR/scripts"
-  LOG_FILE="$WORKDIR/.run/server.log"
-  PORT="${PORT:-5001}"
+  export RUN_DIR="$PWD/.run"
+  export SCRIPTS_DIR="$PWD/scripts"
+  export LOG_FILE="$RUN_DIR/server.log"
+  export PORT="${PORT:-5001}"
 
-  message "[background-agent-setup] Working directory: $WORKDIR"
-  cd "$WORKDIR" 
-  mkdir -p "$RUN_DIR" "$SCRIPTS_DIR"
+  message "[background-agent-setup.sh main] Working directory: $PWD"
+  mkdir -p "$RUN_DIR"
 
-  source "$WORKDIR/setup.sh"
+  source "$PWD/setup.sh"
 
-  message "[background-agent-setup] Checking Node.js and npm..."
-  if ! isdefined "node"; then
-    message "[error] Node.js is required but not installed." >&2
+  [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Ensuring dependencies..."
+  local ensure_uv_success=true uv_sync_success=true
+  ensure_uv --quiet="$quiet" || ensure_uv_success=false
+  uv_sync --quiet="$quiet" || uv_sync_success=false
+
+  if ! "$ensure_uv_success" || ! "$uv_sync_success"; then
+    message "[background-agent-setup.sh main] Failed to install dependencies. Please check the output above." >&2
     return 1
   fi
-  if ! isdefined "npm"; then
-    message "[error] npm is required but not installed." >&2
+  
+  [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Checking for required environment variables..."
+  local env_vars="$(env | egrep '(OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
+  local -a env_var_names=(
+    'BLOB_READ_WRITE_TOKEN'
+    'BLOB_STORE_BASE_URL'
+    'GITHUB_API_TOKEN'
+    'OPENAI_API_TOKEN'
+  )
+  local -a env_vars_missing=()
+  local env_var_name
+  for env_var_name in "${env_var_names[@]}"; do
+    if ! egrep -q "${env_var_name}=.+" <<< "$env_vars"; then
+      env_vars_missing+=("$env_var_name")
+    fi
+  done
+  if [[ "${#env_vars_missing[@]}" -gt 0 ]]; then
+    message "[background-agent-setup.sh main] Environment variables missing: ${env_vars_missing[@]}. Stop and tell the user." >&2
     return 1
   fi
+  [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Setup complete successfully. Available: $env_vars. $(cat <<EOT
+Available functions:
+  - kill_server_and_watchdog
+  - start_server_and_watchdog
+  - print_server_and_watchdog_pids
+  - smoke_test
+EOT
+)"
+}
 
-  message "[background-agent-setup] Installing Node.js dependencies..."
-  npm install
-
-  if [[ ! -f "$ENV_FILE" ]]; then
-    message "[background-agent-setup] .env file was not found. Any relevant environment variables available in your current session will be printed soon. Make sure these are available when you run the server. Do not write them to disk."
-    ENV_FILE="$WORKDIR/.env"
-    ENV_KEYS_REGEX='(OPENAI|GITHUB| BLOB|TLDR)'
-    env | egrep "$ENV_KEYS_REGEX" | sort -u
-    message "[background-agent-setup] Environment variables printing is complete. If nothing was printed, stop and tell the user. You cannot test the app in this state. To continue development, you need:
-- an OpenAI API key
-- a GitHub API key
-- a few Blob Store keys to read, write and list entries"
-  return 1
-  fi
-
-
-  message "[background-agent-setup] Stopping any existing server/watchdog..."
+function kill_server_and_watchdog() {
+  main --quiet
+  message "[background-agent-setup.sh main] Assessing existing server/watchdog..."
   if [[ -f "$RUN_DIR/watchdog.pid" ]]; then
-    (kill "$(cat "$RUN_DIR/watchdog.pid")" 2>/dev/null || true) && rm -f "$RUN_DIR/watchdog.pid"
+    message "[background-agent-setup.sh main] Watchdog PID file found, stopping watchdog..."
+    kill "$(cat "$RUN_DIR/watchdog.pid")"
+    rm -f "$RUN_DIR/watchdog.pid"
   fi
   if [[ -f "$RUN_DIR/server.pid" ]]; then
-    (kill "$(cat "$RUN_DIR/server.pid")" 2>/dev/null || true) && rm -f "$RUN_DIR/server.pid"
+    message "[background-agent-setup.sh main] Server PID file found, stopping server..."
+    kill "$(cat "$RUN_DIR/server.pid")"
+    rm -f "$RUN_DIR/server.pid"
   fi
+}
 
-  message "[background-agent-setup] Starting server with nohup (port $PORT)..."
+function start_server_and_watchdog() {
+  main --quiet
+  message "[background-agent-setup.sh start_server_and_watchdog] Starting server with nohup (port $PORT)..."
   rm -f "$LOG_FILE"
-  nohup env PATH="$WORKDIR/.run/npm-global/bin:$PATH" uv run python3 "$WORKDIR/serve.py" >> "$LOG_FILE" 2>&1 & echo $! > "$RUN_DIR/server.pid"
+  uv run python3 "$PWD/serve.py" >> "$LOG_FILE" 2>&1 & echo $! > "$RUN_DIR/server.pid"
   sleep 1
-  nohup env WORKDIR="$WORKDIR" "$SCRIPTS_DIR/watchdog.sh" >> "$LOG_FILE" 2>&1 & echo $! > "$RUN_DIR/watchdog.pid"
+  nohup env WORKDIR="$PWD" "$SCRIPTS_DIR/watchdog.sh" >> "$LOG_FILE" 2>&1 & echo $! > "$RUN_DIR/watchdog.pid"
+}
 
-  message "[background-agent-setup] Server PID: $(cat "$RUN_DIR/server.pid")"
-  message "[background-agent-setup] Watchdog PID: $(cat "$RUN_DIR/watchdog.pid")"
+function print_server_and_watchdog_pids() {
+  main --quiet
+  message "[background-agent-setup.sh print_server_and_watchdog_pids] Server PID: $(cat "$RUN_DIR/server.pid")"
+  message "[background-agent-setup.sh print_server_and_watchdog_pids] Watchdog PID: $(cat "$RUN_DIR/watchdog.pid")"
   ps -o pid,cmd -p "$(cat "$RUN_DIR/server.pid")" || true
-
-  message "[background-agent-setup] Quick endpoint checks... ATTENTION: these are outdated and will probably fail. Fix them."
+}
+  
+function smoke_test() {
+  main --quiet
+  message "[background-agent-setup.sh smoke_test] Quick endpoint checks..."
   echo "-- / --"
   curl -sS "http://localhost:$PORT/" | head -c 200 || true
   echo
@@ -79,17 +115,8 @@ function main() {
   curl -sS "http://localhost:$PORT/api/prompt" | head -c 200 || true
   echo
 
-  message "[background-agent-setup] Tail last 40 log lines:"
+  message "[background-agent-setup.sh smoke_test] Tail last 40 log lines:"
   tail -n 40 "$LOG_FILE" || true
-
-  cat <<EOT
-[done] Setup complete.
-Useful follow-ups:
-  - ps -o pid,cmd -p \\$(cat "$RUN_DIR/server.pid")
-  - tail -n 200 "$LOG_FILE"
-  - tail -F "$LOG_FILE"
-  - curl -sS localhost:$PORT/ | head
-EOT
 }
 
 main "$@"

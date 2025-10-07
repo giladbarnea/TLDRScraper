@@ -3,8 +3,8 @@
 ### Project overview (short)
 
 - Purpose: Daily TLDR newsletter scraping/curation with a fast, distributed cache.
-- Stack: Bash + curl, Node/uv-Python for scripting, Vercel Blob Store as the cache store.
-- Vercel: Project uses Blob Store for all caching (newsletters, URL content, LLM summaries, scrape results). Reads via Blob Store base URL, writes via Node.js SDK.
+- Stack: Bash + curl, Python for scripting, Vercel Blob Store as the cache store.
+- Vercel: Project uses Blob Store for all caching (newsletters, URL content, LLM summaries, scrape results). Reads via Blob Store base URL, writes via Python scripts using the `requests` library.
 - Cache mechanism: Blob pathnames are deterministic based on content (e.g., `newsletter-ai-2025-09-20.json`, `scrape-2025-09-20-to-2025-09-27.json`). Cache hits return quickly via CDN.
 
 ### Environment variables
@@ -35,19 +35,8 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 ./scripts/background-agent-setup.sh
 
 # .env should be already populated by the setup script.
-uv run --env-file=./.env python3 serve.py
+uv run python3 serve.py
 ```
-
-#### Vercel Blob SDK (required for uploads)
-Dependencies are managed via `package.json` and npm:
-```bash
-npm install
-```
-The server shells out to `scripts/blob_put.mjs` which uses `@vercel/blob` SDK:
-```bash
-echo "content" | PATHNAME="file.md" BLOB_READ_WRITE_TOKEN="$token" node scripts/blob_put.mjs
-```
-Upload is deterministic and overwrites existing content at the same pathname (no random suffixes, no listing).
 
 ### jq and uv setup
 
@@ -84,7 +73,7 @@ PY
 
 ### Practical guidance
 
-- Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables (`env|grep <wide queries>`)
+- Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables (`env|grep -e <wide queries>`)
 - Use `jq -S .` for sorted pretty-printing; `to_entries | length` for counts.
 - If you can emulate a new feature or behavior in your shell, do it. Is the app making a new API call? Try it in your shell. New dependency and Python interface? Try it by running Python via uv, and so on.
 - Blob pathname format varies by cache type:
