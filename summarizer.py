@@ -1,17 +1,17 @@
 import logging
 import json
 import re
-from io import BytesIO
-from typing import Optional
+from requests.models import Response
+from typing import Callable, Optional
 
 import requests
 from curl_cffi import requests as curl_requests
-from markitdown import MarkItDown, StreamInfo
+from markitdown import MarkItDown
 
 import util
 import urllib.parse as urlparse
-from blob_cache import blob_cached
-from blob_store import normalize_url_to_pathname
+import blob_cache
+import blob_store
 
 logger = logging.getLogger("summarizer")
 md = MarkItDown()
@@ -19,6 +19,20 @@ md = MarkItDown()
 _PROMPT_CACHE = None
 
 SUMMARY_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
+
+
+def _url_content_pathname(url: str, *args, **kwargs) -> str:
+    """Generate blob pathname for URL content."""
+    return blob_store.normalize_url_to_pathname(url)
+
+
+def _url_summary_pathname(url: str, *args, **kwargs) -> str:
+    """Generate blob pathname for URL summary."""
+    base_path = blob_store.normalize_url_to_pathname(url)
+    base = base_path[:-3] if base_path.endswith(".md") else base_path
+    summary_effort = normalize_summary_effort(kwargs.get("summary_effort", "low"))
+    suffix = "" if summary_effort == "low" else f"-{summary_effort}"
+    return f"{base}-summary{suffix}.md"
 
 
 def normalize_summary_effort(value: str) -> str:
@@ -33,23 +47,13 @@ def normalize_summary_effort(value: str) -> str:
     return "low"
 
 
-def _url_content_pathname(url: str, *args, **kwargs) -> str:
-    """Generate blob pathname for URL content."""
-    return normalize_url_to_pathname(url)
-
-
-def _url_summary_pathname(url: str, *args, **kwargs) -> str:
+def summary_blob_pathname(url: str, *args, **kwargs) -> str:
     """Generate blob pathname for URL summary."""
-    base_path = normalize_url_to_pathname(url)
+    base_path = blob_store.normalize_url_to_pathname(url)
     base = base_path[:-3] if base_path.endswith(".md") else base_path
     summary_effort = normalize_summary_effort(kwargs.get("summary_effort", "low"))
     suffix = "" if summary_effort == "low" else f"-{summary_effort}"
     return f"{base}-summary{suffix}.md"
-
-
-def summary_blob_pathname(url: str, summary_effort: str = "low") -> str:
-    """Expose summary blob pathname generation for external use."""
-    return _url_summary_pathname(url, summary_effort=summary_effort)
 
 
 def _is_github_repo_url(url: str) -> bool:
@@ -74,35 +78,32 @@ def _build_jina_reader_url(url: str) -> str:
     return f"https://r.jina.ai/{target}"
 
 
-def _scrape_with_requests(url: str, *, timeout: int) -> str:
-    response = requests.get(
-        url,
-        timeout=timeout,
-        headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
-    )
-    response.raise_for_status()
-    return response.text
-
-
-def _scrape_with_curl_cffi(url: str, *, timeout: int) -> str:
+def _scrape_with_curl_cffi(
+    url: str, *, timeout: int = 10, allow_redirects: bool = True
+) -> requests.Response:
     response = curl_requests.get(
         url,
         impersonate="chrome131",
         timeout=timeout,
-        allow_redirects=True,
+        allow_redirects=allow_redirects,
         headers={
             "Accept-Language": "en-US,en;q=0.9",
             "Referer": "https://www.google.com/",
         },
     )
     response.raise_for_status()
-    return response.text
+
+    def response_iter_content_stub(self, *args, **kwargs):
+        return [response.content]
+
+    response.__class__.iter_content = response_iter_content_stub
+    return response
 
 
-def _scrape_with_jina_reader(url: str, *, timeout: int) -> str:
+def _scrape_with_jina_reader(url: str, *, timeout: int) -> requests.Response:
     reader_url = _build_jina_reader_url(url)
     util.log(
-        f"[summarizer.scrape_url] Falling back to Jina reader url={url}",
+        f"[summarizer.scrape_url] Scraping with Jina reader url={url}",
         logger=logger,
     )
     response = requests.get(
@@ -113,25 +114,15 @@ def _scrape_with_jina_reader(url: str, *, timeout: int) -> str:
     response.raise_for_status()
     text = response.text
     if re.search(r"error \d+", text, flags=re.IGNORECASE):
-        raise requests.HTTPError("Jina reader returned an error page", response=response)
+        raise requests.HTTPError(
+            "Jina reader returned an error page", response=response
+        )
 
-    return text
-
-
-def _is_pdf_url(url: str) -> bool:
-    parsed = urlparse.urlparse(url)
-    # Check for .pdf extension
-    if parsed.path.lower().endswith(".pdf"):
-        return True
-    # Check for arXiv PDF URLs (e.g., https://www.arxiv.org/pdf/2510.00184)
-    if "arxiv.org/pdf/" in url.lower():
-        return True
-    return False
+    return response
 
 
-def scrape_url(url: str, *, timeout: int = 30) -> str:
-    scraping_methods = (
-        ("requests", _scrape_with_requests),
+def scrape_url(url: str, *, timeout: int = 10) -> Response:
+    scraping_methods: tuple[tuple[str, Callable[..., Response]], ...] = (
         ("curl_cffi", _scrape_with_curl_cffi),
         ("jina_reader", _scrape_with_jina_reader),
     )
@@ -146,6 +137,7 @@ def scrape_url(url: str, *, timeout: int = 30) -> str:
             util.log(
                 f"[summarizer.scrape_url] {name} fetch failed url={url} error={status_error}",
                 logger=logger,
+                level=logging.WARNING,
             )
             continue
 
@@ -170,22 +162,29 @@ def _fetch_github_readme(url: str) -> str:
         f"[summarizer._fetch_github_readme] Trying raw fetch from {raw_url}",
         logger=logger,
     )
+    github_api_token = util.resolve_env_var("GITHUB_API_TOKEN", "")
+    auth_headers = {
+        "Authorization": f"token {github_api_token}",
+        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+    }
 
     try:
         response = requests.get(
             raw_url,
-            timeout=30,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+            timeout=10,
+            headers=auth_headers,
         )
         response.raise_for_status()
         util.log(
             f"[summarizer._fetch_github_readme] Raw fetch succeeded for {raw_url}",
             logger=logger,
         )
-        return response.text
+        return md.convert_response(response).markdown
     except requests.HTTPError as e:
         if e.response and e.response.status_code == 404:
-            master_url = f"https://raw.githubusercontent.com/{owner}/{repo}/master/README.md"
+            master_url = (
+                f"https://raw.githubusercontent.com/{owner}/{repo}/master/README.md"
+            )
             util.log(
                 f"[summarizer._fetch_github_readme] Main branch not found, trying master: {master_url}",
                 logger=logger,
@@ -193,32 +192,26 @@ def _fetch_github_readme(url: str) -> str:
             try:
                 response = requests.get(
                     master_url,
-                    timeout=30,
-                    headers={
-                        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"
-                    },
+                    timeout=10,
+                    headers=auth_headers,
                 )
                 response.raise_for_status()
                 util.log(
                     f"[summarizer._fetch_github_readme] Master branch fetch succeeded for {master_url}",
                     logger=logger,
                 )
-                return response.text
+                return md.convert_response(response).markdown
             except Exception:
-                pass
+                util.log(
+                    f"[summarizer._fetch_github_readme] Master branch fetch failed for {master_url}",
+                    logger=logger,
+                    level=logging.WARNING,
+                )
+                raise
 
-    util.log(
-        f"[summarizer._fetch_github_readme] Raw README not found, trying direct page fetch from {url}",
-        logger=logger,
-    )
-
-    content = scrape_url(url, timeout=30)
-    stream = BytesIO(content.encode("utf-8", errors="ignore"))
-    result = md.convert_stream(
-        stream,
-        stream_info=StreamInfo(mimetype="text/html", charset="utf-8"),
-    )
-    content = result.text_content
+    response = scrape_url(url)
+    result = md.convert_response(response)
+    content = result.markdown
 
     util.log(
         f"[summarizer._fetch_github_readme] Direct fetch succeeded for {url}",
@@ -227,33 +220,24 @@ def _fetch_github_readme(url: str) -> str:
     return content
 
 
-@blob_cached(_url_content_pathname, logger=logger)
+@blob_cache.blob_cached(_url_content_pathname, logger=logger)
 def url_to_markdown(url: str) -> str:
     """Fetch URL and convert to markdown. For GitHub repos, fetches README.md."""
-    util.log(f"[summarizer.url_to_markdown] Fetching {url}", logger=logger)
+    util.log(
+        f"[summarizer.url_to_markdown] Fetching and converting to markdown {url}",
+        logger=logger,
+    )
 
     if _is_github_repo_url(url):
         return _fetch_github_readme(url)
 
-    if _is_pdf_url(url):
-        util.log(
-            f"[summarizer.url_to_markdown] Converting PDF via MarkItDown url={url}",
-            logger=logger,
-        )
-        result = md.convert_url(url)
-        return result.text_content
+    response = scrape_url(url)
+    markdown = md.convert_response(response).markdown
 
-    content = scrape_url(url, timeout=30)
-    stream = BytesIO(content.encode("utf-8", errors="ignore"))
-    result = md.convert_stream(
-        stream,
-        stream_info=StreamInfo(mimetype="text/html", charset="utf-8"),
-    )
-
-    return result.text_content
+    return markdown
 
 
-@blob_cached(_url_summary_pathname, logger=logger)
+@blob_cache.blob_cached(_url_summary_pathname, logger=logger)
 def summarize_url(url: str, summary_effort: str = "low") -> str:
     """Get markdown content from URL and summarize it with LLM.
 
@@ -296,7 +280,7 @@ def _fetch_summarize_prompt(
     if token:
         headers["Authorization"] = f"token {token}"
 
-    resp = requests.get(url, headers=headers, timeout=20)
+    resp = requests.get(url, headers=headers, timeout=10)
 
     if resp.status_code == 200:
         _PROMPT_CACHE = resp.text
@@ -318,7 +302,7 @@ def _fetch_summarize_prompt(
             "Accept": "application/vnd.github.v3.raw",
             "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
         }
-        resp_no_auth = requests.get(url, headers=headers_no_auth, timeout=20)
+        resp_no_auth = requests.get(url, headers=headers_no_auth, timeout=10)
         if resp_no_auth.status_code == 200:
             _PROMPT_CACHE = resp_no_auth.text
             return _PROMPT_CACHE
@@ -352,6 +336,8 @@ def _call_llm(prompt: str, summary_effort: str = "low") -> str:
     api_key = util.resolve_env_var("OPENAI_API_TOKEN", "")
     if not api_key:
         raise RuntimeError("OPENAI_API_TOKEN not set")
+    if not prompt.strip():
+        raise ValueError("Prompt is empty")
 
     url = "https://api.openai.com/v1/responses"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
@@ -391,5 +377,5 @@ def _call_llm(prompt: str, summary_effort: str = "low") -> str:
         content = msg.get("content")
         if isinstance(content, str):
             return content
-
+    assert data, "No LLM output found"
     return json.dumps(data)

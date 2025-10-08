@@ -17,7 +17,9 @@ from summarizer import (
 logger = logging.getLogger("tldr_service")
 
 
-def _parse_date_range(start_date_text: str, end_date_text: str) -> tuple[datetime, datetime]:
+def _parse_date_range(
+    start_date_text: str, end_date_text: str
+) -> tuple[datetime, datetime]:
     """Parse ISO date strings and enforce range limits.
 
     >>> _parse_date_range("2024-01-01", "2024-01-02")[0].isoformat()

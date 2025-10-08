@@ -58,7 +58,7 @@ def scrape_newsletters_endpoint():
 
 
 @app.route("/api/prompt", methods=["GET"])
-def get_prompt_template():
+def get_summarize_prompt_template():
     """Return the loaded summarize.md prompt (for debugging/inspection)."""
     try:
         prompt = fetch_prompt_template()
@@ -142,8 +142,11 @@ def summarize_url_endpoint():
 def remove_url_endpoint():
     """Mark a URL as removed so it won't appear in future scrapes."""
     try:
-        data = request.get_json() or {}
-        canonical = remove_url(data.get("url", ""))
+        # data = request.get_json() or {}
+        # canonical = remove_url(data.get("url", ""))
+        url = request.get_json()["url"]
+        assert url, "url is required"
+        canonical = remove_url(url)
         return jsonify({"success": True, "canonical_url": canonical})
 
     except ValueError as error:
@@ -166,6 +169,7 @@ def get_removed_urls_endpoint():
     """Get the list of removed URLs."""
     try:
         from removed_urls import get_removed_urls
+
         removed_urls = get_removed_urls()
         return jsonify({"success": True, "removed_urls": list(removed_urls)})
     except Exception as e:
@@ -245,6 +249,7 @@ def invalidate_cache_endpoint():
 
     This only clears the scraped newsletter cache (scrape-day-*.json files),
     not article content or summaries.
+    Expects start_date and end_date in the request body.
     """
     try:
         data = request.get_json() or {}
@@ -275,8 +280,9 @@ def invalidate_cache_endpoint():
 
         # Check which entries actually exist
         from blob_store import list_existing_entries
+
         existing_entries = list_existing_entries(potential_pathnames)
-        
+
         util.log(
             f"[serve.invalidate_cache_endpoint] Found {len(existing_entries)} existing entries out of {len(potential_pathnames)} potential entries",
             logger=logger,
@@ -337,11 +343,12 @@ def invalidate_cache_endpoint():
 
 @app.route("/api/invalidate-date-cache", methods=["POST"])
 def invalidate_date_cache_endpoint():
-    """Invalidate all cached data (newsletter, URL content, summaries) for a specific date."""
+    """Invalidate all cached data (newsletter, URL content, summaries) for a specific date.
+    Expects date in the request body.
+    """
     try:
         data = request.get_json() or {}
-
-        if "date" not in data:
+        if not data.get("date"):
             return jsonify({
                 "success": False,
                 "error": "date is required",

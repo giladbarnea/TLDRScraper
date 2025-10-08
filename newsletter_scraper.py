@@ -232,7 +232,9 @@ def _parse_articles_from_markdown(markdown, date, newsletter_type):
             if _is_file_url(url):
                 continue
 
-            if not (minute_read_pattern.search(title) or github_repo_pattern.search(title)):
+            if not (
+                minute_read_pattern.search(title) or github_repo_pattern.search(title)
+            ):
                 continue
 
             title = title.strip()

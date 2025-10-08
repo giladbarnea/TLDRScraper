@@ -233,9 +233,9 @@ def list_existing_entries(pathnames: list[str]) -> list[str]:
     Returns a list of pathnames that actually exist.
     """
     existing_entries = []
-    
+
     for pathname in pathnames:
         if check_file_exists(pathname):
             existing_entries.append(pathname)
-    
+
     return existing_entries
