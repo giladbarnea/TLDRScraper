@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-TLDR Newsletter Scraper Backend with Proxy.
-IMPORTANT INSTRUCTION: cli.py should expose 100% equivalent interfaces to the app's logic as serve.py exposed web interfaces. Any modifications here have to be reflected in cli.py, then verified through cli.py.
+TLDR Newsletter Scraper backend with a proxy.
+Important: cli.py must expose the exact same interfaces to the app logic that serve.py exposes via the web. Any changes made here must also be mirrored in cli.py and verified through cli.py.
 """
 
 from flask import Flask, render_template, request, jsonify
@@ -9,18 +9,11 @@ import logging
 from datetime import datetime
 import requests
 
-from blob_store import (
-    build_scraped_day_cache_key,
-    delete_file,
-)
+import blob_store
 import cache_mode
 import util
-from tldr_service import (
-    fetch_prompt_template,
-    remove_url,
-    scrape_newsletters,
-    summarize_url_content,
-)
+import tldr_service
+import removed_urls
 
 app = Flask(__name__)
 logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
@@ -34,14 +27,14 @@ def index():
 
 
 @app.route("/api/scrape", methods=["POST"])
-def scrape_newsletters_endpoint():
-    """Backend proxy to scrape TLDR newsletters"""
+def scrape_newsletters_in_date_range():
+    """Backend proxy to scrape TLDR newsletters. Expects start_date and end_date in the request body."""
     try:
         data = request.get_json()
         if data is None:
             return jsonify({"success": False, "error": "No JSON data received"}), 400
 
-        result = scrape_newsletters(
+        result = tldr_service.scrape_newsletters_in_date_range(
             data.get("start_date"),
             data.get("end_date"),
         )
@@ -51,7 +44,7 @@ def scrape_newsletters_endpoint():
         return jsonify({"success": False, "error": str(error)}), 400
     except Exception as error:
         logger.exception(
-            "[serve.scrape_newsletters_endpoint] Failed to scrape newsletters: %s",
+            "[serve.scrape_newsletters_in_date_range] Failed to scrape newsletters: %s",
             error,
         )
         return jsonify({"success": False, "error": str(error)}), 500
@@ -61,7 +54,7 @@ def scrape_newsletters_endpoint():
 def get_summarize_prompt_template():
     """Return the loaded summarize.md prompt (for debugging/inspection)."""
     try:
-        prompt = fetch_prompt_template()
+        prompt = tldr_service.fetch_summarize_prompt_template()
         return prompt, 200, {"Content-Type": "text/plain; charset=utf-8"}
     except Exception as e:
         util.log(
@@ -79,14 +72,14 @@ def get_summarize_prompt_template():
 
 
 @app.route("/api/summarize-url", methods=["POST"])
-def summarize_url_endpoint():
-    """Summarize a given URL: fetch HTML, convert to Markdown, insert into template, call OpenAI.
+def summarize_url():
+    """Summarize the content at a URL: fetch the HTML, convert it to Markdown, insert it into a template, then call OpenAI.
 
-    Accepts optional 'cache_only' parameter to only return cached summaries.
+    Requires 'url'. Optional: 'cache_only' to return only cached summaries, and 'summary_effort' to set the reasoning effort level.
     """
     try:
         data = request.get_json() or {}
-        result = summarize_url_content(
+        result = tldr_service.summarize_url_content(
             data.get("url", ""),
             cache_only=data.get("cache_only", False),
             summary_effort=data.get("summary_effort", "low"),
@@ -119,7 +112,7 @@ def summarize_url_endpoint():
         return jsonify({"success": False, "error": str(error)}), 400
     except requests.RequestException as e:
         util.log(
-            "[serve.summarize_url_endpoint] request error error=%s",
+            "[serve.summarize_url] request error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,
@@ -129,7 +122,7 @@ def summarize_url_endpoint():
 
     except Exception as e:
         util.log(
-            "[serve.summarize_url_endpoint] error error=%s",
+            "[serve.summarize_url] error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,
@@ -139,14 +132,12 @@ def summarize_url_endpoint():
 
 
 @app.route("/api/remove-url", methods=["POST"])
-def remove_url_endpoint():
-    """Mark a URL as removed so it won't appear in future scrapes."""
+def remove_url():
+    """Mark a URL as removed so it won't appear in future scrapes. Expects 'url' in the request body."""
     try:
-        # data = request.get_json() or {}
-        # canonical = remove_url(data.get("url", ""))
         url = request.get_json()["url"]
         assert url, "url is required"
-        canonical = remove_url(url)
+        canonical = tldr_service.remove_url(url)
         return jsonify({"success": True, "canonical_url": canonical})
 
     except ValueError as error:
@@ -155,7 +146,7 @@ def remove_url_endpoint():
         return jsonify({"success": False, "error": str(error)}), 500
     except Exception as e:
         util.log(
-            "[serve.remove_url_endpoint] error error=%s",
+            "[serve.remove_url] error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,
@@ -165,16 +156,16 @@ def remove_url_endpoint():
 
 
 @app.route("/api/removed-urls", methods=["GET"])
-def get_removed_urls_endpoint():
+def get_removed_urls():
     """Get the list of removed URLs."""
     try:
-        from removed_urls import get_removed_urls
-
-        removed_urls = get_removed_urls()
-        return jsonify({"success": True, "removed_urls": list(removed_urls)})
+        return jsonify({
+            "success": True,
+            "removed_urls": list(removed_urls.get_removed_urls()),
+        })
     except Exception as e:
         util.log(
-            "[serve.get_removed_urls_endpoint] error error=%s",
+            "[serve.get_removed_urls] error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,
@@ -184,7 +175,7 @@ def get_removed_urls_endpoint():
 
 
 @app.route("/api/cache-mode", methods=["GET"])
-def get_cache_mode_endpoint():
+def get_cache_mode():
     """Get the current cache mode."""
     try:
         mode = cache_mode.get_cache_mode()
@@ -194,7 +185,7 @@ def get_cache_mode_endpoint():
         })
     except Exception as e:
         util.log(
-            "[serve.get_cache_mode_endpoint] error error=%s",
+            "[serve.get_cache_mode] error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,
@@ -204,8 +195,8 @@ def get_cache_mode_endpoint():
 
 
 @app.route("/api/cache-mode", methods=["POST"])
-def set_cache_mode_endpoint():
-    """Set the cache mode."""
+def set_cache_mode():
+    """Set the cache mode. Expects 'cache_mode' in the request body."""
     try:
         data = request.get_json() or {}
         mode_str = (data.get("cache_mode") or "").strip().lower()
@@ -234,7 +225,7 @@ def set_cache_mode_endpoint():
 
     except Exception as e:
         util.log(
-            "[serve.set_cache_mode_endpoint] error error=%s",
+            "[serve.set_cache_mode] error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,
@@ -244,7 +235,7 @@ def set_cache_mode_endpoint():
 
 
 @app.route("/api/invalidate-cache", methods=["POST"])
-def invalidate_cache_endpoint():
+def invalidate_cache_in_date_range():
     """Invalidate the day-level newsletter cache for a date range.
 
     This only clears the scraped newsletter cache (scrape-day-*.json files),
@@ -275,16 +266,15 @@ def invalidate_cache_endpoint():
         potential_pathnames = []
         for date in dates:
             date_str = util.format_date_for_url(date)
-            pathname = build_scraped_day_cache_key(date_str)
+            pathname = blob_store.build_scraped_day_cache_key(date_str)
             potential_pathnames.append(pathname)
 
         # Check which entries actually exist
-        from blob_store import list_existing_entries
 
-        existing_entries = list_existing_entries(potential_pathnames)
+        existing_entries = blob_store.list_existing_entries(potential_pathnames)
 
         util.log(
-            f"[serve.invalidate_cache_endpoint] Found {len(existing_entries)} existing entries out of {len(potential_pathnames)} potential entries",
+            f"[serve.invalidate_cache_in_date_range] Found {len(existing_entries)} existing entries out of {len(potential_pathnames)} potential entries",
             logger=logger,
         )
 
@@ -294,11 +284,11 @@ def invalidate_cache_endpoint():
 
         for pathname in existing_entries:
             try:
-                success = delete_file(pathname)
+                success = blob_store.delete_file(pathname)
                 if success:
                     deleted_count += 1
                     util.log(
-                        f"[serve.invalidate_cache_endpoint] Deleted cache for pathname={pathname}",
+                        f"[serve.invalidate_cache_in_date_range] Deleted cache for pathname={pathname}",
                         logger=logger,
                     )
                 else:
@@ -309,14 +299,14 @@ def invalidate_cache_endpoint():
                 error_msg = f"{pathname}: {repr(e)}"
                 errors.append(error_msg)
                 util.log(
-                    f"[serve.invalidate_cache_endpoint] Failed to delete cache for pathname={pathname} error={repr(e)}",
+                    f"[serve.invalidate_cache_in_date_range] Failed to delete cache for pathname={pathname} error={repr(e)}",
                     level=logging.WARNING,
                     logger=logger,
                 )
 
         # Log final summary
         util.log(
-            f"[serve.invalidate_cache_endpoint] Completed: {deleted_count} successful deletions, {failed_count} failed deletions out of {len(existing_entries)} existing entries",
+            f"[serve.invalidate_cache_in_date_range] Completed: {deleted_count} successful deletions, {failed_count} failed deletions out of {len(existing_entries)} existing entries",
             logger=logger,
         )
 
@@ -332,7 +322,7 @@ def invalidate_cache_endpoint():
 
     except Exception as e:
         util.log(
-            "[serve.invalidate_cache_endpoint] error error=%s",
+            "[serve.invalidate_cache_in_date_range] error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,
@@ -342,7 +332,7 @@ def invalidate_cache_endpoint():
 
 
 @app.route("/api/invalidate-date-cache", methods=["POST"])
-def invalidate_date_cache_endpoint():
+def invalidate_cache_for_date():
     """Invalidate all cached data (newsletter, URL content, summaries) for a specific date.
     Expects date in the request body.
     """
@@ -356,13 +346,12 @@ def invalidate_date_cache_endpoint():
 
         date_str = data["date"]
 
-        from blob_store import normalize_url_to_pathname
         from summarizer import SUMMARY_EFFORT_OPTIONS
 
         deleted_files = []
         failed_files = []
 
-        day_cache_pathname = build_scraped_day_cache_key(date_str)
+        day_cache_pathname = blob_store.build_scraped_day_cache_key(date_str)
 
         blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
         if not blob_base_url:
@@ -379,7 +368,7 @@ def invalidate_date_cache_endpoint():
             articles = cached_day.get("articles", [])
         except Exception as e:
             util.log(
-                f"[serve.invalidate_date_cache_endpoint] Could not fetch day cache for date={date_str}: {repr(e)}",
+                f"[serve.invalidate_cache_for_date] Could not fetch day cache for date={date_str}: {repr(e)}",
                 level=logging.WARNING,
                 logger=logger,
             )
@@ -393,7 +382,7 @@ def invalidate_date_cache_endpoint():
                 urls_to_process.add(canonical)
 
         for url in urls_to_process:
-            url_base_pathname = normalize_url_to_pathname(url)
+            url_base_pathname = blob_store.normalize_url_to_pathname(url)
             url_base = (
                 url_base_pathname[:-3]
                 if url_base_pathname.endswith(".md")
@@ -401,7 +390,7 @@ def invalidate_date_cache_endpoint():
             )
 
             content_pathname = url_base_pathname
-            if delete_file(content_pathname):
+            if blob_store.delete_file(content_pathname):
                 deleted_files.append(content_pathname)
             else:
                 failed_files.append(content_pathname)
@@ -409,16 +398,16 @@ def invalidate_date_cache_endpoint():
             for effort in SUMMARY_EFFORT_OPTIONS:
                 suffix = "" if effort == "low" else f"-{effort}"
                 summary_pathname = f"{url_base}-summary{suffix}.md"
-                if delete_file(summary_pathname):
+                if blob_store.delete_file(summary_pathname):
                     deleted_files.append(summary_pathname)
 
-        if delete_file(day_cache_pathname):
+        if blob_store.delete_file(day_cache_pathname):
             deleted_files.append(day_cache_pathname)
         else:
             failed_files.append(day_cache_pathname)
 
         util.log(
-            f"[serve.invalidate_date_cache_endpoint] Deleted {len(deleted_files)} files for date={date_str}",
+            f"[serve.invalidate_cache_for_date] Deleted {len(deleted_files)} files for date={date_str}",
             logger=logger,
         )
 
@@ -433,7 +422,7 @@ def invalidate_date_cache_endpoint():
 
     except Exception as e:
         util.log(
-            "[serve.invalidate_date_cache_endpoint] error error=%s",
+            "[serve.invalidate_cache_for_date] error error=%s",
             repr(e),
             level=logging.ERROR,
             exc_info=True,
