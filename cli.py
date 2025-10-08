@@ -22,6 +22,7 @@ def _json_dumps(data: object) -> str:
 
 
 def main() -> None:
+    print("IMPORTANT: Make sure you have sourced scripts/background-agent-setup.sh to setup and verify your environment before using this file.")
     parser = argparse.ArgumentParser(description="TLDR Scraper local CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
