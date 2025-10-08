@@ -8,6 +8,8 @@ set -euo pipefail
 # summarizing a URL materializes the summary in cache for cache-only
 # reads.
 
+source ./scripts/background-agent-setup.sh
+
 CLI_BIN=${CLI_BIN:-"uv run python3 cli.py"}
 SCRAPE_START_DATE=${SCRAPE_START_DATE:-$(date -I -d 'yesterday' 2>/dev/null || date -I)}
 SCRAPE_END_DATE=${SCRAPE_END_DATE:-$SCRAPE_START_DATE}
