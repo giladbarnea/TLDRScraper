@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Common functions for the scripts in this repository
+# SOURCE this file, don't run it.
 set -o pipefail
 
 isdefined(){
@@ -83,3 +83,99 @@ function uv_sync(){
         return 1
     fi
 }
+
+
+# main [-q,-quiet]
+# Idempotent environment and dependencies setup and verification.
+function main() {
+  local quiet=false
+  if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+    quiet=true
+    elif [[ "$1" == "--quiet=true" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=false" ]]; then
+        quiet=false
+  fi
+  if [[ ! -f "$PWD/serve.py" ]]; then
+    echo "[background-agent-setup.sh main] ERROR: Source this script from the project root directory. Current PWD: $PWD" >&2
+    return 1
+  fi
+  export RUN_DIR="$PWD/.run"
+  export SCRIPTS_DIR="$PWD/scripts"
+  export LOG_FILE="$RUN_DIR/server.log"
+  export PORT="${PORT:-5001}"
+
+  message "[background-agent-setup.sh main] Working directory: $PWD"
+  mkdir -p "$RUN_DIR"
+
+
+  [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Ensuring dependencies..."
+  local ensure_uv_success=true uv_sync_success=true
+  ensure_uv --quiet="$quiet" || ensure_uv_success=false
+  uv_sync --quiet="$quiet" || uv_sync_success=false
+
+  if ! "$ensure_uv_success" || ! "$uv_sync_success"; then
+    message "[background-agent-setup.sh main] Failed to install dependencies. Please check the output above." >&2
+    return 1
+  fi
+  
+  [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Checking for required environment variables..."
+  local env_vars="$(env | egrep '(OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
+  local -a env_var_names=(
+    'BLOB_READ_WRITE_TOKEN'
+    'BLOB_STORE_BASE_URL'
+    'GITHUB_API_TOKEN'
+    'OPENAI_API_TOKEN'
+  )
+  local -a env_vars_missing=()
+  local env_var_name
+  for env_var_name in "${env_var_names[@]}"; do
+    if ! egrep -q "${env_var_name}=.+" <<< "$env_vars"; then
+      env_vars_missing+=("$env_var_name")
+    fi
+  done
+  if [[ "${#env_vars_missing[@]}" -gt 0 ]]; then
+    message "[background-agent-setup.sh main] Environment variables missing: ${env_vars_missing[@]}. Stop and tell the user." >&2
+    return 1
+  fi
+  [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Setup complete successfully. Available: $env_vars.
+
+**Use cli.py sparingly to verify your work.**
+"
+}
+
+function kill_server_and_watchdog() {
+  main --quiet
+  message "[background-agent-setup.sh main] Assessing existing server/watchdog..."
+  if [[ -f "$RUN_DIR/watchdog.pid" ]]; then
+    message "[background-agent-setup.sh main] Watchdog PID file found, stopping watchdog..."
+    kill "$(cat "$RUN_DIR/watchdog.pid")"
+    rm -f "$RUN_DIR/watchdog.pid"
+  fi
+  if [[ -f "$RUN_DIR/server.pid" ]]; then
+    message "[background-agent-setup.sh main] Server PID file found, stopping server..."
+    kill "$(cat "$RUN_DIR/server.pid")"
+    rm -f "$RUN_DIR/server.pid"
+  fi
+}
+
+function start_server_and_watchdog() {
+  main --quiet
+  message "[background-agent-setup.sh start_server_and_watchdog] Starting server with nohup (port $PORT)..."
+  rm -f "$LOG_FILE"
+  uv run python3 "$PWD/serve.py" >> "$LOG_FILE" 2>&1 & echo $! > "$RUN_DIR/server.pid"
+  sleep 1
+  nohup env WORKDIR="$PWD" "$SCRIPTS_DIR/watchdog.sh" >> "$LOG_FILE" 2>&1 & echo $! > "$RUN_DIR/watchdog.pid"
+}
+
+function print_server_and_watchdog_pids() {
+  main --quiet
+  message "[background-agent-setup.sh print_server_and_watchdog_pids] Server PID: $(cat "$RUN_DIR/server.pid")"
+  message "[background-agent-setup.sh print_server_and_watchdog_pids] Watchdog PID: $(cat "$RUN_DIR/watchdog.pid")"
+  ps -o pid,cmd -p "$(cat "$RUN_DIR/server.pid")" || true
+}
+
+main "$@"
+
+
+
