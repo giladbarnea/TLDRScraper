@@ -5,7 +5,7 @@
 - Purpose: Daily TLDR newsletter scraping/curation with a fast, distributed cache.
 - Stack: Bash + curl, Python for scripting, Vercel Blob Store as the cache store.
 - Vercel: Project uses Blob Store for all caching (newsletters, URL content, LLM summaries, scrape results). Reads via Blob Store base URL, writes via Python scripts using the `requests` library.
-- Cache mechanism: Blob pathnames are deterministic based on content (e.g., `newsletter-ai-2025-09-20.json`, `scrape-2025-09-20-to-2025-09-27.json`). Cache hits return quickly via CDN.
+- Cache mechanism: Blob pathnames are deterministic based on content. 
 
 ### Environment variables
 
@@ -14,6 +14,8 @@ The single source of truth for what is available locally is the output of:
 ```bash
 env | grep -e BLOB -e TLDR -e TOKEN -e API
 ```
+
+**Run scripts/background-agent-setup.sh first thing up load and verify your environment.**
 
 Rules:
 
@@ -34,7 +36,6 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 # Takes care of installing dependencies and bootstrapping the environment.
 ./scripts/background-agent-setup.sh
 
-# .env should be already populated by the setup script.
 uv run python3 serve.py
 ```
 
@@ -73,26 +74,22 @@ PY
 
 ### Practical guidance
 
-- Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables. **Run ./scripts/background-agent-setup.sh to verify the environment and dependencies are set up correctly. After sourcing the background-agent script, run the CLI sanity check with `bash scripts/cli_sanity_check.sh` to verify all CLI commands are working properly.**
+- Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables. 
+- **Run ./scripts/background-agent-setup.sh to verify the environment and dependencies are set up correctly. After sourcing the background-agent script, run the CLI sanity check with `bash scripts/cli_sanity_check.sh` to verify all CLI commands are working properly.**
 - Use `jq -S .` for sorted pretty-printing; `to_entries | length` for counts.
-- If you can emulate a new feature or behavior in your shell, do it. Is the app making a new API call? Try it in your shell. New dependency and Python interface? Try it by running Python via uv, and so on.
-- Blob pathname format varies by cache type:
-  * Scraped Day Results: `scrape-day-{YYYY-MM-DD}.json` (e.g., `scrape-day-2025-09-20.json`)
-  * URL Content: `{normalized-url}.md` (e.g., `example-com-article-title.md`)
-  * Summaries: `{normalized-url}-summary.md` or `{normalized-url}-summary-{effort}.md`
-  * Removed URLs: `removed-urls.json`
-  * Cache Mode: `cache-mode.txt`
+- Try the new feature or behavior you have just implemented in your shell. Is the app making a new API call? Add it to cli.py and scripts/cli_sanity_check.sh. New dependency and Python interface? Try it by running Python via uv, and so on.
+
 
 ### Development Conventions
 
 1. Always use `util.resolve_env_var` to get environment variables.
 2. Add a doctest example to pure-ish functions (data in, data out).
-3. Do not abbreviate variable, function or class names. Use complete words.
+3. Do not abbreviate variable, function or class names. Use complete words. Write clean code.
 4. `util.log` when something is going wrong, even if it is recoverable. Be consistent with existing logging style.
-5. Failing early is better than fallbacks. Zero "Just in case" code. Fallback-rich code explodes complexity and often just propagates bugs downstream. If something important fails, fail early and clearly. Broken code should be fixed, not worked around.
+5. Failing early is better than fallbacks. Zero "Just in case" code. Fallback-rich code is to be avoided because it explodes complexity and often just propagates bugs downstream. Good code assumes that its inputs are valid and complete. It trusts upstream code to have done its job. And if something important fails, or an assumption is broken, fail early and clearly. Broken code should be fixed, not to tolerated, not worked around.
 6. Make sure to write highly cohesive, decoupled logic.
 7. Utilize existing logic when possible. Do not re-implement anything.
-8. Aim for flat, optimized logical branches. Avoid deeply nested, duplicate-y code.
+8. Write flat, optimized logical branches. Avoid nested, duplicate-y code. Write DRY and elegant logic. 
 
 ### The Right Engineering Mindset
 
