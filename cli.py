@@ -4,9 +4,9 @@ import json
 import sys
 
 from tldr_service import (
-    fetch_prompt_template,
+    fetch_summarize_prompt_template,
     remove_url,
-    scrape_newsletters,
+    scrape_newsletters_in_date_range,
     summarize_url_content,
 )
 from removed_urls import get_removed_urls
@@ -89,7 +89,7 @@ def main() -> None:
 
     if args.command == "scrape":
         try:
-            result = scrape_newsletters(args.start_date, args.end_date)
+            result = scrape_newsletters_in_date_range(args.start_date, args.end_date)
             print(_json_dumps(result))
         except Exception as error:
             _print_error(str(error))
@@ -98,7 +98,7 @@ def main() -> None:
 
     if args.command == "prompt":
         try:
-            print(fetch_prompt_template())
+            print(fetch_summarize_prompt_template())
         except Exception as error:
             _print_error(str(error))
             sys.exit(1)

@@ -43,7 +43,7 @@ def _parse_date_range(
     return start_date, end_date
 
 
-def scrape_newsletters(start_date_text: str, end_date_text: str) -> dict:
+def scrape_newsletters_in_date_range(start_date_text: str, end_date_text: str) -> dict:
     start_date, end_date = _parse_date_range(start_date_text, end_date_text)
     util.log(
         f"[tldr_service.scrape_newsletters] start start_date={start_date_text} end_date={end_date_text}",
@@ -57,7 +57,7 @@ def scrape_newsletters(start_date_text: str, end_date_text: str) -> dict:
     return result
 
 
-def fetch_prompt_template() -> str:
+def fetch_summarize_prompt_template() -> str:
     return _fetch_summarize_prompt()
 
 

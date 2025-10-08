@@ -89,7 +89,29 @@ PY
 5. Failing early is better than fallbacks. Zero "Just in case" code. Fallback-rich code is to be avoided because it explodes complexity and often just propagates bugs downstream. Good code assumes that its inputs are valid and complete. It trusts upstream code to have done its job. And if something important fails, or an assumption is broken, fail early and clearly. Broken code should be fixed, not to tolerated, not worked around.
 6. Make sure to write highly cohesive, decoupled logic.
 7. Utilize existing logic when possible. Do not re-implement anything.
-8. Write flat, optimized logical branches. Avoid nested, duplicate-y code. Write DRY and elegant logic. 
+8. Write flat, optimized logical branches. Avoid nested, duplicate-y code. Write DRY and elegant logic.
+9. Prefer `import modulename` and call `modulename.function()` rather than `from modulename import function`. Namespacing is an easy clarity win.
+
+<Bad: fallback-rich, squirmy code>
+@app.route("/api/summarize-url", methods=["POST"])
+def summarize_url():
+    """Requires 'url' in request body"""
+    # Unnecessarily defends against broken upstream guarantees.
+    data = request.get_json() or {}
+    url = data.get("url", "")
+    result = tldr_service.summarize_url_content(url) or ""
+</Bad: fallback-rich, squirmy code>
+
+<Good: straightforward, upstream-trusting code>
+@app.route("/api/summarize-url", methods=["POST"])
+def summarize_url():
+    """Requires 'url' in request body"""
+    # Assumes upstream guarantees are upheld (inputs are valid and complete) — thus keeps the state machine simpler.
+    # If upstream guarantees are broken (e.g., missing 'url'), we WANT to fail as early as possible (in this case, `data['url']` will throw a KeyError)
+    data = request.get_json()
+    url = data['url']
+    result = tldr_service.summarize_url_content(url)
+</Good: straightforward, upstream-trusting code>
 
 ### The Right Engineering Mindset
 
