@@ -97,9 +97,10 @@ def main() -> None:
                 summary_effort=args.summary_effort,
             )
             if result is None:
-                _print_error("No cached summary available")
-                sys.exit(1)
+                print(_json_dumps({"success": False, "error": "No cached summary available"}))
+                return
             payload = {
+                "success": True,
                 "summary_markdown": result["summary_markdown"],
                 "summary_blob_url": result["summary_blob_url"],
                 "summary_blob_pathname": result["summary_blob_pathname"],
@@ -108,17 +109,17 @@ def main() -> None:
             }
             print(_json_dumps(payload))
         except Exception as error:
-            _print_error(str(error))
-            sys.exit(1)
+            print(_json_dumps({"success": False, "error": str(error)}))
+            return
         return
 
     if args.command == "remove-url":
         try:
             canonical_url = remove_url(args.url)
-            print(_json_dumps({"canonical_url": canonical_url}))
+            print(_json_dumps({"success": True, "canonical_url": canonical_url}))
         except Exception as error:
-            _print_error(str(error))
-            sys.exit(1)
+            print(_json_dumps({"success": False, "error": str(error)}))
+            return
         return
 
     if args.command == "removed-urls":

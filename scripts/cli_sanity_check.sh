@@ -11,7 +11,7 @@ set -euo pipefail
 CLI_BIN=${CLI_BIN:-"uv run python3 cli.py"}
 SCRAPE_START_DATE=${SCRAPE_START_DATE:-$(date -I -d 'yesterday' 2>/dev/null || date -I)}
 SCRAPE_END_DATE=${SCRAPE_END_DATE:-$SCRAPE_START_DATE}
-SUMMARY_URL=${SUMMARY_URL:-"https://httpbin.org/html"}
+SUMMARY_URL=${SUMMARY_URL:-"https://example.com/"}
 SUMMARY_EFFORT=${SUMMARY_EFFORT:-"low"}
 REMOVAL_URL=${REMOVAL_URL:-"https://example.com/removed"}
 INVALIDATE_START_DATE=${INVALIDATE_START_DATE:-$SCRAPE_START_DATE}
@@ -137,12 +137,11 @@ fi
 # Remove URL and verify canonical URL recorded in removed cache via CLI
 REMOVE_JSON=$(run_cli_capture "$REMOVE_COMMAND" --url "$REMOVAL_URL")
 echo "$REMOVE_JSON" | jq -e '.success == true' >/dev/null
-CANONICAL_REMOVAL_URL=$(uv run python3 - <<'PY'
+CANONICAL_REMOVAL_URL=$(uv run python3 -c "
 import sys
 import util
-print(util.canonicalize_url(sys.argv[1]))
-PY
-"$REMOVAL_URL")
+print(util.canonicalize_url('$REMOVAL_URL'))
+")
 
 REMOVED_LIST_JSON=$(run_cli_capture "$REMOVED_LIST_COMMAND")
 if echo "$REMOVED_LIST_JSON" | jq -e --arg url "$CANONICAL_REMOVAL_URL" '
