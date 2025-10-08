@@ -45,7 +45,7 @@ run_cli_capture() {
     local stderr_file="$TMP_DIR/stderr_${COMMAND_INDEX}"
     COMMAND_INDEX=$((COMMAND_INDEX + 1))
 
-    log "Running: $CLI_BIN $*"
+    log "Running: $CLI_BIN $*" >&2
 
     if ! "${CLI_COMMAND[@]}" "$@" >"$stdout_file" 2>"$stderr_file"; then
         if [[ -s "$stderr_file" ]]; then
@@ -137,12 +137,11 @@ fi
 # Remove URL and verify canonical URL recorded in removed cache via CLI
 REMOVE_JSON=$(run_cli_capture "$REMOVE_COMMAND" --url "$REMOVAL_URL")
 echo "$REMOVE_JSON" | jq -e '.success == true' >/dev/null
-CANONICAL_REMOVAL_URL=$(uv run python3 - <<'PY'
+CANONICAL_REMOVAL_URL=$(uv run python3 -c "
 import sys
 import util
-print(util.canonicalize_url(sys.argv[1]))
-PY
-"$REMOVAL_URL")
+print(util.canonicalize_url('$REMOVAL_URL'))
+")
 
 REMOVED_LIST_JSON=$(run_cli_capture "$REMOVED_LIST_COMMAND")
 if echo "$REMOVED_LIST_JSON" | jq -e --arg url "$CANONICAL_REMOVAL_URL" '
