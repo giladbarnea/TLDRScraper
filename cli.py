@@ -22,7 +22,9 @@ def _json_dumps(data: object) -> str:
 
 
 def main() -> None:
-    print("IMPORTANT: Make sure you have sourced setup.sh to setup and verify your environment before using this file.")
+    print(
+        "IMPORTANT: Make sure you have sourced setup.sh to setup and verify your environment before using this file."
+    )
     parser = argparse.ArgumentParser(description="TLDR Scraper local CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -51,25 +53,37 @@ def main() -> None:
 
     subparsers.add_parser("prompt", help="Print the summarize prompt template")
 
-    remove_parser = subparsers.add_parser(
-        "remove-url", help="Mark a URL as removed"
-    )
+    remove_parser = subparsers.add_parser("remove-url", help="Mark a URL as removed")
     remove_parser.add_argument("--url", required=True, help="URL to remove")
 
     subparsers.add_parser("removed-urls", help="List removed URLs")
 
     cache_mode_parser = subparsers.add_parser("cache-mode", help="Manage cache mode")
-    cache_mode_subparsers = cache_mode_parser.add_subparsers(dest="cache_mode_action", required=True)
+    cache_mode_subparsers = cache_mode_parser.add_subparsers(
+        dest="cache_mode_action", required=True
+    )
     cache_mode_subparsers.add_parser("get", help="Get current cache mode")
-    cache_mode_set_parser = cache_mode_subparsers.add_parser("set", help="Set cache mode")
+    cache_mode_set_parser = cache_mode_subparsers.add_parser(
+        "set", help="Set cache mode"
+    )
     cache_mode_set_parser.add_argument("--mode", help="Cache mode to set")
 
-    invalidate_cache_parser = subparsers.add_parser("invalidate-cache", help="Invalidate cache for date range")
-    invalidate_cache_parser.add_argument("--start-date", required=True, help="ISO start date (YYYY-MM-DD)")
-    invalidate_cache_parser.add_argument("--end-date", required=True, help="ISO end date (YYYY-MM-DD)")
+    invalidate_cache_parser = subparsers.add_parser(
+        "invalidate-cache", help="Invalidate cache for date range"
+    )
+    invalidate_cache_parser.add_argument(
+        "--start-date", required=True, help="ISO start date (YYYY-MM-DD)"
+    )
+    invalidate_cache_parser.add_argument(
+        "--end-date", required=True, help="ISO end date (YYYY-MM-DD)"
+    )
 
-    invalidate_date_parser = subparsers.add_parser("invalidate-date-cache", help="Invalidate cache for specific date")
-    invalidate_date_parser.add_argument("--date", required=True, help="ISO date (YYYY-MM-DD)")
+    invalidate_date_parser = subparsers.add_parser(
+        "invalidate-date-cache", help="Invalidate cache for specific date"
+    )
+    invalidate_date_parser.add_argument(
+        "--date", required=True, help="ISO date (YYYY-MM-DD)"
+    )
 
     args = parser.parse_args()
 
@@ -98,7 +112,12 @@ def main() -> None:
                 summary_effort=args.summary_effort,
             )
             if result is None:
-                print(_json_dumps({"success": False, "error": "No cached summary available"}))
+                print(
+                    _json_dumps({
+                        "success": False,
+                        "error": "No cached summary available",
+                    })
+                )
                 return
             payload = {
                 "success": True,
@@ -154,7 +173,12 @@ def main() -> None:
         try:
             # This would need to be implemented in tldr_service or a new module
             # For now, return a placeholder response
-            print(_json_dumps({"success": True, "message": "Cache invalidation not yet implemented"}))
+            print(
+                _json_dumps({
+                    "success": True,
+                    "message": "Cache invalidation not yet implemented",
+                })
+            )
         except Exception as error:
             _print_error(str(error))
             sys.exit(1)
@@ -164,7 +188,12 @@ def main() -> None:
         try:
             # This would need to be implemented in tldr_service or a new module
             # For now, return a placeholder response
-            print(_json_dumps({"success": True, "message": "Date cache invalidation not yet implemented"}))
+            print(
+                _json_dumps({
+                    "success": True,
+                    "message": "Date cache invalidation not yet implemented",
+                })
+            )
         except Exception as error:
             _print_error(str(error))
             sys.exit(1)
