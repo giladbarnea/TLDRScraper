@@ -61,14 +61,13 @@ function main() {
     message "[background-agent-setup.sh main] Environment variables missing: ${env_vars_missing[@]}. Stop and tell the user." >&2
     return 1
   fi
-  [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Setup complete successfully. Available: $env_vars. $(cat <<EOT
-Available functions:
-  - kill_server_and_watchdog
+  [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Setup complete successfully. Available: $env_vars.
+These functions are now available in your shell:
   - start_server_and_watchdog
+  - kill_server_and_watchdog
   - print_server_and_watchdog_pids
-  - smoke_test
-EOT
-)"
+Use cli.py sparingly to verify your work.
+"
 }
 
 function kill_server_and_watchdog() {
@@ -100,42 +99,6 @@ function print_server_and_watchdog_pids() {
   message "[background-agent-setup.sh print_server_and_watchdog_pids] Server PID: $(cat "$RUN_DIR/server.pid")"
   message "[background-agent-setup.sh print_server_and_watchdog_pids] Watchdog PID: $(cat "$RUN_DIR/watchdog.pid")"
   ps -o pid,cmd -p "$(cat "$RUN_DIR/server.pid")" || true
-}
-  
-function smoke_test() {
-  main --quiet
-  message "[background-agent-setup.sh smoke_test] Quick endpoint checks..."
-  local local_yyyymmdd="$(date +%Y-%m-%d)"
-  echo "-- / --"
-  curl -sS "http://localhost:$PORT/" | head -c 200 || true
-  echo
-  echo "-- /api/summarize-url (example.com) --"
-  curl -sS -H 'Content-Type: application/json' -d '{"url":"https://example.com"}' "http://localhost:$PORT/api/summarize-url" | head -c 400 || true
-  echo
-  echo "-- /api/prompt --"
-  curl -sS "http://localhost:$PORT/api/prompt" | head -c 200 || true
-  echo
-  echo "-- /api/scrape --"
-  curl -sS -H 'Content-Type: application/json' -d "{\"start_date\":\"$local_yyyymmdd\", \"end_date\":\"$local_yyyymmdd\"}" "http://localhost:$PORT/api/scrape" | head -c 200 || true
-  echo
-  echo "-- /api/remove-url --"
-  curl -sS -H 'Content-Type: application/json' -d '{"url":"http://example.com/removed"}' "http://localhost:$PORT/api/remove-url" | head -c 200 || true
-  echo
-  echo "-- /api/cache-mode (GET) --"
-  curl -sS "http://localhost:$PORT/api/cache-mode" | head -c 200 || true
-  echo
-  echo "-- /api/cache-mode (POST) --"
-  curl -sS -H 'Content-Type: application/json' -d '{"cache_mode":"disabled"}' "http://localhost:$PORT/api/cache-mode" | head -c 200 || true
-  echo
-  echo "-- /api/invalidate-cache --"
-  curl -sS -H 'Content-Type: application/json' -d "{\"start_date\":\"$local_yyyymmdd\", \"end_date\":\"$local_yyyymmdd\"}" "http://localhost:$PORT/api/invalidate-cache" | head -c 200 || true
-  echo
-  echo "-- /api/invalidate-date-cache --"
-  curl -sS -H 'Content-Type: application/json' -d "{\"date\":\"$local_yyyymmdd\"}" "http://localhost:$PORT/api/invalidate-date-cache" | head -c 200 || true
-  echo
-
-  message "[background-agent-setup.sh smoke_test] Tail last 40 log lines:"
-  tail -n 40 "$LOG_FILE" || true
 }
 
 main "$@"
