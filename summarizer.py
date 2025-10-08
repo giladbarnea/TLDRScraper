@@ -2,11 +2,11 @@ import logging
 import json
 import re
 from io import BytesIO
-from typing import Mapping, Optional, Union
+from typing import Optional
 
 import requests
 from curl_cffi import requests as curl_requests
-from markitdown import MarkItDown
+from markitdown import MarkItDown, StreamInfo
 
 import util
 import urllib.parse as urlparse
@@ -19,30 +19,6 @@ md = MarkItDown()
 _PROMPT_CACHE = None
 
 SUMMARY_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
-
-
-class JinaReaderUnavailableError(RuntimeError):
-    """Raised when the Jina reader cannot provide usable content."""
-
-
-class _JinaReaderText(str):
-    """Marker string indicating the content originated from the Jina reader."""
-
-
-class _BinaryScrapeText(str):
-    """String wrapper that also stores the original binary payload."""
-
-    def __new__(
-        cls,
-        text: str,
-        *,
-        content_type: str = "",
-        binary_payload: bytes,
-    ) -> "_BinaryScrapeText":
-        instance = super().__new__(cls, text)
-        instance.content_type = content_type
-        instance.binary_payload = binary_payload
-        return instance
 
 
 def normalize_summary_effort(value: str) -> str:
@@ -105,7 +81,7 @@ def _scrape_with_requests(url: str, *, timeout: int) -> str:
         headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
     )
     response.raise_for_status()
-    return _wrap_scrape_text(url, response.text, response.content, response.headers)
+    return response.text
 
 
 def _scrape_with_curl_cffi(url: str, *, timeout: int) -> str:
@@ -120,10 +96,10 @@ def _scrape_with_curl_cffi(url: str, *, timeout: int) -> str:
         },
     )
     response.raise_for_status()
-    return _wrap_scrape_text(url, response.text, response.content, response.headers)
+    return response.text
 
 
-def _scrape_with_jina_reader(url: str, *, timeout: int) -> _JinaReaderText:
+def _scrape_with_jina_reader(url: str, *, timeout: int) -> str:
     reader_url = _build_jina_reader_url(url)
     util.log(
         f"[summarizer.scrape_url] Falling back to Jina reader url={url}",
@@ -134,58 +110,17 @@ def _scrape_with_jina_reader(url: str, *, timeout: int) -> _JinaReaderText:
         timeout=timeout,
         headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
     )
-    try:
-        response.raise_for_status()
-    except requests.HTTPError as error:
-        raise JinaReaderUnavailableError(str(error)) from error
-
+    response.raise_for_status()
     text = response.text
     if re.search(r"error \d+", text, flags=re.IGNORECASE):
-        raise JinaReaderUnavailableError(text)
+        raise requests.HTTPError("Jina reader returned an error page", response=response)
 
-    return _JinaReaderText(text)
-
-
-def _wrap_scrape_text(
-    url: str,
-    text: str,
-    binary_payload: bytes,
-    headers: Mapping[str, str],
-) -> str:
-    content_type = headers.get("Content-Type", "") if headers else ""
-    if _should_preserve_binary_payload(url, content_type):
-        return _BinaryScrapeText(
-            text,
-            content_type=content_type,
-            binary_payload=binary_payload,
-        )
     return text
 
 
-def _should_preserve_binary_payload(url: str, content_type: str) -> bool:
-    normalized_type = (content_type or "").split(";")[0].strip().lower()
-    if normalized_type == "application/pdf":
-        return True
-    if normalized_type == "application/octet-stream" and url.lower().endswith(".pdf"):
-        return True
-    return url.lower().endswith(".pdf")
-
-
-def _select_markitdown_extension(url: str, content_type: str) -> str:
-    normalized_type = (content_type or "").split(";")[0].strip().lower()
-    if normalized_type == "application/pdf" or url.lower().endswith(".pdf"):
-        return ".pdf"
-    return ".html"
-
-
-def _is_forbidden_response(status_code: int, reason: Optional[Union[str, bytes]]) -> bool:
-    if status_code == 403:
-        return True
-    if not reason:
-        return False
-    if isinstance(reason, bytes):
-        reason = reason.decode("utf-8", errors="ignore")
-    return "forbidden" in reason.lower()
+def _is_pdf_url(url: str) -> bool:
+    parsed = urlparse.urlparse(url)
+    return parsed.path.lower().endswith(".pdf")
 
 
 def scrape_url(url: str, *, timeout: int = 30) -> str:
@@ -206,29 +141,7 @@ def scrape_url(url: str, *, timeout: int = 30) -> str:
                 f"[summarizer.scrape_url] {name} fetch failed url={url} error={status_error}",
                 logger=logger,
             )
-
-            response = status_error.response
-            if name == "requests":
-                if response and _is_forbidden_response(
-                    response.status_code, getattr(response, "reason", "")
-                ):
-                    util.log(
-                        f"[summarizer.scrape_url] Forbidden response; trying curl_cffi fallback url={url}",
-                        logger=logger,
-                    )
-                    continue
-                raise
-
-            if name == "curl_cffi":
-                continue
-
-            break
-        except JinaReaderUnavailableError as reader_error:
-            util.log(
-                f"[summarizer.scrape_url] Jina reader unavailable url={url} error={reader_error}",
-                logger=logger,
-            )
-            raise
+            continue
 
     if last_status_error is not None:
         raise last_status_error
@@ -294,17 +207,11 @@ def _fetch_github_readme(url: str) -> str:
     )
 
     content = scrape_url(url, timeout=30)
-    if isinstance(content, _JinaReaderText):
-        return str(content)
-
-    if isinstance(content, _BinaryScrapeText):
-        stream = BytesIO(content.binary_payload)
-        extension = _select_markitdown_extension(url, content.content_type)
-    else:
-        stream = BytesIO(content.encode("utf-8", errors="ignore"))
-        extension = ".html"
-
-    result = md.convert_stream(stream, file_extension=extension)
+    stream = BytesIO(content.encode("utf-8", errors="ignore"))
+    result = md.convert_stream(
+        stream,
+        stream_info=StreamInfo(mimetype="text/html", charset="utf-8"),
+    )
     content = result.text_content
 
     util.log(
@@ -322,18 +229,20 @@ def url_to_markdown(url: str) -> str:
     if _is_github_repo_url(url):
         return _fetch_github_readme(url)
 
+    if _is_pdf_url(url):
+        util.log(
+            f"[summarizer.url_to_markdown] Converting PDF via MarkItDown url={url}",
+            logger=logger,
+        )
+        result = md.convert_url(url)
+        return result.text_content
+
     content = scrape_url(url, timeout=30)
-    if isinstance(content, _JinaReaderText):
-        return str(content)
-
-    if isinstance(content, _BinaryScrapeText):
-        stream = BytesIO(content.binary_payload)
-        extension = _select_markitdown_extension(url, content.content_type)
-    else:
-        stream = BytesIO(content.encode("utf-8", errors="ignore"))
-        extension = ".html"
-
-    result = md.convert_stream(stream, file_extension=extension)
+    stream = BytesIO(content.encode("utf-8", errors="ignore"))
+    result = md.convert_stream(
+        stream,
+        stream_info=StreamInfo(mimetype="text/html", charset="utf-8"),
+    )
 
     return result.text_content
 
