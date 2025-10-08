@@ -111,5 +111,14 @@ PY
 
 ### Being an Effective AI Agent
 
-1. Know your weaknesses: your eagerness to solve a problem can cause tunnel vision. You may fix the issue but unintentionally create code duplication, deviate from the existing design, or introduce a regression in other coupled parts of the project you didn’t consider. The solution is to literally look around beyond the immediate fix, be aware of (and account for) coupling around the codebase, integrate with the existing design, and periodically refactor.
+1. Know your weaknesses: your eagerness to solve a problem can cause tunnel vision. You may fix the issue but unintentionally create code duplication, deviate from the existing design, or introduce a regression in other coupled parts of the project you didn't consider. The solution is to literally look around beyond the immediate fix, be aware of (and account for) coupling around the codebase, integrate with the existing design, and periodically refactor.
 2. You do your best work when you can verify yourself. With self-verification, you can and should practice continuous trial and error instead of a single shot in the dark.
+
+### Feature Development Cycle
+
+1. Source setup.sh, then run scripts/cli_sanity_check.sh. This will invoke cli.py, which is a CLI for the core business logic of the app.
+2. Scan the files to understand the end-to-end dependency chain, call graphs, state mutations and assumptions. You must be aware of how your changes will affect components upstream and downstream.
+3. Iteratively make your changes. Prefer to make bite-size changes that leave the app testable as a whole.
+4. Sparingly run scripts/cli_sanity_check.sh between changes to catch regressions early.
+5. Once you're done, make sure cli.py is 100% aligned with serve.py and that scripts/cli_sanity_check.sh covers 100% of the functionality exposed in cli.py.
+6. Verify your work by running the updated, now faithful scripts/cli_sanity_check.sh.
