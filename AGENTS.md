@@ -15,7 +15,7 @@ The single source of truth for what is available locally is the output of:
 env | grep -e BLOB -e TLDR -e TOKEN -e API
 ```
 
-**Run scripts/background-agent-setup.sh first thing up load and verify your environment.**
+**Run setup.sh first thing up load and verify your environment.**
 
 Rules:
 
@@ -34,7 +34,7 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 
 ```bash
 # Takes care of installing dependencies and bootstrapping the environment.
-./scripts/background-agent-setup.sh
+./setup.sh
 
 uv run python3 serve.py
 ```
@@ -75,7 +75,7 @@ PY
 ### Practical guidance
 
 - Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables. 
-- **Run ./scripts/background-agent-setup.sh to verify the environment and dependencies are set up correctly. After sourcing the background-agent script, run the CLI sanity check with `bash scripts/cli_sanity_check.sh` to verify all CLI commands are working properly.**
+- **Run ./setup.sh to verify the environment and dependencies are set up correctly. After sourcing setup.sh, run the CLI sanity check with `bash scripts/cli_sanity_check.sh` to verify all CLI commands are working properly.**
 - Use `jq -S .` for sorted pretty-printing; `to_entries | length` for counts.
 - Try the new feature or behavior you have just implemented in your shell. Is the app making a new API call? Add it to cli.py and scripts/cli_sanity_check.sh. New dependency and Python interface? Try it by running Python via uv, and so on.
 
