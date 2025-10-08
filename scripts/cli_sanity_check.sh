@@ -45,7 +45,7 @@ run_cli_capture() {
     local stderr_file="$TMP_DIR/stderr_${COMMAND_INDEX}"
     COMMAND_INDEX=$((COMMAND_INDEX + 1))
 
-    log "Running: $CLI_BIN $*"
+    log "Running: $CLI_BIN $*" >&2
 
     if ! "${CLI_COMMAND[@]}" "$@" >"$stdout_file" 2>"$stderr_file"; then
         if [[ -s "$stderr_file" ]]; then

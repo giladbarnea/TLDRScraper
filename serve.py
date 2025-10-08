@@ -160,6 +160,24 @@ def remove_url_endpoint():
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
+@app.route("/api/removed-urls", methods=["GET"])
+def get_removed_urls_endpoint():
+    """Get the list of removed URLs."""
+    try:
+        from removed_urls import get_removed_urls
+        removed_urls = get_removed_urls()
+        return jsonify({"success": True, "removed_urls": list(removed_urls)})
+    except Exception as e:
+        util.log(
+            "[serve.get_removed_urls_endpoint] error error=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
 @app.route("/api/cache-mode", methods=["GET"])
 def get_cache_mode_endpoint():
     """Get the current cache mode."""
