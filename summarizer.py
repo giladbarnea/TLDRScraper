@@ -120,7 +120,13 @@ def _scrape_with_jina_reader(url: str, *, timeout: int) -> str:
 
 def _is_pdf_url(url: str) -> bool:
     parsed = urlparse.urlparse(url)
-    return parsed.path.lower().endswith(".pdf")
+    # Check for .pdf extension
+    if parsed.path.lower().endswith(".pdf"):
+        return True
+    # Check for arXiv PDF URLs (e.g., https://www.arxiv.org/pdf/2510.00184)
+    if "arxiv.org/pdf/" in url.lower():
+        return True
+    return False
 
 
 def scrape_url(url: str, *, timeout: int = 30) -> str:
