@@ -1,9 +1,12 @@
 import logging
-import requests
 import json
 import re
 from io import BytesIO
-from markitdown import MarkItDown
+from typing import Optional
+
+import requests
+from curl_cffi import requests as curl_requests
+from markitdown import MarkItDown, StreamInfo
 
 import util
 import urllib.parse as urlparse
@@ -71,19 +74,79 @@ def _build_jina_reader_url(url: str) -> str:
     return f"https://r.jina.ai/{target}"
 
 
-def _fetch_via_jina_reader(url: str) -> str:
-    reader_url = _build_jina_reader_url(url)
-    util.log(
-        f"[summarizer] Falling back to Jina reader for 403 url={url}",
-        logger=logger,
-    )
-    resp = requests.get(
-        reader_url,
-        timeout=10,
+def _scrape_with_requests(url: str, *, timeout: int) -> str:
+    response = requests.get(
+        url,
+        timeout=timeout,
         headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
     )
-    resp.raise_for_status()
-    return resp.text
+    response.raise_for_status()
+    return response.text
+
+
+def _scrape_with_curl_cffi(url: str, *, timeout: int) -> str:
+    response = curl_requests.get(
+        url,
+        impersonate="chrome131",
+        timeout=timeout,
+        allow_redirects=True,
+        headers={
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": "https://www.google.com/",
+        },
+    )
+    response.raise_for_status()
+    return response.text
+
+
+def _scrape_with_jina_reader(url: str, *, timeout: int) -> str:
+    reader_url = _build_jina_reader_url(url)
+    util.log(
+        f"[summarizer.scrape_url] Falling back to Jina reader url={url}",
+        logger=logger,
+    )
+    response = requests.get(
+        reader_url,
+        timeout=timeout,
+        headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+    )
+    response.raise_for_status()
+    text = response.text
+    if re.search(r"error \d+", text, flags=re.IGNORECASE):
+        raise requests.HTTPError("Jina reader returned an error page", response=response)
+
+    return text
+
+
+def _is_pdf_url(url: str) -> bool:
+    parsed = urlparse.urlparse(url)
+    return parsed.path.lower().endswith(".pdf")
+
+
+def scrape_url(url: str, *, timeout: int = 30) -> str:
+    scraping_methods = (
+        ("requests", _scrape_with_requests),
+        ("curl_cffi", _scrape_with_curl_cffi),
+        ("jina_reader", _scrape_with_jina_reader),
+    )
+
+    last_status_error: Optional[requests.HTTPError] = None
+
+    for name, scrape in scraping_methods:
+        try:
+            return scrape(url, timeout=timeout)
+        except requests.HTTPError as status_error:
+            last_status_error = status_error
+            util.log(
+                f"[summarizer.scrape_url] {name} fetch failed url={url} error={status_error}",
+                logger=logger,
+            )
+            continue
+
+    if last_status_error is not None:
+        raise last_status_error
+
+    raise RuntimeError(f"Failed to scrape {url}")
 
 
 def _fetch_github_readme(url: str) -> str:
@@ -143,22 +206,12 @@ def _fetch_github_readme(url: str) -> str:
         logger=logger,
     )
 
-    try:
-        response = requests.get(
-            url,
-            timeout=30,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
-        )
-        if response.status_code == 403:
-            return _fetch_via_jina_reader(url)
-        response.raise_for_status()
-    except requests.HTTPError as e:
-        if getattr(e, "response", None) is not None and e.response.status_code == 403:
-            return _fetch_via_jina_reader(url)
-        raise
-
-    stream = BytesIO(response.text.encode("utf-8", errors="ignore"))
-    result = md.convert_stream(stream, file_extension=".html")
+    content = scrape_url(url, timeout=30)
+    stream = BytesIO(content.encode("utf-8", errors="ignore"))
+    result = md.convert_stream(
+        stream,
+        stream_info=StreamInfo(mimetype="text/html", charset="utf-8"),
+    )
     content = result.text_content
 
     util.log(
@@ -176,23 +229,20 @@ def url_to_markdown(url: str) -> str:
     if _is_github_repo_url(url):
         return _fetch_github_readme(url)
 
-    try:
-        response = requests.get(
-            url,
-            timeout=30,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+    if _is_pdf_url(url):
+        util.log(
+            f"[summarizer.url_to_markdown] Converting PDF via MarkItDown url={url}",
+            logger=logger,
         )
-        if response.status_code == 403:
-            # Return reader text directly; it is already markdown-like
-            return _fetch_via_jina_reader(url)
-        response.raise_for_status()
-    except requests.HTTPError as e:
-        if getattr(e, "response", None) is not None and e.response.status_code == 403:
-            return _fetch_via_jina_reader(url)
-        raise
+        result = md.convert_url(url)
+        return result.text_content
 
-    stream = BytesIO(response.text.encode("utf-8", errors="ignore"))
-    result = md.convert_stream(stream, file_extension=".html")
+    content = scrape_url(url, timeout=30)
+    stream = BytesIO(content.encode("utf-8", errors="ignore"))
+    result = md.convert_stream(
+        stream,
+        stream_info=StreamInfo(mimetype="text/html", charset="utf-8"),
+    )
 
     return result.text_content
 
