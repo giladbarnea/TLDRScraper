@@ -1,27 +1,21 @@
 #!/usr/bin/env python3
-"""
-TLDR Newsletter Scraper Backend with Proxy
-"""
+"""TLDR Newsletter Scraper Backend with Proxy"""
 
-from flask import Flask, render_template, request, jsonify
 import logging
 from datetime import datetime
-import requests
 
-from blob_store import (
-    build_scraped_day_cache_key,
-    delete_file,
-)
-import util
-from summarizer import (
-    summarize_url,
-    _fetch_summarize_prompt,
-    summary_blob_pathname,
-    normalize_summary_effort,
-)
-from removed_urls import add_removed_url
+from flask import Flask, render_template, request, jsonify
+
 import cache_mode
-from newsletter_scraper import scrape_date_range
+import util
+from blob_store import build_scraped_day_cache_key, delete_file
+from tldr_service import (
+    ServiceError,
+    fetch_prompt_template,
+    remove_url as remove_url_from_service,
+    scrape_newsletters as scrape_newsletters_from_service,
+    summarize_url_content,
+)
 
 app = Flask(__name__)
 logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
@@ -37,69 +31,39 @@ def index():
 @app.route("/api/scrape", methods=["POST"])
 def scrape_newsletters():
     """Backend proxy to scrape TLDR newsletters"""
+    data = request.get_json() or {}
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "No JSON data received"}), 400
-
-        # Validate required fields
-        if "start_date" not in data or "end_date" not in data:
-            return jsonify({
-                "success": False,
-                "error": "start_date and end_date are required",
-            }), 400
-
-        start_date = datetime.fromisoformat(data["start_date"])
-        end_date = datetime.fromisoformat(data["end_date"])
-
-        # Backend validation
-        if start_date > end_date:
-            return jsonify({
-                "success": False,
-                "error": "start_date must be before or equal to end_date",
-            }), 400
-
-        # Limit maximum date range to prevent abuse (31 days inclusive)
-        if (end_date - start_date).days >= 31:
-            return jsonify({
-                "success": False,
-                "error": "Date range cannot exceed 31 days",
-            }), 400
-
-        util.log(
-            f"[serve.scrape_newsletters] start start_date={data['start_date']} end_date={data['end_date']}",
-            logger=logger,
-        )
-        result = scrape_date_range(start_date, end_date)
-        util.log(
-            f"[serve.scrape_newsletters] done dates_processed={result['stats']['dates_processed']} total_articles={result['stats']['total_articles']}",
-            logger=logger,
+        result = scrape_newsletters_from_service(
+            data.get("start_date"), data.get("end_date")
         )
         return jsonify(result)
-
-    except Exception as e:
+    except ServiceError as exc:
+        return jsonify({"success": False, "error": str(exc)}), exc.status_code
+    except Exception as exc:
         logger.exception(
-            "[serve.scrape_newsletters] Failed to scrape newsletters: %s", e
+            "[serve.scrape_newsletters] unexpected error error=%s", repr(exc)
         )
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": str(exc)}), 500
 
 
 @app.route("/api/prompt", methods=["GET"])
 def get_prompt_template():
     """Return the loaded summarize.md prompt (for debugging/inspection)."""
     try:
-        prompt = _fetch_summarize_prompt()
+        prompt = fetch_prompt_template()
         return prompt, 200, {"Content-Type": "text/plain; charset=utf-8"}
-    except Exception as e:
-        util.log(
-            "[serve.get_prompt_template] error loading prompt=%s",
-            repr(e),
-            level=logging.ERROR,
-            exc_info=True,
-            logger=logger,
+    except ServiceError as exc:
+        return (
+            str(exc),
+            exc.status_code,
+            {"Content-Type": "text/plain; charset=utf-8"},
+        )
+    except Exception as exc:
+        logger.exception(
+            "[serve.get_prompt_template] unexpected error error=%s", repr(exc)
         )
         return (
-            f"Error loading prompt: {e!r}",
+            f"Error loading prompt: {exc!r}",
             500,
             {"Content-Type": "text/plain; charset=utf-8"},
         )
@@ -107,96 +71,38 @@ def get_prompt_template():
 
 @app.route("/api/summarize-url", methods=["POST"])
 def summarize_url_endpoint():
-    """Summarize a given URL: fetch HTML, convert to Markdown, insert into template, call OpenAI.
-
-    Accepts optional 'cache_only' parameter to only return cached summaries.
-    """
+    """Summarize a given URL."""
+    data = request.get_json() or {}
     try:
-        data = request.get_json() or {}
-        url = data.get("url").strip()
-        if not url:
-            return jsonify({"success": False, "error": "Missing url"}), 400
-        url = util.canonicalize_url(url)
-        cache_only = data.get("cache_only", False)
-        summary_effort = normalize_summary_effort(data.get("summary_effort", "low"))
-
-        summary = summarize_url(
-            url, summary_effort=summary_effort, cache_only=cache_only
+        result = summarize_url_content(
+            data.get("url"),
+            cache_only=data.get("cache_only", False),
+            summary_effort=data.get("summary_effort", "low"),
         )
-
-        # If cache_only and no cached summary, return success=False
-        if summary is None:
-            return jsonify({
-                "success": False,
-                "error": "No cached summary available",
-            })
-
-        summary_blob_pathname_value = summary_blob_pathname(
-            url, summary_effort=summary_effort
+        return jsonify(result)
+    except ServiceError as exc:
+        return jsonify({"success": False, "error": str(exc)}), exc.status_code
+    except Exception as exc:
+        logger.exception(
+            "[serve.summarize_url_endpoint] unexpected error error=%s", repr(exc)
         )
-        blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
-        summary_blob_url = (
-            f"{blob_base_url}/{summary_blob_pathname_value}" if blob_base_url else None
-        )
-
-        return jsonify({
-            "success": True,
-            "summary_markdown": summary,
-            "summary_blob_url": summary_blob_url,
-            "summary_blob_pathname": summary_blob_pathname_value,
-        })
-
-    except requests.RequestException as e:
-        util.log(
-            "[serve.summarize_url_endpoint] request error error=%s",
-            repr(e),
-            level=logging.ERROR,
-            exc_info=True,
-            logger=logger,
-        )
-        return jsonify({"success": False, "error": f"Network error: {repr(e)}"}), 502
-
-    except Exception as e:
-        util.log(
-            "[serve.summarize_url_endpoint] error error=%s",
-            repr(e),
-            level=logging.ERROR,
-            exc_info=True,
-            logger=logger,
-        )
-        return jsonify({"success": False, "error": repr(e)}), 500
+        return jsonify({"success": False, "error": repr(exc)}), 500
 
 
 @app.route("/api/remove-url", methods=["POST"])
 def remove_url_endpoint():
-    """Mark a URL as removed so it won't appear in future scrapes."""
+    """Mark a URL as removed so it will not appear in future scrapes."""
+    data = request.get_json() or {}
     try:
-        data = request.get_json() or {}
-        url = (data.get("url") or "").strip()
-
-        if not url or not (url.startswith("http://") or url.startswith("https://")):
-            return jsonify({"success": False, "error": "Invalid or missing url"}), 400
-
-        canonical = util.canonicalize_url(url)
-        success = add_removed_url(canonical)
-
-        if success:
-            return jsonify({"success": True, "canonical_url": canonical})
-        else:
-            return jsonify({
-                "success": False,
-                "error": "Failed to persist removal",
-            }), 500
-
-    except Exception as e:
-        util.log(
-            "[serve.remove_url_endpoint] error error=%s",
-            repr(e),
-            level=logging.ERROR,
-            exc_info=True,
-            logger=logger,
+        result = remove_url_from_service(data.get("url"))
+        return jsonify(result)
+    except ServiceError as exc:
+        return jsonify({"success": False, "error": str(exc)}), exc.status_code
+    except Exception as exc:
+        logger.exception(
+            "[serve.remove_url_endpoint] unexpected error error=%s", repr(exc)
         )
-        return jsonify({"success": False, "error": repr(e)}), 500
+        return jsonify({"success": False, "error": repr(exc)}), 500
 
 
 @app.route("/api/cache-mode", methods=["GET"])
