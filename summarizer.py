@@ -306,6 +306,17 @@ def _fetch_summarize_prompt(
             )
             return _PROMPT_CACHE
 
+    # If authenticated request failed, try without authentication
+    if token and resp.status_code == 401:
+        headers_no_auth = {
+            "Accept": "application/vnd.github.v3.raw",
+            "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+        }
+        resp_no_auth = requests.get(url, headers=headers_no_auth, timeout=20)
+        if resp_no_auth.status_code == 200:
+            _PROMPT_CACHE = resp_no_auth.text
+            return _PROMPT_CACHE
+
     raise RuntimeError(f"Failed to fetch summarize.md: {resp.status_code}")
 
 
