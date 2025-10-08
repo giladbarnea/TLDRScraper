@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-TLDR Newsletter Scraper Backend with Proxy
+TLDR Newsletter Scraper Backend with Proxy.
+IMPORTANT INSTRUCTION: cli.py should expose 100% equivalent interfaces to the app's logic as serve.py exposed web interfaces. Any modifications here have to be reflected in cli.py, then verified through cli.py.
 """
 
 from flask import Flask, render_template, request, jsonify
