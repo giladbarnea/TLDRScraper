@@ -391,43 +391,6 @@
             color: var(--text) !important;
         }
 
-        .tldr-btn {
-            width: 5em !important;
-            padding: 0 10px;
-            font-size: 13px;
-            font-weight: 500;
-            font-family: inherit;
-            border-radius: 6px !important;
-            white-space: nowrap;
-            background: transparent !important;
-        }
-
-        .tldr-btn.expanded {
-            background: transparent !important;
-        }
-
-        .tldr-btn.loaded {
-            background: #22c55e !important;
-            color: white !important;
-            border-color: #22c55e !important;
-        }
-        
-        .tldr-btn.loaded:hover {
-            background: #16a34a !important;
-            border-color: #16a34a !important;
-        }
-        
-        .tldr-btn.loaded.expanded {
-            background: transparent !important;
-            color: var(--text) !important;
-            border-color: var(--border) !important;
-        }
-
-        .tldr-btn.loaded.expanded:hover {
-            background: var(--bg) !important;
-            color: var(--text) !important;
-        }
-
         .expand-chevron-btn {
             width: 38px !important;
             height: 32px;
@@ -650,6 +613,36 @@
             background: #4caf50;
             border-color: #4caf50;
             color: white;
+        }
+
+        .article-btn.tldr-btn {
+            width: 5em;
+            padding: 0 10px;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .article-btn.tldr-btn.loaded {
+            background: #22c55e;
+            color: white;
+            border-color: #22c55e;
+        }
+
+        .article-btn.tldr-btn.loaded:hover {
+            background: #16a34a;
+            border-color: #16a34a;
+        }
+
+        .article-btn.tldr-btn.loaded.expanded {
+            background: var(--bg);
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .article-btn.tldr-btn.loaded.expanded:hover {
+            background: var(--bg);
+            color: var(--text);
         }
 
         .article-btn:active {
