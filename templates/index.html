@@ -615,6 +615,36 @@
             color: white;
         }
 
+        .article-btn.tldr-btn {
+            width: 5em;
+            padding: 0 10px;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .article-btn.tldr-btn.loaded {
+            background: #22c55e;
+            color: white;
+            border-color: #22c55e;
+        }
+
+        .article-btn.tldr-btn.loaded:hover {
+            background: #16a34a;
+            border-color: #16a34a;
+        }
+
+        .article-btn.tldr-btn.loaded.expanded {
+            background: var(--bg);
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .article-btn.tldr-btn.loaded.expanded:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+
         .article-btn:active {
             transform: scale(0.95);
         }
@@ -648,6 +678,18 @@
 
         /* Inline summary expansion - 75% old style, 25% new */
         .inline-summary {
+            margin-top: 9px;
+            padding-top: 9px;
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-bottom: 0;
+            border-top: 1px dashed var(--border);
+            font-size: 0.96em;
+            line-height: 1.675;
+            animation: slideDown 0.2s ease;
+        }
+
+        .inline-tldr {
             margin-top: 9px;
             padding-top: 9px;
             padding-left: 16px;
@@ -1375,6 +1417,135 @@
         // #endregion
 
         /**
+         * TldrDelivery handles TLDR retrieval from the /api/tldr-url endpoint.
+         */
+        // #region -------[ TldrDelivery ]-------
+        function bindTldrExpansion() {
+            document.addEventListener('click', async function(e) {
+                const tldrBtn = e.target.closest('.tldr-btn');
+                if (!tldrBtn) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                const card = tldrBtn.closest('.article-card');
+                if (!card) return;
+
+                const url = tldrBtn.getAttribute('data-url');
+                if (!url) return;
+
+                const summaryEffort = getCardSummaryEffort(card);
+
+                let expander = card.querySelector('.inline-tldr');
+                if (expander) {
+                    if (expander.style.display === 'none') {
+                        expander.style.display = 'block';
+                        tldrBtn.innerHTML = 'Hide';
+                        tldrBtn.title = 'Hide TLDR';
+                        tldrBtn.classList.add('expanded');
+                        tldrBtn.classList.remove('collapsed-state');
+                    } else {
+                        expander.style.display = 'none';
+                        const isLoaded = tldrBtn.classList.contains('loaded');
+                        tldrBtn.innerHTML = isLoaded ? 'Available' : 'TLDR';
+                        tldrBtn.title = isLoaded ? 'TLDR cached - click to show' : 'Show TLDR';
+                        tldrBtn.classList.remove('expanded');
+                        if (!isLoaded) {
+                            tldrBtn.classList.add('collapsed-state');
+                        }
+                        markArticleAsRead(card);
+                    }
+                    return;
+                }
+
+                const loadedTldr = card.getAttribute('data-tldr');
+
+                if (loadedTldr) {
+                    expander = document.createElement('div');
+                    expander.className = 'inline-tldr';
+                    const html = DOMPurify.sanitize(marked.parse(loadedTldr));
+                    expander.innerHTML = '<strong>TLDR</strong>' + html;
+                    expander.querySelectorAll('a[href]').forEach(function(a) {
+                        a.setAttribute('target', '_blank');
+                        a.setAttribute('rel', 'noopener noreferrer');
+                        a.classList.remove('article-link');
+                    });
+                    card.appendChild(expander);
+
+                    tldrBtn.innerHTML = 'Hide';
+                    tldrBtn.title = 'Hide TLDR';
+                    tldrBtn.classList.add('expanded');
+                    tldrBtn.classList.remove('collapsed-state');
+                    tldrBtn.classList.add('loaded');
+                    return;
+                }
+
+                tldrBtn.disabled = true;
+                tldrBtn.innerHTML = 'Loading...';
+                tldrBtn.title = 'Loading TLDR...';
+
+                expander = document.createElement('div');
+                expander.className = 'inline-tldr';
+                expander.textContent = 'Creating TLDR...';
+                card.appendChild(expander);
+
+                try {
+                    const resp = await fetch('/api/tldr-url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url, summary_effort: summaryEffort })
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        if (getCardSummaryEffort(card) !== summaryEffort) {
+                            tldrBtn.disabled = false;
+                            tldrBtn.innerHTML = 'TLDR';
+                            tldrBtn.title = 'Show TLDR';
+                            tldrBtn.classList.add('collapsed-state');
+                            if (expander && expander.parentNode) {
+                                expander.remove();
+                            }
+                            return;
+                        }
+                        const html = DOMPurify.sanitize(marked.parse(data.tldr_markdown || ''));
+                        expander.innerHTML = '<strong>TLDR</strong>' + html;
+                        expander.querySelectorAll('a[href]').forEach(function(a) {
+                            a.setAttribute('target', '_blank');
+                            a.setAttribute('rel', 'noopener noreferrer');
+                            a.classList.remove('article-link');
+                        });
+
+                        card.setAttribute('data-tldr', data.tldr_markdown || '');
+
+                        tldrBtn.disabled = false;
+                        tldrBtn.innerHTML = 'Hide';
+                        tldrBtn.title = 'Hide TLDR';
+                        tldrBtn.classList.add('expanded');
+                        tldrBtn.classList.remove('collapsed-state');
+                        tldrBtn.classList.add('loaded');
+                    } else {
+                        expander.classList.add('error');
+                        expander.textContent = 'Error: ' + (data.error || 'Failed to create TLDR');
+
+                        tldrBtn.disabled = false;
+                        tldrBtn.innerHTML = 'TLDR';
+                        tldrBtn.title = 'Show TLDR';
+                        tldrBtn.classList.add('collapsed-state');
+                    }
+                } catch (err) {
+                    expander.classList.add('error');
+                    expander.textContent = 'Network error: ' + (err?.message || String(err));
+
+                    tldrBtn.disabled = false;
+                    tldrBtn.innerHTML = 'TLDR';
+                    tldrBtn.title = 'Show TLDR';
+                    tldrBtn.classList.add('collapsed-state');
+                }
+            }, true);
+        }
+        // #endregion
+
+        /**
          * ScrapeIntake validates date ranges, calls /api/scrape, and reconstructs the article card surface for downstream features.
          */
         // #region -------[ ScrapeIntake ]-------
@@ -1620,6 +1791,13 @@
                                 expandBtnContainer.appendChild(chevronBtn);
                                 expandBtnContainer.appendChild(dropdown);
 
+                                const tldrBtn = document.createElement('button');
+                                tldrBtn.className = 'article-btn tldr-btn collapsed-state';
+                                tldrBtn.innerHTML = 'TLDR';
+                                tldrBtn.title = 'Show TLDR';
+                                tldrBtn.setAttribute('data-url', cleanUrl);
+                                tldrBtn.type = 'button';
+
                                 const copyBtn = document.createElement('button');
                                 copyBtn.className = 'article-btn copy-summary-btn';
                                 copyBtn.innerHTML = clipboardIconMarkup;
@@ -1641,6 +1819,7 @@
                                 if (!isRemoved) {
                                     header.appendChild(actions);
                                     actions.appendChild(expandBtnContainer);
+                                    actions.appendChild(tldrBtn);
                                     actions.appendChild(copyBtn);
                                     actions.appendChild(removeBtn);
 
@@ -1846,6 +2025,7 @@
         bindRemovalFlow();
         bindDateCacheClear();
         bindSummaryExpansion();
+        bindTldrExpansion();
         // #endregion
     </script>
 </body>

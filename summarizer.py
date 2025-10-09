@@ -17,6 +17,7 @@ logger = logging.getLogger("summarizer")
 md = MarkItDown()
 
 _PROMPT_CACHE = None
+_TLDR_PROMPT_CACHE = None
 
 SUMMARY_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
 
@@ -33,6 +34,15 @@ def _url_summary_pathname(url: str, *args, **kwargs) -> str:
     summary_effort = normalize_summary_effort(kwargs.get("summary_effort", "low"))
     suffix = "" if summary_effort == "low" else f"-{summary_effort}"
     return f"{base}-summary{suffix}.md"
+
+
+def _url_tldr_pathname(url: str, *args, **kwargs) -> str:
+    """Generate blob pathname for URL TLDR."""
+    base_path = blob_store.normalize_url_to_pathname(url)
+    base = base_path[:-3] if base_path.endswith(".md") else base_path
+    summary_effort = normalize_summary_effort(kwargs.get("summary_effort", "low"))
+    suffix = "" if summary_effort == "low" else f"-{summary_effort}"
+    return f"{base}-tldr{suffix}.md"
 
 
 def normalize_summary_effort(value: str) -> str:
@@ -54,6 +64,15 @@ def summary_blob_pathname(url: str, *args, **kwargs) -> str:
     summary_effort = normalize_summary_effort(kwargs.get("summary_effort", "low"))
     suffix = "" if summary_effort == "low" else f"-{summary_effort}"
     return f"{base}-summary{suffix}.md"
+
+
+def tldr_blob_pathname(url: str, *args, **kwargs) -> str:
+    """Generate blob pathname for URL TLDR."""
+    base_path = blob_store.normalize_url_to_pathname(url)
+    base = base_path[:-3] if base_path.endswith(".md") else base_path
+    summary_effort = normalize_summary_effort(kwargs.get("summary_effort", "low"))
+    suffix = "" if summary_effort == "low" else f"-{summary_effort}"
+    return f"{base}-tldr{suffix}.md"
 
 
 def _is_github_repo_url(url: str) -> bool:
@@ -274,6 +293,27 @@ def summarize_url(url: str, summary_effort: str = "low") -> str:
     return summary
 
 
+@blob_cache.blob_cached(_url_tldr_pathname, logger=logger)
+def tldr_url(url: str, summary_effort: str = "low") -> str:
+    """Get markdown content from URL and create a TLDR with LLM.
+
+    Args:
+        url: The URL to TLDR
+        summary_effort: OpenAI reasoning effort level
+
+    Returns:
+        The TLDR markdown
+    """
+    effort = normalize_summary_effort(summary_effort)
+    markdown = url_to_markdown(url)
+
+    template = _fetch_tldr_prompt()
+    prompt = f"{template}\n\n<tldr this>\n{markdown}/n</tldr this>"
+    tldr = _call_llm(prompt, summary_effort=effort)
+
+    return tldr
+
+
 def _fetch_summarize_prompt(
     owner: str = "giladbarnea",
     repo: str = "llm-templates",
@@ -324,6 +364,57 @@ def _fetch_summarize_prompt(
             return _PROMPT_CACHE
 
     raise RuntimeError(f"Failed to fetch summarize.md: {resp.status_code}")
+
+
+def _fetch_tldr_prompt(
+    owner: str = "giladbarnea",
+    repo: str = "llm-templates",
+    path: str = "text/tldr.md",
+    ref: str = "main",
+) -> str:
+    """Fetch TLDR prompt from GitHub (cached in memory)."""
+    global _TLDR_PROMPT_CACHE
+    if _TLDR_PROMPT_CACHE:
+        return _TLDR_PROMPT_CACHE
+
+    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={ref}"
+
+    headers = {
+        "Accept": "application/vnd.github.v3.raw",
+        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+    }
+
+    token = util.resolve_env_var("GITHUB_API_TOKEN", "")
+    if token:
+        headers["Authorization"] = f"token {token}"
+
+    resp = requests.get(url, headers=headers, timeout=10)
+
+    if resp.status_code == 200:
+        _TLDR_PROMPT_CACHE = resp.text
+        return _TLDR_PROMPT_CACHE
+
+    if resp.headers.get("Content-Type", "").startswith("application/json"):
+        import base64
+
+        data = resp.json()
+        if isinstance(data, dict) and "content" in data:
+            _TLDR_PROMPT_CACHE = base64.b64decode(data["content"]).decode(
+                "utf-8", errors="replace"
+            )
+            return _TLDR_PROMPT_CACHE
+
+    if token and resp.status_code == 401:
+        headers_no_auth = {
+            "Accept": "application/vnd.github.v3.raw",
+            "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+        }
+        resp_no_auth = requests.get(url, headers=headers_no_auth, timeout=10)
+        if resp_no_auth.status_code == 200:
+            _TLDR_PROMPT_CACHE = resp_no_auth.text
+            return _TLDR_PROMPT_CACHE
+
+    raise RuntimeError(f"Failed to fetch tldr.md: {resp.status_code}")
 
 
 def _insert_markdown_into_template(template: str, markdown: str) -> str:
