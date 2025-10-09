@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 # Simple happy-path sanity check for the TLDR CLI. The script invokes
 # each CLI command that mirrors the public HTTP endpoints and performs

@@ -354,10 +354,6 @@ def scrape_date_range(start_date, end_date):
                 if canonical_url not in url_set:
                     url_set.add(canonical_url)
                     article["fetched_via"] = "day_cache"
-                    # Mark as removed if in removed set
-                    article["removed"] = (
-                        article.get("removed", False) or canonical_url in removed_urls
-                    )
                     all_articles.append(article)
 
             processed_count += len(newsletter_types)
@@ -382,11 +378,6 @@ def scrape_date_range(start_date, end_date):
 
                     if canonical_url not in url_set:
                         url_set.add(canonical_url)
-                        # Mark as removed if in removed set
-                        article["removed"] = (
-                            article.get("removed", False)
-                            or canonical_url in removed_urls
-                        )
                         all_articles.append(article)
                         if article.get("fetched_via") == "network":
                             others += 1
@@ -403,13 +394,10 @@ def scrape_date_range(start_date, end_date):
                 clean = {
                     k: v
                     for k, v in a.items()
-                    if k != "fetched_via" and not k.startswith("timing_")
+                    if k != "fetched_via"
+                    and not k.startswith("timing_")
+                    and k != "removed"
                 }
-                # Mark as removed if in removed set
-                canonical_url = util.canonicalize_url(a["url"])
-                clean["removed"] = (
-                    a.get("removed", False) or canonical_url in removed_urls
-                )
                 sanitized_day_articles.append(clean)
 
             _put_cached_day(date_str, sanitized_day_articles)
@@ -417,6 +405,11 @@ def scrape_date_range(start_date, end_date):
                 f"[newsletter_scraper.scrape_date_range] Cached day={date_str} articles={len(sanitized_day_articles)}",
                 logger=logger,
             )
+
+    # Compute removed status for all articles from removed_urls set
+    for article in all_articles:
+        canonical_url = article["url"]
+        article["removed"] = canonical_url in removed_urls
 
     grouped_articles = {}
     for article in all_articles:

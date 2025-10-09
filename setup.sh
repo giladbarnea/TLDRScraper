@@ -120,6 +120,11 @@ function main() {
   fi
   
   [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Checking for required environment variables..."
+  if [[ -f .env ]]; then
+      command grep --color=never -E -v '^(\s*#|$)' .env | while read -r line; do
+        eval export "$line"
+      done
+  fi
   local env_vars="$(env | egrep '(OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
   local -a env_var_names=(
     'BLOB_READ_WRITE_TOKEN'
