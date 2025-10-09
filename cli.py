@@ -5,9 +5,11 @@ import sys
 
 from tldr_service import (
     fetch_summarize_prompt_template,
+    fetch_tldr_prompt_template,
     remove_url,
     scrape_newsletters_in_date_range,
     summarize_url_content,
+    tldr_url_content,
 )
 from removed_urls import get_removed_urls
 import cache_mode
@@ -52,7 +54,23 @@ def main() -> None:
         help="Only return cached summaries",
     )
 
+    tldr_parser = subparsers.add_parser(
+        "tldr-url", help="Create a TLDR of a URL"
+    )
+    tldr_parser.add_argument("--url", required=True, help="URL to TLDR")
+    tldr_parser.add_argument(
+        "--summary-effort",
+        default="low",
+        help="Summary effort (low, medium, high)",
+    )
+    tldr_parser.add_argument(
+        "--cache-only",
+        action="store_true",
+        help="Only return cached TLDRs",
+    )
+
     subparsers.add_parser("prompt", help="Print the summarize prompt template")
+    subparsers.add_parser("tldr-prompt", help="Print the TLDR prompt template")
 
     remove_parser = subparsers.add_parser("remove-url", help="Mark a URL as removed")
     remove_parser.add_argument("--url", required=True, help="URL to remove")
@@ -105,6 +123,14 @@ def main() -> None:
             sys.exit(1)
         return
 
+    if args.command == "tldr-prompt":
+        try:
+            print(fetch_tldr_prompt_template())
+        except Exception as error:
+            _print_error(str(error))
+            sys.exit(1)
+        return
+
     if args.command == "summarize-url":
         try:
             result = summarize_url_content(
@@ -125,6 +151,35 @@ def main() -> None:
                 "summary_markdown": result["summary_markdown"],
                 "summary_blob_url": result["summary_blob_url"],
                 "summary_blob_pathname": result["summary_blob_pathname"],
+                "canonical_url": result["canonical_url"],
+                "summary_effort": result["summary_effort"],
+            }
+            print(_json_dumps(payload))
+        except Exception as error:
+            print(_json_dumps({"success": False, "error": str(error)}))
+            return
+        return
+
+    if args.command == "tldr-url":
+        try:
+            result = tldr_url_content(
+                args.url,
+                cache_only=args.cache_only,
+                summary_effort=args.summary_effort,
+            )
+            if result is None:
+                print(
+                    _json_dumps({
+                        "success": False,
+                        "error": "No cached TLDR available",
+                    })
+                )
+                return
+            payload = {
+                "success": True,
+                "tldr_markdown": result["tldr_markdown"],
+                "tldr_blob_url": result["tldr_blob_url"],
+                "tldr_blob_pathname": result["tldr_blob_pathname"],
                 "canonical_url": result["canonical_url"],
                 "summary_effort": result["summary_effort"],
             }
