@@ -131,6 +131,66 @@ def summarize_url():
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
+@app.route("/api/tldr-url", methods=["POST"])
+def tldr_url():
+    """Create a TLDR of the content at a URL.
+
+    Requires 'url'. Optional: 'cache_only' to return only cached TLDRs, and 'summary_effort' to set the reasoning effort level.
+    """
+    try:
+        data = request.get_json() or {}
+        result = tldr_service.tldr_url_content(
+            data.get("url", ""),
+            cache_only=data.get("cache_only", False),
+            summary_effort=data.get("summary_effort", "low"),
+        )
+
+        if result is None:
+            return jsonify({
+                "success": False,
+                "error": "No cached TLDR available",
+            })
+
+        response_payload = {
+            "success": True,
+            "tldr_markdown": result["tldr_markdown"],
+            "tldr_blob_url": result["tldr_blob_url"],
+            "tldr_blob_pathname": result["tldr_blob_pathname"],
+        }
+
+        canonical_url = result.get("canonical_url")
+        if canonical_url:
+            response_payload["canonical_url"] = canonical_url
+
+        summary_effort = result.get("summary_effort")
+        if summary_effort:
+            response_payload["summary_effort"] = summary_effort
+
+        return jsonify(response_payload)
+
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except requests.RequestException as e:
+        util.log(
+            "[serve.tldr_url] request error error=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return jsonify({"success": False, "error": f"Network error: {repr(e)}"}), 502
+
+    except Exception as e:
+        util.log(
+            "[serve.tldr_url] error error=%s",
+            repr(e),
+            level=logging.ERROR,
+            exc_info=True,
+            logger=logger,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
 @app.route("/api/remove-url", methods=["POST"])
 def remove_url():
     """Mark a URL as removed so it won't appear in future scrapes. Expects 'url' in the request body."""

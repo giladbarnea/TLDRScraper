@@ -22,7 +22,9 @@ INVALIDATE_DATE=${INVALIDATE_DATE:-$SCRAPE_START_DATE}
 
 SCRAPE_COMMAND=${SCRAPE_COMMAND:-scrape}
 PROMPT_COMMAND=${PROMPT_COMMAND:-prompt}
+TLDR_PROMPT_COMMAND=${TLDR_PROMPT_COMMAND:-tldr-prompt}
 SUMMARIZE_COMMAND=${SUMMARIZE_COMMAND:-summarize-url}
+TLDR_COMMAND=${TLDR_COMMAND:-tldr-url}
 REMOVE_COMMAND=${REMOVE_COMMAND:-remove-url}
 REMOVED_LIST_COMMAND=${REMOVED_LIST_COMMAND:-removed-urls}
 CACHE_MODE_COMMAND=${CACHE_MODE_COMMAND:-cache-mode}
@@ -76,7 +78,7 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 # Ensure the CLI advertises the expected commands.
 log "Discovering CLI commands"
 CLI_HELP=$(run_cli_capture --help)
-for subcommand in "$SCRAPE_COMMAND" "$SUMMARIZE_COMMAND" "$PROMPT_COMMAND" "$REMOVE_COMMAND" "$REMOVED_LIST_COMMAND" "$CACHE_MODE_COMMAND" "$INVALIDATE_RANGE_COMMAND" "$INVALIDATE_DATE_COMMAND"; do
+for subcommand in "$SCRAPE_COMMAND" "$SUMMARIZE_COMMAND" "$TLDR_COMMAND" "$PROMPT_COMMAND" "$TLDR_PROMPT_COMMAND" "$REMOVE_COMMAND" "$REMOVED_LIST_COMMAND" "$CACHE_MODE_COMMAND" "$INVALIDATE_RANGE_COMMAND" "$INVALIDATE_DATE_COMMAND"; do
     if ! grep -Eq "^[[:space:]]*$subcommand(\s|$)" <<<"$CLI_HELP"; then
         echo "Required CLI subcommand '$subcommand' not found in help output" >&2
         exit 1
@@ -92,6 +94,13 @@ echo "$SCRAPE_JSON" | jq -e '.success == true' >/dev/null
 PROMPT_OUTPUT=$(run_cli_capture "$PROMPT_COMMAND")
 if [[ -z ${PROMPT_OUTPUT//[[:space:]]/} ]]; then
     echo "Prompt output was empty" >&2
+    exit 1
+fi
+
+# TLDR Prompt endpoint
+TLDR_PROMPT_OUTPUT=$(run_cli_capture "$TLDR_PROMPT_COMMAND")
+if [[ -z ${TLDR_PROMPT_OUTPUT//[[:space:]]/} ]]; then
+    echo "TLDR prompt output was empty" >&2
     exit 1
 fi
 
@@ -133,6 +142,23 @@ echo "$SUMMARY_CACHE_JSON" | jq -e '.success == true' >/dev/null
 SUMMARY_CACHE_PATH=$(echo "$SUMMARY_CACHE_JSON" | jq -r '.summary_blob_pathname // empty')
 if [[ "$SUMMARY_CACHE_PATH" != "$SUMMARY_PATH" ]]; then
     echo "Cache-only summarize returned a different blob pathname" >&2
+    exit 1
+fi
+
+# TLDR URL and confirm cache-only retrieval works afterwards
+TLDR_JSON=$(run_cli_capture "$TLDR_COMMAND" --url "$SUMMARY_URL" --summary-effort "$SUMMARY_EFFORT")
+echo "$TLDR_JSON" | jq -e '.success == true' >/dev/null
+TLDR_PATH=$(echo "$TLDR_JSON" | jq -r '.tldr_blob_pathname // empty')
+if [[ -z "$TLDR_PATH" ]]; then
+    echo "TLDR command did not return a blob pathname" >&2
+    exit 1
+fi
+
+TLDR_CACHE_JSON=$(run_cli_capture "$TLDR_COMMAND" --url "$SUMMARY_URL" --summary-effort "$SUMMARY_EFFORT" --cache-only)
+echo "$TLDR_CACHE_JSON" | jq -e '.success == true' >/dev/null
+TLDR_CACHE_PATH=$(echo "$TLDR_CACHE_JSON" | jq -r '.tldr_blob_pathname // empty')
+if [[ "$TLDR_CACHE_PATH" != "$TLDR_PATH" ]]; then
+    echo "Cache-only TLDR returned a different blob pathname" >&2
     exit 1
 fi
 
