@@ -308,7 +308,7 @@ def tldr_url(url: str, summary_effort: str = "low") -> str:
     markdown = url_to_markdown(url)
 
     template = _fetch_tldr_prompt()
-    prompt = f"{template}\n\n{markdown}"
+    prompt = f"{template}\n\n<tldr this>\n{markdown}/n</tldr this>"
     tldr = _call_llm(prompt, summary_effort=effort)
 
     return tldr
