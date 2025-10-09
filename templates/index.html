@@ -793,7 +793,8 @@
             margin: 0;
         }
 
-        .date-header-container h3 {
+        .date-header-container h3,
+        .date-header-container h2 {
             text-align: left !important;
             margin: 0 !important;
             flex: 1;
@@ -802,15 +803,32 @@
             font-style: normal !important;
         }
 
-        .date-header-container .clear-date-cache-btn,
-        .date-header-container .mark-read-btn {
+        .date-header-container .clear-date-cache-btn {
             flex-shrink: 0;
             width: auto;
             margin: 0;
         }
-        
-        .date-header-container .mark-read-btn {
-            margin-right: 6px;
+
+        .issue-header-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin: 0;
+        }
+
+        .issue-header-container h4 {
+            text-align: left !important;
+            margin: 0 !important;
+            flex: 1;
+            font-style: normal !important;
+        }
+
+        .issue-header-container .mark-read-btn {
+            flex-shrink: 0;
+            width: auto;
+            margin: 0;
+            margin-left: 12px;
         }
 
         .clear-date-cache-btn {
@@ -900,11 +918,7 @@
             border-radius: 8px;
             padding: 14px 16px;
             margin-bottom: 12px;
-            cursor: pointer;
             transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 12px;
             min-height: 44px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
@@ -919,20 +933,15 @@
             transform: translateY(0);
         }
 
-        .collapsed-issue-chevron {
-            flex-shrink: 0;
-            width: 24px;
-            height: 24px;
+        .collapsed-issue-header {
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: var(--muted);
-            font-size: 16px;
-            transition: transform 0.2s ease;
+            justify-content: space-between;
+            width: 100%;
         }
 
-        .collapsed-issue.expanded .collapsed-issue-chevron {
-            transform: rotate(90deg);
+        .collapsed-issue:not(.expanded) .collapsed-issue-header {
+            cursor: pointer;
         }
 
         .collapsed-issue-title {
@@ -940,6 +949,10 @@
             font-size: 15px;
             font-weight: 500;
             color: var(--text);
+        }
+
+        .collapsed-issue:not(.expanded) .mark-read-btn {
+            display: none;
         }
 
         .collapsed-issue-content {
@@ -1774,7 +1787,7 @@
                             }
                         } catch (_) {}
 
-                        result.querySelectorAll('#write h2, #write h3, #write h4').forEach(function(header) {
+                        result.querySelectorAll('#write h2, #write h3').forEach(function(header) {
                             const headerText = header.textContent.trim();
                             const dateMatch = headerText.match(/\d{4}-\d{2}-\d{2}/);
                             
@@ -1786,12 +1799,6 @@
                                 
                                 const newHeader = header.cloneNode(true);
                                 
-                                const markReadBtn = document.createElement('button');
-                                markReadBtn.className = 'mark-read-btn';
-                                markReadBtn.textContent = 'Mark as Read';
-                                markReadBtn.title = 'Collapse and move to bottom';
-                                markReadBtn.type = 'button';
-                                
                                 const clearBtn = document.createElement('button');
                                 clearBtn.className = 'clear-date-cache-btn';
                                 clearBtn.textContent = 'Clear Cache';
@@ -1800,11 +1807,28 @@
                                 clearBtn.setAttribute('data-date', date);
                                 
                                 container.appendChild(newHeader);
-                                container.appendChild(markReadBtn);
                                 container.appendChild(clearBtn);
                                 
                                 header.parentNode.replaceChild(container, header);
                             }
+                        });
+
+                        result.querySelectorAll('#write h4').forEach(function(header) {
+                            const container = document.createElement('div');
+                            container.className = 'issue-header-container';
+                            
+                            const newHeader = header.cloneNode(true);
+                            
+                            const markReadBtn = document.createElement('button');
+                            markReadBtn.className = 'mark-read-btn';
+                            markReadBtn.textContent = 'Mark as Read';
+                            markReadBtn.title = 'Collapse and move to bottom';
+                            markReadBtn.type = 'button';
+                            
+                            container.appendChild(newHeader);
+                            container.appendChild(markReadBtn);
+                            
+                            header.parentNode.replaceChild(container, header);
                         });
 
                         // Ensure TLDR AI appears before TLDR Tech within the same date section
@@ -2169,7 +2193,7 @@
         }
 
         function markIssueAsRead(container) {
-            const header = container.querySelector('h2, h3, h4');
+            const header = container.querySelector('h4');
             if (!header) return;
 
             const headerText = header.textContent.trim();
@@ -2188,20 +2212,27 @@
             collapsedIssue.className = 'collapsed-issue';
             collapsedIssue.setAttribute('data-issue-key', issueKey);
             
-            const chevron = document.createElement('div');
-            chevron.className = 'collapsed-issue-chevron';
-            chevron.innerHTML = '▶';
+            const headerContainer = document.createElement('div');
+            headerContainer.className = 'collapsed-issue-header';
             
             const title = document.createElement('div');
             title.className = 'collapsed-issue-title';
-            title.textContent = headerText;
+            title.textContent = '▶ ' + headerText;
+            
+            const markReadBtn = document.createElement('button');
+            markReadBtn.className = 'mark-read-btn';
+            markReadBtn.textContent = 'Mark as Read';
+            markReadBtn.title = 'Collapse and move to bottom';
+            markReadBtn.type = 'button';
+            
+            headerContainer.appendChild(title);
+            headerContainer.appendChild(markReadBtn);
             
             const contentWrapper = document.createElement('div');
             contentWrapper.className = 'collapsed-issue-content';
             contentWrapper.appendChild(issueContent);
             
-            collapsedIssue.appendChild(chevron);
-            collapsedIssue.appendChild(title);
+            collapsedIssue.appendChild(headerContainer);
             collapsedIssue.appendChild(contentWrapper);
             
             collapsedSection.appendChild(collapsedIssue);
@@ -2216,7 +2247,7 @@
             const content = document.createElement('div');
             let node = container.nextElementSibling;
             
-            while (node && !node.classList.contains('date-header-container')) {
+            while (node && !node.classList.contains('issue-header-container') && !node.classList.contains('date-header-container')) {
                 const clone = node.cloneNode(true);
                 content.appendChild(clone);
                 const nextNode = node.nextElementSibling;
@@ -2248,10 +2279,24 @@
 
         function bindCollapsedIssueClick() {
             document.addEventListener('click', function(e) {
-                const collapsedIssue = e.target.closest('.collapsed-issue');
+                if (e.target.closest('.mark-read-btn')) return;
+                
+                const header = e.target.closest('.collapsed-issue-header');
+                if (!header) return;
+                
+                const collapsedIssue = header.closest('.collapsed-issue');
                 if (!collapsedIssue) return;
                 
-                collapsedIssue.classList.toggle('expanded');
+                const isExpanded = collapsedIssue.classList.contains('expanded');
+                const title = header.querySelector('.collapsed-issue-title');
+                
+                if (isExpanded) {
+                    collapsedIssue.classList.remove('expanded');
+                    title.textContent = '▶ ' + title.textContent.replace('▶ ', '');
+                } else {
+                    collapsedIssue.classList.add('expanded');
+                    title.textContent = title.textContent.replace('▶ ', '');
+                }
             }, true);
         }
 
@@ -2263,7 +2308,7 @@
                 e.preventDefault();
                 e.stopPropagation();
                 
-                const container = btn.closest('.date-header-container');
+                const container = btn.closest('.issue-header-container');
                 if (!container) return;
                 
                 markIssueAsRead(container);
@@ -2272,10 +2317,10 @@
 
         function restoreReadState() {
             const readIssues = getReadIssues();
-            const containers = document.querySelectorAll('.date-header-container');
+            const containers = document.querySelectorAll('.issue-header-container');
             
             containers.forEach(container => {
-                const header = container.querySelector('h3, h4');
+                const header = container.querySelector('h4');
                 if (!header) return;
                 
                 const headerText = header.textContent.trim();
