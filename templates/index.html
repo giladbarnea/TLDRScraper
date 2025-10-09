@@ -2193,54 +2193,72 @@
         }
 
         function markIssueAsRead(container) {
-            const header = container.querySelector('h4');
-            if (!header) return;
+            try {
+                console.log('markIssueAsRead called with:', container);
+                
+                const header = container.querySelector('h4');
+                if (!header) {
+                    console.error('No h4 found in container');
+                    return;
+                }
 
-            const headerText = header.textContent.trim();
-            const dateMatch = headerText.match(/\d{4}-\d{2}-\d{2}/);
-            if (!dateMatch) return;
+                const headerText = header.textContent.trim();
+                console.log('Header text:', headerText);
+                
+                const dateMatch = headerText.match(/\d{4}-\d{2}-\d{2}/);
+                if (!dateMatch) {
+                    console.error('No date found in header text');
+                    return;
+                }
 
-            const date = dateMatch[0];
-            const category = headerText.includes('AI') ? 'AI' : 'Tech';
-            const issueKey = getIssueKey(date, category);
+                const date = dateMatch[0];
+                const category = headerText.includes('AI') ? 'AI' : 'Tech';
+                const issueKey = getIssueKey(date, category);
+                console.log('Issue key:', issueKey);
 
-            const collapsedSection = ensureCollapsedSection();
-            
-            const issueContent = extractIssueContent(container);
-            
-            const collapsedIssue = document.createElement('div');
-            collapsedIssue.className = 'collapsed-issue';
-            collapsedIssue.setAttribute('data-issue-key', issueKey);
-            
-            const headerContainer = document.createElement('div');
-            headerContainer.className = 'collapsed-issue-header';
-            
-            const title = document.createElement('div');
-            title.className = 'collapsed-issue-title';
-            title.textContent = '▶ ' + headerText;
-            
-            const markReadBtn = document.createElement('button');
-            markReadBtn.className = 'mark-read-btn';
-            markReadBtn.textContent = 'Mark as Read';
-            markReadBtn.title = 'Collapse and move to bottom';
-            markReadBtn.type = 'button';
-            
-            headerContainer.appendChild(title);
-            headerContainer.appendChild(markReadBtn);
-            
-            const contentWrapper = document.createElement('div');
-            contentWrapper.className = 'collapsed-issue-content';
-            contentWrapper.appendChild(issueContent);
-            
-            collapsedIssue.appendChild(headerContainer);
-            collapsedIssue.appendChild(contentWrapper);
-            
-            collapsedSection.appendChild(collapsedIssue);
-            
-            container.style.display = 'none';
-            container.setAttribute('data-collapsed', 'true');
-            
-            setIssueRead(issueKey, true);
+                const collapsedSection = ensureCollapsedSection();
+                console.log('Collapsed section:', collapsedSection);
+                
+                const issueContent = extractIssueContent(container);
+                console.log('Extracted content:', issueContent);
+                
+                const collapsedIssue = document.createElement('div');
+                collapsedIssue.className = 'collapsed-issue';
+                collapsedIssue.setAttribute('data-issue-key', issueKey);
+                
+                const headerContainer = document.createElement('div');
+                headerContainer.className = 'collapsed-issue-header';
+                
+                const title = document.createElement('div');
+                title.className = 'collapsed-issue-title';
+                title.textContent = '▶ ' + headerText;
+                
+                const markReadBtn = document.createElement('button');
+                markReadBtn.className = 'mark-read-btn';
+                markReadBtn.textContent = 'Mark as Read';
+                markReadBtn.title = 'Collapse and move to bottom';
+                markReadBtn.type = 'button';
+                
+                headerContainer.appendChild(title);
+                headerContainer.appendChild(markReadBtn);
+                
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'collapsed-issue-content';
+                contentWrapper.appendChild(issueContent);
+                
+                collapsedIssue.appendChild(headerContainer);
+                collapsedIssue.appendChild(contentWrapper);
+                
+                collapsedSection.appendChild(collapsedIssue);
+                
+                container.style.display = 'none';
+                container.setAttribute('data-collapsed', 'true');
+                
+                setIssueRead(issueKey, true);
+                console.log('Issue marked as read successfully');
+            } catch (error) {
+                console.error('Error in markIssueAsRead:', error);
+            }
         }
 
         function extractIssueContent(container) {
@@ -2280,8 +2298,12 @@
         function bindCollapsedIssueClick() {
             document.addEventListener('click', function(e) {
                 if (e.target.closest('.mark-read-btn')) return;
+                if (e.target.closest('button')) return;
                 
-                const header = e.target.closest('.collapsed-issue-header');
+                const titleEl = e.target.closest('.collapsed-issue-title');
+                if (!titleEl) return;
+                
+                const header = titleEl.closest('.collapsed-issue-header');
                 if (!header) return;
                 
                 const collapsedIssue = header.closest('.collapsed-issue');
@@ -2297,22 +2319,44 @@
                     collapsedIssue.classList.add('expanded');
                     title.textContent = title.textContent.replace('▶ ', '');
                 }
-            }, true);
+            });
         }
 
         function bindMarkAsReadButtons() {
-            document.addEventListener('click', async function(e) {
+            document.addEventListener('click', function(e) {
                 const btn = e.target.closest('.mark-read-btn');
                 if (!btn) return;
                 
                 e.preventDefault();
                 e.stopPropagation();
                 
-                const container = btn.closest('.issue-header-container');
-                if (!container) return;
-                
-                markIssueAsRead(container);
-            }, true);
+                try {
+                    const issueContainer = btn.closest('.issue-header-container');
+                    if (issueContainer) {
+                        console.log('Marking issue as read from header:', issueContainer);
+                        markIssueAsRead(issueContainer);
+                        return;
+                    }
+                    
+                    const collapsedIssue = btn.closest('.collapsed-issue');
+                    if (collapsedIssue) {
+                        console.log('Marking issue as read from collapsed:', collapsedIssue);
+                        const issueKey = collapsedIssue.getAttribute('data-issue-key');
+                        if (issueKey) {
+                            setIssueRead(issueKey, true);
+                            collapsedIssue.classList.remove('expanded');
+                            const title = collapsedIssue.querySelector('.collapsed-issue-title');
+                            if (title) {
+                                title.textContent = '▶ ' + title.textContent.replace('▶ ', '');
+                            }
+                        }
+                    }
+                    
+                    console.log('Mark as read clicked but no container found');
+                } catch (error) {
+                    console.error('Error in mark as read handler:', error);
+                }
+            });
         }
 
         function restoreReadState() {
@@ -2351,8 +2395,8 @@
         bindDateCacheClear();
         bindSummaryExpansion();
         bindTldrExpansion();
-        bindMarkAsReadButtons();
         bindCollapsedIssueClick();
+        bindMarkAsReadButtons();
         // #endregion
     </script>
 </body>
