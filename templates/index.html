@@ -2297,27 +2297,24 @@
 
         function bindCollapsedIssueClick() {
             document.addEventListener('click', function(e) {
-                if (e.target.closest('.mark-read-btn')) return;
                 if (e.target.closest('button')) return;
+                if (e.target.closest('a')) return;
+                if (e.target.closest('.collapsed-issue-content')) return;
                 
                 const titleEl = e.target.closest('.collapsed-issue-title');
                 if (!titleEl) return;
                 
-                const header = titleEl.closest('.collapsed-issue-header');
-                if (!header) return;
-                
-                const collapsedIssue = header.closest('.collapsed-issue');
+                const collapsedIssue = titleEl.closest('.collapsed-issue');
                 if (!collapsedIssue) return;
                 
                 const isExpanded = collapsedIssue.classList.contains('expanded');
-                const title = header.querySelector('.collapsed-issue-title');
                 
                 if (isExpanded) {
                     collapsedIssue.classList.remove('expanded');
-                    title.textContent = '▶ ' + title.textContent.replace('▶ ', '');
+                    titleEl.textContent = '▶ ' + titleEl.textContent.replace('▶ ', '');
                 } else {
                     collapsedIssue.classList.add('expanded');
-                    title.textContent = title.textContent.replace('▶ ', '');
+                    titleEl.textContent = titleEl.textContent.replace('▶ ', '');
                 }
             });
         }
