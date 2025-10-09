@@ -802,10 +802,15 @@
             font-style: normal !important;
         }
 
-        .date-header-container .clear-date-cache-btn {
+        .date-header-container .clear-date-cache-btn,
+        .date-header-container .mark-read-btn {
             flex-shrink: 0;
             width: auto;
             margin: 0;
+        }
+        
+        .date-header-container .mark-read-btn {
+            margin-right: 6px;
         }
 
         .clear-date-cache-btn {
@@ -844,6 +849,120 @@
             0%, 20% { content: '.'; }
             40% { content: '..'; }
             60%, 100% { content: '...'; }
+        }
+
+        .mark-read-btn {
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            opacity: 0.6;
+        }
+
+        .mark-read-btn:hover {
+            opacity: 1;
+            background: #eff6ff;
+            border-color: #93c5fd;
+            color: #2563eb;
+        }
+
+        .mark-read-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .collapsed-issues-section {
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 2px dashed var(--border);
+        }
+
+        .collapsed-issues-section h3 {
+            text-align: center;
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+        }
+
+        .collapsed-issue {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 44px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .collapsed-issue:hover {
+            border-color: var(--link);
+            box-shadow: 0 2px 8px rgba(26,115,232,0.12);
+            transform: translateY(-1px);
+        }
+
+        .collapsed-issue:active {
+            transform: translateY(0);
+        }
+
+        .collapsed-issue-chevron {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 16px;
+            transition: transform 0.2s ease;
+        }
+
+        .collapsed-issue.expanded .collapsed-issue-chevron {
+            transform: rotate(90deg);
+        }
+
+        .collapsed-issue-title {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .collapsed-issue-content {
+            display: none;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed var(--border);
+            animation: expandContent 0.2s ease;
+        }
+
+        .collapsed-issue.expanded .collapsed-issue-content {
+            display: block;
+        }
+
+        @keyframes expandContent {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -1655,7 +1774,7 @@
                             }
                         } catch (_) {}
 
-                        result.querySelectorAll('#write h2, #write h3').forEach(function(header) {
+                        result.querySelectorAll('#write h2, #write h3, #write h4').forEach(function(header) {
                             const headerText = header.textContent.trim();
                             const dateMatch = headerText.match(/\d{4}-\d{2}-\d{2}/);
                             
@@ -1667,6 +1786,12 @@
                                 
                                 const newHeader = header.cloneNode(true);
                                 
+                                const markReadBtn = document.createElement('button');
+                                markReadBtn.className = 'mark-read-btn';
+                                markReadBtn.textContent = 'Mark as Read';
+                                markReadBtn.title = 'Collapse and move to bottom';
+                                markReadBtn.type = 'button';
+                                
                                 const clearBtn = document.createElement('button');
                                 clearBtn.className = 'clear-date-cache-btn';
                                 clearBtn.textContent = 'Clear Cache';
@@ -1675,6 +1800,7 @@
                                 clearBtn.setAttribute('data-date', date);
                                 
                                 container.appendChild(newHeader);
+                                container.appendChild(markReadBtn);
                                 container.appendChild(clearBtn);
                                 
                                 header.parentNode.replaceChild(container, header);
@@ -1842,6 +1968,8 @@
                         result.className = 'success';
                         document.getElementById('progress-fill').style.width = '100%';
 
+                        restoreReadState();
+
                         // Smooth scroll to first main#write h1 after scrape completion
                         setTimeout(() => {
                             const firstH1 = document.querySelector('main#write h1');
@@ -2008,6 +2136,164 @@
         // #endregion
 
         /**
+         * IssueDayReadState manages collapsible read state for entire issue-days with localStorage persistence.
+         */
+        // #region -------[ IssueDayReadState ]-------
+        const READ_STATE_KEY = 'tldr-read-issues';
+
+        function getReadIssues() {
+            try {
+                const stored = localStorage.getItem(READ_STATE_KEY);
+                return stored ? JSON.parse(stored) : {};
+            } catch {
+                return {};
+            }
+        }
+
+        function setIssueRead(issueKey, isRead) {
+            const readIssues = getReadIssues();
+            if (isRead) {
+                readIssues[issueKey] = true;
+            } else {
+                delete readIssues[issueKey];
+            }
+            localStorage.setItem(READ_STATE_KEY, JSON.stringify(readIssues));
+        }
+
+        function isIssueRead(issueKey) {
+            return getReadIssues()[issueKey] === true;
+        }
+
+        function getIssueKey(dateStr, category) {
+            return `${dateStr}-${category}`.toLowerCase();
+        }
+
+        function markIssueAsRead(container) {
+            const header = container.querySelector('h2, h3, h4');
+            if (!header) return;
+
+            const headerText = header.textContent.trim();
+            const dateMatch = headerText.match(/\d{4}-\d{2}-\d{2}/);
+            if (!dateMatch) return;
+
+            const date = dateMatch[0];
+            const category = headerText.includes('AI') ? 'AI' : 'Tech';
+            const issueKey = getIssueKey(date, category);
+
+            const collapsedSection = ensureCollapsedSection();
+            
+            const issueContent = extractIssueContent(container);
+            
+            const collapsedIssue = document.createElement('div');
+            collapsedIssue.className = 'collapsed-issue';
+            collapsedIssue.setAttribute('data-issue-key', issueKey);
+            
+            const chevron = document.createElement('div');
+            chevron.className = 'collapsed-issue-chevron';
+            chevron.innerHTML = '▶';
+            
+            const title = document.createElement('div');
+            title.className = 'collapsed-issue-title';
+            title.textContent = headerText;
+            
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'collapsed-issue-content';
+            contentWrapper.appendChild(issueContent);
+            
+            collapsedIssue.appendChild(chevron);
+            collapsedIssue.appendChild(title);
+            collapsedIssue.appendChild(contentWrapper);
+            
+            collapsedSection.appendChild(collapsedIssue);
+            
+            container.style.display = 'none';
+            container.setAttribute('data-collapsed', 'true');
+            
+            setIssueRead(issueKey, true);
+        }
+
+        function extractIssueContent(container) {
+            const content = document.createElement('div');
+            let node = container.nextElementSibling;
+            
+            while (node && !node.classList.contains('date-header-container')) {
+                const clone = node.cloneNode(true);
+                content.appendChild(clone);
+                const nextNode = node.nextElementSibling;
+                node.style.display = 'none';
+                node.setAttribute('data-collapsed', 'true');
+                node = nextNode;
+            }
+            
+            return content;
+        }
+
+        function ensureCollapsedSection() {
+            let section = document.querySelector('.collapsed-issues-section');
+            if (!section) {
+                const writeRoot = document.querySelector('#write');
+                if (writeRoot) {
+                    section = document.createElement('div');
+                    section.className = 'collapsed-issues-section';
+                    
+                    const heading = document.createElement('h3');
+                    heading.textContent = 'Read Issues';
+                    section.appendChild(heading);
+                    
+                    writeRoot.appendChild(section);
+                }
+            }
+            return section;
+        }
+
+        function bindCollapsedIssueClick() {
+            document.addEventListener('click', function(e) {
+                const collapsedIssue = e.target.closest('.collapsed-issue');
+                if (!collapsedIssue) return;
+                
+                collapsedIssue.classList.toggle('expanded');
+            }, true);
+        }
+
+        function bindMarkAsReadButtons() {
+            document.addEventListener('click', async function(e) {
+                const btn = e.target.closest('.mark-read-btn');
+                if (!btn) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const container = btn.closest('.date-header-container');
+                if (!container) return;
+                
+                markIssueAsRead(container);
+            }, true);
+        }
+
+        function restoreReadState() {
+            const readIssues = getReadIssues();
+            const containers = document.querySelectorAll('.date-header-container');
+            
+            containers.forEach(container => {
+                const header = container.querySelector('h3, h4');
+                if (!header) return;
+                
+                const headerText = header.textContent.trim();
+                const dateMatch = headerText.match(/\d{4}-\d{2}-\d{2}/);
+                if (!dateMatch) return;
+                
+                const date = dateMatch[0];
+                const category = headerText.includes('AI') ? 'AI' : 'Tech';
+                const issueKey = getIssueKey(date, category);
+                
+                if (isIssueRead(issueKey)) {
+                    markIssueAsRead(container);
+                }
+            });
+        }
+        // #endregion
+
+        /**
          * AppBootstrap wires feature bindings so the UI state machine starts in sync with backend data.
          */
         // #region -------[ AppBootstrap ]-------
@@ -2020,6 +2306,8 @@
         bindDateCacheClear();
         bindSummaryExpansion();
         bindTldrExpansion();
+        bindMarkAsReadButtons();
+        bindCollapsedIssueClick();
         // #endregion
     </script>
 </body>
