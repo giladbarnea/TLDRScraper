@@ -128,18 +128,34 @@ def scrape_url(url: str, *, timeout: int = 10) -> Response:
     )
 
     last_status_error: Optional[requests.HTTPError] = None
+    errors = []
 
     for name, scrape in scraping_methods:
         try:
-            return scrape(url, timeout=timeout)
+            result = scrape(url, timeout=timeout)
+            # Only log intermediate failures if all methods fail
+            if errors:
+                util.log(
+                    f"[summarizer.scrape_url] {name} succeeded after {len(errors)} failed attempts for url={url}",
+                    logger=logger,
+                    level=logging.INFO,
+                )
+            return result
         except requests.HTTPError as status_error:
             last_status_error = status_error
-            util.log(
-                f"[summarizer.scrape_url] {name} fetch failed url={url} error={status_error}",
-                logger=logger,
-                level=logging.WARNING,
-            )
+            errors.append(f"{name}: {status_error}")
             continue
+        except Exception as e:
+            errors.append(f"{name}: {e}")
+            continue
+
+    # Only log errors if all methods failed
+    if errors:
+        util.log(
+            f"[summarizer.scrape_url] All methods failed for url={url}. Errors: {'; '.join(errors)}",
+            logger=logger,
+            level=logging.ERROR,
+        )
 
     if last_status_error is not None:
         raise last_status_error
