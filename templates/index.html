@@ -1884,6 +1884,26 @@
                             const container = document.createElement('div');
                             container.className = 'issue-header-container';
                             
+                            let currentDate = null;
+                            let prevElement = header.previousElementSibling;
+                            while (prevElement) {
+                                if (prevElement.classList && prevElement.classList.contains('date-header-container')) {
+                                    const dateHeader = prevElement.querySelector('h2, h3');
+                                    if (dateHeader) {
+                                        const dateMatch = dateHeader.textContent.match(/\d{4}-\d{2}-\d{2}/);
+                                        if (dateMatch) {
+                                            currentDate = dateMatch[0];
+                                            break;
+                                        }
+                                    }
+                                }
+                                prevElement = prevElement.previousElementSibling;
+                            }
+                            
+                            if (currentDate) {
+                                container.setAttribute('data-date', currentDate);
+                            }
+                            
                             const newHeader = header.cloneNode(true);
                             
                             const markReadBtn = document.createElement('button');
@@ -2272,13 +2292,13 @@
                 const headerText = header.textContent.trim();
                 console.log('Header text:', headerText);
                 
-                const dateMatch = headerText.match(/\d{4}-\d{2}-\d{2}/);
-                if (!dateMatch) {
-                    console.error('No date found in header text');
+                const date = container.getAttribute('data-date');
+                if (!date) {
+                    console.error('No data-date attribute found on container');
                     return;
                 }
+                console.log('Date from data attribute:', date);
 
-                const date = dateMatch[0];
                 const category = headerText.includes('AI') ? 'AI' : 'Tech';
                 const issueKey = getIssueKey(date, category);
                 console.log('Issue key:', issueKey);
@@ -2298,7 +2318,7 @@
                 
                 const title = document.createElement('div');
                 title.className = 'collapsed-issue-title';
-                title.textContent = '▶ ' + headerText;
+                title.textContent = '▶ ' + headerText + ' – ' + date;
                 
                 const markReadBtn = document.createElement('button');
                 markReadBtn.className = 'mark-read-btn';
@@ -2378,7 +2398,9 @@
                 
                 if (isExpanded) {
                     collapsedIssue.classList.remove('expanded');
-                    titleEl.textContent = '▶ ' + titleEl.textContent.replace('▶ ', '');
+                    if (!titleEl.textContent.startsWith('▶ ')) {
+                        titleEl.textContent = '▶ ' + titleEl.textContent;
+                    }
                 } else {
                     collapsedIssue.classList.add('expanded');
                     titleEl.textContent = titleEl.textContent.replace('▶ ', '');
@@ -2410,8 +2432,8 @@
                             setIssueRead(issueKey, true);
                             collapsedIssue.classList.remove('expanded');
                             const title = collapsedIssue.querySelector('.collapsed-issue-title');
-                            if (title) {
-                                title.textContent = '▶ ' + title.textContent.replace('▶ ', '');
+                            if (title && !title.textContent.startsWith('▶ ')) {
+                                title.textContent = '▶ ' + title.textContent;
                             }
                         }
                     }
@@ -2431,11 +2453,10 @@
                 const header = container.querySelector('h4');
                 if (!header) return;
                 
-                const headerText = header.textContent.trim();
-                const dateMatch = headerText.match(/\d{4}-\d{2}-\d{2}/);
-                if (!dateMatch) return;
+                const date = container.getAttribute('data-date');
+                if (!date) return;
                 
-                const date = dateMatch[0];
+                const headerText = header.textContent.trim();
                 const category = headerText.includes('AI') ? 'AI' : 'Tech';
                 const issueKey = getIssueKey(date, category);
                 
