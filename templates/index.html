@@ -2481,7 +2481,7 @@
                     
                     const collapsedIssue = btn.closest('.collapsed-issue');
                     if (collapsedIssue) {
-                        console.log('Marking issue as read from collapsed:', collapsedIssue);
+                        console.log('Collapsing expanded read issue', {show: true});
                         const issueKey = collapsedIssue.getAttribute('data-issue-key');
                         if (issueKey) {
                             setIssueRead(issueKey, true);
@@ -2491,6 +2491,7 @@
                                 title.textContent = '▶ ' + title.textContent;
                             }
                         }
+                        return;
                     }
                     
                     console.log('Mark as read clicked but no container found', {show: true});
