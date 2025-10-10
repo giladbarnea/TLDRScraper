@@ -1117,10 +1117,27 @@
             debugPanel.classList.remove('visible');
         });
 
+        function stringifyArg(a) {
+            if (typeof a === 'string' || typeof a === 'number' || typeof a === 'boolean') {
+                return String(a);
+            }
+            if (a instanceof Error) {
+                return a.message + (a.stack ? '\n' + a.stack : '');
+            }
+            if (typeof a === 'object') {
+                try {
+                    return JSON.stringify(a, null, 2);
+                } catch (e) {
+                    return String(a);
+                }
+            }
+            return String(a);
+        }
+
         console.log = function(...args) {
             const lastArg = args[args.length - 1];
             const options = (typeof lastArg === 'object' && lastArg !== null && ('show' in lastArg || 'error' in lastArg)) ? args.pop() : {};
-            const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+            const message = args.map(stringifyArg).join(' ');
             debugLog(message, options);
             originalConsoleLog.apply(console, args);
         };
@@ -1129,7 +1146,7 @@
             const lastArg = args[args.length - 1];
             const hasOptions = typeof lastArg === 'object' && lastArg !== null && ('show' in lastArg || 'error' in lastArg);
             const options = hasOptions ? args.pop() : {};
-            const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+            const message = args.map(stringifyArg).join(' ');
             debugLog(message, { ...options, error: true, show: options.show !== false });
             originalConsoleError.apply(console, args);
         };
@@ -2344,6 +2361,9 @@
                 const issueKey = getIssueKey(date, category);
                 console.log('Issue key:', issueKey, {show: true});
                 
+                const collapsedSection = ensureCollapsedSection();
+                const issueContent = extractIssueContent(container);
+                
                 const collapsedIssue = document.createElement('div');
                 collapsedIssue.className = 'collapsed-issue';
                 collapsedIssue.setAttribute('data-issue-key', issueKey);
@@ -2377,9 +2397,9 @@
                 container.setAttribute('data-collapsed', 'true');
                 
                 setIssueRead(issueKey, true);
-                console.log('Issue marked as read successfully');
+                console.log('Issue marked as read successfully', {show: true});
             } catch (error) {
-                console.error('Error in markIssueAsRead:', error);
+                console.error('Error in markIssueAsRead:', error, {show: true});
             }
         }
 
@@ -2473,9 +2493,9 @@
                         }
                     }
                     
-                    console.log('Mark as read clicked but no container found');
+                    console.log('Mark as read clicked but no container found', {show: true});
                 } catch (error) {
-                    console.error('Error in mark as read handler:', error);
+                    console.error('Error in mark as read handler:', error, {show: true});
                 }
             });
         }
