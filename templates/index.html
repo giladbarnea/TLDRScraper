@@ -940,15 +940,16 @@
             width: 100%;
         }
 
-        .collapsed-issue:not(.expanded) .collapsed-issue-header {
-            cursor: pointer;
-        }
-
         .collapsed-issue-title {
             flex: 1;
             font-size: 15px;
             font-weight: 500;
             color: var(--text);
+            cursor: pointer;
+        }
+
+        .collapsed-issue-title:hover {
+            color: var(--link);
         }
 
         .collapsed-issue:not(.expanded) .mark-read-btn {
@@ -2373,7 +2374,7 @@
                 
                 const title = document.createElement('div');
                 title.className = 'collapsed-issue-title';
-                title.textContent = '▶ ' + headerText + ' – ' + date;
+                title.textContent = headerText + ' – ' + date;
                 
                 const markReadBtn = document.createElement('button');
                 markReadBtn.className = 'mark-read-btn';
@@ -2449,17 +2450,7 @@
                 const collapsedIssue = titleEl.closest('.collapsed-issue');
                 if (!collapsedIssue) return;
                 
-                const isExpanded = collapsedIssue.classList.contains('expanded');
-                
-                if (isExpanded) {
-                    collapsedIssue.classList.remove('expanded');
-                    if (!titleEl.textContent.startsWith('▶ ')) {
-                        titleEl.textContent = '▶ ' + titleEl.textContent;
-                    }
-                } else {
-                    collapsedIssue.classList.add('expanded');
-                    titleEl.textContent = titleEl.textContent.replace('▶ ', '');
-                }
+                collapsedIssue.classList.toggle('expanded');
             });
         }
 
@@ -2482,15 +2473,7 @@
                     const collapsedIssue = btn.closest('.collapsed-issue');
                     if (collapsedIssue) {
                         console.log('Collapsing expanded read issue', {show: true});
-                        const issueKey = collapsedIssue.getAttribute('data-issue-key');
-                        if (issueKey) {
-                            setIssueRead(issueKey, true);
-                            collapsedIssue.classList.remove('expanded');
-                            const title = collapsedIssue.querySelector('.collapsed-issue-title');
-                            if (title && !title.textContent.startsWith('▶ ')) {
-                                title.textContent = '▶ ' + title.textContent;
-                            }
-                        }
+                        collapsedIssue.classList.remove('expanded');
                         return;
                     }
                     
