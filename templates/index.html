@@ -2010,8 +2010,9 @@
                             container.appendChild(markReadBtn);
 
                             let issueBlock = null;
+                            let issueMeta = null;
                             if (currentDate && categoryText) {
-                                const issueMeta = issueMetadataMap.get(`${currentDate}__${categoryText}`);
+                                issueMeta = issueMetadataMap.get(`${currentDate}__${categoryText}`) || null;
                                 if (issueMeta && (issueMeta.title || issueMeta.subtitle)) {
                                     issueBlock = document.createElement('div');
                                     issueBlock.className = 'issue-title-block';
