@@ -211,6 +211,57 @@ def _format_final_output(start_date, end_date, grouped_articles):
     return output
 
 
+def _extract_tldr_text(lines: list[str], start_index: int) -> str | None:
+    """Collect the paragraph immediately following an article link.
+
+    >>> _extract_tldr_text([
+    ...     "1. [Example](https://example.com)",
+    ...     "A concise summary line.",
+    ...     "",
+    ...     "Another item",
+    ... ], 0)
+    'A concise summary line.'
+    """
+
+    summary_lines: list[str] = []
+    link_pattern = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+
+    for offset in range(start_index + 1, len(lines)):
+        raw_line = lines[offset]
+        candidate = raw_line.strip()
+
+        if not candidate:
+            if summary_lines:
+                break
+            continue
+
+        if candidate.startswith("#"):
+            break
+
+        if candidate.startswith("- ") or candidate.startswith("* "):
+            break
+
+        if re.match(r"^\d+\.\s", candidate):
+            break
+
+        if link_pattern.search(candidate):
+            break
+
+        if not re.search(r"[A-Za-z0-9]", candidate):
+            continue
+
+        summary_lines.append(candidate)
+
+        # Keep reading contiguous lines that are part of the same paragraph.
+        # Stop once we hit a blank line later in the loop.
+
+    if not summary_lines:
+        return None
+
+    normalized = " ".join(re.sub(r"\s+", " ", part).strip() for part in summary_lines)
+    return normalized.strip() or None
+
+
 def _parse_articles_from_markdown(markdown, date, newsletter_type):
     """Parse articles from markdown content, filtering by '(X minute read)' or '(GitHub Repo)' pattern"""
     lines = markdown.split("\n")
@@ -218,8 +269,8 @@ def _parse_articles_from_markdown(markdown, date, newsletter_type):
     minute_read_pattern = re.compile(r"\((\d+)\s+minute\s+read\)", re.IGNORECASE)
     github_repo_pattern = re.compile(r"\(GitHub\s+Repo\)", re.IGNORECASE)
 
-    for line in lines:
-        line = line.strip()
+    for index, raw_line in enumerate(lines):
+        line = raw_line.strip()
 
         if not line:
             continue
@@ -250,13 +301,20 @@ def _parse_articles_from_markdown(markdown, date, newsletter_type):
             else:
                 category = f"TLDR {newsletter_type.capitalize()}"
 
-            articles.append({
+            tldr_text = _extract_tldr_text(lines, index)
+
+            article = {
                 "title": title,
                 "url": url,
                 "category": category,
                 "date": util.format_date_for_url(date),
                 "newsletter_type": newsletter_type,
-            })
+            }
+
+            if tldr_text:
+                article["tldr_text"] = tldr_text
+
+            articles.append(article)
 
     return articles
 
@@ -436,6 +494,7 @@ def scrape_date_range(start_date, end_date):
             "date": article["date"],
             "category": article["category"],
             "removed": article.get("removed", False),
+            "tldr_text": article.get("tldr_text"),
         })
 
     return {

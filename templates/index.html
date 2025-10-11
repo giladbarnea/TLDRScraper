@@ -317,6 +317,14 @@
         .article-link:hover {
             text-decoration: underline;
         }
+
+        .article-tldr {
+            margin-top: 4px;
+            font-size: 14px;
+            line-height: 1.45;
+            color: var(--muted);
+            letter-spacing: -0.01em;
+        }
         
         /* Add a small external link indicator on hover */
         .article-link::after {
@@ -1874,10 +1882,10 @@
                             updateCacheModeDescription(data.stats.cache_mode);
                         }
 
-                        const urlToDateMap = {};
+                        const articleMetaMap = {};
                         if (data.articles) {
                             data.articles.forEach(article => {
-                                urlToDateMap[article.url] = article.date;
+                                articleMetaMap[article.url] = article;
                             });
                         }
 
@@ -2019,9 +2027,9 @@
                                 card.setAttribute('data-url', cleanUrl);
                                 card.setAttribute('data-title', titleText);
                                 
-                                const articleDate = urlToDateMap[cleanUrl];
-                                if (articleDate) {
-                                    card.setAttribute('data-date', articleDate);
+                                const articleMeta = articleMetaMap[cleanUrl];
+                                if (articleMeta?.date) {
+                                    card.setAttribute('data-date', articleMeta.date);
                                 }
 
                                 const header = document.createElement('div');
@@ -2040,6 +2048,15 @@
                                 newLink.setAttribute('rel', 'noopener noreferrer');
                                 newLink.setAttribute('data-url', cleanUrl);
                                 newLink.setAttribute('href', cleanUrl);
+
+                                content.appendChild(newLink);
+
+                                if (articleMeta?.tldr_text) {
+                                    const tldrElement = document.createElement('div');
+                                    tldrElement.className = 'article-tldr';
+                                    tldrElement.textContent = articleMeta.tldr_text;
+                                    content.appendChild(tldrElement);
+                                }
 
                                 const actions = document.createElement('div');
                                 actions.className = 'article-actions';
@@ -2102,7 +2119,6 @@
                                 removeBtn.type = 'button';
                                 removeBtn.setAttribute('data-url', cleanUrl);
 
-                                content.appendChild(newLink);
                                 header.appendChild(number);
                                 header.appendChild(content);
 
