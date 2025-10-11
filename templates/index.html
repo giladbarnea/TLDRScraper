@@ -2038,6 +2038,28 @@
                             header.parentNode.replaceChild(container, header);
                             if (issueBlock) {
                                 container.insertAdjacentElement('afterend', issueBlock);
+
+                                const duplicateLines = new Set();
+                                if (issueMeta.title) {
+                                    duplicateLines.add((issueMeta.title || '').trim());
+                                }
+                                if (issueMeta.subtitle && issueMeta.subtitle !== issueMeta.title) {
+                                    duplicateLines.add((issueMeta.subtitle || '').trim());
+                                }
+
+                                if (duplicateLines.size) {
+                                    let sibling = issueBlock.nextElementSibling;
+                                    while (sibling && sibling.tagName === 'P') {
+                                        const textValue = (sibling.textContent || '').trim();
+                                        if (duplicateLines.has(textValue) || textValue === '') {
+                                            const nodeToRemove = sibling;
+                                            sibling = sibling.nextElementSibling;
+                                            nodeToRemove.remove();
+                                            continue;
+                                        }
+                                        break;
+                                    }
+                                }
                             }
                         });
 
@@ -2068,6 +2090,7 @@
 
                             const listItems = ol.querySelectorAll('li');
                             let lastSectionKey = null;
+                            let insertedSectionTitle = false;
 
                             listItems.forEach(function(li, index) {
                                 const link = li.querySelector('a[href]');
@@ -2098,6 +2121,7 @@
                                             sectionEl.textContent = sectionLabel;
                                             articleList.appendChild(sectionEl);
                                             lastSectionKey = sectionKey;
+                                            insertedSectionTitle = true;
                                         }
                                     }
                                 } else if (lastSectionKey !== null) {
@@ -2224,6 +2248,25 @@
                             sortArticlesByState(articleList);
 
                             ol.parentNode.replaceChild(articleList, ol);
+
+                            if (insertedSectionTitle) {
+                                let prevNode = articleList.previousElementSibling;
+                                while (prevNode) {
+                                    if (prevNode.tagName === 'H5') {
+                                        const nodeToRemove = prevNode;
+                                        prevNode = prevNode.previousElementSibling;
+                                        nodeToRemove.remove();
+                                        continue;
+                                    }
+                                    if (prevNode.tagName === 'P' && !(prevNode.textContent || '').trim()) {
+                                        const nodeToRemove = prevNode;
+                                        prevNode = prevNode.previousElementSibling;
+                                        nodeToRemove.remove();
+                                        continue;
+                                    }
+                                    break;
+                                }
+                            }
 
                             if (!document.querySelector('.interaction-hint')) {
                                 const hint = document.createElement('div');
