@@ -793,7 +793,8 @@
             margin: 0;
         }
 
-        .date-header-container h3 {
+        .date-header-container h3,
+        .date-header-container h2 {
             text-align: left !important;
             margin: 0 !important;
             flex: 1;
@@ -806,6 +807,28 @@
             flex-shrink: 0;
             width: auto;
             margin: 0;
+        }
+
+        .issue-header-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin: 0;
+        }
+
+        .issue-header-container h4 {
+            text-align: left !important;
+            margin: 0 !important;
+            flex: 1;
+            font-style: normal !important;
+        }
+
+        .issue-header-container .mark-read-btn {
+            flex-shrink: 0;
+            width: auto;
+            margin: 0;
+            margin-left: 12px;
         }
 
         .clear-date-cache-btn {
@@ -844,6 +867,169 @@
             0%, 20% { content: '.'; }
             40% { content: '..'; }
             60%, 100% { content: '...'; }
+        }
+
+        .mark-read-btn {
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            opacity: 0.6;
+        }
+
+        .mark-read-btn:hover {
+            opacity: 1;
+            background: #eff6ff;
+            border-color: #93c5fd;
+            color: #2563eb;
+        }
+
+        .mark-read-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .collapsed-issues-section {
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 2px dashed var(--border);
+        }
+
+        .collapsed-issues-section h3 {
+            text-align: center;
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+        }
+
+        .collapsed-issue {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+            min-height: 44px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .collapsed-issue:hover {
+            border-color: var(--link);
+            box-shadow: 0 2px 8px rgba(26,115,232,0.12);
+            transform: translateY(-1px);
+        }
+
+        .collapsed-issue:active {
+            transform: translateY(0);
+        }
+
+        .collapsed-issue-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .collapsed-issue-title {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text);
+            cursor: pointer;
+        }
+
+        .collapsed-issue-title:hover {
+            color: var(--link);
+        }
+
+        .collapsed-issue:not(.expanded) .mark-read-btn {
+            display: none;
+        }
+
+        .collapsed-issue-content {
+            display: none;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed var(--border);
+            animation: expandContent 0.2s ease;
+        }
+
+        .collapsed-issue.expanded .collapsed-issue-content {
+            display: block;
+        }
+
+        @keyframes expandContent {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #debug-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-y: auto;
+            padding: 8px;
+            padding-top: 24px;
+            border-top: 2px solid #333;
+            z-index: 10000;
+            display: none;
+        }
+
+        #debug-panel.visible {
+            display: block;
+        }
+
+        #debug-panel .log-line {
+            margin: 2px 0;
+            padding: 2px 4px;
+        }
+
+        #debug-panel .log-error {
+            color: #ff5555;
+        }
+
+        #debug-panel .log-info {
+            color: #55ff55;
+        }
+
+        #debug-panel-close {
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        #debug-panel-close:hover {
+            color: #fff;
         }
     </style>
 </head>
@@ -893,8 +1079,80 @@
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
 
     <div id="copyToast">Copied to clipboard</div>
+    <div id="debug-panel">
+        <button id="debug-panel-close" title="Hide debug panel">▼</button>
+    </div>
 
     <script>
+        /**
+         * DebugPanel displays logs in the UI for mobile debugging.
+         */
+        // #region -------[ DebugPanel ]-------
+        const debugPanel = document.getElementById('debug-panel');
+        const debugPanelClose = document.getElementById('debug-panel-close');
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+
+        function debugLog(message, options = {}) {
+            const isError = options.error || false;
+            const show = options.show || false;
+            
+            const line = document.createElement('div');
+            line.className = 'log-line ' + (isError ? 'log-error' : 'log-info');
+            line.textContent = new Date().toLocaleTimeString() + ' | ' + message;
+            debugPanel.appendChild(line);
+            
+            if (show) {
+                debugPanel.classList.add('visible');
+            }
+            
+            debugPanel.scrollTop = debugPanel.scrollHeight;
+            
+            const logLines = debugPanel.querySelectorAll('.log-line');
+            if (logLines.length > 50) {
+                logLines[0].remove();
+            }
+        }
+
+        debugPanelClose.addEventListener('click', function() {
+            debugPanel.classList.remove('visible');
+        });
+
+        function stringifyArg(a) {
+            if (typeof a === 'string' || typeof a === 'number' || typeof a === 'boolean') {
+                return String(a);
+            }
+            if (a instanceof Error) {
+                return a.message + (a.stack ? '\n' + a.stack : '');
+            }
+            if (typeof a === 'object') {
+                try {
+                    return JSON.stringify(a, null, 2);
+                } catch (e) {
+                    return String(a);
+                }
+            }
+            return String(a);
+        }
+
+        console.log = function(...args) {
+            const lastArg = args[args.length - 1];
+            const options = (typeof lastArg === 'object' && lastArg !== null && ('show' in lastArg || 'error' in lastArg)) ? args.pop() : {};
+            const message = args.map(stringifyArg).join(' ');
+            debugLog(message, options);
+            originalConsoleLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            const lastArg = args[args.length - 1];
+            const hasOptions = typeof lastArg === 'object' && lastArg !== null && ('show' in lastArg || 'error' in lastArg);
+            const options = hasOptions ? args.pop() : {};
+            const message = args.map(stringifyArg).join(' ');
+            debugLog(message, { ...options, error: true, show: options.show !== false });
+            originalConsoleError.apply(console, args);
+        };
+        // #endregion
+
         /**
          * CacheModeAwareness syncs the selector with backend cache mode so removal gating reflects server policy.
          */
@@ -1681,6 +1939,44 @@
                             }
                         });
 
+                        result.querySelectorAll('#write h4').forEach(function(header) {
+                            const container = document.createElement('div');
+                            container.className = 'issue-header-container';
+                            
+                            let currentDate = null;
+                            let prevElement = header.previousElementSibling;
+                            while (prevElement) {
+                                if (prevElement.classList && prevElement.classList.contains('date-header-container')) {
+                                    const dateHeader = prevElement.querySelector('h2, h3');
+                                    if (dateHeader) {
+                                        const dateMatch = dateHeader.textContent.match(/\d{4}-\d{2}-\d{2}/);
+                                        if (dateMatch) {
+                                            currentDate = dateMatch[0];
+                                            break;
+                                        }
+                                    }
+                                }
+                                prevElement = prevElement.previousElementSibling;
+                            }
+                            
+                            if (currentDate) {
+                                container.setAttribute('data-date', currentDate);
+                            }
+                            
+                            const newHeader = header.cloneNode(true);
+                            
+                            const markReadBtn = document.createElement('button');
+                            markReadBtn.className = 'mark-read-btn';
+                            markReadBtn.textContent = 'Mark as Read';
+                            markReadBtn.title = 'Collapse and move to bottom';
+                            markReadBtn.type = 'button';
+                            
+                            container.appendChild(newHeader);
+                            container.appendChild(markReadBtn);
+                            
+                            header.parentNode.replaceChild(container, header);
+                        });
+
                         // Ensure TLDR AI appears before TLDR Tech within the same date section
                         const writeRoot = result.querySelector('#write');
                         Array.from(writeRoot.querySelectorAll('.date-header-container')).forEach(function(container) {
@@ -1841,6 +2137,8 @@
                         result.style.display = 'block';
                         result.className = 'success';
                         document.getElementById('progress-fill').style.width = '100%';
+
+                        restoreReadState();
 
                         // Smooth scroll to first main#write h1 after scrape completion
                         setTimeout(() => {
@@ -2008,6 +2306,207 @@
         // #endregion
 
         /**
+         * IssueDayReadState manages collapsible read state for entire issue-days with localStorage persistence.
+         */
+        // #region -------[ IssueDayReadState ]-------
+        const READ_STATE_KEY = 'tldr-read-issues';
+
+        function getReadIssues() {
+            try {
+                const stored = localStorage.getItem(READ_STATE_KEY);
+                return stored ? JSON.parse(stored) : {};
+            } catch {
+                return {};
+            }
+        }
+
+        function setIssueRead(issueKey, isRead) {
+            const readIssues = getReadIssues();
+            if (isRead) {
+                readIssues[issueKey] = true;
+            } else {
+                delete readIssues[issueKey];
+            }
+            localStorage.setItem(READ_STATE_KEY, JSON.stringify(readIssues));
+        }
+
+        function isIssueRead(issueKey) {
+            return getReadIssues()[issueKey] === true;
+        }
+
+        function getIssueKey(dateStr, category) {
+            return `${dateStr}-${category}`.toLowerCase();
+        }
+
+        function markIssueAsRead(container) {
+            try {
+                console.log('markIssueAsRead called', {show: true});
+                
+                const header = container.querySelector('h4');
+                if (!header) {
+                    console.error('No h4 found in container', {show: true});
+                    return;
+                }
+
+                const headerText = header.textContent.trim();
+                console.log('Header text:', headerText, {show: true});
+                
+                const date = container.getAttribute('data-date');
+                if (!date) {
+                    console.error('No data-date attribute found on container', {show: true});
+                    return;
+                }
+                console.log('Date:', date, {show: true});
+
+                const category = headerText.includes('AI') ? 'AI' : 'Tech';
+                const issueKey = getIssueKey(date, category);
+                console.log('Issue key:', issueKey, {show: true});
+                
+                const collapsedSection = ensureCollapsedSection();
+                const issueContent = extractIssueContent(container);
+                
+                const collapsedIssue = document.createElement('div');
+                collapsedIssue.className = 'collapsed-issue';
+                collapsedIssue.setAttribute('data-issue-key', issueKey);
+                
+                const headerContainer = document.createElement('div');
+                headerContainer.className = 'collapsed-issue-header';
+                
+                const title = document.createElement('div');
+                title.className = 'collapsed-issue-title';
+                title.textContent = headerText + ' – ' + date;
+                
+                const markReadBtn = document.createElement('button');
+                markReadBtn.className = 'mark-read-btn';
+                markReadBtn.textContent = 'Mark as Read';
+                markReadBtn.title = 'Collapse and move to bottom';
+                markReadBtn.type = 'button';
+                
+                headerContainer.appendChild(title);
+                headerContainer.appendChild(markReadBtn);
+                
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'collapsed-issue-content';
+                contentWrapper.appendChild(issueContent);
+                
+                collapsedIssue.appendChild(headerContainer);
+                collapsedIssue.appendChild(contentWrapper);
+                
+                collapsedSection.appendChild(collapsedIssue);
+                
+                container.style.display = 'none';
+                container.setAttribute('data-collapsed', 'true');
+                
+                setIssueRead(issueKey, true);
+                console.log('Issue marked as read successfully', {show: true});
+            } catch (error) {
+                console.error('Error in markIssueAsRead:', error, {show: true});
+            }
+        }
+
+        function extractIssueContent(container) {
+            const content = document.createElement('div');
+            let node = container.nextElementSibling;
+            
+            while (node && !node.classList.contains('issue-header-container') && !node.classList.contains('date-header-container')) {
+                const clone = node.cloneNode(true);
+                content.appendChild(clone);
+                const nextNode = node.nextElementSibling;
+                node.style.display = 'none';
+                node.setAttribute('data-collapsed', 'true');
+                node = nextNode;
+            }
+            
+            return content;
+        }
+
+        function ensureCollapsedSection() {
+            let section = document.querySelector('.collapsed-issues-section');
+            if (!section) {
+                const writeRoot = document.querySelector('#write');
+                if (writeRoot) {
+                    section = document.createElement('div');
+                    section.className = 'collapsed-issues-section';
+                    
+                    const heading = document.createElement('h3');
+                    heading.textContent = 'Read Issues';
+                    section.appendChild(heading);
+                    
+                    writeRoot.appendChild(section);
+                }
+            }
+            return section;
+        }
+
+        function bindCollapsedIssueClick() {
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('button')) return;
+                if (e.target.closest('a')) return;
+                if (e.target.closest('.collapsed-issue-content')) return;
+                
+                const titleEl = e.target.closest('.collapsed-issue-title');
+                if (!titleEl) return;
+                
+                const collapsedIssue = titleEl.closest('.collapsed-issue');
+                if (!collapsedIssue) return;
+                
+                collapsedIssue.classList.toggle('expanded');
+            });
+        }
+
+        function bindMarkAsReadButtons() {
+            document.addEventListener('click', function(e) {
+                const btn = e.target.closest('.mark-read-btn');
+                if (!btn) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                try {
+                    const issueContainer = btn.closest('.issue-header-container');
+                    if (issueContainer) {
+                        console.log('Marking issue as read from header:', issueContainer);
+                        markIssueAsRead(issueContainer);
+                        return;
+                    }
+                    
+                    const collapsedIssue = btn.closest('.collapsed-issue');
+                    if (collapsedIssue) {
+                        console.log('Collapsing expanded read issue', {show: true});
+                        collapsedIssue.classList.remove('expanded');
+                        return;
+                    }
+                    
+                    console.log('Mark as read clicked but no container found', {show: true});
+                } catch (error) {
+                    console.error('Error in mark as read handler:', error, {show: true});
+                }
+            });
+        }
+
+        function restoreReadState() {
+            const readIssues = getReadIssues();
+            const containers = document.querySelectorAll('.issue-header-container');
+            
+            containers.forEach(container => {
+                const header = container.querySelector('h4');
+                if (!header) return;
+                
+                const date = container.getAttribute('data-date');
+                if (!date) return;
+                
+                const headerText = header.textContent.trim();
+                const category = headerText.includes('AI') ? 'AI' : 'Tech';
+                const issueKey = getIssueKey(date, category);
+                
+                if (isIssueRead(issueKey)) {
+                    markIssueAsRead(container);
+                }
+            });
+        }
+        // #endregion
+
+        /**
          * AppBootstrap wires feature bindings so the UI state machine starts in sync with backend data.
          */
         // #region -------[ AppBootstrap ]-------
@@ -2020,6 +2519,8 @@
         bindDateCacheClear();
         bindSummaryExpansion();
         bindTldrExpansion();
+        bindCollapsedIssueClick();
+        bindMarkAsReadButtons();
         // #endregion
     </script>
 </body>
