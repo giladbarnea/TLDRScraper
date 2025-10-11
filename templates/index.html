@@ -831,6 +831,28 @@
             margin-left: 12px;
         }
 
+        .issue-title-block {
+            margin: 12px 0 18px;
+            text-align: center;
+            font-style: italic;
+            color: #9ca3af;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .issue-title-block .issue-title-line + .issue-title-line {
+            margin-top: 4px;
+        }
+
+        .section-title {
+            margin: 18px 0 6px;
+            text-align: center;
+            font-style: italic;
+            color: #9ca3af;
+            font-size: 0.92em;
+            letter-spacing: 0.01em;
+        }
+
         .clear-date-cache-btn {
             padding: 4px 10px;
             font-size: 12px;
@@ -1875,11 +1897,20 @@
                         }
 
                         const urlToDateMap = {};
-                        if (data.articles) {
+                        const urlMetaMap = new Map();
+                        if (Array.isArray(data.articles)) {
                             data.articles.forEach(article => {
                                 urlToDateMap[article.url] = article.date;
+                                urlMetaMap.set(article.url, article);
                             });
                         }
+
+                        const issueMetadataList = Array.isArray(data.issues) ? data.issues : [];
+                        const issueMetadataMap = new Map();
+                        issueMetadataList.forEach(issue => {
+                            if (!issue || !issue.date || !issue.category) return;
+                            issueMetadataMap.set(`${issue.date}__${issue.category}`, issue);
+                        });
 
                         const statsHtml = `<div class="stats">
                             📊 Stats: ${data.stats.total_articles} articles found,
@@ -1942,7 +1973,7 @@
                         result.querySelectorAll('#write h4').forEach(function(header) {
                             const container = document.createElement('div');
                             container.className = 'issue-header-container';
-                            
+
                             let currentDate = null;
                             let prevElement = header.previousElementSibling;
                             while (prevElement) {
@@ -1958,23 +1989,56 @@
                                 }
                                 prevElement = prevElement.previousElementSibling;
                             }
-                            
+
                             if (currentDate) {
                                 container.setAttribute('data-date', currentDate);
                             }
-                            
+
                             const newHeader = header.cloneNode(true);
-                            
+                            const categoryText = (newHeader.textContent || '').trim();
+                            if (categoryText) {
+                                container.setAttribute('data-category', categoryText);
+                            }
+
                             const markReadBtn = document.createElement('button');
                             markReadBtn.className = 'mark-read-btn';
                             markReadBtn.textContent = 'Mark as Read';
                             markReadBtn.title = 'Collapse and move to bottom';
                             markReadBtn.type = 'button';
-                            
+
                             container.appendChild(newHeader);
                             container.appendChild(markReadBtn);
-                            
+
+                            let issueBlock = null;
+                            if (currentDate && categoryText) {
+                                const issueMeta = issueMetadataMap.get(`${currentDate}__${categoryText}`);
+                                if (issueMeta && (issueMeta.title || issueMeta.subtitle)) {
+                                    issueBlock = document.createElement('div');
+                                    issueBlock.className = 'issue-title-block';
+
+                                    const lines = [];
+                                    if (issueMeta.title) lines.push(issueMeta.title);
+                                    if (issueMeta.subtitle && issueMeta.subtitle !== issueMeta.title) {
+                                        lines.push(issueMeta.subtitle);
+                                    }
+
+                                    lines.forEach(text => {
+                                        const lineEl = document.createElement('div');
+                                        lineEl.className = 'issue-title-line';
+                                        lineEl.textContent = text;
+                                        issueBlock.appendChild(lineEl);
+                                    });
+
+                                    if (!issueBlock.childElementCount) {
+                                        issueBlock = null;
+                                    }
+                                }
+                            }
+
                             header.parentNode.replaceChild(container, header);
+                            if (issueBlock) {
+                                container.insertAdjacentElement('afterend', issueBlock);
+                            }
                         });
 
                         // Ensure TLDR AI appears before TLDR Tech within the same date section
@@ -2003,6 +2067,7 @@
                             articleList.className = 'article-list';
 
                             const listItems = ol.querySelectorAll('li');
+                            let lastSectionKey = null;
 
                             listItems.forEach(function(li, index) {
                                 const link = li.querySelector('a[href]');
@@ -2015,10 +2080,44 @@
                                 const isRemoved = urlValue.includes('?data-removed=true');
                                 const cleanUrl = urlValue.replace('?data-removed=true', '');
 
+                                const articleMeta = urlMetaMap.get(cleanUrl);
+                                let sectionKey = null;
+                                if (articleMeta && articleMeta.section_title) {
+                                    const sectionOrder = articleMeta.section_order ?? '';
+                                    sectionKey = `${sectionOrder}__${articleMeta.section_title}`;
+                                    if (sectionKey !== lastSectionKey) {
+                                        const labelParts = [];
+                                        if (articleMeta.section_emoji) {
+                                            labelParts.push(articleMeta.section_emoji);
+                                        }
+                                        labelParts.push(articleMeta.section_title);
+                                        const sectionLabel = labelParts.join(' ').trim();
+                                        if (sectionLabel) {
+                                            const sectionEl = document.createElement('div');
+                                            sectionEl.className = 'section-title';
+                                            sectionEl.textContent = sectionLabel;
+                                            articleList.appendChild(sectionEl);
+                                            lastSectionKey = sectionKey;
+                                        }
+                                    }
+                                } else if (lastSectionKey !== null) {
+                                    lastSectionKey = null;
+                                }
+
                                 card.className = 'article-card ' + (isRemoved ? 'removed' : 'unread');
                                 card.setAttribute('data-url', cleanUrl);
                                 card.setAttribute('data-title', titleText);
-                                
+
+                                if (articleMeta && articleMeta.section_title) {
+                                    card.setAttribute('data-section-title', articleMeta.section_title);
+                                    if (articleMeta.section_emoji) {
+                                        card.setAttribute('data-section-emoji', articleMeta.section_emoji);
+                                    }
+                                }
+                                if (articleMeta && articleMeta.newsletter_type) {
+                                    card.setAttribute('data-newsletter-type', articleMeta.newsletter_type);
+                                }
+
                                 const articleDate = urlToDateMap[cleanUrl];
                                 if (articleDate) {
                                     card.setAttribute('data-date', articleDate);
