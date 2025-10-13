@@ -26,7 +26,11 @@ def get_removed_urls() -> Set[str]:
         resp = requests.get(
             blob_url,
             timeout=10,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+            },
         )
         resp.raise_for_status()
         util.log(
