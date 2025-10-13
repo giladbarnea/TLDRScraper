@@ -2269,12 +2269,6 @@
                                 }
                             }
 
-                            if (!document.querySelector('.interaction-hint')) {
-                                const hint = document.createElement('div');
-                                hint.className = 'interaction-hint';
-                                hint.innerHTML = '💡 Click titles or "Summarize" to show summaries • Use ▾ to choose reasoning effort • Click X to remove • Ctrl/Cmd+Click to open directly';
-                                articleList.insertAdjacentElement('afterend', hint);
-                            }
                         });
 
                         result.style.display = 'block';
