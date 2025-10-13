@@ -59,6 +59,18 @@ def add_removed_url(url: str) -> bool:
             f"[removed_urls.add_removed_url] Added url={url} pathname={REMOVED_URLS_PATHNAME}",
             logger=logger,
         )
+        persisted_removed = get_removed_urls()
+        if url in persisted_removed:
+            util.log(
+                f"[removed_urls.add_removed_url] ✓ Verified url={url} persisted in pathname={REMOVED_URLS_PATHNAME}",
+                logger=logger,
+            )
+        else:
+            util.log(
+                f"[removed_urls.add_removed_url] Unable to verify url={url} persisted in pathname={REMOVED_URLS_PATHNAME}",
+                level=logging.WARNING,
+                logger=logger,
+            )
         return True
     except Exception as e:
         util.log(
