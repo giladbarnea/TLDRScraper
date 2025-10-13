@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import time
 import json
 from datetime import datetime
+import unicodedata
 
 import util
 from blob_store import build_scraped_day_cache_key
@@ -78,6 +79,37 @@ def _extract_newsletter_content(html):
     result = md.convert_stream(content_stream, file_extension=".html")
 
     return result.text_content
+
+
+def _is_symbol_only_line(text: str) -> bool:
+    stripped = text.strip()
+    if not stripped:
+        return False
+
+    if any(character.isalnum() for character in stripped):
+        return False
+
+    has_symbol = False
+
+    for character in stripped:
+        category = unicodedata.category(character)
+
+        if category.startswith("P"):
+            return False
+
+        if category in {"So", "Sk"}:
+            has_symbol = True
+            continue
+
+        if category in {"Mn", "Me", "Cf", "Cc"}:
+            continue
+
+        if category.startswith("Z"):
+            continue
+
+        return False
+
+    return has_symbol
 
 
 def _get_cached_day(date_str: str):
@@ -287,7 +319,13 @@ def _format_final_output(
 
 
 def _parse_articles_from_markdown(markdown, date, newsletter_type):
-    """Parse newsletter content into structured metadata and articles."""
+    """Parse newsletter content into structured metadata and articles.
+
+    >>> sample = '# TLDR AI 2025-10-10\n\n## Gemini Enterprise\n\n🚀\n### Headlines & Launches\n[Example (1 minute read)](https://example.com)'
+    >>> parsed = _parse_articles_from_markdown(sample, datetime(2025, 10, 10), "ai")
+    >>> parsed["issue"]["sections"][0]["emoji"]
+    '🚀'
+    """
     lines = markdown.split("\n")
     articles = []
     minute_read_pattern = re.compile(r"\((\d+)\s+minute\s+read\)", re.IGNORECASE)
@@ -335,7 +373,7 @@ def _parse_articles_from_markdown(markdown, date, newsletter_type):
 
             if level >= 2:
                 if not re.search(r"[A-Za-z0-9]", text):
-                    pending_section_emoji = text
+                    pending_section_emoji = text.strip()
                     continue
 
                 emoji = None
@@ -365,6 +403,10 @@ def _parse_articles_from_markdown(markdown, date, newsletter_type):
                 sections_by_order[section_counter] = section
                 current_section_order = section_counter
                 continue
+
+        if _is_symbol_only_line(line):
+            pending_section_emoji = line.strip()
+            continue
 
         link_matches = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", line)
         for title, url in link_matches:
