@@ -174,7 +174,7 @@ function main() {
         eval export "$line"
       done
   fi
-  local env_vars="$(env | egrep '(OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
+  local env_vars="$(env | egrep '(CURSOR|OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
   local -a env_var_names=(
     'BLOB_READ_WRITE_TOKEN'
     'BLOB_STORE_BASE_URL'
