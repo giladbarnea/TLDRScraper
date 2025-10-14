@@ -89,6 +89,8 @@ def put_file(pathname: str, content: str) -> str:
         headers = {
             "Authorization": f"Bearer {token}",
             "x-add-random-suffix": "0",
+            "x-content-type": "application/json",
+            "x-cache-control-max-age": "60",
         }
 
         response = requests.put(
@@ -220,7 +222,15 @@ def check_file_exists(pathname: str) -> bool:
         import requests
 
         blob_url = f"{base_url}/{pathname}"
-        response = requests.head(blob_url, timeout=10)
+        response = requests.head(
+            blob_url,
+            timeout=10,
+            headers={
+                "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache",
+            },
+        )
         return response.status_code == 200
 
     except Exception:

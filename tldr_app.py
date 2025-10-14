@@ -212,7 +212,15 @@ def invalidate_cache_for_date(date_text: Optional[str]) -> dict:
 
     try:
         blob_url = f"{blob_base_url}/{day_cache_pathname}"
-        response = requests.get(blob_url, timeout=10)
+        response = requests.get(
+            blob_url,
+            timeout=10,
+            headers={
+                "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache",
+            },
+        )
         response.raise_for_status()
         cached_day = response.json()
         articles = cached_day.get("articles", [])
