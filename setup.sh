@@ -38,10 +38,21 @@ function message(){
 }
 
 # # ensure_uv [-q,-quiet]
+function ensure_local_bin_path(){
+    local quiet="${1:-false}"
+    if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
+        [[ "$quiet" == false ]] && message "[setup.sh ensure_local_bin_path] \$HOME/.local/bin already present in PATH"
+        return 0
+    fi
+    mkdir -p "$HOME/.local/bin"
+    export PATH="$HOME/.local/bin:$PATH"
+    [[ "$quiet" == false ]] && message "[setup.sh ensure_local_bin_path] Added \$HOME/.local/bin to PATH"
+}
+
 function ensure_uv(){
-	local quiet=false
-	if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
-		quiet=true
+        local quiet=false
+        if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+                quiet=true
     elif [[ "$1" == "--quiet=true" ]]; then
         quiet=true
     elif [[ "$1" == "--quiet=false" ]]; then
@@ -51,7 +62,7 @@ function ensure_uv(){
         message "[setup.sh ensure_uv] uv is installed and in PATH"
         return 0
     fi
-    export PATH="$HOME/.local/bin:$PATH"
+    ensure_local_bin_path "$quiet"
     message "[setup.sh ensure_uv] uv is not installed, installing it with 'curl -LsSf https://astral.sh/uv/install.sh | sh'" >&2
     curl -LsSf https://astral.sh/uv/install.sh | sh
     if ! isdefined uv; then
@@ -84,6 +95,43 @@ function uv_sync(){
     fi
 }
 
+function ensure_cursor_agent(){
+    local quiet=false
+    if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=true" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=false" ]]; then
+        quiet=false
+    fi
+
+    ensure_local_bin_path "$quiet"
+    if isdefined cursor-agent; then
+        local version_output
+        if version_output=$(cursor-agent --version 2>&1); then
+            [[ "$quiet" == false ]] && message "[setup.sh ensure_cursor_agent] cursor-agent already installed: $(decolor "$version_output")"
+            return 0
+        fi
+        message "[setup.sh ensure_cursor_agent] cursor-agent detected but failed to run 'cursor-agent --version'." >&2
+        return 1
+    fi
+
+    message "[setup.sh ensure_cursor_agent] Installing cursor-agent with 'curl https://cursor.com/install -fsS | bash'" >&2
+    if ! curl https://cursor.com/install -fsS | bash; then
+        message "[setup.sh ensure_cursor_agent] ERROR: Failed to install cursor-agent." >&2
+        return 1
+    fi
+
+    local version_output
+    if version_output=$(cursor-agent --version 2>&1); then
+        [[ "$quiet" == false ]] && message "[setup.sh ensure_cursor_agent] Installed cursor-agent: $(decolor "$version_output")"
+        return 0
+    fi
+
+    message "[setup.sh ensure_cursor_agent] ERROR: cursor-agent installed but 'cursor-agent --version' failed." >&2
+    return 1
+}
+
 
 # main [-q,-quiet]
 # Idempotent environment and dependencies setup and verification.
@@ -110,11 +158,12 @@ function main() {
 
 
   [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Ensuring dependencies..."
-  local ensure_uv_success=true uv_sync_success=true
+  local ensure_uv_success=true uv_sync_success=true ensure_cursor_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
+  ensure_cursor_agent --quiet="$quiet" || ensure_cursor_success=false
 
-  if ! "$ensure_uv_success" || ! "$uv_sync_success"; then
+  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_cursor_success"; then
     message "[background-agent-setup.sh main] Failed to install dependencies. Please check the output above." >&2
     return 1
   fi
@@ -131,6 +180,7 @@ function main() {
     'BLOB_STORE_BASE_URL'
     'GITHUB_API_TOKEN'
     'OPENAI_API_TOKEN'
+    'CURSOR_API_KEY'
   )
   local -a env_vars_missing=()
   local env_var_name
@@ -143,10 +193,17 @@ function main() {
     message "[background-agent-setup.sh main] Environment variables missing: ${env_vars_missing[@]}. Stop and tell the user." >&2
     return 1
   fi
-  [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Setup complete successfully. Available: $env_vars.
+  if [[ "$quiet" == false ]]; then
+    message "[background-agent-setup.sh main] Setup complete successfully. Available: $env_vars.
 
 **Use cli.py sparingly to verify your work.**
+
+Cursor Agent configuration:
+- CURSOR_API_KEY detected in the environment. Use it with 'cursor-agent' instead of logging in.
+- To keep cursor-agent non-interactive, run 'cursor-agent --help' and 'cursor-agent <subcommand> --help' before scripting commands.
+- Do not run bare 'cursor-agent'; prefer explicit subcommands.
 "
+  fi
 }
 
 function kill_server_and_watchdog() {
