@@ -33,6 +33,9 @@ def summarize_url(
     cache_only: bool = False,
     summary_effort: str = "low",
 ) -> dict:
+    # Pipeline: serve.py/CLI hand the request here → tldr_service.summarize_url_content
+    # delegates to summarizer.summarize_url, where blob_cache either returns cached
+    # markdown or drives scrape → markdown → LLM generation before persisting.
     result = tldr_service.summarize_url_content(
         url,
         cache_only=cache_only,
@@ -130,6 +133,8 @@ def set_cache_mode(mode_str: Optional[str]) -> dict:
 def invalidate_cache_in_date_range(
     start_date_text: Optional[str], end_date_text: Optional[str]
 ) -> dict:
+    # Steps: normalize ISO inputs → enumerate blob day pathnames → list existing
+    # entries → delete each via blob_store while tracking successes/failures.
     if not start_date_text or not end_date_text:
         raise ValueError("start_date and end_date are required")
 
