@@ -145,7 +145,7 @@ function main() {
         quiet=false
   fi
   if [[ ! -f "$PWD/serve.py" ]]; then
-    echo "[background-agent-setup.sh main] ERROR: Source this script from the project root directory. Current PWD: $PWD" >&2
+    echo "[setup.sh main] ERROR: Source this script from the project root directory. Current PWD: $PWD" >&2
     return 1
   fi
   export RUN_DIR="$PWD/.run"
@@ -153,22 +153,22 @@ function main() {
   export LOG_FILE="$RUN_DIR/server.log"
   export PORT="${PORT:-5001}"
 
-  message "[background-agent-setup.sh main] Working directory: $PWD"
+  message "[setup.sh main] Working directory: $PWD"
   mkdir -p "$RUN_DIR"
 
 
-  [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Ensuring dependencies..."
+  [[ "$quiet" == false ]] && message "[setup.sh main] Ensuring dependencies..."
   local ensure_uv_success=true uv_sync_success=true ensure_cursor_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
   ensure_cursor_agent --quiet="$quiet" || ensure_cursor_success=false
 
   if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_cursor_success"; then
-    message "[background-agent-setup.sh main] Failed to install dependencies. Please check the output above." >&2
+    message "[setup.sh main] Failed to install dependencies. Please check the output above." >&2
     return 1
   fi
   
-  [[ "$quiet" == false ]] && message "[background-agent-setup.sh main] Checking for required environment variables..."
+  [[ "$quiet" == false ]] && message "[setup.sh main] Checking for required environment variables..."
   if [[ -f .env ]]; then
       command grep --color=never -E -v '^(\s*#|$)' .env | while read -r line; do
         eval export "$line"
@@ -190,11 +190,11 @@ function main() {
     fi
   done
   if [[ "${#env_vars_missing[@]}" -gt 0 ]]; then
-    message "[background-agent-setup.sh main] Environment variables missing: ${env_vars_missing[@]}. Stop and tell the user." >&2
+    message "[setup.sh main] Environment variables missing: ${env_vars_missing[@]}. Stop and tell the user." >&2
     return 1
   fi
   if [[ "$quiet" == false ]]; then
-    message "[background-agent-setup.sh main] Setup complete successfully. Available: $env_vars.
+    message "[setup.sh main] Setup complete successfully. Available: $env_vars.
 
 **Use cli.py sparingly to verify your work.**
 
@@ -208,14 +208,14 @@ Cursor Agent configuration:
 
 function kill_server_and_watchdog() {
   main --quiet
-  message "[background-agent-setup.sh main] Assessing existing server/watchdog..."
+  message "[setup.sh main] Assessing existing server/watchdog..."
   if [[ -f "$RUN_DIR/watchdog.pid" ]]; then
-    message "[background-agent-setup.sh main] Watchdog PID file found, stopping watchdog..."
+    message "[setup.sh main] Watchdog PID file found, stopping watchdog..."
     kill "$(cat "$RUN_DIR/watchdog.pid")"
     rm -f "$RUN_DIR/watchdog.pid"
   fi
   if [[ -f "$RUN_DIR/server.pid" ]]; then
-    message "[background-agent-setup.sh main] Server PID file found, stopping server..."
+    message "[setup.sh main] Server PID file found, stopping server..."
     kill "$(cat "$RUN_DIR/server.pid")"
     rm -f "$RUN_DIR/server.pid"
   fi
@@ -223,7 +223,7 @@ function kill_server_and_watchdog() {
 
 function start_server_and_watchdog() {
   main --quiet
-  message "[background-agent-setup.sh start_server_and_watchdog] Starting server with nohup (port $PORT)..."
+  message "[setup.sh start_server_and_watchdog] Starting server with nohup (port $PORT)..."
   rm -f "$LOG_FILE"
   uv run python3 "$PWD/serve.py" >> "$LOG_FILE" 2>&1 & echo $! > "$RUN_DIR/server.pid"
   sleep 1
@@ -232,8 +232,8 @@ function start_server_and_watchdog() {
 
 function print_server_and_watchdog_pids() {
   main --quiet
-  message "[background-agent-setup.sh print_server_and_watchdog_pids] Server PID: $(cat "$RUN_DIR/server.pid")"
-  message "[background-agent-setup.sh print_server_and_watchdog_pids] Watchdog PID: $(cat "$RUN_DIR/watchdog.pid")"
+  message "[setup.sh print_server_and_watchdog_pids] Server PID: $(cat "$RUN_DIR/server.pid")"
+  message "[setup.sh print_server_and_watchdog_pids] Watchdog PID: $(cat "$RUN_DIR/watchdog.pid")"
   ps -o pid,cmd -p "$(cat "$RUN_DIR/server.pid")" || true
 }
 
