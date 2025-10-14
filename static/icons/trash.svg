@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <symbol id="trash-icon" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 7h14"/>
+      <path d="M9 7v-1.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/>
+      <path d="M7.5 7l1 11a2 2 0 0 0 2 1.8h3a2 2 0 0 0 2-1.8l1-11"/>
+      <path d="M11 11v5.5"/>
+      <path d="M13 11v5.5"/>
+    </g>
+  </symbol>
+</svg>
