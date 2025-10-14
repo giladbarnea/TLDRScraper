@@ -126,7 +126,11 @@ def _try_read_cache(
         resp = requests.get(
             blob_url,
             timeout=10,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache",
+            },
         )
         resp.raise_for_status()
         util.log(f"[{fn_name}] ✔ Cache hit: {pathname}", logger=logger)
@@ -163,7 +167,11 @@ def _try_read_cache_json(
         resp = requests.get(
             blob_url,
             timeout=10,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache",
+            },
         )
         resp.raise_for_status()
         util.log(f"[{fn_name}] ✔ Cache hit: {pathname}", logger=logger)
