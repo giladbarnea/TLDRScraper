@@ -71,7 +71,9 @@ def get_cache_mode() -> CacheMode:
                     blob_url,
                     timeout=10,
                     headers={
-                        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"
+                        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+                        "Cache-Control": "no-cache",
+                        "Pragma": "no-cache",
                     },
                 )
                 resp.raise_for_status()
