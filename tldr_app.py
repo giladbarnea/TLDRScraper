@@ -27,6 +27,8 @@ def get_tldr_prompt_template() -> str:
     return tldr_service.fetch_tldr_prompt_template()
 
 
+# Flow: serve.py/cli -> tldr_app -> tldr_service -> summarizer.summarize_url
+# (blob cache orchestrates cache-only hits, otherwise url_to_markdown + OpenAI)
 def summarize_url(
     url: str,
     *,
@@ -60,6 +62,7 @@ def summarize_url(
     return payload
 
 
+# Flow mirrors summarize_url but targets TLDR prompt + blob pathnames
 def tldr_url(
     url: str,
     *,
@@ -196,6 +199,8 @@ def invalidate_cache_in_date_range(
 
 
 def invalidate_cache_for_date(date_text: Optional[str]) -> dict:
+    # Sequence: gather cached day JSON -> derive canonical article paths ->
+    # delete per-URL content/summaries before removing the day aggregate
     if not date_text:
         raise ValueError("date is required")
 
