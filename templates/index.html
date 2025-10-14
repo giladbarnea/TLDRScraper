@@ -7,7 +7,6 @@
     <meta name="color-scheme" content="light">
 
     <!-- Unified Whitey (Light) reading surface: desktop-faithful + mobile refinements -->
-    <link rel="stylesheet" href="/static/whitey.css">
 
     <!-- Vollkorn (optional; matches Whitey) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
@@ -15,6 +14,173 @@
     <link href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
+        #write {
+            font-size: 19px;
+            max-width: 960px;
+            margin: 0 auto 2em;
+            padding-top: 40px;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            color: var(--whitey-text);
+            font-family: "Vollkorn", Palatino, Times;
+            line-height: 1.53;
+            text-align: left;
+            background: transparent;
+        }
+
+        :root {
+            --whitey-text: #333;
+            --whitey-link: #2484c1;
+            --whitey-divider: #2f2f2f;
+            --whitey-rule: #ddd;
+            --whitey-s-1: 0.5rem;
+            --whitey-s-2: 1rem;
+            --whitey-s-3: 1.5rem;
+            --whitey-s-4: 2.5rem;
+        }
+
+        @media only screen and (min-width: 1400px) {
+            #write {
+                max-width: 1100px;
+            }
+        }
+
+        #write h1,
+        #write h2,
+        #write h3 {
+            text-align: center;
+            font-weight: normal;
+            color: var(--whitey-text);
+        }
+
+        #write h1 {
+            margin-top: 1.6em;
+            font-size: 3em;
+        }
+
+        #write h2 {
+            margin-top: 2em;
+        }
+
+        #write h3 {
+            margin-top: 3em;
+            font-style: italic;
+        }
+
+        #write h1 + h2,
+        #write h2 + h3 {
+            margin-top: 0.83em;
+        }
+
+        #write h2::after {
+            border-bottom: 1px solid var(--whitey-divider);
+            content: '';
+            width: 100px;
+            display: block;
+            margin: 0.4em auto 0;
+            height: 1px;
+        }
+
+        #write p {
+            margin-top: 0;
+            -webkit-hyphens: auto;
+            -moz-hyphens: auto;
+            hyphens: auto;
+        }
+
+        #write em,
+        #write i {
+            font-style: italic;
+        }
+
+        #write strong,
+        #write b {
+            font-weight: bold;
+        }
+
+        #write ul {
+            list-style: square;
+            padding-left: 1.2em;
+        }
+
+        #write ol {
+            padding-left: 1.2em;
+        }
+
+        #write .article-list {
+            padding-left: 0;
+            margin-left: 0;
+        }
+
+        #write blockquote {
+            margin-left: 1em;
+            padding-left: 1em;
+            border-left: 1px solid var(--whitey-rule);
+        }
+
+        #write a {
+            color: var(--whitey-link);
+            text-decoration: none;
+        }
+
+        #write a:hover {
+            text-decoration: underline;
+        }
+
+        #write hr {
+            color: var(--whitey-rule);
+            height: 1px;
+            margin: 2em 0;
+            border-top: solid 1px var(--whitey-rule);
+            border-bottom: 0;
+            border-left: 0;
+            border-right: 0;
+        }
+
+        @media print {
+            #write {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 42em) {
+            #write {
+                font-size: clamp(16px, 0.95rem + 0.6vw, 18px);
+                line-height: 1.6;
+                padding-left: 0;
+                padding-right: 0;
+            }
+
+            #write h1 {
+                font-size: clamp(2rem, 7vw, 2.6rem);
+                line-height: 1.15;
+                margin: var(--whitey-s-4) 0 var(--whitey-s-2);
+            }
+
+            #write h2 {
+                font-size: clamp(1.5rem, 5.5vw, 2rem);
+                line-height: 1.25;
+                margin: var(--whitey-s-4) 0 var(--whitey-s-1);
+            }
+
+            #write h3 {
+                font-size: clamp(1.25rem, 4.5vw, 1.6rem);
+                line-height: 1.3;
+                margin: var(--whitey-s-3) 0 var(--whitey-s-1);
+            }
+
+            #write h2::after {
+                width: 64px;
+            }
+
+            #write p,
+            #write ul,
+            #write ol,
+            #write blockquote {
+                margin-bottom: var(--whitey-s-2);
+            }
+        }
+
         :root {
             --bg: #f6f7f9;
             --surface: #ffffff;
