@@ -200,8 +200,8 @@ function main() {
 
 Cursor Agent configuration:
 - CURSOR_API_KEY detected in the environment. Use it with 'cursor-agent' instead of logging in.
-- To keep cursor-agent non-interactive, run 'cursor-agent --help' and 'cursor-agent <subcommand> --help' before scripting commands.
-- Do not run bare 'cursor-agent'; prefer explicit subcommands.
+- To keep cursor-agent non-interactive, Do not run bare 'cursor-agent'; run 'cursor-agent --help' and 'cursor-agent <subcommand> --help' to understand how to prompt as if in a script (programmatically).
+- Use Claude Sonnet 4.5 when choosing a model.
 "
   fi
 }
