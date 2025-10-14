@@ -26,9 +26,19 @@ def get_removed_urls() -> Set[str]:
         resp = requests.get(
             blob_url,
             timeout=10,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache",
+            },
         )
         resp.raise_for_status()
+        util.log(
+            f"[removed_urls.get_removed_urls] "
+            f"x-vercel-cache={resp.headers.get('x-vercel-cache')} "
+            f"age={resp.headers.get('age')} etag={resp.headers.get('etag')}",
+            logger=logger,
+        )
         util.log(
             f"[removed_urls.get_removed_urls] Cache HIT pathname={REMOVED_URLS_PATHNAME}",
             logger=logger,
