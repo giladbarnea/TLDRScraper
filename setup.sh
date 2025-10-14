@@ -116,8 +116,8 @@ function ensure_cursor_agent(){
         return 1
     fi
 
-    message "[setup.sh ensure_cursor_agent] Installing cursor-agent with 'curl https://cursor.com/install -fsS | bash'" >&2
-    if ! curl https://cursor.com/install -fsS | bash; then
+    message "[setup.sh ensure_cursor_agent] Installing cursor-agent with cursor-agent-install.sh" >&2
+    if ! bash ./cursor-agent-install.sh; then
         message "[setup.sh ensure_cursor_agent] ERROR: Failed to install cursor-agent." >&2
         return 1
     fi
