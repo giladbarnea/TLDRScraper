@@ -95,7 +95,7 @@ function uv_sync(){
     fi
 }
 
-function ensure_cursor_agent(){
+function ensure_claude_code(){
     local quiet=false
     if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
         quiet=true
@@ -106,29 +106,29 @@ function ensure_cursor_agent(){
     fi
 
     ensure_local_bin_path "$quiet"
-    if isdefined cursor-agent; then
+    if isdefined claude; then
         local version_output
-        if version_output=$(cursor-agent --version 2>&1); then
-            [[ "$quiet" == false ]] && message "[setup.sh ensure_cursor_agent] cursor-agent already installed: $(decolor "$version_output")"
+        if version_output=$(claude --version 2>&1); then
+            [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_code] claude code already installed: $(decolor "$version_output")"
             return 0
         fi
-        message "[setup.sh ensure_cursor_agent] cursor-agent detected but failed to run 'cursor-agent --version'." >&2
+        message "[setup.sh ensure_claude_code] claude code detected but failed to run 'claude --version'." >&2
         return 1
     fi
 
-    message "[setup.sh ensure_cursor_agent] Installing cursor-agent with cursor-agent-install.sh" >&2
-    if ! bash ./cursor-agent-install.sh; then
-        message "[setup.sh ensure_cursor_agent] ERROR: Failed to install cursor-agent." >&2
+    message "[setup.sh ensure_claude_code] Installing claude code with 'npm install -g @anthropic-ai/claude-code'" >&2
+    if ! npm install -g @anthropic-ai/claude-code; then
+        message "[setup.sh ensure_claude_code] ERROR: Failed to install claude code." >&2
         return 1
     fi
 
     local version_output
-    if version_output=$(cursor-agent --version 2>&1); then
-        [[ "$quiet" == false ]] && message "[setup.sh ensure_cursor_agent] Installed cursor-agent: $(decolor "$version_output")"
+    if version_output=$(claude --version 2>&1); then
+        [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_code] Installed claude code: $(decolor "$version_output")"
         return 0
     fi
 
-    message "[setup.sh ensure_cursor_agent] ERROR: cursor-agent installed but 'cursor-agent --version' failed." >&2
+    message "[setup.sh ensure_claude_code] ERROR: claude code installed but 'claude --version' failed." >&2
     return 1
 }
 
@@ -158,12 +158,12 @@ function main() {
 
 
   [[ "$quiet" == false ]] && message "[setup.sh main] Ensuring dependencies..."
-  local ensure_uv_success=true uv_sync_success=true ensure_cursor_success=true
+  local ensure_uv_success=true uv_sync_success=true ensure_claude_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
-  ensure_cursor_agent --quiet="$quiet" || ensure_cursor_success=false
+  ensure_claude_code --quiet="$quiet" || ensure_claude_success=false
 
-  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_cursor_success"; then
+  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_claude_success"; then
     message "[setup.sh main] Failed to install dependencies. Please check the output above." >&2
     return 1
   fi
@@ -174,13 +174,13 @@ function main() {
         eval export "$line"
       done
   fi
-  local env_vars="$(env | egrep '(CURSOR|OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
+  local env_vars="$(env | egrep '(ANTHROPIC|OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
   local -a env_var_names=(
     'BLOB_READ_WRITE_TOKEN'
     'BLOB_STORE_BASE_URL'
     'GITHUB_API_TOKEN'
     'OPENAI_API_TOKEN'
-    'CURSOR_API_KEY'
+    'ANTHROPIC_API_KEY'
   )
   local -a env_vars_missing=()
   local env_var_name
@@ -198,9 +198,12 @@ function main() {
 
 **Use cli.py sparingly to verify your work.**
 
-Cursor Agent configuration:
-- CURSOR_API_KEY detected in the environment. Use it with 'cursor-agent' instead of logging in.
-- To keep cursor-agent non-interactive, Do not run bare 'cursor-agent'; run 'cursor-agent --help' and 'cursor-agent <subcommand> --help' to understand how to prompt as if in a script (programmatically).
+Claude code configuration:
+- ANTHROPIC_API_KEY detected in the environment. Use it with 'claude' instead of logging in.
+- Base command is 'claude'. To keep claude code non-interactive, do not run bare 'claude'; run 'claude --help' and 'claude <subcommand> --help' recursively to understand scripted usage.
+- Verify the installation with 'claude --version'.
+- '--dangerously-skip-permissions' bypasses Claude's permission prompts; only use it in trusted sandboxes.
+- Example invocation: claude --print --dangerously-skip-permissions "\$(cat /tmp/ad-hoc-tmp-prompt-file.md)"
 - Use Claude Sonnet 4.5 when choosing a model.
 "
   fi
