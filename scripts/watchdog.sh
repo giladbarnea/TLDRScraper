@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 WORKDIR="${WORKDIR:-$PWD}"
 PID_FILE="$WORKDIR/.run/server.pid"
 LOG_FILE="$WORKDIR/server.log"
