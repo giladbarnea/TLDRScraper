@@ -2,6 +2,8 @@
 # SOURCE this file, don't run it.
 set -o pipefail
 
+export WORKDIR="${WORKDIR:-$PWD}"
+
 isdefined(){
     command -v "$1" 2>&1 1>/dev/null
 }
