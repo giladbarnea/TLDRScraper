@@ -269,13 +269,12 @@ function main() {
         eval export "$line"
       done
   fi
-  local env_vars="$(env | egrep '(ANTHROPIC|OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
+  local env_vars="$(env | egrep '(OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
   local -a env_var_names=(
     'BLOB_READ_WRITE_TOKEN'
     'BLOB_STORE_BASE_URL'
     'GITHUB_API_TOKEN'
-    'OPENAI_API_TOKEN'
-    'ANTHROPIC_API_KEY'
+    'OPENAI_API_KEY'
   )
   local -a env_vars_missing=()
   local env_var_name
@@ -294,8 +293,8 @@ function main() {
 **Use cli.py frequently to verify your work.**
 
 Codex configuration:
-- OPENAI_API_TOKEN detected in the environment. Use it with 'codex' instead of logging in.
-- Base command is 'codex'. To keep codex non-interactive, do not run bare 'codex'.
+- OPENAI_API_KEY detected in the environment. It is implicitly used by 'codex'.
+- Never run 'codex' in an interactive mode, because You cannot input key presses.
 - Verify the installation with 'codex --version'.
 - Always use the '--dangerously-bypass-approvals-and-sandbox' cli option when invoking codex.
 - Always use codex with the 'exec' subcommand which ensures a non-interactive command.
