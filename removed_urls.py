@@ -1,6 +1,7 @@
+import contextvars
 import logging
 import json
-from typing import Set
+from typing import Optional, Set, Tuple
 import requests
 
 import util
@@ -8,14 +9,20 @@ import util
 logger = logging.getLogger("removed_urls")
 
 REMOVED_URLS_PATHNAME = "removed-urls.json"
+REMOVED_URLS_CONTEXT: contextvars.ContextVar[Optional[Set[str]]] = contextvars.ContextVar(
+    "removed_urls_context", default=None
+)
 
 
-def get_removed_urls() -> Set[str]:
-    """Fetch the set of removed canonical URLs from blob store."""
+def _set_context_removed_urls(urls: Set[str]) -> None:
+    REMOVED_URLS_CONTEXT.set(set(urls))
+
+
+def _fetch_removed_urls_from_blob_store() -> Tuple[Set[str], bool]:
     blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
 
     if not blob_base_url:
-        return set()
+        return set(), True
 
     blob_url = f"{blob_base_url}/{REMOVED_URLS_PATHNAME}"
     try:
@@ -45,15 +52,27 @@ def get_removed_urls() -> Set[str]:
         )
         data = json.loads(resp.text)
         if isinstance(data, list):
-            return set(data)
-        return set()
+            return set(data), True
+        return set(), True
     except Exception as e:
         util.log(
             f"[removed_urls.get_removed_urls] Cache MISS pathname={REMOVED_URLS_PATHNAME} error={repr(e)}",
             level=logging.WARNING,
             logger=logger,
         )
-        return set()
+        return set(), False
+
+
+def get_removed_urls() -> Set[str]:
+    """Fetch the set of removed canonical URLs, favoring the context cache."""
+    context_removed_urls = REMOVED_URLS_CONTEXT.get()
+    if context_removed_urls is not None:
+        return set(context_removed_urls)
+
+    removed_urls, fetch_successful = _fetch_removed_urls_from_blob_store()
+    if fetch_successful:
+        _set_context_removed_urls(removed_urls)
+    return set(removed_urls)
 
 
 def add_removed_url(url: str) -> bool:
@@ -69,7 +88,10 @@ def add_removed_url(url: str) -> bool:
             f"[removed_urls.add_removed_url] Added url={url} pathname={REMOVED_URLS_PATHNAME}",
             logger=logger,
         )
-        persisted_removed = get_removed_urls()
+        _set_context_removed_urls(removed)
+        persisted_removed, persisted_fetch_successful = _fetch_removed_urls_from_blob_store()
+        if persisted_fetch_successful:
+            _set_context_removed_urls(persisted_removed)
         if url in persisted_removed:
             util.log(
                 f"[removed_urls.add_removed_url] ✓ Verified url={url} persisted in pathname={REMOVED_URLS_PATHNAME}",
