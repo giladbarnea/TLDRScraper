@@ -96,14 +96,14 @@ function uv_sync(){
 }
 
 function ensure_claude_code(){
-    local quiet=false
-    if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
-        quiet=true
+        local quiet=false
+        if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+                quiet=true
     elif [[ "$1" == "--quiet=true" ]]; then
         quiet=true
     elif [[ "$1" == "--quiet=false" ]]; then
         quiet=false
-    fi
+        fi
 
     ensure_local_bin_path "$quiet"
     if isdefined claude; then
@@ -132,6 +132,65 @@ function ensure_claude_code(){
     return 1
 }
 
+function ensure_claude_settings(){
+    local quiet=false
+    if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=true" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=false" ]]; then
+        quiet=false
+    fi
+
+    local claude_dir="$HOME/.claude"
+    if ! mkdir -p "$claude_dir"; then
+        message "[setup.sh ensure_claude_settings] ERROR: Failed to create $claude_dir." >&2
+        return 1
+    fi
+
+    local settings_path="$claude_dir/settings.json"
+    if [[ ! -s "$settings_path" ]]; then
+        if ! cat <<'JSON' > "$settings_path"; then
+{
+  
+  "permissions": {
+      "defaultMode": "bypassPermissions"
+  },
+  "env": {
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
+    "DISABLE_AUTOUPDATER": 1,
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": 1,
+    "DISABLE_TELEMETRY": 1
+  }
+}
+JSON
+            message "[setup.sh ensure_claude_settings] ERROR: Failed to write $settings_path." >&2
+            return 1
+        fi
+        [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_settings] Wrote default settings to $settings_path"
+    else
+        [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_settings] $settings_path already exists and is non-empty"
+    fi
+
+    local claude_config_path="$claude_dir/claude.json"
+    if [[ ! -s "$claude_config_path" ]]; then
+        if ! cat <<'JSON' > "$claude_config_path"; then
+{
+"hasTrustDialogHooksAccepted": true,
+"hasCompletedOnboarding": true
+}
+JSON
+            message "[setup.sh ensure_claude_settings] ERROR: Failed to write $claude_config_path." >&2
+            return 1
+        fi
+        [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_settings] Wrote default settings to $claude_config_path"
+    else
+        [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_settings] $claude_config_path already exists and is non-empty"
+    fi
+
+    return 0
+}
+
 
 # main [-q,-quiet]
 # Idempotent environment and dependencies setup and verification.
@@ -158,12 +217,13 @@ function main() {
 
 
   [[ "$quiet" == false ]] && message "[setup.sh main] Ensuring dependencies..."
-  local ensure_uv_success=true uv_sync_success=true ensure_claude_success=true
+  local ensure_uv_success=true uv_sync_success=true ensure_claude_success=true ensure_claude_settings_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
   ensure_claude_code --quiet="$quiet" || ensure_claude_success=false
+  ensure_claude_settings --quiet="$quiet" || ensure_claude_settings_success=false
 
-  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_claude_success"; then
+  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_claude_success" || ! "$ensure_claude_settings_success"; then
     message "[setup.sh main] Failed to install dependencies. Please check the output above." >&2
     return 1
   fi
