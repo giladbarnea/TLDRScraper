@@ -276,7 +276,7 @@ function main() {
     'BLOB_READ_WRITE_TOKEN'
     'BLOB_STORE_BASE_URL'
     'GITHUB_API_TOKEN'
-    'OPENAI_API_KEY'
+    'OPENAI_API_TOKEN'
     'ANTHROPIC_API_KEY'
   )
   local -a env_vars_missing=()
@@ -304,7 +304,7 @@ Claude code configuration:
 - Use Claude Sonnet 4.5 when choosing a model.
 
 Codex configuration:
-- OPENAI_API_KEY detected in the environment. Use it with 'codex' instead of logging in.
+- OPENAI_API_TOKEN detected in the environment. Use it with 'codex' instead of logging in.
 - Base command is 'codex'. To keep codex non-interactive, do not run bare 'codex'.
 - Verify the installation with 'codex --version'.
 - Always use the '--dangerously-bypass-approvals-and-sandbox' cli option when invoking codex.
