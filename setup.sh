@@ -95,42 +95,101 @@ function uv_sync(){
     fi
 }
 
-function ensure_claude_code(){
-        local quiet=false
-        if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
-                quiet=true
-    elif [[ "$1" == "--quiet=true" ]]; then
-        quiet=true
-    elif [[ "$1" == "--quiet=false" ]]; then
-        quiet=false
-        fi
+# function ensure_claude_code(){
+#         local quiet=false
+#         if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+#                 quiet=true
+#     elif [[ "$1" == "--quiet=true" ]]; then
+#         quiet=true
+#     elif [[ "$1" == "--quiet=false" ]]; then
+#         quiet=false
+#         fi
 
-    ensure_local_bin_path "$quiet"
-    if isdefined claude; then
-        local version_output
-        if version_output=$(claude --version 2>&1); then
-            [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_code] claude code already installed: $(decolor "$version_output")"
-            return 0
-        fi
-        message "[setup.sh ensure_claude_code] claude code detected but failed to run 'claude --version'." >&2
-        return 1
-    fi
+#     ensure_local_bin_path "$quiet"
+#     if isdefined claude; then
+#         local version_output
+#         if version_output=$(claude --version 2>&1); then
+#             [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_code] claude code already installed: $(decolor "$version_output")"
+#             return 0
+#         fi
+#         message "[setup.sh ensure_claude_code] claude code detected but failed to run 'claude --version'." >&2
+#         return 1
+#     fi
 
-    message "[setup.sh ensure_claude_code] Installing claude code with 'npm install -g @anthropic-ai/claude-code'" >&2
-    if ! npm install -g @anthropic-ai/claude-code; then
-        message "[setup.sh ensure_claude_code] ERROR: Failed to install claude code." >&2
-        return 1
-    fi
+#     message "[setup.sh ensure_claude_code] Installing claude code with 'npm install -g @anthropic-ai/claude-code'" >&2
+#     if ! npm install -g @anthropic-ai/claude-code; then
+#         message "[setup.sh ensure_claude_code] ERROR: Failed to install claude code." >&2
+#         return 1
+#     fi
 
-    local version_output
-    if version_output=$(claude --version 2>&1); then
-        [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_code] Installed claude code: $(decolor "$version_output")"
-        return 0
-    fi
+#     local version_output
+#     if version_output=$(claude --version 2>&1); then
+#         [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_code] Installed claude code: $(decolor "$version_output")"
+#         return 0
+#     fi
 
-    message "[setup.sh ensure_claude_code] ERROR: claude code installed but 'claude --version' failed." >&2
-    return 1
-}
+#     message "[setup.sh ensure_claude_code] ERROR: claude code installed but 'claude --version' failed." >&2
+#     return 1
+# }
+
+# function ensure_claude_settings(){
+#     local quiet=false
+#     if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+#         quiet=true
+#     elif [[ "$1" == "--quiet=true" ]]; then
+#         quiet=true
+#     elif [[ "$1" == "--quiet=false" ]]; then
+#         quiet=false
+#     fi
+
+#     local claude_dir="$HOME/.claude"
+#     if ! mkdir -p "$claude_dir"; then
+#         message "[setup.sh ensure_claude_settings] ERROR: Failed to create $claude_dir." >&2
+#         return 1
+#     fi
+
+#     local settings_path="$claude_dir/settings.json"
+#     if [[ ! -s "$settings_path" ]]; then
+#         if ! cat <<'JSON' > "$settings_path"; then
+# {
+  
+#   "permissions": {
+#       "defaultMode": "bypassPermissions"
+#   },
+#   "env": {
+#     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
+#     "DISABLE_AUTOUPDATER": 1,
+#     "DISABLE_NON_ESSENTIAL_MODEL_CALLS": 1,
+#     "DISABLE_TELEMETRY": 1
+#   }
+# }
+# JSON
+#             message "[setup.sh ensure_claude_settings] ERROR: Failed to write $settings_path." >&2
+#             return 1
+#         fi
+#         [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_settings] Wrote default settings to $settings_path"
+#     else
+#         [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_settings] $settings_path already exists and is non-empty"
+#     fi
+
+#     local claude_config_path="$claude_dir/claude.json"
+#     if [[ ! -s "$claude_config_path" ]]; then
+#         if ! cat <<'JSON' > "$claude_config_path"; then
+# {
+# "hasTrustDialogHooksAccepted": true,
+# "hasCompletedOnboarding": true
+# }
+# JSON
+#             message "[setup.sh ensure_claude_settings] ERROR: Failed to write $claude_config_path." >&2
+#             return 1
+#         fi
+#         [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_settings] Wrote default settings to $claude_config_path"
+#     else
+#         [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_settings] $claude_config_path already exists and is non-empty"
+#     fi
+
+#     return 0
+# }
 
 function ensure_codex(){
         local quiet=false
@@ -169,65 +228,6 @@ function ensure_codex(){
     return 1
 }
 
-function ensure_claude_settings(){
-    local quiet=false
-    if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
-        quiet=true
-    elif [[ "$1" == "--quiet=true" ]]; then
-        quiet=true
-    elif [[ "$1" == "--quiet=false" ]]; then
-        quiet=false
-    fi
-
-    local claude_dir="$HOME/.claude"
-    if ! mkdir -p "$claude_dir"; then
-        message "[setup.sh ensure_claude_settings] ERROR: Failed to create $claude_dir." >&2
-        return 1
-    fi
-
-    local settings_path="$claude_dir/settings.json"
-    if [[ ! -s "$settings_path" ]]; then
-        if ! cat <<'JSON' > "$settings_path"; then
-{
-  
-  "permissions": {
-      "defaultMode": "bypassPermissions"
-  },
-  "env": {
-    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
-    "DISABLE_AUTOUPDATER": 1,
-    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": 1,
-    "DISABLE_TELEMETRY": 1
-  }
-}
-JSON
-            message "[setup.sh ensure_claude_settings] ERROR: Failed to write $settings_path." >&2
-            return 1
-        fi
-        [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_settings] Wrote default settings to $settings_path"
-    else
-        [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_settings] $settings_path already exists and is non-empty"
-    fi
-
-    local claude_config_path="$claude_dir/claude.json"
-    if [[ ! -s "$claude_config_path" ]]; then
-        if ! cat <<'JSON' > "$claude_config_path"; then
-{
-"hasTrustDialogHooksAccepted": true,
-"hasCompletedOnboarding": true
-}
-JSON
-            message "[setup.sh ensure_claude_settings] ERROR: Failed to write $claude_config_path." >&2
-            return 1
-        fi
-        [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_settings] Wrote default settings to $claude_config_path"
-    else
-        [[ "$quiet" == false ]] && message "[setup.sh ensure_claude_settings] $claude_config_path already exists and is non-empty"
-    fi
-
-    return 0
-}
-
 # main [-q,-quiet]
 # Idempotent environment and dependencies setup and verification.
 function main() {
@@ -253,14 +253,12 @@ function main() {
 
 
   [[ "$quiet" == false ]] && message "[setup.sh main] Ensuring dependencies..."
-  local ensure_uv_success=true uv_sync_success=true ensure_claude_success=true ensure_claude_settings_success=true ensure_codex_success=true
+  local ensure_uv_success=true uv_sync_success=true ensure_codex_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
-  ensure_claude_code --quiet="$quiet" || ensure_claude_success=false
-  ensure_claude_settings --quiet="$quiet" || ensure_claude_settings_success=false
   ensure_codex --quiet="$quiet" || ensure_codex_success=false
 
-  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_claude_success" || ! "$ensure_claude_settings_success" || ! "$ensure_codex_success"; then
+  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_codex_success"; then
     message "[setup.sh main] Failed to install dependencies. Please check the output above." >&2
     return 1
   fi
@@ -293,15 +291,7 @@ function main() {
   if [[ "$quiet" == false ]]; then
     message "[setup.sh main] Setup complete successfully. Available: $env_vars.
 
-**Use cli.py sparingly to verify your work.**
-
-Claude code configuration:
-- ANTHROPIC_API_KEY detected in the environment. Use it with 'claude' instead of logging in.
-- Base command is 'claude'. To keep claude code non-interactive, do not run bare 'claude'; run 'claude --help' and 'claude <subcommand> --help' recursively to understand scripted usage.
-- Verify the installation with 'claude --version'.
-- '--dangerously-skip-permissions' bypasses Claude's permission prompts; only use it in trusted sandboxes.
-- Example invocation: claude --print --dangerously-skip-permissions \"\$(cat /tmp/ad-hoc-tmp-prompt-file.md)\"
-- Use Claude Sonnet 4.5 when choosing a model.
+**Use cli.py frequently to verify your work.**
 
 Codex configuration:
 - OPENAI_API_TOKEN detected in the environment. Use it with 'codex' instead of logging in.
