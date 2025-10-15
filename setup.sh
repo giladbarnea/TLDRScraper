@@ -228,66 +228,6 @@ JSON
     return 0
 }
 
-function ensure_codex_settings(){
-    local quiet=false
-    if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
-        quiet=true
-    elif [[ "$1" == "--quiet=true" ]]; then
-        quiet=true
-    elif [[ "$1" == "--quiet=false" ]]; then
-        quiet=false
-    fi
-
-    local codex_dir="$HOME/.codex"
-    if ! mkdir -p "$codex_dir"; then
-        message "[setup.sh ensure_codex_settings] ERROR: Failed to create $codex_dir." >&2
-        return 1
-    fi
-
-    local settings_path="$codex_dir/settings.json"
-    if [[ ! -s "$settings_path" ]]; then
-        if ! cat <<'JSON' > "$settings_path"; then
-{
-
-  "permissions": {
-      "defaultMode": "bypassApprovalsAndSandbox"
-  },
-  "env": {
-    "CODEX_DISABLE_NONESSENTIAL_TRAFFIC": 1,
-    "CODEX_DISABLE_AUTOUPDATER": 1,
-    "CODEX_DISABLE_NON_ESSENTIAL_MODEL_CALLS": 1,
-    "CODEX_DISABLE_TELEMETRY": 1
-  }
-}
-JSON
-            message "[setup.sh ensure_codex_settings] ERROR: Failed to write $settings_path." >&2
-            return 1
-        fi
-        [[ "$quiet" == false ]] && message "[setup.sh ensure_codex_settings] Wrote default settings to $settings_path"
-    else
-        [[ "$quiet" == false ]] && message "[setup.sh ensure_codex_settings] $settings_path already exists and is non-empty"
-    fi
-
-    local codex_config_path="$codex_dir/codex.json"
-    if [[ ! -s "$codex_config_path" ]]; then
-        if ! cat <<'JSON' > "$codex_config_path"; then
-{
-"hasTrustDialogHooksAccepted": true,
-"hasCompletedOnboarding": true
-}
-JSON
-            message "[setup.sh ensure_codex_settings] ERROR: Failed to write $codex_config_path." >&2
-            return 1
-        fi
-        [[ "$quiet" == false ]] && message "[setup.sh ensure_codex_settings] Wrote default settings to $codex_config_path"
-    else
-        [[ "$quiet" == false ]] && message "[setup.sh ensure_codex_settings] $codex_config_path already exists and is non-empty"
-    fi
-
-    return 0
-}
-
-
 # main [-q,-quiet]
 # Idempotent environment and dependencies setup and verification.
 function main() {
@@ -313,15 +253,14 @@ function main() {
 
 
   [[ "$quiet" == false ]] && message "[setup.sh main] Ensuring dependencies..."
-  local ensure_uv_success=true uv_sync_success=true ensure_claude_success=true ensure_claude_settings_success=true ensure_codex_success=true ensure_codex_settings_success=true
+  local ensure_uv_success=true uv_sync_success=true ensure_claude_success=true ensure_claude_settings_success=true ensure_codex_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
   ensure_claude_code --quiet="$quiet" || ensure_claude_success=false
   ensure_claude_settings --quiet="$quiet" || ensure_claude_settings_success=false
   ensure_codex --quiet="$quiet" || ensure_codex_success=false
-  ensure_codex_settings --quiet="$quiet" || ensure_codex_settings_success=false
 
-  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_claude_success" || ! "$ensure_claude_settings_success" || ! "$ensure_codex_success" || ! "$ensure_codex_settings_success"; then
+  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_claude_success" || ! "$ensure_claude_settings_success" || ! "$ensure_codex_success"; then
     message "[setup.sh main] Failed to install dependencies. Please check the output above." >&2
     return 1
   fi
@@ -332,7 +271,7 @@ function main() {
         eval export "$line"
       done
   fi
-  local env_vars="$(env | egrep '(ANTHROPIC|OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
+  local env_vars="$(env | egrep '(ANTHROPIC|OPENAI_API_KEY|OPENAI_API_TOKEN|OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
   local -a env_var_names=(
     'BLOB_READ_WRITE_TOKEN'
     'BLOB_STORE_BASE_URL'
@@ -369,9 +308,11 @@ Codex configuration:
 - OPENAI_API_KEY detected in the environment. Use it with 'codex' instead of logging in.
 - Base command is 'codex'. To keep codex non-interactive, do not run bare 'codex'; run 'codex --help' and 'codex <subcommand> --help' recursively to understand scripted usage.
 - Verify the installation with 'codex --version'.
-- '--dangerously-bypass-approvals-and-sandbox' bypasses Codex approval prompts; only use it in trusted sandboxes.
-- Example invocation: codex --print --dangerously-bypass-approvals-and-sandbox \"\$(cat /tmp/ad-hoc-tmp-prompt-file.md)\"
-- Use GPT-4.1 when choosing a model.
+- Always use the '--dangerously-bypass-approvals-and-sandbox' cli option when invoking codex.
+- Always use codex with the 'exec' subcommand which ensures a non-interactive command.
+- Basic invocation: `codex exec --dangerously-bypass-approvals-and-sandbox \"\$(cat /tmp/ad-hoc-tmp-prompt-file.md)\"`
+- You are encouraged to explore additional cmdline codex usages by running 'codex --help' and multiple relevant 'codex <subcommand> --help'
+- Don't specify a model. Let the default be used implicitly.
 "
   fi
 }
