@@ -132,6 +132,43 @@ function ensure_claude_code(){
     return 1
 }
 
+function ensure_codex(){
+        local quiet=false
+        if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+                quiet=true
+    elif [[ "$1" == "--quiet=true" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=false" ]]; then
+        quiet=false
+        fi
+
+    ensure_local_bin_path "$quiet"
+    if isdefined codex; then
+        local version_output
+        if version_output=$(codex --version 2>&1); then
+            [[ "$quiet" == false ]] && message "[setup.sh ensure_codex] codex already installed: $(decolor "$version_output")"
+            return 0
+        fi
+        message "[setup.sh ensure_codex] codex detected but failed to run 'codex --version'." >&2
+        return 1
+    fi
+
+    message "[setup.sh ensure_codex] Installing codex with 'npm install -g @openai/codex'" >&2
+    if ! npm install -g @openai/codex; then
+        message "[setup.sh ensure_codex] ERROR: Failed to install codex." >&2
+        return 1
+    fi
+
+    local version_output
+    if version_output=$(codex --version 2>&1); then
+        [[ "$quiet" == false ]] && message "[setup.sh ensure_codex] Installed codex: $(decolor "$version_output")"
+        return 0
+    fi
+
+    message "[setup.sh ensure_codex] ERROR: codex installed but 'codex --version' failed." >&2
+    return 1
+}
+
 function ensure_claude_settings(){
     local quiet=false
     if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
@@ -191,6 +228,65 @@ JSON
     return 0
 }
 
+function ensure_codex_settings(){
+    local quiet=false
+    if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=true" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=false" ]]; then
+        quiet=false
+    fi
+
+    local codex_dir="$HOME/.codex"
+    if ! mkdir -p "$codex_dir"; then
+        message "[setup.sh ensure_codex_settings] ERROR: Failed to create $codex_dir." >&2
+        return 1
+    fi
+
+    local settings_path="$codex_dir/settings.json"
+    if [[ ! -s "$settings_path" ]]; then
+        if ! cat <<'JSON' > "$settings_path"; then
+{
+
+  "permissions": {
+      "defaultMode": "bypassApprovalsAndSandbox"
+  },
+  "env": {
+    "CODEX_DISABLE_NONESSENTIAL_TRAFFIC": 1,
+    "CODEX_DISABLE_AUTOUPDATER": 1,
+    "CODEX_DISABLE_NON_ESSENTIAL_MODEL_CALLS": 1,
+    "CODEX_DISABLE_TELEMETRY": 1
+  }
+}
+JSON
+            message "[setup.sh ensure_codex_settings] ERROR: Failed to write $settings_path." >&2
+            return 1
+        fi
+        [[ "$quiet" == false ]] && message "[setup.sh ensure_codex_settings] Wrote default settings to $settings_path"
+    else
+        [[ "$quiet" == false ]] && message "[setup.sh ensure_codex_settings] $settings_path already exists and is non-empty"
+    fi
+
+    local codex_config_path="$codex_dir/codex.json"
+    if [[ ! -s "$codex_config_path" ]]; then
+        if ! cat <<'JSON' > "$codex_config_path"; then
+{
+"hasTrustDialogHooksAccepted": true,
+"hasCompletedOnboarding": true
+}
+JSON
+            message "[setup.sh ensure_codex_settings] ERROR: Failed to write $codex_config_path." >&2
+            return 1
+        fi
+        [[ "$quiet" == false ]] && message "[setup.sh ensure_codex_settings] Wrote default settings to $codex_config_path"
+    else
+        [[ "$quiet" == false ]] && message "[setup.sh ensure_codex_settings] $codex_config_path already exists and is non-empty"
+    fi
+
+    return 0
+}
+
 
 # main [-q,-quiet]
 # Idempotent environment and dependencies setup and verification.
@@ -217,13 +313,15 @@ function main() {
 
 
   [[ "$quiet" == false ]] && message "[setup.sh main] Ensuring dependencies..."
-  local ensure_uv_success=true uv_sync_success=true ensure_claude_success=true ensure_claude_settings_success=true
+  local ensure_uv_success=true uv_sync_success=true ensure_claude_success=true ensure_claude_settings_success=true ensure_codex_success=true ensure_codex_settings_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
   ensure_claude_code --quiet="$quiet" || ensure_claude_success=false
   ensure_claude_settings --quiet="$quiet" || ensure_claude_settings_success=false
+  ensure_codex --quiet="$quiet" || ensure_codex_success=false
+  ensure_codex_settings --quiet="$quiet" || ensure_codex_settings_success=false
 
-  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_claude_success" || ! "$ensure_claude_settings_success"; then
+  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_claude_success" || ! "$ensure_claude_settings_success" || ! "$ensure_codex_success" || ! "$ensure_codex_settings_success"; then
     message "[setup.sh main] Failed to install dependencies. Please check the output above." >&2
     return 1
   fi
@@ -240,6 +338,7 @@ function main() {
     'BLOB_STORE_BASE_URL'
     'GITHUB_API_TOKEN'
     'OPENAI_API_TOKEN'
+    'OPENAI_API_KEY'
     'ANTHROPIC_API_KEY'
   )
   local -a env_vars_missing=()
@@ -265,6 +364,14 @@ Claude code configuration:
 - '--dangerously-skip-permissions' bypasses Claude's permission prompts; only use it in trusted sandboxes.
 - Example invocation: claude --print --dangerously-skip-permissions \"\$(cat /tmp/ad-hoc-tmp-prompt-file.md)\"
 - Use Claude Sonnet 4.5 when choosing a model.
+
+Codex configuration:
+- OPENAI_API_KEY detected in the environment. Use it with 'codex' instead of logging in.
+- Base command is 'codex'. To keep codex non-interactive, do not run bare 'codex'; run 'codex --help' and 'codex <subcommand> --help' recursively to understand scripted usage.
+- Verify the installation with 'codex --version'.
+- '--dangerously-bypass-approvals-and-sandbox' bypasses Codex approval prompts; only use it in trusted sandboxes.
+- Example invocation: codex --print --dangerously-bypass-approvals-and-sandbox \"\$(cat /tmp/ad-hoc-tmp-prompt-file.md)\"
+- Use GPT-4.1 when choosing a model.
 "
   fi
 }
