@@ -203,7 +203,7 @@ Claude code configuration:
 - Base command is 'claude'. To keep claude code non-interactive, do not run bare 'claude'; run 'claude --help' and 'claude <subcommand> --help' recursively to understand scripted usage.
 - Verify the installation with 'claude --version'.
 - '--dangerously-skip-permissions' bypasses Claude's permission prompts; only use it in trusted sandboxes.
-- Example invocation: claude --print --dangerously-skip-permissions --model claude-3-5-sonnet-latest "\$(cat /tmp/ad-hoc-tmp-prompt-file.md)"
+- Example invocation: claude --print --dangerously-skip-permissions "\$(cat /tmp/ad-hoc-tmp-prompt-file.md)"
 - Use Claude Sonnet 4.5 when choosing a model.
 "
   fi
