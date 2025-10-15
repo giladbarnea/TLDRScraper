@@ -299,7 +299,7 @@ Codex configuration:
 - Verify the installation with 'codex --version'.
 - Always use the '--dangerously-bypass-approvals-and-sandbox' cli option when invoking codex.
 - Always use codex with the 'exec' subcommand which ensures a non-interactive command.
-- Basic invocation: `codex exec --dangerously-bypass-approvals-and-sandbox \"\$(cat /tmp/ad-hoc-tmp-prompt-file.md)\"`
+- Basic invocation: codex exec --dangerously-bypass-approvals-and-sandbox \"\$(cat /tmp/ad-hoc-tmp-prompt-file.md)\"
 - You are encouraged to explore additional cmdline codex usages by running 'codex --help' and multiple relevant 'codex <subcommand> --help'
 - Don't specify a model. Let the default be used implicitly.
 "
