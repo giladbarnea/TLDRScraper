@@ -271,12 +271,11 @@ function main() {
         eval export "$line"
       done
   fi
-  local env_vars="$(env | egrep '(ANTHROPIC|OPENAI_API_KEY|OPENAI_API_TOKEN|OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
+  local env_vars="$(env | egrep '(ANTHROPIC|OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
   local -a env_var_names=(
     'BLOB_READ_WRITE_TOKEN'
     'BLOB_STORE_BASE_URL'
     'GITHUB_API_TOKEN'
-    'OPENAI_API_TOKEN'
     'OPENAI_API_KEY'
     'ANTHROPIC_API_KEY'
   )
@@ -306,7 +305,7 @@ Claude code configuration:
 
 Codex configuration:
 - OPENAI_API_KEY detected in the environment. Use it with 'codex' instead of logging in.
-- Base command is 'codex'. To keep codex non-interactive, do not run bare 'codex'; run 'codex --help' and 'codex <subcommand> --help' recursively to understand scripted usage.
+- Base command is 'codex'. To keep codex non-interactive, do not run bare 'codex'.
 - Verify the installation with 'codex --version'.
 - Always use the '--dangerously-bypass-approvals-and-sandbox' cli option when invoking codex.
 - Always use codex with the 'exec' subcommand which ensures a non-interactive command.
