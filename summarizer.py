@@ -440,9 +440,9 @@ def _insert_markdown_into_template(template: str, markdown: str) -> str:
 
 def _call_llm(prompt: str, summary_effort: str = "low") -> str:
     """Call OpenAI API with prompt."""
-    api_key = util.resolve_env_var("OPENAI_API_TOKEN", "")
+    api_key = util.resolve_env_var("OPENAI_API_KEY", "")
     if not api_key:
-        raise RuntimeError("OPENAI_API_TOKEN not set")
+        raise RuntimeError("OPENAI_API_KEY not set")
     if not prompt.strip():
         raise ValueError("Prompt is empty")
 
