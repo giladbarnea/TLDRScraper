@@ -306,16 +306,17 @@ def tldr_url(url: str, summary_effort: str = "low") -> str:
     return tldr
 
 
-def _fetch_summarize_prompt(
-    owner: str = "giladbarnea",
-    repo: str = "llm-templates",
-    path: str = "text/summarize.md",
-    ref: str = "main",
+def _fetch_prompt(
+    *,
+    owner: str,
+    repo: str,
+    path: str,
+    ref: str,
+    cache_attr: str,
 ) -> str:
-    """Fetch summarize prompt from GitHub (cached in memory)."""
-    global _PROMPT_CACHE
-    if _PROMPT_CACHE:
-        return _PROMPT_CACHE
+    cache_value = globals().get(cache_attr)
+    if cache_value:
+        return cache_value
 
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={ref}"
 
@@ -328,34 +329,50 @@ def _fetch_summarize_prompt(
     if token:
         headers["Authorization"] = f"token {token}"
 
-    resp = requests.get(url, headers=headers, timeout=10)
+    response = requests.get(url, headers=headers, timeout=10)
 
-    if resp.status_code == 200:
-        _PROMPT_CACHE = resp.text
-        return _PROMPT_CACHE
+    if response.status_code == 200:
+        globals()[cache_attr] = response.text
+        return response.text
 
-    if resp.headers.get("Content-Type", "").startswith("application/json"):
+    if response.headers.get("Content-Type", "").startswith("application/json"):
         import base64
 
-        data = resp.json()
+        data = response.json()
         if isinstance(data, dict) and "content" in data:
-            _PROMPT_CACHE = base64.b64decode(data["content"]).decode(
+            decoded = base64.b64decode(data["content"]).decode(
                 "utf-8", errors="replace"
             )
-            return _PROMPT_CACHE
+            globals()[cache_attr] = decoded
+            return decoded
 
-    # If authenticated request failed, try without authentication
-    if token and resp.status_code == 401:
+    if token and response.status_code == 401:
         headers_no_auth = {
             "Accept": "application/vnd.github.v3.raw",
             "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
         }
-        resp_no_auth = requests.get(url, headers=headers_no_auth, timeout=10)
-        if resp_no_auth.status_code == 200:
-            _PROMPT_CACHE = resp_no_auth.text
-            return _PROMPT_CACHE
+        response_no_auth = requests.get(url, headers=headers_no_auth, timeout=10)
+        if response_no_auth.status_code == 200:
+            globals()[cache_attr] = response_no_auth.text
+            return response_no_auth.text
 
-    raise RuntimeError(f"Failed to fetch summarize.md: {resp.status_code}")
+    raise RuntimeError(f"Failed to fetch {path}: {response.status_code}")
+
+
+def _fetch_summarize_prompt(
+    owner: str = "giladbarnea",
+    repo: str = "llm-templates",
+    path: str = "text/summarize.md",
+    ref: str = "main",
+) -> str:
+    """Fetch summarize prompt from GitHub (cached in memory)."""
+    return _fetch_prompt(
+        owner=owner,
+        repo=repo,
+        path=path,
+        ref=ref,
+        cache_attr="_PROMPT_CACHE",
+    )
 
 
 def _fetch_tldr_prompt(
@@ -365,48 +382,13 @@ def _fetch_tldr_prompt(
     ref: str = "main",
 ) -> str:
     """Fetch TLDR prompt from GitHub (cached in memory)."""
-    global _TLDR_PROMPT_CACHE
-    if _TLDR_PROMPT_CACHE:
-        return _TLDR_PROMPT_CACHE
-
-    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={ref}"
-
-    headers = {
-        "Accept": "application/vnd.github.v3.raw",
-        "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
-    }
-
-    token = util.resolve_env_var("GITHUB_API_TOKEN", "")
-    if token:
-        headers["Authorization"] = f"token {token}"
-
-    resp = requests.get(url, headers=headers, timeout=10)
-
-    if resp.status_code == 200:
-        _TLDR_PROMPT_CACHE = resp.text
-        return _TLDR_PROMPT_CACHE
-
-    if resp.headers.get("Content-Type", "").startswith("application/json"):
-        import base64
-
-        data = resp.json()
-        if isinstance(data, dict) and "content" in data:
-            _TLDR_PROMPT_CACHE = base64.b64decode(data["content"]).decode(
-                "utf-8", errors="replace"
-            )
-            return _TLDR_PROMPT_CACHE
-
-    if token and resp.status_code == 401:
-        headers_no_auth = {
-            "Accept": "application/vnd.github.v3.raw",
-            "User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)",
-        }
-        resp_no_auth = requests.get(url, headers=headers_no_auth, timeout=10)
-        if resp_no_auth.status_code == 200:
-            _TLDR_PROMPT_CACHE = resp_no_auth.text
-            return _TLDR_PROMPT_CACHE
-
-    raise RuntimeError(f"Failed to fetch tldr.md: {resp.status_code}")
+    return _fetch_prompt(
+        owner=owner,
+        repo=repo,
+        path=path,
+        ref=ref,
+        cache_attr="_TLDR_PROMPT_CACHE",
+    )
 
 
 def _insert_markdown_into_template(template: str, markdown: str) -> str:
