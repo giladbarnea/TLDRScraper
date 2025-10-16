@@ -96,7 +96,7 @@ def main() -> None:
     summarize_parser.add_argument("--url", required=True, help="URL to summarize")
     summarize_parser.add_argument(
         "--summary-effort",
-        default="low",
+        default="minimal",
         help="Summary effort (low, medium, high)",
     )
     summarize_parser.add_argument(
@@ -111,7 +111,7 @@ def main() -> None:
     tldr_parser.add_argument("--url", required=True, help="URL to TLDR")
     tldr_parser.add_argument(
         "--summary-effort",
-        default="low",
+        default="minimal",
         help="Summary effort (low, medium, high)",
     )
     tldr_parser.add_argument(
