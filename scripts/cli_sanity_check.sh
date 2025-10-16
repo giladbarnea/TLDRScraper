@@ -42,6 +42,25 @@ log() {
     printf '[cli-sanity] %s\n' "$*"
 }
 
+TRUNCATE_LIMIT=1000
+
+truncate_json_output() {
+    local json_input="$1"
+    printf '%s' "$json_input" | jq -r --argjson limit "$TRUNCATE_LIMIT" '
+        tostring
+        | if length > $limit then .[:$limit] + "...[truncated]" else . end
+    '
+}
+
+truncate_text_output() {
+    printf '%s' "$1" | jq -Rs -r --argjson limit "$TRUNCATE_LIMIT" '
+        if length == 0 then empty
+        elif length > $limit then .[:$limit] + "...[truncated]"
+        else .
+        end
+    '
+}
+
 read -r -a CLI_COMMAND <<<"$CLI_BIN"
 
 run_cli_capture() {
@@ -87,8 +106,9 @@ done
 
 # Scrape endpoint
 SCRAPE_JSON=$(run_cli_capture "$SCRAPE_COMMAND" --start-date "$SCRAPE_START_DATE" --end-date "$SCRAPE_END_DATE")
-log "Scrape response: $SCRAPE_JSON"
 echo "$SCRAPE_JSON" | jq -e '.success == true' >/dev/null
+SCRAPE_LOG_OUTPUT=$(truncate_json_output "$SCRAPE_JSON")
+log "Scrape response: $SCRAPE_LOG_OUTPUT"
 
 # Prompt endpoint
 PROMPT_OUTPUT=$(run_cli_capture "$PROMPT_COMMAND")
@@ -96,12 +116,20 @@ if [[ -z ${PROMPT_OUTPUT//[[:space:]]/} ]]; then
     echo "Prompt output was empty" >&2
     exit 1
 fi
+PROMPT_LOG_OUTPUT=$(truncate_text_output "$PROMPT_OUTPUT")
+if [[ -n "$PROMPT_LOG_OUTPUT" ]]; then
+    log "Prompt output: $PROMPT_LOG_OUTPUT"
+fi
 
 # TLDR Prompt endpoint
 TLDR_PROMPT_OUTPUT=$(run_cli_capture "$TLDR_PROMPT_COMMAND")
 if [[ -z ${TLDR_PROMPT_OUTPUT//[[:space:]]/} ]]; then
     echo "TLDR prompt output was empty" >&2
     exit 1
+fi
+TLDR_PROMPT_LOG_OUTPUT=$(truncate_text_output "$TLDR_PROMPT_OUTPUT")
+if [[ -n "$TLDR_PROMPT_LOG_OUTPUT" ]]; then
+    log "TLDR prompt output: $TLDR_PROMPT_LOG_OUTPUT"
 fi
 
 # Cache mode (GET then set back to reported value)
@@ -131,6 +159,8 @@ echo "$INVALIDATE_DATE_JSON" | jq -e '.success == true' >/dev/null
 # Summarize URL and confirm cache-only retrieval works afterwards
 SUMMARY_JSON=$(run_cli_capture "$SUMMARIZE_COMMAND" --url "$SUMMARY_URL" --summary-effort "$SUMMARY_EFFORT")
 echo "$SUMMARY_JSON" | jq -e '.success == true' >/dev/null
+SUMMARY_LOG_OUTPUT=$(truncate_json_output "$SUMMARY_JSON")
+log "Summarize response: $SUMMARY_LOG_OUTPUT"
 SUMMARY_PATH=$(echo "$SUMMARY_JSON" | jq -r '.summary_blob_pathname // empty')
 if [[ -z "$SUMMARY_PATH" ]]; then
     echo "Summarize command did not return a blob pathname" >&2
@@ -148,6 +178,8 @@ fi
 # TLDR URL and confirm cache-only retrieval works afterwards
 TLDR_JSON=$(run_cli_capture "$TLDR_COMMAND" --url "$SUMMARY_URL" --summary-effort "$SUMMARY_EFFORT")
 echo "$TLDR_JSON" | jq -e '.success == true' >/dev/null
+TLDR_LOG_OUTPUT=$(truncate_json_output "$TLDR_JSON")
+log "TLDR response: $TLDR_LOG_OUTPUT"
 TLDR_PATH=$(echo "$TLDR_JSON" | jq -r '.tldr_blob_pathname // empty')
 if [[ -z "$TLDR_PATH" ]]; then
     echo "TLDR command did not return a blob pathname" >&2
