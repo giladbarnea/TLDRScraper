@@ -7,6 +7,7 @@ Important: cli.py must expose the exact same interfaces to the app logic that se
 from flask import Flask, render_template, request, jsonify
 import logging
 import requests
+from pathlib import Path
 
 import util
 import tldr_app
@@ -14,6 +15,11 @@ import tldr_app
 app = Flask(__name__)
 logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("serve")
+
+_removed_urls_file = Path("removed_urls.json")
+_removed_urls_file.touch(exist_ok=True)
+if not _removed_urls_file.read_text().strip():
+    _removed_urls_file.write_text("[]")
 
 
 @app.route("/")
