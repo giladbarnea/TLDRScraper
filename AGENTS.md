@@ -19,12 +19,12 @@ env | grep -e BLOB -e TLDR -e TOKEN -e API
 
 Rules:
 
-- **Local (Cursor background agents developing the app):** Env vars are prefixed with `TLDR_SCRAPER_` (except `OPENAI_API_TOKEN`, and `GITHUB_API_TOKEN`).
+- **Local (Cursor background agents developing the app):** Env vars are prefixed with `TLDR_SCRAPER_` (except `OPENAI_API_KEY`, and `GITHUB_API_TOKEN`).
 - **Production:** Exactly the same variables but without the `TLDR_SCRAPER_` prefix.
 
 Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_` locally):
 
-- `OPENAI_API_TOKEN`: `sk-...` (unprefixed in all environments)
+- `OPENAI_API_KEY`: `sk-...` (unprefixed in all environments)
 - `GITHUB_API_TOKEN`: `github_pat_...` (unprefixed in all environments)
 - `BLOB_STORE_BASE_URL`: read URL. Use e.g. `<BLOB_STORE_BASE_URL>/<pathname>`
 - `BLOB_READ_WRITE_TOKEN`: `vercel_blob_rw_...`
