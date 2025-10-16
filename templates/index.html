@@ -1764,86 +1764,26 @@
          * SummaryDelivery handles inline summary retrieval, honoring cache-only hints and live fetches from the summarize endpoint.
          */
         // #region -------[ SummaryDelivery ]-------
-        async function ensureTldrAvailability(card, summaryEffort) {
-            if (!card || !card.isConnected) return;
-
-            const tldrBtn = card.querySelector('.tldr-btn');
-            if (!tldrBtn) return;
-            if (tldrBtn.classList.contains('loaded')) return;
-
-            if (getCardSummaryEffort(card) !== summaryEffort) {
-                return;
-            }
-
-            const existingTldr = card.getAttribute('data-tldr');
-            if (existingTldr) {
-                tldrBtn.classList.add('loaded');
-                if (!tldrBtn.classList.contains('expanded')) {
-                    tldrBtn.innerHTML = 'Available';
-                    tldrBtn.title = 'TLDR cached - click to show';
+        function getCardsForRecentDates() {
+            const cardsByDate = {};
+            document.querySelectorAll('.article-card').forEach(card => {
+                const date = card.getAttribute('data-date');
+                if (!date) return;
+                if (!cardsByDate[date]) {
+                    cardsByDate[date] = [];
                 }
-                return;
-            }
+                cardsByDate[date].push(card);
+            });
 
-            const url = card.getAttribute('data-url');
-            if (!url) return;
-
-            try {
-                const resp = await fetch('/api/tldr-url', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        url: url,
-                        cache_only: true,
-                        summary_effort: summaryEffort
-                    })
-                });
-                const data = await resp.json();
-
-                if (!card.isConnected) {
-                    return;
-                }
-
-                if (getCardSummaryEffort(card) !== summaryEffort) {
-                    return;
-                }
-
-                if (!data.success) {
-                    return;
-                }
-
-                card.setAttribute('data-tldr', data.tldr_markdown || '');
-                tldrBtn.classList.add('loaded');
-                if (!tldrBtn.classList.contains('expanded')) {
-                    tldrBtn.innerHTML = 'Available';
-                    tldrBtn.title = 'TLDR cached - click to show';
-                }
-            } catch (error) {
-                console.debug('TLDR availability check failed for', url, error);
-            }
+            return Object.keys(cardsByDate)
+                .sort()
+                .reverse()
+                .slice(0, 2)
+                .flatMap(date => cardsByDate[date]);
         }
 
         async function loadSummaries() {
-            const allCards = Array.from(document.querySelectorAll('.article-card'));
-
-            const cardsByDate = {};
-            allCards.forEach(card => {
-                const date = card.getAttribute('data-date');
-                if (date) {
-                    if (!cardsByDate[date]) {
-                        cardsByDate[date] = [];
-                    }
-                    cardsByDate[date].push(card);
-                }
-            });
-
-            const sortedDates = Object.keys(cardsByDate).sort().reverse();
-            const twoMostRecentDates = sortedDates.slice(0, 2);
-
-            const cardsToLoad = [];
-            twoMostRecentDates.forEach(date => {
-                cardsToLoad.push(...cardsByDate[date]);
-            });
+            const cardsToLoad = getCardsForRecentDates();
 
             cardsToLoad.forEach((card, index) => {
                 setTimeout(async () => {
@@ -1879,8 +1819,70 @@
                     } catch (err) {
                         console.debug('Load failed for', url, err);
                     }
+                }, index * 250);
+            });
+        }
 
-                    await ensureTldrAvailability(card, summaryEffort);
+        async function loadTldrs() {
+            const cardsToLoad = getCardsForRecentDates();
+
+            cardsToLoad.forEach((card, index) => {
+                setTimeout(async () => {
+                    if (!card || !card.isConnected) return;
+
+                    const tldrBtn = card.querySelector('.tldr-btn');
+                    if (!tldrBtn || tldrBtn.classList.contains('loaded')) {
+                        return;
+                    }
+
+                    const summaryEffort = getCardSummaryEffort(card);
+
+                    const existingTldr = card.getAttribute('data-tldr');
+                    if (existingTldr) {
+                        tldrBtn.classList.add('loaded');
+                        if (!tldrBtn.classList.contains('expanded')) {
+                            tldrBtn.innerHTML = 'Available';
+                            tldrBtn.title = 'TLDR cached - click to show';
+                        }
+                        return;
+                    }
+
+                    const url = card.getAttribute('data-url');
+                    if (!url) return;
+
+                    try {
+                        const resp = await fetch('/api/tldr-url', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                url: url,
+                                cache_only: true,
+                                summary_effort: summaryEffort
+                            })
+                        });
+                        const data = await resp.json();
+
+                        if (!card.isConnected) {
+                            return;
+                        }
+
+                        if (getCardSummaryEffort(card) !== summaryEffort) {
+                            return;
+                        }
+
+                        if (!data.success) {
+                            return;
+                        }
+
+                        card.setAttribute('data-tldr', data.tldr_markdown || '');
+                        tldrBtn.classList.add('loaded');
+                        if (!tldrBtn.classList.contains('expanded')) {
+                            tldrBtn.innerHTML = 'Available';
+                            tldrBtn.title = 'TLDR cached - click to show';
+                        }
+                    } catch (err) {
+                        console.debug('TLDR load failed for', url, err);
+                    }
                 }, index * 250);
             });
         }
@@ -2665,6 +2667,7 @@
                         }, 100);
 
                         loadSummaries();
+                        loadTldrs();
                     } else {
                         result.style.display = 'block';
                         result.className = 'error';
