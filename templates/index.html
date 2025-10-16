@@ -1764,9 +1764,68 @@
          * SummaryDelivery handles inline summary retrieval, honoring cache-only hints and live fetches from the summarize endpoint.
          */
         // #region -------[ SummaryDelivery ]-------
+        async function ensureTldrAvailability(card, summaryEffort) {
+            if (!card || !card.isConnected) return;
+
+            const tldrBtn = card.querySelector('.tldr-btn');
+            if (!tldrBtn) return;
+            if (tldrBtn.classList.contains('loaded')) return;
+
+            if (getCardSummaryEffort(card) !== summaryEffort) {
+                return;
+            }
+
+            const existingTldr = card.getAttribute('data-tldr');
+            if (existingTldr) {
+                tldrBtn.classList.add('loaded');
+                if (!tldrBtn.classList.contains('expanded')) {
+                    tldrBtn.innerHTML = 'Available';
+                    tldrBtn.title = 'TLDR cached - click to show';
+                }
+                return;
+            }
+
+            const url = card.getAttribute('data-url');
+            if (!url) return;
+
+            try {
+                const resp = await fetch('/api/tldr-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: url,
+                        cache_only: true,
+                        summary_effort: summaryEffort
+                    })
+                });
+                const data = await resp.json();
+
+                if (!card.isConnected) {
+                    return;
+                }
+
+                if (getCardSummaryEffort(card) !== summaryEffort) {
+                    return;
+                }
+
+                if (!data.success) {
+                    return;
+                }
+
+                card.setAttribute('data-tldr', data.tldr_markdown || '');
+                tldrBtn.classList.add('loaded');
+                if (!tldrBtn.classList.contains('expanded')) {
+                    tldrBtn.innerHTML = 'Available';
+                    tldrBtn.title = 'TLDR cached - click to show';
+                }
+            } catch (error) {
+                console.debug('TLDR availability check failed for', url, error);
+            }
+        }
+
         async function loadSummaries() {
             const allCards = Array.from(document.querySelectorAll('.article-card'));
-            
+
             const cardsByDate = {};
             allCards.forEach(card => {
                 const date = card.getAttribute('data-date');
@@ -1820,6 +1879,8 @@
                     } catch (err) {
                         console.debug('Load failed for', url, err);
                     }
+
+                    await ensureTldrAvailability(card, summaryEffort);
                 }, index * 250);
             });
         }
