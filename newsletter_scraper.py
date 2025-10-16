@@ -520,6 +520,196 @@ def _fetch_newsletter(date, newsletter_type):
         return None
 
 
+def _collect_newsletters_for_date(
+    date,
+    date_str,
+    newsletter_types,
+    processed_count,
+    total_count,
+    url_set,
+    all_articles,
+    issue_metadata_by_key,
+):
+    day_articles: list[dict] = []
+    day_issues: list[dict] = []
+    network_articles = 0
+    current_processed = processed_count
+
+    for newsletter_type in newsletter_types:
+        current_processed += 1
+        util.log(
+            f"[newsletter_scraper._collect_newsletters_for_date] Processing {newsletter_type} newsletter for {date_str} ({current_processed}/{total_count})",
+            logger=logger,
+        )
+
+        result = _fetch_newsletter(date, newsletter_type)
+        if result and result["articles"]:
+            issue_info = result.get("issue") or {}
+            if issue_info:
+                issue_copy = json.loads(json.dumps(issue_info))
+                issue_category = issue_copy.get("category") or ""
+                issue_metadata_by_key[(date_str, issue_category)] = issue_copy
+                day_issues.append(issue_copy)
+
+            for article in result["articles"]:
+                canonical_url = util.canonicalize_url(article["url"])
+                article["url"] = canonical_url
+
+                day_articles.append(article)
+
+                if canonical_url not in url_set:
+                    url_set.add(canonical_url)
+                    all_articles.append(article)
+                    if article.get("fetched_via") == "network":
+                        network_articles += 1
+
+        if result and any(
+            a.get("fetched_via") == "network"
+            for a in (result.get("articles") or [])
+        ):
+            time.sleep(0.2)
+
+    return current_processed, day_articles, day_issues, network_articles
+
+
+def _sanitize_issue(issue: dict) -> dict:
+    """Create a reduced issue payload suitable for caching.
+
+    >>> _sanitize_issue(
+    ...     {
+    ...         "date": "2024-01-02",
+    ...         "newsletter_type": "tech",
+    ...         "category": "TLDR Tech",
+    ...         "title": "Main Title",
+    ...         "subtitle": "Subtitle",
+    ...         "sections": [{"order": 1, "title": "Alpha", "emoji": "🚀", "extra": "x"}],
+    ...         "irrelevant": "value",
+    ...     }
+    ... )
+    {'date': '2024-01-02', 'newsletter_type': 'tech', 'category': 'TLDR Tech', 'title': 'Main Title', 'subtitle': 'Subtitle', 'sections': [{'order': 1, 'title': 'Alpha', 'emoji': '🚀'}]}
+    """
+
+    return {
+        "date": issue.get("date"),
+        "newsletter_type": issue.get("newsletter_type"),
+        "category": issue.get("category"),
+        "title": issue.get("title"),
+        "subtitle": issue.get("subtitle"),
+        "sections": [
+            {
+                "order": section.get("order"),
+                "title": section.get("title"),
+                "emoji": section.get("emoji"),
+            }
+            for section in issue.get("sections") or []
+        ],
+    }
+
+
+def _persist_day_to_cache(date_str: str, day_articles: list[dict], day_issues: list[dict]):
+    sanitized_day_articles: list[dict] = []
+    for article in day_articles:
+        sanitized_day_articles.append(
+            {
+                key: value
+                for key, value in article.items()
+                if key != "fetched_via"
+                and not key.startswith("timing_")
+                and key != "removed"
+            }
+        )
+
+    sanitized_day_issues = [_sanitize_issue(issue) for issue in day_issues]
+
+    if not sanitized_day_articles:
+        return False
+
+    success = _put_cached_day(date_str, sanitized_day_articles, sanitized_day_issues)
+    if success:
+        util.log(
+            f"[newsletter_scraper._persist_day_to_cache] Cached day={date_str} articles={len(sanitized_day_articles)}",
+            logger=logger,
+        )
+    return success
+
+
+def _build_scrape_response(
+    start_date,
+    end_date,
+    dates,
+    all_articles,
+    url_set,
+    issue_metadata_by_key,
+    removed_urls,
+    day_cache_hits,
+    day_cache_misses,
+    network_fetches,
+):
+    for article in all_articles:
+        canonical_url = article["url"]
+        article["removed"] = canonical_url in removed_urls
+
+    grouped_articles: dict[str, list[dict]] = {}
+    for article in all_articles:
+        date_value = article["date"]
+        if isinstance(date_value, str):
+            article_date = date_value
+        else:
+            article_date = util.format_date_for_url(date_value)
+
+        grouped_articles.setdefault(article_date, []).append(article)
+
+    output = _format_final_output(
+        start_date, end_date, grouped_articles, issue_metadata_by_key
+    )
+
+    blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
+
+    articles_data: list[dict] = []
+    for article in all_articles:
+        payload = {
+            "url": article["url"],
+            "title": article["title"],
+            "date": article["date"],
+            "category": article["category"],
+            "removed": article.get("removed", False),
+        }
+        if article.get("section_title"):
+            payload["section_title"] = article["section_title"]
+        if article.get("section_emoji"):
+            payload["section_emoji"] = article["section_emoji"]
+        if article.get("section_order") is not None:
+            payload["section_order"] = article["section_order"]
+        if article.get("newsletter_type"):
+            payload["newsletter_type"] = article["newsletter_type"]
+        articles_data.append(payload)
+
+    issues_output = sorted(
+        issue_metadata_by_key.values(),
+        key=lambda issue: (issue.get("date", ""), issue.get("category", "")),
+        reverse=True,
+    )
+
+    return {
+        "success": True,
+        "output": output,
+        "articles": articles_data,
+        "issues": issues_output,
+        "stats": {
+            "total_articles": len(all_articles),
+            "unique_urls": len(url_set),
+            "dates_processed": len(dates),
+            "dates_with_content": len(grouped_articles),
+            "day_cache_hits": day_cache_hits,
+            "day_cache_misses": day_cache_misses,
+            "network_fetches": network_fetches,
+            "blob_store_present": bool(blob_base_url),
+            "cache_mode": cache_mode.get_cache_mode().value,
+            "debug_logs": list(util.LOGS),
+        },
+    }
+
+
 def scrape_date_range(start_date, end_date):
     """Scrape all newsletters in date range, using per-day caching"""
     dates = util.get_date_range(start_date, end_date)
@@ -527,11 +717,11 @@ def scrape_date_range(start_date, end_date):
 
     removed_urls = get_removed_urls()
 
-    all_articles = []
-    url_set = set()
+    all_articles: list[dict] = []
+    url_set: set[str] = set()
     processed_count = 0
     total_count = len(dates) * len(newsletter_types)
-    others = 0
+    network_fetches = 0
     day_cache_hits = 0
     day_cache_misses = 0
     issue_metadata_by_key: dict[tuple[str, str], dict] = {}
@@ -569,143 +759,35 @@ def scrape_date_range(start_date, end_date):
             continue
 
         day_cache_misses += 1
-        day_articles = []
-        day_issues: list[dict] = []
-
-        for newsletter_type in newsletter_types:
-            processed_count += 1
-            print(
-                f"Processing {newsletter_type} newsletter for {date_str} ({processed_count}/{total_count})"
-            )
-
-            result = _fetch_newsletter(date, newsletter_type)
-            if result and result["articles"]:
-                issue_info = result.get("issue") or {}
-                if issue_info:
-                    issue_copy = json.loads(json.dumps(issue_info))
-                    issue_category = issue_copy.get("category") or ""
-                    issue_metadata_by_key[(date_str, issue_category)] = issue_copy
-                    day_issues.append(issue_copy)
-                for article in result["articles"]:
-                    canonical_url = util.canonicalize_url(article["url"])
-                    article["url"] = canonical_url
-
-                    day_articles.append(article)
-
-                    if canonical_url not in url_set:
-                        url_set.add(canonical_url)
-                        all_articles.append(article)
-                        if article.get("fetched_via") == "network":
-                            others += 1
-
-            if result and any(
-                a.get("fetched_via") == "network"
-                for a in (result.get("articles") or [])
-            ):
-                time.sleep(0.2)
+        (
+            processed_count,
+            day_articles,
+            day_issues,
+            network_increment,
+        ) = _collect_newsletters_for_date(
+            date,
+            date_str,
+            newsletter_types,
+            processed_count,
+            total_count,
+            url_set,
+            all_articles,
+            issue_metadata_by_key,
+        )
+        network_fetches += network_increment
 
         if day_articles:
-            sanitized_day_articles = []
-            for a in day_articles:
-                clean = {
-                    k: v
-                    for k, v in a.items()
-                    if k != "fetched_via"
-                    and not k.startswith("timing_")
-                    and k != "removed"
-                }
-                sanitized_day_articles.append(clean)
+            _persist_day_to_cache(date_str, day_articles, day_issues)
 
-            sanitized_day_issues: list[dict] = []
-            for issue in day_issues:
-                clean_issue = {
-                    "date": issue.get("date"),
-                    "newsletter_type": issue.get("newsletter_type"),
-                    "category": issue.get("category"),
-                    "title": issue.get("title"),
-                    "subtitle": issue.get("subtitle"),
-                    "sections": [],
-                }
-                for section in issue.get("sections") or []:
-                    clean_issue["sections"].append(
-                        {
-                            "order": section.get("order"),
-                            "title": section.get("title"),
-                            "emoji": section.get("emoji"),
-                        }
-                    )
-                sanitized_day_issues.append(clean_issue)
-
-            _put_cached_day(date_str, sanitized_day_articles, sanitized_day_issues)
-            util.log(
-                f"[newsletter_scraper.scrape_date_range] Cached day={date_str} articles={len(sanitized_day_articles)}",
-                logger=logger,
-            )
-
-    # Compute removed status for all articles from removed_urls set
-    for article in all_articles:
-        canonical_url = article["url"]
-        article["removed"] = canonical_url in removed_urls
-
-    grouped_articles = {}
-    for article in all_articles:
-        # article["date"] should already be a string, but handle both cases
-        date_val = article["date"]
-        if isinstance(date_val, str):
-            date_str = date_val
-        else:
-            date_str = util.format_date_for_url(date_val)
-
-        if date_str not in grouped_articles:
-            grouped_articles[date_str] = []
-        grouped_articles[date_str].append(article)
-
-    output = _format_final_output(
-        start_date, end_date, grouped_articles, issue_metadata_by_key
+    return _build_scrape_response(
+        start_date,
+        end_date,
+        dates,
+        all_articles,
+        url_set,
+        issue_metadata_by_key,
+        removed_urls,
+        day_cache_hits,
+        day_cache_misses,
+        network_fetches,
     )
-
-    blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
-
-    articles_data = []
-    for article in all_articles:
-        article_payload = {
-            "url": article["url"],
-            "title": article["title"],
-            "date": article["date"],
-            "category": article["category"],
-            "removed": article.get("removed", False),
-        }
-        if article.get("section_title"):
-            article_payload["section_title"] = article["section_title"]
-        if article.get("section_emoji"):
-            article_payload["section_emoji"] = article["section_emoji"]
-        if article.get("section_order") is not None:
-            article_payload["section_order"] = article["section_order"]
-        if article.get("newsletter_type"):
-            article_payload["newsletter_type"] = article["newsletter_type"]
-        articles_data.append(article_payload)
-
-    issues_output = sorted(
-        issue_metadata_by_key.values(),
-        key=lambda issue: (issue.get("date", ""), issue.get("category", "")),
-        reverse=True,
-    )
-
-    return {
-        "success": True,
-        "output": output,
-        "articles": articles_data,
-        "issues": issues_output,
-        "stats": {
-            "total_articles": len(all_articles),
-            "unique_urls": len(url_set),
-            "dates_processed": len(dates),
-            "dates_with_content": len(grouped_articles),
-            "day_cache_hits": day_cache_hits,
-            "day_cache_misses": day_cache_misses,
-            "network_fetches": others,
-            "blob_store_present": bool(blob_base_url),
-            "cache_mode": cache_mode.get_cache_mode().value,
-            "debug_logs": list(util.LOGS),
-        },
-    }
