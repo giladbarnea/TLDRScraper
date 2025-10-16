@@ -141,6 +141,6 @@ def summarize_url():
 1. Source setup.sh, then run scripts/cli_sanity_check.sh. This will invoke cli.py, which is a CLI for the core business logic of the app.
 2. Scan the files to understand the end-to-end dependency chain, call graphs, state mutations and assumptions. You must be aware of how your changes will affect components upstream and downstream.
 3. Iteratively make your changes. Prefer to make bite-size changes that leave the app testable as a whole.
-4. Sparingly run scripts/cli_sanity_check.sh between changes to catch regressions early.
+4. Generously run scripts/cli_sanity_check.sh and relevant cli.py commands  between changes to catch regressions early.
 5. Once you're done, make sure cli.py is 100% aligned with serve.py and that scripts/cli_sanity_check.sh covers 100% of the functionality exposed in cli.py.
 6. Verify your work by running the updated, now faithful scripts/cli_sanity_check.sh.
