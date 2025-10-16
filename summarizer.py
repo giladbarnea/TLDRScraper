@@ -59,20 +59,12 @@ def normalize_summary_effort(value: str) -> str:
 
 def summary_blob_pathname(url: str, *args, **kwargs) -> str:
     """Generate blob pathname for URL summary."""
-    base_path = blob_store.normalize_url_to_pathname(url)
-    base = base_path[:-3] if base_path.endswith(".md") else base_path
-    summary_effort = normalize_summary_effort(kwargs.get("summary_effort", "low"))
-    suffix = "" if summary_effort == "low" else f"-{summary_effort}"
-    return f"{base}-summary{suffix}.md"
+    return _url_summary_pathname(url, *args, **kwargs)
 
 
 def tldr_blob_pathname(url: str, *args, **kwargs) -> str:
     """Generate blob pathname for URL TLDR."""
-    base_path = blob_store.normalize_url_to_pathname(url)
-    base = base_path[:-3] if base_path.endswith(".md") else base_path
-    summary_effort = normalize_summary_effort(kwargs.get("summary_effort", "low"))
-    suffix = "" if summary_effort == "low" else f"-{summary_effort}"
-    return f"{base}-tldr{suffix}.md"
+    return _url_tldr_pathname(url, *args, **kwargs)
 
 
 def _is_github_repo_url(url: str) -> bool:
