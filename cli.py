@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+IMPORTANT: Make sure you have sourced setup.sh to setup and verify your environment before using this file.
+"""
 
 import argparse
 import json
@@ -75,10 +78,6 @@ def _run_text_command(command: Callable[[], str]) -> None:
 
 
 def main() -> None:
-    print(
-        "IMPORTANT: Make sure you have sourced setup.sh to setup and verify your environment before using this file.",
-        file=sys.stderr,
-    )
     parser = argparse.ArgumentParser(description="TLDR Scraper local CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
