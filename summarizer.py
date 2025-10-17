@@ -27,22 +27,21 @@ def _url_content_pathname(url: str, *args, **kwargs) -> str:
     return blob_store.normalize_url_to_pathname(url)
 
 
+def _url_base_without_suffix(url: str) -> str:
+    base_path = blob_store.normalize_url_to_pathname(url)
+    return base_path[:-3] if base_path.endswith(".md") else base_path
+
+
 def _url_summary_pathname(url: str, *args, **kwargs) -> str:
     """Generate blob pathname for URL summary."""
-    base_path = blob_store.normalize_url_to_pathname(url)
-    base = base_path[:-3] if base_path.endswith(".md") else base_path
-    summary_effort = normalize_summary_effort(kwargs.get("summary_effort", "low"))
-    suffix = "" if summary_effort == "low" else f"-{summary_effort}"
-    return f"{base}-summary{suffix}.md"
+    base = _url_base_without_suffix(url)
+    return f"{base}-summary.md"
 
 
 def _url_tldr_pathname(url: str, *args, **kwargs) -> str:
     """Generate blob pathname for URL TLDR."""
-    base_path = blob_store.normalize_url_to_pathname(url)
-    base = base_path[:-3] if base_path.endswith(".md") else base_path
-    summary_effort = normalize_summary_effort(kwargs.get("summary_effort", "low"))
-    suffix = "" if summary_effort == "low" else f"-{summary_effort}"
-    return f"{base}-tldr{suffix}.md"
+    base = _url_base_without_suffix(url)
+    return f"{base}-tldr.md"
 
 
 def normalize_summary_effort(value: str) -> str:
