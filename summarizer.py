@@ -61,33 +61,9 @@ def summary_blob_pathname(url: str, *args, **kwargs) -> str:
     return _url_summary_pathname(url, *args, **kwargs)
 
 
-def summary_legacy_blob_pathnames(url: str) -> tuple[str, ...]:
-    base = _url_base_without_suffix(url)
-    return tuple(
-        f"{base}-summary-{effort}.md"
-        for effort in SUMMARY_EFFORT_OPTIONS
-        if effort != "low"
-    )
-
-
 def tldr_blob_pathname(url: str, *args, **kwargs) -> str:
     """Generate blob pathname for URL TLDR."""
     return _url_tldr_pathname(url, *args, **kwargs)
-
-
-def tldr_legacy_blob_pathnames(url: str) -> tuple[str, ...]:
-    base = _url_base_without_suffix(url)
-    return tuple(
-        f"{base}-tldr-{effort}.md"
-        for effort in SUMMARY_EFFORT_OPTIONS
-        if effort != "low"
-    )
-
-
-_url_summary_pathname.legacy_pathname_fn = summary_legacy_blob_pathnames
-summary_blob_pathname.legacy_pathname_fn = summary_legacy_blob_pathnames
-_url_tldr_pathname.legacy_pathname_fn = tldr_legacy_blob_pathnames
-tldr_blob_pathname.legacy_pathname_fn = tldr_legacy_blob_pathnames
 
 
 def _is_github_repo_url(url: str) -> bool:
