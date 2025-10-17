@@ -11,7 +11,7 @@ set -eo pipefail
 source ./setup.sh
 
 CLI_BIN=${CLI_BIN:-"uv run python3 cli.py"}
-SCRAPE_START_DATE=${SCRAPE_START_DATE:-"2025-10-09"}
+SCRAPE_START_DATE=${SCRAPE_START_DATE:-$(date -I -d 'yesterday' 2>/dev/null || date -I)}
 SCRAPE_END_DATE=${SCRAPE_END_DATE:-$SCRAPE_START_DATE}
 SUMMARY_URL=${SUMMARY_URL:-"https://example.com/"}
 SUMMARY_EFFORT=${SUMMARY_EFFORT:-"minimal"}
