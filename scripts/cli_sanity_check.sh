@@ -47,13 +47,12 @@ TRUNCATE_LIMIT=1000
 truncate_json_output() {
     local json_input="$1"
     printf '%s' "$json_input" | jq -r --argjson limit "$TRUNCATE_LIMIT" '
-        tostring
-        | if length > $limit then .[:$limit] + "...[truncated]" else . end
+        tojson | if length > $limit then .[:$limit] + "...[truncated]" else . end
     '
 }
 
 truncate_text_output() {
-    printf '%s' "$1" | jq -Rs -r --argjson limit "$TRUNCATE_LIMIT" '
+    printf '%s' "$1" | jq -Rr --argjson limit "$TRUNCATE_LIMIT" '
         if length == 0 then empty
         elif length > $limit then .[:$limit] + "...[truncated]"
         else .
