@@ -29,17 +29,6 @@ def blob_cached(
         def wrapper(path: str, *args: P.args, **kwargs: P.kwargs) -> R:
             cache_only = kwargs.pop("cache_only", False)
             pathname = pathname_fn(path, *args, **kwargs)
-            legacy_pathname_fn = getattr(pathname_fn, "legacy_pathname_fn", None)
-            legacy_pathnames: tuple[str, ...] = ()
-            if callable(legacy_pathname_fn):
-                legacy_pathnames = tuple(legacy_pathname_fn(path, *args, **kwargs))
-            candidates: list[str] = []
-            seen: set[str] = set()
-            for candidate in (pathname, *legacy_pathnames):
-                if candidate in seen:
-                    continue
-                seen.add(candidate)
-                candidates.append(candidate)
 
             # PHASE 1: Early exit if cache_only and cache unavailable
             blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
@@ -55,16 +44,11 @@ def blob_cached(
 
             # PHASE 2: Attempt cache read (cohesive, decoupled)
             if cache_read_available:
-                for candidate in candidates:
-                    cached_result = _try_read_cache(
-                        blob_base_url, candidate, fn.__name__, logger
-                    )
-                    if cached_result is not None:
-                        if candidate != pathname and cache_mode.can_write():
-                            _try_write_cache(
-                                pathname, cached_result, fn.__name__, logger
-                            )
-                        return cached_result
+                cached_result = _try_read_cache(
+                    blob_base_url, pathname, fn.__name__, logger
+                )
+                if cached_result is not None:
+                    return cached_result
 
                 if cache_only:
                     util.log(

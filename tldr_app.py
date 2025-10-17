@@ -11,7 +11,6 @@ import tldr_service
 from removed_urls import get_removed_urls as _get_removed_urls
 from summarizer import (
     summary_blob_pathname,
-    summary_legacy_blob_pathnames,
 )
 
 logger = logging.getLogger("tldr_app")
@@ -248,17 +247,9 @@ def invalidate_cache_for_date(date_text: Optional[str]) -> dict:
         else:
             failed_files.append(content_pathname)
 
-        summary_candidates = [
-            summary_blob_pathname(url),
-            *summary_legacy_blob_pathnames(url),
-        ]
-        seen_summary: set[str] = set()
-        for summary_pathname in summary_candidates:
-            if summary_pathname in seen_summary:
-                continue
-            seen_summary.add(summary_pathname)
-            if blob_store.delete_file(summary_pathname):
-                deleted_files.append(summary_pathname)
+        summary_pathname = summary_blob_pathname(url)
+        if blob_store.delete_file(summary_pathname):
+            deleted_files.append(summary_pathname)
 
     if blob_store.delete_file(day_cache_pathname):
         deleted_files.append(day_cache_pathname)
