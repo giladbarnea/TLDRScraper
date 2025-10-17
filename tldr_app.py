@@ -9,6 +9,10 @@ import cache_mode
 import util
 import tldr_service
 from removed_urls import get_removed_urls as _get_removed_urls
+from summarizer import (
+    summary_blob_pathname,
+    summary_legacy_blob_pathnames,
+)
 
 logger = logging.getLogger("tldr_app")
 
@@ -199,8 +203,6 @@ def invalidate_cache_for_date(date_text: Optional[str]) -> dict:
     if not date_text:
         raise ValueError("date is required")
 
-    from summarizer import SUMMARY_EFFORT_OPTIONS
-
     deleted_files: list[str] = []
     failed_files: list[str] = []
 
@@ -240,22 +242,21 @@ def invalidate_cache_for_date(date_text: Optional[str]) -> dict:
             urls_to_process.add(canonical)
 
     for url in urls_to_process:
-        url_base_pathname = blob_store.normalize_url_to_pathname(url)
-        url_base = (
-            url_base_pathname[:-3]
-            if url_base_pathname.endswith(".md")
-            else url_base_pathname
-        )
-
-        content_pathname = url_base_pathname
+        content_pathname = blob_store.normalize_url_to_pathname(url)
         if blob_store.delete_file(content_pathname):
             deleted_files.append(content_pathname)
         else:
             failed_files.append(content_pathname)
 
-        for effort in SUMMARY_EFFORT_OPTIONS:
-            suffix = "" if effort == "low" else f"-{effort}"
-            summary_pathname = f"{url_base}-summary{suffix}.md"
+        summary_candidates = [
+            summary_blob_pathname(url),
+            *summary_legacy_blob_pathnames(url),
+        ]
+        seen_summary: set[str] = set()
+        for summary_pathname in summary_candidates:
+            if summary_pathname in seen_summary:
+                continue
+            seen_summary.add(summary_pathname)
             if blob_store.delete_file(summary_pathname):
                 deleted_files.append(summary_pathname)
 
