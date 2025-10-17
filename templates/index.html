@@ -475,9 +475,25 @@
             color: var(--link);
             text-decoration: none;
             word-wrap: break-word;
-            display: block;
+            display: inline-flex;
+            align-items: baseline;
+            width: 100%;
             cursor: pointer;
             position: relative;
+            min-width: 0;
+        }
+
+        .article-link-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .article-favicon {
+            width: 1em;
+            height: 1em;
+            flex: 0 0 auto;
+            align-self: baseline;
+            object-fit: contain;
         }
 
         .article-link:hover {
@@ -1552,6 +1568,17 @@
             return title;
         }
 
+        function setArticleLinkText(link, text) {
+            if (!link) return;
+            let textSpan = link.querySelector('.article-link-text');
+            if (!textSpan) {
+                textSpan = document.createElement('span');
+                textSpan.className = 'article-link-text';
+                link.appendChild(textSpan);
+            }
+            textSpan.textContent = text || '';
+        }
+
         function markArticleAsRead(card) {
             if (card.classList.contains('removed')) return;
             card.classList.remove('unread');
@@ -1567,7 +1594,7 @@
             const link = card.querySelector('.article-link');
             const removedTitle = buildRemovedTitle(card);
             if (link && removedTitle) {
-                link.textContent = removedTitle;
+                setArticleLinkText(link, removedTitle);
                 card.setAttribute('data-title', removedTitle);
             }
 
@@ -2545,6 +2572,35 @@
                                 newLink.setAttribute('rel', 'noopener noreferrer');
                                 newLink.setAttribute('data-url', cleanUrl);
                                 newLink.setAttribute('href', cleanUrl);
+                                newLink.textContent = '';
+
+                                let faviconUrl = '';
+                                try {
+                                    const parsedUrl = new URL(cleanUrl);
+                                    faviconUrl = `${parsedUrl.origin}/favicon.ico`;
+                                } catch (err) {
+                                    faviconUrl = '';
+                                }
+
+                                if (faviconUrl) {
+                                    const favicon = document.createElement('img');
+                                    favicon.className = 'article-favicon';
+                                    favicon.setAttribute('loading', 'lazy');
+                                    favicon.setAttribute('alt', '');
+                                    favicon.src = faviconUrl;
+                                    const space = document.createTextNode(' ');
+                                    favicon.addEventListener('error', () => {
+                                        space.remove();
+                                        favicon.remove();
+                                    });
+                                    newLink.appendChild(favicon);
+                                    newLink.appendChild(space);
+                                }
+
+                                const linkTextSpan = document.createElement('span');
+                                linkTextSpan.className = 'article-link-text';
+                                newLink.appendChild(linkTextSpan);
+                                setArticleLinkText(newLink, titleText);
 
                                 const actions = document.createElement('div');
                                 actions.className = 'article-actions';
