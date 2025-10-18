@@ -475,24 +475,21 @@
             color: var(--link);
             text-decoration: none;
             word-wrap: break-word;
-            display: inline-flex;
-            align-items: baseline;
+            display: block;
             width: 100%;
             cursor: pointer;
             position: relative;
-            min-width: 0;
         }
 
         .article-link-text {
-            flex: 1;
-            min-width: 0;
+            display: inline;
         }
 
         .article-favicon {
             width: 1em;
             height: 1em;
-            flex: 0 0 auto;
-            align-self: baseline;
+            display: inline-block;
+            vertical-align: -0.125em;
             object-fit: contain;
         }
 
