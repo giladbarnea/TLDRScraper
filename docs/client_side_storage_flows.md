@@ -176,7 +176,7 @@ To make the backend align with this client-only storage model, every server comp
 ### Remove blob persistence stack entirely
 
 * Delete `blob_store.py`, `blob_cache.py`, `removed_urls.py`, and `cache_mode.py`, along with their exports and environment variable requirements (`BLOB_STORE_BASE_URL`, `BLOB_READ_WRITE_TOKEN`, `FORCE_CACHE_MODE`).
-* Eliminate `CACHE_SYSTEM.md` and any documentation that assumes blob-backed caches, ensuring `setup.sh`, `requirements.txt`, and `uv.lock` no longer mention the removed environment knobs.
+* Eliminate `CACHE_SYSTEM.md` and any documentation that assumes blob-backed caches, ensuring `setup.sh` and `requirements.txt` no longer mention the removed environment knobs (grep the codebase for the env var names).
 
 ### Rework newsletter scraping to be stateless
 
