@@ -1,5 +1,12 @@
 # Client-Side Local Storage Architecture
 
+## Context: original user request
+
+Discard completely from backend storage and move 100% of the storage in the app, as well as 100% of the storage responsibility, to the client-side's local storage.
+Expected stateless backend requests and significant architecture simpliciation.
+
+## Design
+
 This document expands the "everything lives in the browser" design by mapping each feature to its client-owned data and event sequence. The browser is the sole source of truth: every user action mutates in-memory state first, immediately mirrors that change to `localStorage`, and renders directly from the hydrated objects. No other persistence layer exists.
 
 ## Local Storage Keys and Shapes
