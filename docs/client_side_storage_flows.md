@@ -167,3 +167,41 @@ ReadStateManager
 * The same `Article` payload drives every card. Inline mutations (hydration, summary requests, TLDR requests, read toggles) update the record and immediately write the full object back to the owning day key, so future sessions or tabs start from the latest state.
 * Because each flow writes through the same serialization path, clearing localStorage or switching browsers simply resets the experience—there is no orphaned state elsewhere.
 
+---
+
+## Required Backend Changes
+
+To make the backend align with this client-only storage model, every server component that currently reads or writes blob storage must be removed or rewritten to become stateless helpers. The list below captures all affected modules and call paths.
+
+### Remove blob persistence stack entirely
+
+* Delete `blob_store.py`, `blob_cache.py`, `removed_urls.py`, and `cache_mode.py`, along with their exports and environment variable requirements (`BLOB_STORE_BASE_URL`, `BLOB_READ_WRITE_TOKEN`, `FORCE_CACHE_MODE`).
+* Eliminate `CACHE_SYSTEM.md` and any documentation that assumes blob-backed caches, ensuring `setup.sh`, `requirements.txt`, and `uv.lock` no longer mention the removed environment knobs.
+
+### Rework newsletter scraping to be stateless
+
+* In `newsletter_scraper.py`, drop `_get_cached_day`, `_put_cached_day`, `_persist_day_to_cache`, cache-hit statistics, and the `removed_urls` dependency. `scrape_date_range` should always call `_collect_newsletters_for_date` and return the raw articles without annotating `removed` or reporting blob metrics.
+* Remove cache-aware conditionals that guard fetches with `cache_mode.can_read()` / `can_write()`, and strip `cache_mode` imports from the file.
+
+### Simplify summarizer pipeline
+
+* In `summarizer.py`, remove the `@blob_cache.blob_cached` decorators, the pathname helpers (`summary_blob_pathname`, `tldr_blob_pathname`, `_url_content_pathname`), and any blob write semantics. The summarizer should always scrape content, call the LLM, and return markdown without persisting it.
+* Update `tldr_service.py` to drop the `cache_only` flag, blob pathname lookups, and blob URL fields. Responses should only echo the canonical URL, effort level, and freshly generated markdown.
+
+### Collapse application services to the new contracts
+
+* Rewrite `tldr_app.py` so that it proxies only the remaining service calls (scrape, summarize, TLDR, prompt fetch). Remove cache-management helpers, removal endpoints, and any references to blob storage or cache modes.
+* Prune CLI commands in `cli.py` accordingly: delete `--cache-only` options, drop the `remove-url`, `removed-urls`, `cache-mode`, `invalidate-cache`, and `invalidate-date-cache` subcommands, and simplify error payloads that referenced blob persistence.
+* Align `scripts/cli_sanity_check.sh` with the reduced CLI surface so it only probes scrape, summary, TLDR, and prompt flows.
+
+### Update HTTP layer and UI scaffolding
+
+* In `serve.py`, remove the `/api/remove-url`, `/api/removed-urls`, and `/api/cache-mode` endpoints, along with cache-only request handling in the summary and TLDR routes. Ensure `api/index.py` still re-exports the trimmed Flask app.
+* Clean up `templates/index.html` to eliminate cache statistics (`blob_store_present`, cache hits/misses), cache-only fetch calls, and server-driven removal toggles, relying purely on the client’s localStorage state.
+
+### Clean supporting utilities
+
+* Remove helper functions in `util.py` or other modules that were only used for blob bookkeeping (for example, `util.LOGS` debug dumps if they were exclusively surfaced through blob-backed stats).
+* Audit tests and prompt files to make sure nothing references blob persistence or removal endpoints; adjust `package.json` scripts, API routes, and any deployment manifests to match the leaner backend.
+
+
