@@ -7,9 +7,6 @@ This document expands the "everything lives in the browser" design by mapping ea
 | Key | Shape | Purpose |
 | --- | ----- | ------- |
 | `tldr:scrapes:<ISO-date>` | `{ articles: Article[], issues: Issue[], cachedAt: ISO-string }` | Stores the newsletter payload for a specific day. Each `Article` carries summary, TLDR, removal, and read flags. |
-| `tldr:removed-index` | `{ [canonicalUrl: string]: { date: ISO-string } }` | Fast lookup to pre-mark removed cards before their parent day payload is loaded (optional helper). |
-| `tldr:summary-mru` | `string[]` | Small most-recently-used list to bias UI preloaders toward the latest articles whose summaries were fetched (optional). |
-| `tldr:tldr-mru` | `string[]` | Same pattern for TLDR creation/refresh triggers. |
 
 `Article` objects include the fields below; they are the *only* authority for card rendering.
 
@@ -179,6 +176,5 @@ ReadStateManager
 ## Cross-Feature Observations
 
 * The same `Article` payload drives every card. Background preloaders update individual subtrees (summary/tldr/read) but always persist the entire article object back to the owning day key, guaranteeing that future sessions or tabs start from the latest state.
-* Optional MRU keys let the UI prioritize which articles to preload first without hard-coding date scans.
 * Because each flow writes through the same serialization path, clearing localStorage or switching browsers simply resets the experience—there is no orphaned state elsewhere.
 
