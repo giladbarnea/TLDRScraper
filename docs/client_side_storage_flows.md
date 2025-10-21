@@ -18,14 +18,14 @@ type Article = {
     section: string | null;
     removed: boolean;
     summary: {
-        status: 'unknown' | 'checking-cache' | 'available' | 'creating' | 'error';
+        status: 'unknown' | 'available' | 'creating' | 'error';
         markdown?: string;
         effort: 'low' | 'medium' | 'high';
         checkedAt?: ISO-string;
         errorMessage?: string;
     };
     tldr: {
-        status: 'unknown' | 'checking-cache' | 'available' | 'creating' | 'error';
+        status: 'unknown' | 'available' | 'creating' | 'error';
         markdown?: string;
         effort: 'low' | 'medium' | 'high';
         checkedAt?: ISO-string;
@@ -44,32 +44,23 @@ type Article = {
 
 ## Summaries → `"Available"` UI State
 
-### Flow A – Background availability probe (page load, cold summary cache)
+### Flow A – Hydrate daily payload
 
 ```
 User opens dashboard
         ↓
 HydrateController
-        ├─ readLocal('tldr:scrapes:<date>') → miss
+        ├─ readLocal('tldr:scrapes:<date>')
         │       ↓
-        │   fetchNewsletter(date)
-        │       ↓
-        │   normalize articles → summary.status='unknown'
-        ├─ writeLocal('tldr:scrapes:<date>', payload)
-        └─ kick off SummaryPreloader.forRecentArticles()
-                    ↓
-SummaryPreloader (per article)
-        ├─ mark summary.status='checking-cache'
-        ├─ writeLocal()
-        ├─ fetch('/api/summarize-url', { cache_only: true })
-        │       ↓
-        │   if success → update article.summary = { status: 'available', markdown, effort }
-        │   else → revert to status='unknown'
-        └─ writeLocal()
-Renderer observes state change → shows "Available" pill
+        │   hit → hydrate in-memory store exactly as saved (including summary/tldr/read state)
+        │   miss → fetchNewsletter(date)
+        │           ↓
+        │       normalize articles → set summary.status='unknown'
+        │       writeLocal('tldr:scrapes:<date>', payload)
+        └─ Renderer draws cards from hydrated store
 ```
 
-### Flow B – User expands summary (warm cache with markdown)
+### Flow B – User requests summary
 
 ```
 User clicks Summary button
@@ -83,7 +74,7 @@ SummaryController
         ├─ else if status !== 'creating'
         │       ↓
         │   set status='creating', writeLocal()
-        │   fetch('/api/summarize-url', { cache_only: false })
+        │   fetch('/api/summarize-url', { method: 'POST', body: { url } })
         │       ↓
         │   on success → persist markdown, status='available'
         │   on failure → status='error', set errorMessage
@@ -91,29 +82,20 @@ SummaryController
         └─ Renderer reacts to state: shows markdown, spinner, or error message
 ```
 
-*Outcome:* The summary availability label is always driven by the `Article.summary.status` field, with the local copy acting as the canonical truth.
+*Outcome:* `Article.summary.status` flips to `'available'` only when `article.summary.markdown` is stored locally, so the UI and persistence are always in lockstep.
 
 ---
 
 ## TLDR → `"Available"` UI State
 
-### Flow C – Background TLDR check
+### Flow C – Hydrate TLDR state
 
 ```
-SummaryPreloader completes
+HydrateController completes Flow A
         ↓
-TldrPreloader.forRecentArticles()
-        ├─ for each article with summary.status='available'
-        │       ↓
-        │   if article.tldr.status === 'unknown'
-        │           ↓
-        │       set status='checking-cache', writeLocal()
-        │       fetch('/api/tldr-url', { cache_only: true })
-        │           ↓
-        │       if success → status='available', store markdown
-        │       else → status='unknown'
-        │       writeLocal()
-        └─ Renderer updates TLDR button labels in place
+Articles in memory already include whatever TLDR state localStorage held
+        ↓
+Renderer labels TLDR buttons directly from article.tldr.status
 ```
 
 ### Flow D – User requests TLDR creation
@@ -127,7 +109,7 @@ TldrController
         ├─ else if status !== 'creating'
         │       ↓
         │   set status='creating', writeLocal()
-        │   fetch('/api/tldr-url', { cache_only: false })
+        │   fetch('/api/tldr-url', { method: 'POST', body: { url } })
         │       ↓
         │   on success → status='available', markdown=resp.tldr_markdown
         │   on failure → status='error', errorMessage
@@ -135,7 +117,7 @@ TldrController
         └─ Renderer shows TLDR markdown / spinner / error based on state
 ```
 
-*Outcome:* TLDR availability is always inferred from `Article.tldr.status`, ensuring the UI never diverges from what the client stored locally.
+*Outcome:* TLDR availability is always inferred from `Article.tldr.status`, which only becomes `'available'` after the TLDR markdown is persisted locally.
 
 ---
 
@@ -169,12 +151,12 @@ ReadStateManager
         └─ Renderer syncs badges + collapse state
 ```
 
-*Interaction with other subsystems:* Because `Article.read.isRead` lives inside the same record that holds summary and TLDR metadata, any subsequent refresh (Flow A or C) hydrates the read state alongside other fields. No cross-store reconciliation is required.
+*Interaction with other subsystems:* Because `Article.read.isRead` lives inside the same record that holds summary and TLDR metadata, any subsequent hydration (Flow A, and the TLDR reflection in Flow C) replays the read state alongside other fields. No cross-store reconciliation is required.
 
 ---
 
 ## Cross-Feature Observations
 
-* The same `Article` payload drives every card. Background preloaders update individual subtrees (summary/tldr/read) but always persist the entire article object back to the owning day key, guaranteeing that future sessions or tabs start from the latest state.
+* The same `Article` payload drives every card. Inline mutations (hydration, summary requests, TLDR requests, read toggles) update the record and immediately write the full object back to the owning day key, so future sessions or tabs start from the latest state.
 * Because each flow writes through the same serialization path, clearing localStorage or switching browsers simply resets the experience—there is no orphaned state elsewhere.
 
