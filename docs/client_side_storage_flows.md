@@ -191,8 +191,7 @@ To make the backend align with this client-only storage model, every server comp
 ### Collapse application services to the new contracts
 
 * Rewrite `tldr_app.py` so that it proxies only the remaining service calls (scrape, summarize, TLDR, prompt fetch). Remove cache-management helpers, removal endpoints, and any references to blob storage or cache modes.
-* Prune CLI commands in `cli.py` accordingly: delete `--cache-only` options, drop the `remove-url`, `removed-urls`, `cache-mode`, `invalidate-cache`, and `invalidate-date-cache` subcommands, and simplify error payloads that referenced blob persistence.
-* Align `scripts/cli_sanity_check.sh` with the reduced CLI surface so it only probes scrape, summary, TLDR, and prompt flows.
+* Remove the legacy CLI entry points (for example `cli.py` and the associated sanity-check script) and ensure developer workflows rely on `setup.sh` helpers such as `start_server_and_watchdog` plus `curl`-based endpoint checks instead.
 
 ### Update HTTP layer and UI scaffolding
 
