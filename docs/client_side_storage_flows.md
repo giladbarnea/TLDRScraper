@@ -9,6 +9,26 @@ Expected stateless backend requests and significant architecture simpliciation.
 
 This document expands the "everything lives in the browser" design by mapping each feature to its client-owned data and event sequence. The browser is the sole source of truth: every user action mutates in-memory state first, immediately mirrors that change to `localStorage`, and renders directly from the hydrated objects. No other persistence layer exists.
 
+## Tasks
+
+1. **Implement the client-owned storage model and controllers** — Stand up the `Article`/`Issue` shapes in front-end state, ensure hydration writes to `localStorage`, and wire the summary, TLDR, and read flows so they persist and render strictly from the browser cache.
+   - Purpose: Establish the in-browser source of truth so the UI, persistence, and controllers operate without backend state.
+   - Define the `Article` and `Issue` data structures plus the `tldr:scrapes:<ISO-date>` schema in the front-end store, including serialization helpers for `localStorage` round-trips.
+   - Build a `HydrateController` that loads daily payloads, fetches on cache miss, normalizes articles, and keeps the in-memory store synchronized with `localStorage`.
+   - Implement `SummaryController`, `TldrController`, and `ReadStateManager` to orchestrate flows B–F: manage status transitions, trigger API calls, persist updates, and render UI purely from local state.
+
+2. **Convert backend services to a stateless pipeline** — Excise blob storage dependencies and rewrite newsletter, summarizer, and service layers so they fetch, process, and return data without persistence side effects.
+   - Purpose: Eliminate server-side persistence so every request executes against live data and the backend remains stateless.
+   - Delete blob persistence modules (`blob_store.py`, `blob_cache.py`, `removed_urls.py`, `cache_mode.py`) along with related environment variables and documentation references.
+   - Refactor `newsletter_scraper.py` to scrape on demand without cache branches, and adjust `summarizer.py` to drop blob cache decorators and pathname helpers.
+   - Update `tldr_service.py` and `tldr_app.py` so responses only reflect live computation, and ensure tests, prompts, and scripts stop referencing blob persistence.
+
+3. **Trim HTTP/UI scaffolding and validate the lean footprint** — Simplify Flask routes, remove cache-era UI affordances, and confirm the remaining endpoints match the stateless contract described in the plan.
+   - Purpose: Align the server surface area and client UI with the stateless architecture to avoid dead routes and legacy controls.
+   - Update `serve.py` (and `api/index.py`) to expose only scrape, summarize, TLDR, and prompt endpoints, removing cache and removal routes or branching.
+   - Clean `templates/index.html` and any front-end bootstrapping of cache statistics, removal toggles, and server-driven state so controllers supply all behavior.
+   - Audit utility modules, deployment manifests, and documentation to reflect the final stateless architecture and verify end-to-end flows against the summarized request diagrams.
+
 ## Local Storage Keys and Shapes
 
 | Key | Shape | Purpose |
