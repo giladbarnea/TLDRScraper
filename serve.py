@@ -71,13 +71,12 @@ def get_summarize_prompt_template():
 def summarize_url():
     """Summarize the content at a URL: fetch the HTML, convert it to Markdown, insert it into a template, then call OpenAI.
 
-    Requires 'url'. Optional: 'cache_only' to return only cached summaries, and 'summary_effort' to set the reasoning effort level.
+    Requires 'url'. Optional: 'summary_effort' to set the reasoning effort level.
     """
     try:
         data = request.get_json() or {}
         result = tldr_app.summarize_url(
             data.get("url", ""),
-            cache_only=bool(data.get("cache_only", False)),
             summary_effort=data.get("summary_effort", "low"),
         )
 
@@ -110,13 +109,12 @@ def summarize_url():
 def tldr_url():
     """Create a TLDR of the content at a URL.
 
-    Requires 'url'. Optional: 'cache_only' to return only cached TLDRs, and 'summary_effort' to set the reasoning effort level.
+    Requires 'url'. Optional: 'summary_effort' to set the reasoning effort level.
     """
     try:
         data = request.get_json() or {}
         result = tldr_app.tldr_url(
             data.get("url", ""),
-            cache_only=bool(data.get("cache_only", False)),
             summary_effort=data.get("summary_effort", "low"),
         )
 

@@ -404,13 +404,11 @@ function main() {
         eval export "$line"
       done
   fi
-  local env_vars="$(env | egrep '(OPENAI|GITHUB|BLOB|TLDR)' | sort -u)"
-  local -a env_var_names=(
-    'BLOB_READ_WRITE_TOKEN'
-    'BLOB_STORE_BASE_URL'
-    'GITHUB_API_TOKEN'
-    'OPENAI_API_KEY'
-  )
+    local env_vars="$(env | egrep '(OPENAI|GITHUB|TLDR)' | sort -u)"
+    local -a env_var_names=(
+      'GITHUB_API_TOKEN'
+      'OPENAI_API_KEY'
+    )
   local -a env_vars_missing=()
   local env_var_name
   for env_var_name in "${env_var_names[@]}"; do
