@@ -205,3 +205,59 @@ To make the backend align with this client-only storage model, every server comp
 * Audit tests and prompt files to make sure nothing references blob persistence or removal endpoints; adjust `package.json` scripts, API routes, and any deployment manifests to match the leaner backend.
 
 
+
+## Backend footprint after client-storage migration
+
+**Scope:** Stateless HTTP proxy for scraping and LLM summarization. No persistence, no blob helpers, no removal registry.
+
+**Code surface:**
+
+* `serve.py` – Flask app with four routes: `GET /` (static index), `POST /api/scrape`, `POST /api/summarize-url`, `POST /api/tldr-url`, `GET /api/prompt`.
+* `tldr_app.py` – Thin façade that forwards each route to service functions. No cache toggles, no removal APIs, no blob URLs in responses.
+* `tldr_service.py` – Business logic:
+  * `_parse_date_range`, `scrape_newsletters_in_date_range` → delegate to `newsletter_scraper.scrape_date_range`.
+  * `fetch_summarize_prompt_template`, `fetch_tldr_prompt_template` → direct calls into `summarizer` prompt fetchers.
+  * `summarize_url_content`, `tldr_url_content` → normalize URL, call summarizer, return `{success, markdown, canonical_url, summary_effort}` dictionaries.
+* `newsletter_scraper.py` – Deterministic HTML fetch + parsing; emits `{articles, issues, stats}` without looking at blob state or removed-url sets.
+* `summarizer.py` – Stateless pipeline: scrape URL (curl_cffi → jina fallback), render markdown, build prompt, invoke LLM. Only in-memory prompt memoization remains.
+* `util.py` – Shared helpers for logging, env lookups, date math, URL normalization.
+
+**Summarize request flow:**
+
+```
+[Client]
+  POST /api/summarize-url {url}
+      ↓
+serve.summarize_url
+      ↓
+tldr_app.summarize_url
+      ↓
+tldr_service.summarize_url_content
+      ↓
+summarizer.summarize_url
+      ↓
+summarizer.url_to_markdown → summarizer.scrape_url → external HTTP
+      ↓
+summarizer._call_llm → OpenAI
+      ↓
+JSON {success, summary_markdown, canonical_url, summary_effort}
+```
+
+**Newsletter scrape flow:**
+
+```
+[Client]
+  POST /api/scrape {start_date, end_date}
+      ↓
+serve.scrape_newsletters_in_date_range
+      ↓
+tldr_app.scrape_newsletters
+      ↓
+tldr_service.scrape_newsletters_in_date_range
+      ↓
+newsletter_scraper.scrape_date_range
+      ↓
+requests → TLDR newsletter pages
+      ↓
+JSON {articles[], issues[], stats}
+```
