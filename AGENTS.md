@@ -75,9 +75,9 @@ PY
 ### Practical guidance
 
 - Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables. 
-- **Run ./setup.sh to verify the environment and dependencies are set up correctly. After sourcing setup.sh, run the CLI sanity check with `bash scripts/cli_sanity_check.sh` to verify all CLI commands are working properly.**
+- **Run ./setup.sh to verify the environment and dependencies are set up correctly. After sourcing it, use `start_server_and_watchdog` and `print_server_and_watchdog_pids` to confirm the local server is running, then exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/summarize-url`, `/api/tldr-url`). Use `kill_server_and_watchdog` for cleanup.**
 - Use `jq -S .` for sorted pretty-printing; `to_entries | length` for counts.
-- Try the new feature or behavior you have just implemented in your shell. Is the app making a new API call? Add it to cli.py and scripts/cli_sanity_check.sh. New dependency and Python interface? Try it by running Python via uv, and so on.
+- Try the new feature or behavior you have just implemented in your shell. Is the app making a new API call? Call it directly with `curl` after launching the server via `start_server_and_watchdog`. New dependency and Python interface? Try it by running Python via uv, and so on.
 
 
 ### Development Conventions
@@ -138,9 +138,8 @@ def summarize_url():
 
 ### Feature Development Cycle
 
-1. Source setup.sh, then run scripts/cli_sanity_check.sh. This will invoke cli.py, which is a CLI for the core business logic of the app.
+1. Source setup.sh, then run `start_server_and_watchdog` followed by `print_server_and_watchdog_pids` to ensure both the server and watchdog are active.
 2. Scan the files to understand the end-to-end dependency chain, call graphs, state mutations and assumptions. You must be aware of how your changes will affect components upstream and downstream.
 3. Iteratively make your changes. Prefer to make bite-size changes that leave the app testable as a whole.
-4. Generously run scripts/cli_sanity_check.sh and relevant cli.py commands  between changes to catch regressions early.
-5. Once you're done, make sure cli.py is 100% aligned with serve.py and that scripts/cli_sanity_check.sh covers 100% of the functionality exposed in cli.py.
-6. Verify your work by running the updated, now faithful scripts/cli_sanity_check.sh.
+4. Generously issue `curl` requests against `/api/scrape`, `/api/summarize-url`, `/api/tldr-url`, and any other endpoints you touch to catch regressions early.
+5. When you are done testing, run `kill_server_and_watchdog` to stop local processes and keep the workspace tidy.
