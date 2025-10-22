@@ -10,8 +10,6 @@ from markitdown import MarkItDown
 
 import util
 import urllib.parse as urlparse
-import blob_cache
-import blob_store
 
 logger = logging.getLogger("summarizer")
 md = MarkItDown()
@@ -20,28 +18,6 @@ _PROMPT_CACHE = None
 _TLDR_PROMPT_CACHE = None
 
 SUMMARY_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
-
-
-def _url_content_pathname(url: str, *args, **kwargs) -> str:
-    """Generate blob pathname for URL content."""
-    return blob_store.normalize_url_to_pathname(url)
-
-
-def _url_base_without_suffix(url: str) -> str:
-    base_path = blob_store.normalize_url_to_pathname(url)
-    return base_path[:-3] if base_path.endswith(".md") else base_path
-
-
-def _url_summary_pathname(url: str, *args, **kwargs) -> str:
-    """Generate blob pathname for URL summary."""
-    base = _url_base_without_suffix(url)
-    return f"{base}-summary.md"
-
-
-def _url_tldr_pathname(url: str, *args, **kwargs) -> str:
-    """Generate blob pathname for URL TLDR."""
-    base = _url_base_without_suffix(url)
-    return f"{base}-tldr.md"
 
 
 def normalize_summary_effort(value: str) -> str:
@@ -54,16 +30,6 @@ def normalize_summary_effort(value: str) -> str:
         return normalized
 
     return "low"
-
-
-def summary_blob_pathname(url: str, *args, **kwargs) -> str:
-    """Generate blob pathname for URL summary."""
-    return _url_summary_pathname(url, *args, **kwargs)
-
-
-def tldr_blob_pathname(url: str, *args, **kwargs) -> str:
-    """Generate blob pathname for URL TLDR."""
-    return _url_tldr_pathname(url, *args, **kwargs)
 
 
 def _is_github_repo_url(url: str) -> bool:
@@ -246,7 +212,6 @@ def _fetch_github_readme(url: str) -> str:
     return content
 
 
-@blob_cache.blob_cached(_url_content_pathname, logger=logger)
 def url_to_markdown(url: str) -> str:
     """Fetch URL and convert to markdown. For GitHub repos, fetches README.md."""
     util.log(
@@ -263,7 +228,6 @@ def url_to_markdown(url: str) -> str:
     return markdown
 
 
-@blob_cache.blob_cached(_url_summary_pathname, logger=logger)
 def summarize_url(url: str, summary_effort: str = "low") -> str:
     """Get markdown content from URL and summarize it with LLM.
 
@@ -284,7 +248,6 @@ def summarize_url(url: str, summary_effort: str = "low") -> str:
     return summary
 
 
-@blob_cache.blob_cached(_url_tldr_pathname, logger=logger)
 def tldr_url(url: str, summary_effort: str = "low") -> str:
     """Get markdown content from URL and create a TLDR with LLM.
 

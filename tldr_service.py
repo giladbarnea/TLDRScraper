@@ -6,15 +6,12 @@ import requests
 
 import util
 from newsletter_scraper import scrape_date_range
-from removed_urls import add_removed_url
 from summarizer import (
     _fetch_summarize_prompt,
     _fetch_tldr_prompt,
     normalize_summary_effort,
     summarize_url,
-    summary_blob_pathname,
     tldr_url,
-    tldr_blob_pathname,
 )
 
 logger = logging.getLogger("tldr_service")
@@ -71,9 +68,8 @@ def fetch_tldr_prompt_template() -> str:
 def summarize_url_content(
     url: str,
     *,
-    cache_only: bool = False,
     summary_effort: str = "low",
-) -> Optional[dict]:
+) -> dict:
     cleaned_url = (url or "").strip()
     if not cleaned_url:
         raise ValueError("Missing url")
@@ -85,7 +81,6 @@ def summarize_url_content(
         summary_markdown = summarize_url(
             canonical_url,
             summary_effort=normalized_effort,
-            cache_only=cache_only,
         )
     except requests.RequestException as error:
         util.log(
@@ -97,21 +92,8 @@ def summarize_url_content(
         )
         raise
 
-    if summary_markdown is None:
-        return None
-
-    summary_blob_pathname_value = summary_blob_pathname(
-        canonical_url, summary_effort=normalized_effort
-    )
-    blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
-    summary_blob_url = (
-        f"{blob_base_url}/{summary_blob_pathname_value}" if blob_base_url else None
-    )
-
     return {
         "summary_markdown": summary_markdown,
-        "summary_blob_pathname": summary_blob_pathname_value,
-        "summary_blob_url": summary_blob_url,
         "canonical_url": canonical_url,
         "summary_effort": normalized_effort,
     }
@@ -120,9 +102,8 @@ def summarize_url_content(
 def tldr_url_content(
     url: str,
     *,
-    cache_only: bool = False,
     summary_effort: str = "low",
-) -> Optional[dict]:
+) -> dict:
     cleaned_url = (url or "").strip()
     if not cleaned_url:
         raise ValueError("Missing url")
@@ -134,7 +115,6 @@ def tldr_url_content(
         tldr_markdown = tldr_url(
             canonical_url,
             summary_effort=normalized_effort,
-            cache_only=cache_only,
         )
     except requests.RequestException as error:
         util.log(
@@ -146,21 +126,8 @@ def tldr_url_content(
         )
         raise
 
-    if tldr_markdown is None:
-        return None
-
-    tldr_blob_pathname_value = tldr_blob_pathname(
-        canonical_url, summary_effort=normalized_effort
-    )
-    blob_base_url = util.resolve_env_var("BLOB_STORE_BASE_URL", "").strip()
-    tldr_blob_url = (
-        f"{blob_base_url}/{tldr_blob_pathname_value}" if blob_base_url else None
-    )
-
     return {
         "tldr_markdown": tldr_markdown,
-        "tldr_blob_pathname": tldr_blob_pathname_value,
-        "tldr_blob_url": tldr_blob_url,
         "canonical_url": canonical_url,
         "summary_effort": normalized_effort,
     }
@@ -174,9 +141,4 @@ def remove_url(url: str) -> str:
         raise ValueError("Invalid or missing url")
 
     canonical_url = util.canonicalize_url(cleaned_url)
-    success = add_removed_url(canonical_url)
-
-    if not success:
-        raise RuntimeError("Failed to persist removal")
-
     return canonical_url
