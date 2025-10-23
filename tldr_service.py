@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from typing import Optional
 
 import requests
 
@@ -131,14 +130,3 @@ def tldr_url_content(
         "canonical_url": canonical_url,
         "summary_effort": normalized_effort,
     }
-
-
-def remove_url(url: str) -> str:
-    cleaned_url = (url or "").strip()
-    if not cleaned_url or not (
-        cleaned_url.startswith("http://") or cleaned_url.startswith("https://")
-    ):
-        raise ValueError("Invalid or missing url")
-
-    canonical_url = util.canonicalize_url(cleaned_url)
-    return canonical_url

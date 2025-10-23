@@ -355,12 +355,6 @@
             animation: cardFadeIn 0.3s ease backwards;
         }
 
-        .article-card.removing {
-            opacity: 0.5;
-            pointer-events: none;
-            background: #f3f4f6;
-        }
-        
         /* Article state styling - 3-stack system */
         /* Unread (top) - bold and engaging */
         .article-card.unread .article-link {
@@ -373,48 +367,11 @@
             color: var(--muted);
         }
         
-        /* Removed (bottom) - completed to-do style */
-        .article-card.removed {
-            background: #f8f8f8;
-            opacity: 0.7;
-            border-color: #d0d0d0;
-        }
-        
-        .article-card.removed:hover {
-            transform: none !important;
-            box-shadow: none;
-            border-color: #d0d0d0;
-        }
-        
-        .article-card.removed .article-link {
-            color: #888;
-            text-decoration: line-through;
-            cursor: default;
-            pointer-events: none;
-        }
-        
-        .article-card.removed .article-link::after {
-            display: none;
-        }
-        
-        .article-card.removed .article-actions {
-            display: none;
-        }
-        
-        .article-card.removed .article-number {
-            background: #e0e0e0;
-            color: #888;
-        }
-        
         /* Category boundaries */
         .article-card.category-first {
             border-top: 3px solid var(--link);
             padding-top: 16px;
             margin-top: 12px;
-        }
-        
-        .article-card.removed.category-first {
-            border-top: 2px dashed #d0d0d0;
         }
         
         /* Stagger animation for cards */
@@ -661,8 +618,8 @@
            Button Style Architecture
            ========================================
            Base: .article-btn (32px icon button)
-           Modifiers: .expand-btn, .tldr-btn, .remove-btn, .copy-summary-btn
-           States: .loaded, .expanded, .removing
+           Modifiers: .expand-btn, .tldr-btn, .copy-summary-btn
+           States: .loaded, .expanded
            Container contexts: .expand-btn-container
            
            Two-class selectors (.article-btn.modifier) provide
@@ -715,37 +672,6 @@
         .article-btn svg {
             width: 18px;
             height: 18px;
-        }
-
-        .article-btn.remove-btn {
-            background: transparent;
-            border-color: var(--border);
-            color: #6b7280;
-        }
-
-        .article-btn.remove-btn:hover {
-            background: #fee2e2;
-            border-color: #fca5a5;
-            color: #dc2626;
-        }
-
-        .article-btn.remove-btn svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        .article-btn.remove-btn.removing {
-            pointer-events: none;
-        }
-
-        .article-btn.remove-btn.removing svg {
-            display: none;
-        }
-
-        .article-btn.remove-btn.removing::after {
-            content: '⋯';
-            font-size: 18px;
-            color: #9ca3af;
         }
 
         /* Expand/Summarize button (text button in split container) */
@@ -983,12 +909,6 @@
             font-style: normal !important;
         }
 
-        .date-header-container .clear-date-cache-btn {
-            flex-shrink: 0;
-            width: auto;
-            margin: 0;
-        }
-
         .issue-header-container {
             display: flex;
             align-items: center;
@@ -1045,44 +965,6 @@
             color: #9ca3af;
             font-size: 0.92em;
             letter-spacing: 0.01em;
-        }
-
-        .clear-date-cache-btn {
-            padding: 4px 10px;
-            font-size: 12px;
-            font-weight: 500;
-            background: transparent;
-            border: 1px solid #e5e7eb;
-            border-radius: 4px;
-            color: #9ca3af;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            white-space: nowrap;
-            opacity: 0.6;
-        }
-
-        .clear-date-cache-btn:hover {
-            opacity: 1;
-            background: #fef2f2;
-            border-color: #fca5a5;
-            color: #dc2626;
-        }
-
-        .clear-date-cache-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        .clear-date-cache-btn.clearing::after {
-            content: '...';
-            animation: dots 1s infinite;
-        }
-
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
         }
 
         .mark-read-btn {
@@ -1267,19 +1149,6 @@
             <button type="submit" id="scrapeBtn">Scrape TLDR Newsletters</button>
         </form>
         
-        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-            <label for="cacheModeSelect" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--muted);">Cache Mode:</label>
-            <select id="cacheModeSelect" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; background: var(--surface); color: var(--text); min-height: 44px;">
-                <option value="read_write">Read & Write (Normal)</option>
-                <option value="read_only">Read Only</option>
-                <option value="write_only">Write Only</option>
-                <option value="disabled">Disabled</option>
-            </select>
-            <p style="margin: 8px 0 0 0; font-size: 14px; color: var(--muted);" id="cacheModeDescription">
-                Normal caching: reads from cache, writes on cache miss
-            </p>
-        </div>
-
         <div id="progress" class="progress">
             <div id="progress-text">Initializing...</div>
             <div class="progress-bar">
@@ -1367,100 +1236,6 @@
             debugLog(message, { ...options, error: true, show: options.show !== false });
             originalConsoleError.apply(console, args);
         };
-        // #endregion
-
-        /**
-         * CacheModeAwareness syncs the selector with backend cache mode so removal gating reflects server policy.
-         */
-        // #region -------[ CacheModeAwareness ]-------
-        const removalDisabledModes = new Set(['read_only', 'disabled']);
-
-        function getActiveCacheMode() {
-            const select = document.getElementById('cacheModeSelect');
-            if (!select) return 'read_write';
-            return select.getAttribute('data-current-value') || select.value || 'read_write';
-        }
-
-        function shouldDisableRemovals() {
-            return removalDisabledModes.has(getActiveCacheMode());
-        }
-
-        function updateCacheModeDescription(mode) {
-            const descriptions = {
-                'read_write': 'Normal caching: reads from cache, writes on cache miss',
-                'read_only': 'Only read from cache, never write (useful for testing)',
-                'write_only': 'Never read from cache, always write (rebuild cache)',
-                'disabled': 'No caching at all (all fresh data, no writes)'
-            };
-            const descriptionEl = document.getElementById('cacheModeDescription');
-            if (descriptionEl) {
-                descriptionEl.textContent = descriptions[mode] || '';
-            }
-        }
-
-        async function loadCacheMode() {
-            try {
-                const response = await fetch('/api/cache-mode');
-                const data = await response.json();
-                if (data.success && data.cache_mode) {
-                    const select = document.getElementById('cacheModeSelect');
-                    if (select) {
-                        select.value = data.cache_mode;
-                        select.setAttribute('data-current-value', data.cache_mode);
-                    }
-                    updateCacheModeDescription(data.cache_mode);
-                }
-            } catch (error) {
-                console.error('Error loading cache mode:', error);
-            }
-        }
-
-        function bindCacheModeSelector() {
-            const select = document.getElementById('cacheModeSelect');
-            if (!select) return;
-
-            select.addEventListener('change', async function(e) {
-                const control = e.target;
-                const newMode = control.value;
-                const originalValue = control.getAttribute('data-current-value') || 'read_write';
-
-                control.disabled = true;
-
-                try {
-                    const response = await fetch('/api/cache-mode', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cache_mode: newMode })
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        control.setAttribute('data-current-value', newMode);
-                        updateCacheModeDescription(newMode);
-
-                        const desc = document.getElementById('cacheModeDescription');
-                        if (desc) {
-                            desc.textContent = '✓ Cache mode updated successfully!';
-                            desc.style.color = '#28a745';
-                            setTimeout(() => {
-                                updateCacheModeDescription(newMode);
-                                desc.style.color = '';
-                            }, 2000);
-                        }
-                    } else {
-                        alert('Error setting cache mode: ' + data.error);
-                        control.value = originalValue;
-                    }
-                } catch (error) {
-                    alert('Network error: ' + error.message);
-                    console.error('Cache mode error:', error);
-                    control.value = originalValue;
-                } finally {
-                    control.disabled = false;
-                }
-            });
-        }
         // #endregion
 
         /**
@@ -1626,18 +1401,12 @@
                 return writeDay(normalized, snapshot);
             }
 
-            function removeDay(date) {
-                const normalized = normalizeIsoDate(date) || date;
-                localStorage.removeItem(getStorageKeyForDate(normalized));
-            }
-
             return {
                 readDay,
                 writeDay,
                 mergeDay,
                 hasDay,
-                updateArticle,
-                removeDay
+                updateArticle
             };
         })();
         // #endregion
@@ -1777,8 +1546,7 @@
                     payload.articles
                         .filter(article => article.category === issue.category)
                         .forEach(article => {
-                            const href = article.removed ? `${article.url}?data-removed=true` : article.url;
-                            pieces.push(`<li><a href="${escapeHtml(href)}">${escapeHtml(article.title)}</a></li>`);
+                            pieces.push(`<li><a href="${escapeHtml(article.url)}">${escapeHtml(article.title)}</a></li>`);
                         });
 
                     pieces.push('</ol>');
@@ -1834,19 +1602,12 @@
                 const newHeader = header.cloneNode(true);
                 container.appendChild(newHeader);
 
-                const clearBtn = document.createElement('button');
-                clearBtn.className = 'clear-date-cache-btn';
-                clearBtn.textContent = 'Clear Cache';
-                clearBtn.type = 'button';
-
                 const text = (newHeader.textContent || '').trim();
                 const dateMatch = text.match(/\d{4}-\d{2}-\d{2}/);
                 if (dateMatch) {
                     container.setAttribute('data-date', dateMatch[0]);
-                    clearBtn.setAttribute('data-date', dateMatch[0]);
                 }
 
-                container.appendChild(clearBtn);
                 header.parentNode.replaceChild(container, header);
             });
 
@@ -1972,7 +1733,6 @@
                     const urlValue = link.getAttribute('href');
                     const titleText = link.textContent.trim();
 
-                    const isRemoved = urlValue.includes('?data-removed=true');
                     const cleanUrl = urlValue.replace('?data-removed=true', '');
 
                     const articleMeta = urlMetaMap.get(cleanUrl);
@@ -2007,7 +1767,7 @@
                         lastSectionKey = null;
                     }
 
-                    card.className = 'article-card ' + (isRemoved ? 'removed' : 'unread');
+                    card.className = 'article-card unread';
                     card.setAttribute('data-url', cleanUrl);
                     card.setAttribute('data-title', titleText);
 
@@ -2126,27 +1886,17 @@
                     copyBtn.type = 'button';
                     copyBtn.setAttribute('data-url', cleanUrl);
 
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'article-btn remove-btn';
-                    removeBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-                    removeBtn.title = 'Remove article';
-                    removeBtn.type = 'button';
-                    removeBtn.setAttribute('data-url', cleanUrl);
-
                     content.appendChild(newLink);
                     header.appendChild(number);
                     header.appendChild(content);
 
-                    if (!isRemoved) {
-                        header.appendChild(actions);
-                        actions.appendChild(expandBtnContainer);
-                        actions.appendChild(tldrBtn);
-                        actions.appendChild(copyBtn);
-                        actions.appendChild(removeBtn);
+                    header.appendChild(actions);
+                    actions.appendChild(expandBtnContainer);
+                    actions.appendChild(tldrBtn);
+                    actions.appendChild(copyBtn);
 
-                        setCardSummaryEffort(card, 'low');
-                        setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown);
-                    }
+                    setCardSummaryEffort(card, 'low');
+                    setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown);
 
                     card.appendChild(header);
 
@@ -2190,26 +1940,11 @@
             }
 
             const stats = options.stats || buildStatsFromPayloads(payloads);
-            const extraLines = [];
-            if (typeof stats.cache_hits !== 'undefined' || typeof stats.cache_misses !== 'undefined' || typeof stats.cache_other !== 'undefined') {
-                extraLines.push(`🧠 Cache: hits=${stats.cache_hits ?? 0}, misses=${stats.cache_misses ?? 0}, other=${stats.cache_other ?? 0}`);
-            }
-            if (typeof stats.blob_cache_hits !== 'undefined' || typeof stats.blob_cache_misses !== 'undefined') {
-                extraLines.push(`💾 Blob Cache: hits=${stats.blob_cache_hits ?? 0}, misses=${stats.blob_cache_misses ?? 0}`);
-            }
-            if (typeof stats.blob_store_present !== 'undefined') {
-                extraLines.push(`☁️ Blob Store present: ${stats.blob_store_present ? 'true' : 'false'}`);
-            }
-            if (typeof stats.cache_mode !== 'undefined') {
-                extraLines.push(`⚙️ Cache Mode: ${escapeHtml(String(stats.cache_mode))}`);
-            }
-
             const statsLines = [`📊 Stats: ${stats.total_articles} articles, ${stats.unique_urls} unique URLs`,
                 `📅 Dates: ${stats.dates_with_content}/${stats.dates_processed} with content`];
             if (options.source) {
                 statsLines.push(`Source: ${escapeHtml(options.source)}`);
             }
-            statsLines.push(...extraLines);
             const statsHtml = `<div class="stats">${statsLines.join('<br>')}</div>`;
 
             const whiteyHtml = buildWhiteyHtmlFromPayloads(payloads);
@@ -2349,13 +2084,11 @@
                     const card = document.querySelector(selector);
                     if (!card) return;
 
-                    if (article.removed) {
-                        markArticleAsRemoved(card);
-                    } else if (article.read?.isRead) {
+                    if (article.read?.isRead) {
                         card.classList.remove('unread');
                         card.classList.add('read');
                     } else {
-                        card.classList.remove('read', 'removed');
+                        card.classList.remove('read');
                         card.classList.add('unread');
                     }
 
@@ -2366,11 +2099,10 @@
         }
 
         /**
-         * ArticleStateTracks keeps article cards ordered by unread, read, and removed outcomes for every downstream flow.
+         * ArticleStateTracks keeps article cards ordered by unread and read outcomes for every downstream flow.
          */
         // #region -------[ ArticleStateTracks ]-------
         function getArticleState(card) {
-            if (card.classList.contains('removed')) return 2;
             if (card.classList.contains('read')) return 1;
             return 0;
         }
@@ -2444,30 +2176,6 @@
             return '';
         }
 
-        function buildRemovedTitle(card) {
-            if (!card) return '';
-
-            const originalTitle = (card.getAttribute('data-original-title') || '').trim();
-            const domainLabel =
-                (card.getAttribute('data-domain-label') || '').trim() ||
-                getDomainLabelFromUrl(card.getAttribute('data-url') || '');
-
-            let title = originalTitle.replace(/\s*\(\d+\s+minutes?\s+read\)/i, '').trim();
-            if (!title) {
-                title = originalTitle;
-            }
-
-            if (title.length > 10) {
-                title = `${title.slice(0, 10)}...`;
-            }
-
-            if (domainLabel) {
-                return `${title} (${domainLabel})`;
-            }
-
-            return title;
-        }
-
         function setArticleLinkText(link, text) {
             if (!link) return;
             let textSpan = link.querySelector('.article-link-text');
@@ -2480,7 +2188,6 @@
         }
 
         function markArticleAsRead(card) {
-            if (card.classList.contains('removed')) return;
             card.classList.remove('unread');
             card.classList.add('read');
             const articleList = card.closest('.article-list');
@@ -2493,65 +2200,6 @@
                 }
             }));
         }
-
-        function markArticleAsRemoved(card) {
-            card.classList.remove('unread', 'read');
-            card.classList.add('removed');
-
-            const link = card.querySelector('.article-link');
-            const removedTitle = buildRemovedTitle(card);
-            if (link && removedTitle) {
-                setArticleLinkText(link, removedTitle);
-                card.setAttribute('data-title', removedTitle);
-            }
-
-            const summary = card.querySelector('.inline-summary');
-            if (summary) {
-                summary.remove();
-            }
-            toggleCopyButton(card, false);
-            card.removeAttribute('data-summary');
-
-            const summaryBtn = card.querySelector('.expand-btn');
-            if (summaryBtn) {
-                const hasLoadedSummary = summaryBtn.classList.contains('loaded');
-                summaryBtn.innerHTML = hasLoadedSummary ? 'Available' : 'Summarize';
-                summaryBtn.title = hasLoadedSummary
-                    ? 'Summary cached - click to show'
-                    : 'Show summary with default reasoning effort';
-                summaryBtn.classList.remove('expanded');
-                if (!hasLoadedSummary) {
-                    summaryBtn.classList.add('collapsed-state');
-                }
-            }
-
-            const tldr = card.querySelector('.inline-tldr');
-            if (tldr) {
-                tldr.remove();
-            }
-            card.removeAttribute('data-tldr');
-
-            const tldrBtn = card.querySelector('.tldr-btn');
-            if (tldrBtn) {
-                const hasLoadedTldr = tldrBtn.classList.contains('loaded');
-                tldrBtn.innerHTML = hasLoadedTldr ? 'Available' : 'TLDR';
-                tldrBtn.title = hasLoadedTldr
-                    ? 'TLDR cached - click to show'
-                    : 'Show TLDR';
-                tldrBtn.classList.remove('expanded');
-                if (!hasLoadedTldr) {
-                    tldrBtn.classList.add('collapsed-state');
-                }
-            }
-
-            const articleList = card.closest('.article-list');
-            if (articleList) sortArticlesByState(articleList);
-            updateStoredArticleFromCard(card, article => ({
-                ...article,
-                removed: true
-            }));
-        }
-        // #endregion
 
         /**
          * SummaryEffortSelector stores the per-card reasoning level introduced in PR #34 and resets cached summaries on change.
@@ -3319,15 +2967,6 @@
                     const data = await response.json();
 
                     if (data.success) {
-                        if (data.stats.cache_mode) {
-                            const select = document.getElementById('cacheModeSelect');
-                            if (select) {
-                                select.value = data.stats.cache_mode;
-                                select.setAttribute('data-current-value', data.stats.cache_mode);
-                            }
-                            updateCacheModeDescription(data.stats.cache_mode);
-                        }
-
                         const payloads = buildDailyPayloadsFromScrape(data);
                         payloads.forEach(payload => {
                             ClientStorage.mergeDay(payload.date, payload);
@@ -3384,144 +3023,6 @@
                 progress.style.display = 'none';
                 button.disabled = false;
             });
-        }
-        // #endregion
-
-        /**
-         * RemovalLifecycle enforces cache-mode gating and updates UI after /api/remove-url, introduced in remove-button refactor.
-         */
-        // #region -------[ RemovalLifecycle ]-------
-        async function handleRemoveButtonClick(button) {
-            if (shouldDisableRemovals()) {
-                alert('Removal is disabled in ' + getActiveCacheMode() + ' mode');
-                return;
-            }
-
-            const card = button.closest('.article-card');
-            if (!card) return;
-
-            const url = card.getAttribute('data-url');
-            if (!url) return;
-
-            card.classList.add('removing');
-            button.classList.add('removing');
-
-            try {
-                const resp = await fetch('/api/remove-url', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url })
-                });
-                const data = await resp.json();
-
-                if (data.success) {
-                    card.classList.remove('removing');
-                    button.classList.remove('removing');
-                    markArticleAsRemoved(card);
-                } else {
-                    card.classList.remove('removing');
-                    button.classList.remove('removing');
-                    alert('Failed to remove: ' + (data.error || 'Unknown error'));
-                }
-            } catch (err) {
-                card.classList.remove('removing');
-                button.classList.remove('removing');
-                alert('Error: ' + err.message);
-            }
-        }
-
-        function bindRemovalFlow() {
-            document.addEventListener('click', async function(e) {
-                const removeBtn = e.target.closest('.remove-btn');
-                if (!removeBtn) return;
-
-                e.preventDefault();
-                e.stopPropagation();
-
-                await handleRemoveButtonClick(removeBtn);
-            }, true);
-        }
-        // #endregion
-
-        /**
-         * DateCacheClear removes all cached data for a specific date from blob storage.
-         */
-        // #region -------[ DateCacheClear ]-------
-        async function handleClearDateCache(button) {
-            if (shouldDisableRemovals()) {
-                alert('Cache clearing is disabled in ' + getActiveCacheMode() + ' mode');
-                return;
-            }
-
-            const date = button.getAttribute('data-date');
-            if (!date) return;
-
-            if (!confirm(`Clear all cached data for ${date}?\n\nThis will remove:\n• Newsletter cache\n• All article content\n• All summaries (all effort levels)`)) {
-                return;
-            }
-
-            button.disabled = true;
-            button.classList.add('clearing');
-            const originalText = button.textContent;
-            button.textContent = 'Clearing';
-
-            try {
-                const resp = await fetch('/api/invalidate-date-cache', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ date: date })
-                });
-                const data = await resp.json();
-
-                if (data.success) {
-                    ClientStorage.removeDay(date);
-                    button.textContent = 'Cleared!';
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                        button.disabled = false;
-                        button.classList.remove('clearing');
-                    }, 2000);
-                    
-                    const result = document.getElementById('result');
-                    const cards = result.querySelectorAll(`.article-card[data-date="${date}"]`);
-                    cards.forEach(card => {
-                        card.removeAttribute('data-summary');
-                        const summary = card.querySelector('.inline-summary');
-                        if (summary) summary.remove();
-                        
-                        const expandBtn = card.querySelector('.expand-btn');
-                        if (expandBtn) {
-                            expandBtn.classList.remove('expanded', 'loaded');
-                            expandBtn.innerHTML = 'Summarize';
-                            expandBtn.title = 'Show summary with default reasoning effort';
-                        }
-                        
-                        toggleCopyButton(card, false);
-                    });
-                } else {
-                    button.textContent = originalText;
-                    button.disabled = false;
-                    button.classList.remove('clearing');
-                    alert('Failed to clear cache: ' + (data.error || 'Unknown error'));
-                }
-            } catch (err) {
-                button.textContent = originalText;
-                button.disabled = false;
-                button.classList.remove('clearing');
-                alert('Error: ' + err.message);
-            }
-        }
-
-        function bindDateCacheClear() {
-            document.addEventListener('click', async function(e) {
-                const clearBtn = e.target.closest('.clear-date-cache-btn');
-                if (!clearBtn) return;
-
-                e.preventDefault();
-                e.stopPropagation();
-
-                await handleClearDateCache(clearBtn);
-            }, true);
         }
         // #endregion
 
@@ -3873,12 +3374,8 @@
             loadSummaries();
             loadTldrs();
         })();
-        loadCacheMode();
-        bindCacheModeSelector();
         bindScrapeForm();
         bindCopySummaryFlow();
-        bindRemovalFlow();
-        bindDateCacheClear();
         bindSummaryExpansion();
         bindTldrExpansion();
         bindCollapsedIssueClick();
