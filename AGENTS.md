@@ -26,8 +26,6 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 
 - `OPENAI_API_KEY`: `sk-...` (unprefixed in all environments)
 - `GITHUB_API_TOKEN`: `github_pat_...` (unprefixed in all environments)
-- `BLOB_STORE_BASE_URL`: read URL. Use e.g. `<BLOB_STORE_BASE_URL>/<pathname>`
-- `BLOB_READ_WRITE_TOKEN`: `vercel_blob_rw_...`
 
 ### Common tasks and examples
 #### Run serve.py locally

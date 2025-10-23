@@ -355,12 +355,6 @@
             animation: cardFadeIn 0.3s ease backwards;
         }
 
-        .article-card.removing {
-            opacity: 0.5;
-            pointer-events: none;
-            background: #f3f4f6;
-        }
-        
         /* Article state styling - 3-stack system */
         /* Unread (top) - bold and engaging */
         .article-card.unread .article-link {
@@ -373,48 +367,11 @@
             color: var(--muted);
         }
         
-        /* Removed (bottom) - completed to-do style */
-        .article-card.removed {
-            background: #f8f8f8;
-            opacity: 0.7;
-            border-color: #d0d0d0;
-        }
-        
-        .article-card.removed:hover {
-            transform: none !important;
-            box-shadow: none;
-            border-color: #d0d0d0;
-        }
-        
-        .article-card.removed .article-link {
-            color: #888;
-            text-decoration: line-through;
-            cursor: default;
-            pointer-events: none;
-        }
-        
-        .article-card.removed .article-link::after {
-            display: none;
-        }
-        
-        .article-card.removed .article-actions {
-            display: none;
-        }
-        
-        .article-card.removed .article-number {
-            background: #e0e0e0;
-            color: #888;
-        }
-        
         /* Category boundaries */
         .article-card.category-first {
             border-top: 3px solid var(--link);
             padding-top: 16px;
             margin-top: 12px;
-        }
-        
-        .article-card.removed.category-first {
-            border-top: 2px dashed #d0d0d0;
         }
         
         /* Stagger animation for cards */
@@ -661,8 +618,8 @@
            Button Style Architecture
            ========================================
            Base: .article-btn (32px icon button)
-           Modifiers: .expand-btn, .tldr-btn, .remove-btn, .copy-summary-btn
-           States: .loaded, .expanded, .removing
+           Modifiers: .expand-btn, .tldr-btn, .copy-summary-btn
+           States: .loaded, .expanded
            Container contexts: .expand-btn-container
            
            Two-class selectors (.article-btn.modifier) provide
@@ -715,37 +672,6 @@
         .article-btn svg {
             width: 18px;
             height: 18px;
-        }
-
-        .article-btn.remove-btn {
-            background: transparent;
-            border-color: var(--border);
-            color: #6b7280;
-        }
-
-        .article-btn.remove-btn:hover {
-            background: #fee2e2;
-            border-color: #fca5a5;
-            color: #dc2626;
-        }
-
-        .article-btn.remove-btn svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        .article-btn.remove-btn.removing {
-            pointer-events: none;
-        }
-
-        .article-btn.remove-btn.removing svg {
-            display: none;
-        }
-
-        .article-btn.remove-btn.removing::after {
-            content: '⋯';
-            font-size: 18px;
-            color: #9ca3af;
         }
 
         /* Expand/Summarize button (text button in split container) */
@@ -983,12 +909,6 @@
             font-style: normal !important;
         }
 
-        .date-header-container .clear-date-cache-btn {
-            flex-shrink: 0;
-            width: auto;
-            margin: 0;
-        }
-
         .issue-header-container {
             display: flex;
             align-items: center;
@@ -1045,44 +965,6 @@
             color: #9ca3af;
             font-size: 0.92em;
             letter-spacing: 0.01em;
-        }
-
-        .clear-date-cache-btn {
-            padding: 4px 10px;
-            font-size: 12px;
-            font-weight: 500;
-            background: transparent;
-            border: 1px solid #e5e7eb;
-            border-radius: 4px;
-            color: #9ca3af;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            white-space: nowrap;
-            opacity: 0.6;
-        }
-
-        .clear-date-cache-btn:hover {
-            opacity: 1;
-            background: #fef2f2;
-            border-color: #fca5a5;
-            color: #dc2626;
-        }
-
-        .clear-date-cache-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        .clear-date-cache-btn.clearing::after {
-            content: '...';
-            animation: dots 1s infinite;
-        }
-
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
         }
 
         .mark-read-btn {
@@ -1267,19 +1149,6 @@
             <button type="submit" id="scrapeBtn">Scrape TLDR Newsletters</button>
         </form>
         
-        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-            <label for="cacheModeSelect" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--muted);">Cache Mode:</label>
-            <select id="cacheModeSelect" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; background: var(--surface); color: var(--text); min-height: 44px;">
-                <option value="read_write">Read & Write (Normal)</option>
-                <option value="read_only">Read Only</option>
-                <option value="write_only">Write Only</option>
-                <option value="disabled">Disabled</option>
-            </select>
-            <p style="margin: 8px 0 0 0; font-size: 14px; color: var(--muted);" id="cacheModeDescription">
-                Normal caching: reads from cache, writes on cache miss
-            </p>
-        </div>
-
         <div id="progress" class="progress">
             <div id="progress-text">Initializing...</div>
             <div class="progress-bar">
@@ -1370,105 +1239,870 @@
         // #endregion
 
         /**
-         * CacheModeAwareness syncs the selector with backend cache mode so removal gating reflects server policy.
+         * ClientStorageModel defines the browser-owned Article/Issue schema and
+         * persistence helpers for the stateless architecture.
          */
-        // #region -------[ CacheModeAwareness ]-------
-        const removalDisabledModes = new Set(['read_only', 'disabled']);
+        // #region -------[ ClientStorageModel ]-------
+        const ARTICLE_STATUS = {
+            unknown: 'unknown',
+            creating: 'creating',
+            available: 'available',
+            error: 'error'
+        };
 
-        function getActiveCacheMode() {
-            const select = document.getElementById('cacheModeSelect');
-            if (!select) return 'read_write';
-            return select.getAttribute('data-current-value') || select.value || 'read_write';
+        function normalizeIsoDate(value) {
+            if (typeof value !== 'string') return null;
+            const trimmed = value.trim();
+            if (!trimmed) return null;
+            const date = new Date(trimmed);
+            if (Number.isNaN(date.getTime())) return null;
+            return date.toISOString().split('T')[0];
         }
 
-        function shouldDisableRemovals() {
-            return removalDisabledModes.has(getActiveCacheMode());
+        function getStorageKeyForDate(date) {
+            return `tldr:scrapes:${date}`;
         }
 
-        function updateCacheModeDescription(mode) {
-            const descriptions = {
-                'read_write': 'Normal caching: reads from cache, writes on cache miss',
-                'read_only': 'Only read from cache, never write (useful for testing)',
-                'write_only': 'Never read from cache, always write (rebuild cache)',
-                'disabled': 'No caching at all (all fresh data, no writes)'
+        function cloneArticleState(article) {
+            return {
+                url: article.url,
+                title: article.title,
+                issueDate: article.issueDate,
+                category: article.category,
+                section: article.section,
+                sectionEmoji: article.sectionEmoji,
+                sectionOrder: article.sectionOrder,
+                newsletterType: article.newsletterType,
+                removed: Boolean(article.removed),
+                summary: {
+                    status: article.summary?.status || ARTICLE_STATUS.unknown,
+                    markdown: article.summary?.markdown || '',
+                    effort: article.summary?.effort || 'low',
+                    checkedAt: article.summary?.checkedAt || null,
+                    errorMessage: article.summary?.errorMessage || null
+                },
+                tldr: {
+                    status: article.tldr?.status || ARTICLE_STATUS.unknown,
+                    markdown: article.tldr?.markdown || '',
+                    effort: article.tldr?.effort || 'low',
+                    checkedAt: article.tldr?.checkedAt || null,
+                    errorMessage: article.tldr?.errorMessage || null
+                },
+                read: {
+                    isRead: Boolean(article.read?.isRead),
+                    markedAt: article.read?.markedAt || null
+                }
             };
-            const descriptionEl = document.getElementById('cacheModeDescription');
-            if (descriptionEl) {
-                descriptionEl.textContent = descriptions[mode] || '';
-            }
         }
 
-        async function loadCacheMode() {
-            try {
-                const response = await fetch('/api/cache-mode');
-                const data = await response.json();
-                if (data.success && data.cache_mode) {
-                    const select = document.getElementById('cacheModeSelect');
-                    if (select) {
-                        select.value = data.cache_mode;
-                        select.setAttribute('data-current-value', data.cache_mode);
-                    }
-                    updateCacheModeDescription(data.cache_mode);
-                }
-            } catch (error) {
-                console.error('Error loading cache mode:', error);
-            }
+        function sanitizeIssue(issue) {
+            return {
+                date: normalizeIsoDate(issue.date) || null,
+                category: issue.category || '',
+                newsletterType: issue.newsletterType || issue.newsletter_type || null,
+                title: issue.title || null,
+                subtitle: issue.subtitle || null,
+                sections: Array.isArray(issue.sections)
+                    ? issue.sections.map(section => ({
+                        order: section.order ?? null,
+                        title: section.title || null,
+                        emoji: section.emoji || null
+                    }))
+                    : []
+            };
         }
 
-        function bindCacheModeSelector() {
-            const select = document.getElementById('cacheModeSelect');
-            if (!select) return;
-
-            select.addEventListener('change', async function(e) {
-                const control = e.target;
-                const newMode = control.value;
-                const originalValue = control.getAttribute('data-current-value') || 'read_write';
-
-                control.disabled = true;
-
+        const ClientStorage = (() => {
+            function readDay(date) {
+                const normalized = normalizeIsoDate(date) || date;
+                const raw = localStorage.getItem(getStorageKeyForDate(normalized));
+                if (!raw) return null;
                 try {
-                    const response = await fetch('/api/cache-mode', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cache_mode: newMode })
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        control.setAttribute('data-current-value', newMode);
-                        updateCacheModeDescription(newMode);
-
-                        const desc = document.getElementById('cacheModeDescription');
-                        if (desc) {
-                            desc.textContent = '✓ Cache mode updated successfully!';
-                            desc.style.color = '#28a745';
-                            setTimeout(() => {
-                                updateCacheModeDescription(newMode);
-                                desc.style.color = '';
-                            }, 2000);
-                        }
-                    } else {
-                        alert('Error setting cache mode: ' + data.error);
-                        control.value = originalValue;
-                    }
+                    const parsed = JSON.parse(raw);
+                    if (!parsed || typeof parsed !== 'object') return null;
+                    const issues = Array.isArray(parsed.issues) ? parsed.issues.map(sanitizeIssue) : [];
+                    const articles = Array.isArray(parsed.articles)
+                        ? parsed.articles.map(cloneArticleState)
+                        : [];
+                    return {
+                        date: normalized,
+                        cachedAt: parsed.cachedAt || new Date().toISOString(),
+                        issues,
+                        articles
+                    };
                 } catch (error) {
-                    alert('Network error: ' + error.message);
-                    console.error('Cache mode error:', error);
-                    control.value = originalValue;
-                } finally {
-                    control.disabled = false;
+                    console.error('Failed to parse stored payload', error, { show: true, error: true });
+                    return null;
                 }
-            });
-        }
+            }
+
+            function writeDay(date, payload) {
+                const normalized = normalizeIsoDate(date) || date;
+                const serializable = {
+                    date: normalized,
+                    cachedAt: payload.cachedAt || new Date().toISOString(),
+                    issues: Array.isArray(payload.issues) ? payload.issues.map(sanitizeIssue) : [],
+                    articles: Array.isArray(payload.articles)
+                        ? payload.articles.map(cloneArticleState)
+                        : []
+                };
+                localStorage.setItem(
+                    getStorageKeyForDate(normalized),
+                    JSON.stringify(serializable)
+                );
+                return readDay(normalized);
+            }
+
+            function mergeDay(date, payload) {
+                const normalized = normalizeIsoDate(date) || date;
+                const existing = readDay(normalized);
+                if (!existing) {
+                    return writeDay(normalized, payload);
+                }
+
+                const mergedArticles = Array.isArray(payload.articles)
+                    ? payload.articles.map(article => {
+                        const prior = existing.articles.find(item => item.url === article.url);
+                        if (!prior) return cloneArticleState(article);
+                        return cloneArticleState({
+                            ...article,
+                            summary: { ...prior.summary, ...article.summary },
+                            tldr: { ...prior.tldr, ...article.tldr },
+                            read: { ...prior.read, ...article.read }
+                        });
+                    })
+                    : existing.articles.map(cloneArticleState);
+
+                const mergedIssues = Array.isArray(payload.issues) && payload.issues.length
+                    ? payload.issues.map(sanitizeIssue)
+                    : existing.issues.map(sanitizeIssue);
+
+                return writeDay(normalized, {
+                    cachedAt: payload.cachedAt || existing.cachedAt,
+                    issues: mergedIssues,
+                    articles: mergedArticles
+                });
+            }
+
+            function hasDay(date) {
+                const normalized = normalizeIsoDate(date) || date;
+                return localStorage.getItem(getStorageKeyForDate(normalized)) !== null;
+            }
+
+            function updateArticle(date, url, updater) {
+                const normalized = normalizeIsoDate(date) || date;
+                const snapshot = readDay(normalized);
+                if (!snapshot) return null;
+                const index = snapshot.articles.findIndex(article => article.url === url);
+                if (index === -1) return null;
+                const updated = updater(cloneArticleState(snapshot.articles[index]));
+                if (!updated) return null;
+                snapshot.articles[index] = cloneArticleState(updated);
+                return writeDay(normalized, snapshot);
+            }
+
+            return {
+                readDay,
+                writeDay,
+                mergeDay,
+                hasDay,
+                updateArticle
+            };
+        })();
         // #endregion
 
         /**
-         * ArticleStateTracks keeps article cards ordered by unread, read, and removed outcomes for every downstream flow.
+         * ClientHydration builds daily payloads, composes renderable markup, and
+         * orchestrates read/write access to localStorage-backed state.
+         */
+        // #region -------[ ClientHydration ]-------
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function computeDateRange(startDate, endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+                return [];
+            }
+            if (start > end) return [];
+            const dates = [];
+            const current = new Date(end);
+            while (current >= start) {
+                dates.push(current.toISOString().split('T')[0]);
+                current.setDate(current.getDate() - 1);
+            }
+            return dates;
+        }
+
+        function buildDailyPayloadsFromScrape(data) {
+            const payloadByDate = new Map();
+            const issuesByDate = new Map();
+
+            if (Array.isArray(data.issues)) {
+                data.issues.forEach(issue => {
+                    const date = normalizeIsoDate(issue.date);
+                    if (!date) return;
+                    const sanitized = sanitizeIssue(issue);
+                    if (!issuesByDate.has(date)) {
+                        issuesByDate.set(date, []);
+                    }
+                    issuesByDate.get(date).push(sanitized);
+                });
+            }
+
+            if (Array.isArray(data.articles)) {
+                data.articles.forEach(article => {
+                    const date = normalizeIsoDate(article.date);
+                    if (!date) return;
+                    const base = {
+                        url: article.url,
+                        title: article.title || article.url,
+                        issueDate: date,
+                        category: article.category || 'Newsletter',
+                        section: article.section_title || null,
+                        sectionEmoji: article.section_emoji || null,
+                        sectionOrder: article.section_order ?? null,
+                        newsletterType: article.newsletter_type || null,
+                        removed: Boolean(article.removed),
+                        summary: { status: ARTICLE_STATUS.unknown, markdown: '', effort: 'low', checkedAt: null, errorMessage: null },
+                        tldr: { status: ARTICLE_STATUS.unknown, markdown: '', effort: 'low', checkedAt: null, errorMessage: null },
+                        read: { isRead: false, markedAt: null }
+                    };
+                    if (!payloadByDate.has(date)) {
+                        payloadByDate.set(date, []);
+                    }
+                    payloadByDate.get(date).push(base);
+                });
+            }
+
+            const payloads = [];
+            payloadByDate.forEach((articles, date) => {
+                const existing = ClientStorage.readDay(date);
+                const mergedArticles = articles.map(article => {
+                    const prior = existing?.articles?.find(item => item.url === article.url);
+                    if (!prior) return cloneArticleState(article);
+                    return cloneArticleState({
+                        ...article,
+                        summary: prior.summary,
+                        tldr: prior.tldr,
+                        read: prior.read
+                    });
+                });
+                const issues = issuesByDate.get(date) || existing?.issues || [];
+                payloads.push({
+                    date,
+                    cachedAt: new Date().toISOString(),
+                    articles: mergedArticles,
+                    issues
+                });
+            });
+
+            return payloads.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+        }
+
+        function buildStatsFromPayloads(payloads) {
+            const uniqueUrls = new Set();
+            let totalArticles = 0;
+            payloads.forEach(payload => {
+                payload.articles.forEach(article => {
+                    uniqueUrls.add(article.url);
+                });
+                totalArticles += payload.articles.length;
+            });
+
+            return {
+                total_articles: totalArticles,
+                unique_urls: uniqueUrls.size,
+                dates_processed: payloads.length,
+                dates_with_content: payloads.filter(payload => payload.articles.length > 0).length
+            };
+        }
+
+        function buildWhiteyHtmlFromPayloads(payloads) {
+            const pieces = ['<main id="write">'];
+            payloads.forEach(payload => {
+                pieces.push(`<div class="date-header-container"><h2>${escapeHtml(payload.date)}</h2></div>`);
+
+                const issues = (payload.issues && payload.issues.length)
+                    ? payload.issues
+                    : Array.from(new Set(payload.articles.map(article => article.category))).map(category => ({
+                        category,
+                        title: category,
+                        sections: []
+                    }));
+
+                issues.forEach(issue => {
+                    const headingLabel = issue.title || issue.category || 'Newsletter';
+                    pieces.push(`<h4>${escapeHtml(headingLabel)}</h4>`);
+                    pieces.push('<ol>');
+
+                    payload.articles
+                        .filter(article => article.category === issue.category)
+                        .forEach(article => {
+                            pieces.push(`<li><a href="${escapeHtml(article.url)}">${escapeHtml(article.title)}</a></li>`);
+                        });
+
+                    pieces.push('</ol>');
+                });
+            });
+            pieces.push('</main>');
+            return pieces.join('');
+        }
+
+        function buildPayloadIndices(payloads) {
+            const urlToDateMap = {};
+            const urlMetaMap = new Map();
+            const issueMetadataMap = new Map();
+
+            payloads.forEach(payload => {
+                payload.articles.forEach(article => {
+                    urlToDateMap[article.url] = payload.date;
+                    urlMetaMap.set(article.url, {
+                        title: article.title,
+                        section_title: article.section,
+                        section_emoji: article.sectionEmoji,
+                        section_order: article.sectionOrder,
+                        newsletter_type: article.newsletterType,
+                        removed: article.removed,
+                        category: article.category
+                    });
+                });
+
+                payload.issues.forEach(issue => {
+                    const key = `${payload.date}__${issue.category || ''}`;
+                    issueMetadataMap.set(key, {
+                        date: payload.date,
+                        category: issue.category || '',
+                        title: issue.title || null,
+                        subtitle: issue.subtitle || null,
+                        sections: issue.sections || [],
+                        newsletter_type: issue.newsletterType || issue.newsletter_type || null
+                    });
+                });
+            });
+
+            return { urlToDateMap, urlMetaMap, issueMetadataMap };
+        }
+
+        function transformWhiteySurface(root, maps) {
+            const { urlToDateMap, urlMetaMap, issueMetadataMap } = maps;
+            if (!root) return;
+
+            root.querySelectorAll('#write h2, #write h3').forEach(function(header) {
+                const container = document.createElement('div');
+                container.className = 'date-header-container';
+
+                const newHeader = header.cloneNode(true);
+                container.appendChild(newHeader);
+
+                const text = (newHeader.textContent || '').trim();
+                const dateMatch = text.match(/\d{4}-\d{2}-\d{2}/);
+                if (dateMatch) {
+                    container.setAttribute('data-date', dateMatch[0]);
+                }
+
+                header.parentNode.replaceChild(container, header);
+            });
+
+            root.querySelectorAll('#write h4').forEach(function(header) {
+                const container = document.createElement('div');
+                container.className = 'issue-header-container';
+
+                let currentDate = null;
+                let prevElement = header.previousElementSibling;
+                while (prevElement) {
+                    if (prevElement.classList && prevElement.classList.contains('date-header-container')) {
+                        const dateHeader = prevElement.querySelector('h2, h3');
+                        if (dateHeader) {
+                            const dateMatch = dateHeader.textContent.match(/\d{4}-\d{2}-\d{2}/);
+                            if (dateMatch) {
+                                currentDate = dateMatch[0];
+                                break;
+                            }
+                        }
+                    }
+                    prevElement = prevElement.previousElementSibling;
+                }
+
+                if (currentDate) {
+                    container.setAttribute('data-date', currentDate);
+                }
+
+                const newHeader = header.cloneNode(true);
+                const categoryText = (newHeader.textContent || '').trim();
+                if (categoryText) {
+                    container.setAttribute('data-category', categoryText);
+                }
+
+                let issueKey = null;
+                if (currentDate && categoryText) {
+                    issueKey = getIssueKey(currentDate, categoryText);
+                    if (issueKey) {
+                        container.setAttribute('data-issue-key', issueKey);
+                    }
+                }
+
+                newHeader.setAttribute('data-issue-toggle', issueKey || '');
+                newHeader.setAttribute('data-issue-toggle-action', 'toggle');
+                newHeader.setAttribute('tabindex', '0');
+                newHeader.setAttribute('aria-expanded', 'true');
+
+                const markReadBtn = document.createElement('button');
+                markReadBtn.className = 'mark-read-btn';
+                markReadBtn.textContent = 'Mark as Read';
+                markReadBtn.title = 'Collapse and move to bottom';
+                markReadBtn.type = 'button';
+                markReadBtn.setAttribute('data-issue-toggle-action', 'mark-read');
+                markReadBtn.setAttribute('data-issue-toggle', issueKey || '');
+
+                container.appendChild(newHeader);
+                container.appendChild(markReadBtn);
+
+                let issueBlock = null;
+                let issueMeta = null;
+                if (currentDate && categoryText) {
+                    issueMeta = issueMetadataMap.get(`${currentDate}__${categoryText}`) || null;
+                    if (issueMeta && (issueMeta.title || issueMeta.subtitle)) {
+                        issueBlock = document.createElement('div');
+                        issueBlock.className = 'issue-title-block';
+
+                        const lines = [];
+                        if (issueMeta.title) lines.push(issueMeta.title);
+                        if (issueMeta.subtitle && issueMeta.subtitle !== issueMeta.title) {
+                            lines.push(issueMeta.subtitle);
+                        }
+
+                        lines.forEach(text => {
+                            const lineEl = document.createElement('div');
+                            lineEl.className = 'issue-title-line';
+                            lineEl.textContent = text;
+                            issueBlock.appendChild(lineEl);
+                        });
+                    }
+                }
+
+                if (issueBlock) {
+                    container.appendChild(issueBlock);
+                }
+
+                header.parentNode.replaceChild(container, header);
+            });
+
+            const writeRoot = root.querySelector('#write');
+            if (!writeRoot) return;
+
+            Array.from(writeRoot.querySelectorAll('.date-header-container')).forEach(function(container) {
+                let node = container.nextElementSibling;
+                let aiHeading = null;
+                let techHeading = null;
+                while (node && !(node.classList && node.classList.contains('date-header-container'))) {
+                    if (node.tagName === 'H4') {
+                        const text = (node.textContent || '').trim();
+                        if (!aiHeading && /TLDR\s*AI/i.test(text)) aiHeading = node;
+                        if (!techHeading && /TLDR\s*Tech/i.test(text)) techHeading = node;
+                    }
+                    node = node.nextElementSibling;
+                }
+                if (aiHeading && techHeading && (techHeading.compareDocumentPosition(aiHeading) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+                    const aiList = (aiHeading.nextElementSibling && aiHeading.nextElementSibling.tagName === 'OL') ? aiHeading.nextElementSibling : null;
+                    container.parentNode.insertBefore(aiHeading, techHeading);
+                    if (aiList) container.parentNode.insertBefore(aiList, techHeading);
+                }
+            });
+
+            root.querySelectorAll('#write ol').forEach(function(ol) {
+                const articleList = document.createElement('div');
+                articleList.className = 'article-list';
+
+                const listItems = ol.querySelectorAll('li');
+                let lastSectionKey = null;
+                let insertedSectionTitle = false;
+
+                listItems.forEach(function(li, index) {
+                    const link = li.querySelector('a[href]');
+                    if (!link) return;
+
+                    const card = document.createElement('div');
+                    const urlValue = link.getAttribute('href');
+                    const titleText = link.textContent.trim();
+
+                    const cleanUrl = urlValue.replace('?data-removed=true', '');
+
+                    const articleMeta = urlMetaMap.get(cleanUrl);
+                    const titleParts = parseTitleWithDomain(titleText);
+                    const originalTitle = (articleMeta && articleMeta.title) || titleParts.title || titleText;
+                    card.setAttribute('data-original-title', originalTitle);
+                    const domainLabel = titleParts.domain || getDomainLabelFromUrl(cleanUrl);
+                    if (domainLabel) {
+                        card.setAttribute('data-domain-label', domainLabel);
+                    }
+                    let sectionKey = null;
+                    if (articleMeta && articleMeta.section_title) {
+                        const sectionOrder = articleMeta.section_order ?? '';
+                        sectionKey = `${sectionOrder}__${articleMeta.section_title}`;
+                        if (sectionKey !== lastSectionKey) {
+                            const labelParts = [];
+                            if (articleMeta.section_emoji) {
+                                labelParts.push(articleMeta.section_emoji);
+                            }
+                            labelParts.push(articleMeta.section_title);
+                            const sectionLabel = labelParts.join(' ').trim();
+                            if (sectionLabel) {
+                                const sectionEl = document.createElement('div');
+                                sectionEl.className = 'section-title';
+                                sectionEl.textContent = sectionLabel;
+                                articleList.appendChild(sectionEl);
+                                lastSectionKey = sectionKey;
+                                insertedSectionTitle = true;
+                            }
+                        }
+                    } else if (lastSectionKey !== null) {
+                        lastSectionKey = null;
+                    }
+
+                    card.className = 'article-card unread';
+                    card.setAttribute('data-url', cleanUrl);
+                    card.setAttribute('data-title', titleText);
+
+                    if (articleMeta && articleMeta.section_title) {
+                        card.setAttribute('data-section-title', articleMeta.section_title);
+                        if (articleMeta.section_emoji) {
+                            card.setAttribute('data-section-emoji', articleMeta.section_emoji);
+                        }
+                    }
+                    if (articleMeta && articleMeta.newsletter_type) {
+                        card.setAttribute('data-newsletter-type', articleMeta.newsletter_type);
+                    }
+
+                    const articleDate = urlToDateMap[cleanUrl];
+                    if (articleDate) {
+                        card.setAttribute('data-date', articleDate);
+                    }
+
+                    const header = document.createElement('div');
+                    header.className = 'article-header';
+
+                    const number = document.createElement('div');
+                    number.className = 'article-number';
+                    number.textContent = index + 1;
+
+                    const content = document.createElement('div');
+                    content.className = 'article-content';
+
+                    const newLink = link.cloneNode(true);
+                    newLink.className = 'article-link';
+                    newLink.setAttribute('target', '_blank');
+                    newLink.setAttribute('rel', 'noopener noreferrer');
+                    newLink.setAttribute('data-url', cleanUrl);
+                    newLink.setAttribute('href', cleanUrl);
+                    newLink.textContent = '';
+
+                    let faviconUrl = '';
+                    try {
+                        const parsedUrl = new URL(cleanUrl);
+                        faviconUrl = `${parsedUrl.origin}/favicon.ico`;
+                    } catch (err) {
+                        faviconUrl = '';
+                    }
+
+                    if (faviconUrl) {
+                        const favicon = document.createElement('img');
+                        favicon.className = 'article-favicon';
+                        favicon.setAttribute('loading', 'lazy');
+                        favicon.setAttribute('alt', '');
+                        favicon.src = faviconUrl;
+                        const space = document.createTextNode(' ');
+                        favicon.addEventListener('error', () => {
+                            space.remove();
+                            favicon.remove();
+                        });
+                        newLink.appendChild(favicon);
+                        newLink.appendChild(space);
+                    }
+
+                    const linkTextSpan = document.createElement('span');
+                    linkTextSpan.className = 'article-link-text';
+                    newLink.appendChild(linkTextSpan);
+                    setArticleLinkText(newLink, titleText);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'article-actions';
+
+                    const expandBtnContainer = document.createElement('div');
+                    expandBtnContainer.className = 'expand-btn-container';
+
+                    const expandBtn = document.createElement('button');
+                    expandBtn.className = 'article-btn expand-btn collapsed-state';
+                    expandBtn.innerHTML = 'Summarize';
+                    expandBtn.title = 'Show summary with default reasoning effort';
+                    expandBtn.setAttribute('data-url', cleanUrl);
+                    expandBtn.type = 'button';
+
+                    const chevronBtn = document.createElement('button');
+                    chevronBtn.className = 'article-btn expand-chevron-btn';
+                    chevronBtn.innerHTML = '▾';
+                    chevronBtn.title = 'Choose reasoning effort level';
+                    chevronBtn.type = 'button';
+
+                    const dropdown = document.createElement('div');
+                    dropdown.className = 'effort-dropdown';
+
+                    SUMMARY_EFFORT_OPTIONS.forEach((option) => {
+                        const item = document.createElement('button');
+                        item.className = 'effort-dropdown-item';
+                        item.type = 'button';
+                        item.setAttribute('data-effort', option.value);
+
+                        const label = document.createElement('span');
+                        label.className = 'effort-label';
+                        label.textContent = option.label;
+
+                        item.appendChild(label);
+                        dropdown.appendChild(item);
+                    });
+
+                    expandBtnContainer.appendChild(expandBtn);
+                    expandBtnContainer.appendChild(chevronBtn);
+                    expandBtnContainer.appendChild(dropdown);
+
+                    const tldrBtn = document.createElement('button');
+                    tldrBtn.className = 'article-btn tldr-btn collapsed-state';
+                    tldrBtn.innerHTML = 'TLDR';
+                    tldrBtn.title = 'Show TLDR';
+                    tldrBtn.setAttribute('data-url', cleanUrl);
+                    tldrBtn.type = 'button';
+
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'article-btn copy-summary-btn';
+                    copyBtn.innerHTML = clipboardIconMarkup;
+                    copyBtn.title = 'Copy summary';
+                    copyBtn.type = 'button';
+                    copyBtn.setAttribute('data-url', cleanUrl);
+
+                    content.appendChild(newLink);
+                    header.appendChild(number);
+                    header.appendChild(content);
+
+                    header.appendChild(actions);
+                    actions.appendChild(expandBtnContainer);
+                    actions.appendChild(tldrBtn);
+                    actions.appendChild(copyBtn);
+
+                    setCardSummaryEffort(card, 'low');
+                    setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown);
+
+                    card.appendChild(header);
+
+                    articleList.appendChild(card);
+                });
+
+                sortArticlesByState(articleList);
+
+                ol.parentNode.replaceChild(articleList, ol);
+
+                if (insertedSectionTitle) {
+                    let prevNode = articleList.previousElementSibling;
+                    while (prevNode) {
+                        if (prevNode.tagName === 'H5') {
+                            const nodeToRemove = prevNode;
+                            prevNode = prevNode.previousElementSibling;
+                            nodeToRemove.remove();
+                            continue;
+                        }
+                        if (prevNode.tagName === 'P' && !(prevNode.textContent || '').trim()) {
+                            const nodeToRemove = prevNode;
+                            prevNode = prevNode.previousElementSibling;
+                            nodeToRemove.remove();
+                            continue;
+                        }
+                        break;
+                    }
+                }
+
+            });
+        }
+
+        function renderPayloads(payloads, options = {}) {
+            const result = document.getElementById('result');
+            if (!result) return;
+
+            if (!payloads.length) {
+                result.innerHTML = '<div class="empty-result">No cached newsletters found for the selected range.</div>';
+                result.style.display = 'block';
+                return;
+            }
+
+            const stats = options.stats || buildStatsFromPayloads(payloads);
+            const statsLines = [`📊 Stats: ${stats.total_articles} articles, ${stats.unique_urls} unique URLs`,
+                `📅 Dates: ${stats.dates_with_content}/${stats.dates_processed} with content`];
+            if (options.source) {
+                statsLines.push(`Source: ${escapeHtml(options.source)}`);
+            }
+            const statsHtml = `<div class="stats">${statsLines.join('<br>')}</div>`;
+
+            const whiteyHtml = buildWhiteyHtmlFromPayloads(payloads);
+            result.innerHTML = statsHtml + '<div id="logs-slot"></div>' + whiteyHtml;
+            result.style.display = 'block';
+
+            const { urlToDateMap, urlMetaMap, issueMetadataMap } = buildPayloadIndices(payloads);
+            transformWhiteySurface(result, { urlToDateMap, urlMetaMap, issueMetadataMap });
+            applyStoredArticleState(payloads);
+        }
+
+        function hydrateRangeFromStore(startDate, endDate) {
+            const dates = computeDateRange(startDate, endDate);
+            const payloads = [];
+            dates.forEach(date => {
+                const payload = ClientStorage.readDay(date);
+                if (payload) {
+                    payloads.push(payload);
+                }
+            });
+            return payloads;
+        }
+        // #endregion
+
+        function updateStoredArticleFromCard(card, updater) {
+            if (!card) return;
+            const date = card.getAttribute('data-date');
+            const url = card.getAttribute('data-url');
+            if (!date || !url) return;
+            ClientStorage.updateArticle(date, url, updater);
+        }
+
+        function applyStoredArticleState(payloads) {
+            const cssEscape = (value) => {
+                if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+                    return CSS.escape(value);
+                }
+                return String(value).replace(/(["'\\\s])/g, '\\$1');
+            };
+
+            const applySummaryState = (card, summary) => {
+                const expandBtn = card.querySelector('.expand-btn');
+                if (!expandBtn) return;
+
+                expandBtn.disabled = false;
+                expandBtn.classList.remove('error');
+                card.removeAttribute('data-summary-error');
+
+                if (summary?.status === ARTICLE_STATUS.available && summary.markdown) {
+                    card.setAttribute('data-summary', summary.markdown);
+                    expandBtn.classList.add('loaded');
+                    if (!expandBtn.classList.contains('expanded')) {
+                        expandBtn.innerHTML = 'Available';
+                        expandBtn.title = 'Summary cached - click to show';
+                        expandBtn.classList.remove('collapsed-state');
+                    }
+                    toggleCopyButton(card, true);
+                    return;
+                }
+
+                if (summary?.status === ARTICLE_STATUS.creating) {
+                    expandBtn.disabled = true;
+                    expandBtn.innerHTML = 'Loading...';
+                    expandBtn.title = 'Loading summary...';
+                    expandBtn.classList.remove('loaded');
+                    toggleCopyButton(card, false);
+                    return;
+                }
+
+                if (summary?.status === ARTICLE_STATUS.error) {
+                    card.removeAttribute('data-summary');
+                    card.setAttribute('data-summary-error', summary.errorMessage || 'Summary failed');
+                    expandBtn.classList.remove('loaded');
+                    expandBtn.innerHTML = 'Retry';
+                    expandBtn.title = summary.errorMessage ? `Error: ${summary.errorMessage}` : 'Retry summary';
+                    expandBtn.classList.add('collapsed-state');
+                    toggleCopyButton(card, false);
+                    return;
+                }
+
+                card.removeAttribute('data-summary');
+                expandBtn.classList.remove('loaded');
+                expandBtn.innerHTML = 'Summarize';
+                expandBtn.title = 'Show summary with default reasoning effort';
+                expandBtn.classList.add('collapsed-state');
+                toggleCopyButton(card, false);
+            };
+
+            const applyTldrState = (card, tldr) => {
+                const tldrBtn = card.querySelector('.tldr-btn');
+                if (!tldrBtn) return;
+
+                tldrBtn.disabled = false;
+                tldrBtn.classList.remove('error');
+                card.removeAttribute('data-tldr-error');
+
+                if (tldr?.status === ARTICLE_STATUS.available && tldr.markdown) {
+                    card.setAttribute('data-tldr', tldr.markdown);
+                    if (!tldrBtn.classList.contains('expanded')) {
+                        tldrBtn.innerHTML = 'Available';
+                        tldrBtn.title = 'TLDR cached - click to show';
+                        tldrBtn.classList.add('loaded');
+                        tldrBtn.classList.remove('collapsed-state');
+                    }
+                    return;
+                }
+
+                if (tldr?.status === ARTICLE_STATUS.creating) {
+                    tldrBtn.disabled = true;
+                    tldrBtn.innerHTML = 'Loading...';
+                    tldrBtn.title = 'Loading TLDR...';
+                    tldrBtn.classList.remove('loaded');
+                    tldrBtn.classList.add('collapsed-state');
+                    return;
+                }
+
+                if (tldr?.status === ARTICLE_STATUS.error) {
+                    card.removeAttribute('data-tldr');
+                    card.setAttribute('data-tldr-error', tldr.errorMessage || 'TLDR failed');
+                    tldrBtn.innerHTML = 'Retry';
+                    tldrBtn.title = tldr.errorMessage ? `Error: ${tldr.errorMessage}` : 'Retry TLDR';
+                    tldrBtn.classList.remove('loaded');
+                    tldrBtn.classList.add('collapsed-state');
+                    return;
+                }
+
+                card.removeAttribute('data-tldr');
+                tldrBtn.innerHTML = 'TLDR';
+                tldrBtn.title = 'Show TLDR';
+                tldrBtn.classList.remove('loaded');
+                tldrBtn.classList.add('collapsed-state');
+            };
+
+            payloads.forEach(payload => {
+                payload.articles.forEach(article => {
+                    const selector = `.article-card[data-date="${payload.date}"][data-url="${cssEscape(article.url)}"]`;
+                    const card = document.querySelector(selector);
+                    if (!card) return;
+
+                    if (article.read?.isRead) {
+                        card.classList.remove('unread');
+                        card.classList.add('read');
+                    } else {
+                        card.classList.remove('read');
+                        card.classList.add('unread');
+                    }
+
+                    applySummaryState(card, article.summary);
+                    applyTldrState(card, article.tldr);
+                });
+            });
+        }
+
+        /**
+         * ArticleStateTracks keeps article cards ordered by unread and read outcomes for every downstream flow.
          */
         // #region -------[ ArticleStateTracks ]-------
         function getArticleState(card) {
-            if (card.classList.contains('removed')) return 2;
             if (card.classList.contains('read')) return 1;
             return 0;
         }
@@ -1542,30 +2176,6 @@
             return '';
         }
 
-        function buildRemovedTitle(card) {
-            if (!card) return '';
-
-            const originalTitle = (card.getAttribute('data-original-title') || '').trim();
-            const domainLabel =
-                (card.getAttribute('data-domain-label') || '').trim() ||
-                getDomainLabelFromUrl(card.getAttribute('data-url') || '');
-
-            let title = originalTitle.replace(/\s*\(\d+\s+minutes?\s+read\)/i, '').trim();
-            if (!title) {
-                title = originalTitle;
-            }
-
-            if (title.length > 10) {
-                title = `${title.slice(0, 10)}...`;
-            }
-
-            if (domainLabel) {
-                return `${title} (${domainLabel})`;
-            }
-
-            return title;
-        }
-
         function setArticleLinkText(link, text) {
             if (!link) return;
             let textSpan = link.querySelector('.article-link-text');
@@ -1578,67 +2188,18 @@
         }
 
         function markArticleAsRead(card) {
-            if (card.classList.contains('removed')) return;
             card.classList.remove('unread');
             card.classList.add('read');
             const articleList = card.closest('.article-list');
             if (articleList) sortArticlesByState(articleList);
-        }
-
-        function markArticleAsRemoved(card) {
-            card.classList.remove('unread', 'read');
-            card.classList.add('removed');
-
-            const link = card.querySelector('.article-link');
-            const removedTitle = buildRemovedTitle(card);
-            if (link && removedTitle) {
-                setArticleLinkText(link, removedTitle);
-                card.setAttribute('data-title', removedTitle);
-            }
-
-            const summary = card.querySelector('.inline-summary');
-            if (summary) {
-                summary.remove();
-            }
-            toggleCopyButton(card, false);
-            card.removeAttribute('data-summary');
-
-            const summaryBtn = card.querySelector('.expand-btn');
-            if (summaryBtn) {
-                const hasLoadedSummary = summaryBtn.classList.contains('loaded');
-                summaryBtn.innerHTML = hasLoadedSummary ? 'Available' : 'Summarize';
-                summaryBtn.title = hasLoadedSummary
-                    ? 'Summary cached - click to show'
-                    : 'Show summary with default reasoning effort';
-                summaryBtn.classList.remove('expanded');
-                if (!hasLoadedSummary) {
-                    summaryBtn.classList.add('collapsed-state');
+            updateStoredArticleFromCard(card, article => ({
+                ...article,
+                read: {
+                    isRead: true,
+                    markedAt: new Date().toISOString()
                 }
-            }
-
-            const tldr = card.querySelector('.inline-tldr');
-            if (tldr) {
-                tldr.remove();
-            }
-            card.removeAttribute('data-tldr');
-
-            const tldrBtn = card.querySelector('.tldr-btn');
-            if (tldrBtn) {
-                const hasLoadedTldr = tldrBtn.classList.contains('loaded');
-                tldrBtn.innerHTML = hasLoadedTldr ? 'Available' : 'TLDR';
-                tldrBtn.title = hasLoadedTldr
-                    ? 'TLDR cached - click to show'
-                    : 'Show TLDR';
-                tldrBtn.classList.remove('expanded');
-                if (!hasLoadedTldr) {
-                    tldrBtn.classList.add('collapsed-state');
-                }
-            }
-
-            const articleList = card.closest('.article-list');
-            if (articleList) sortArticlesByState(articleList);
+            }));
         }
-        // #endregion
 
         /**
          * SummaryEffortSelector stores the per-card reasoning level introduced in PR #34 and resets cached summaries on change.
@@ -1838,6 +2399,16 @@
 
                             if (card) {
                                 card.setAttribute('data-summary', data.summary_markdown || '');
+                                updateStoredArticleFromCard(card, article => ({
+                                    ...article,
+                                    summary: {
+                                        status: ARTICLE_STATUS.available,
+                                        markdown: data.summary_markdown || '',
+                                        effort: summaryEffort,
+                                        checkedAt: new Date().toISOString(),
+                                        errorMessage: null
+                                    },
+                                }));
                                 markArticleAsRead(card);
                             }
                         }
@@ -1900,6 +2471,16 @@
                         }
 
                         card.setAttribute('data-tldr', data.tldr_markdown || '');
+                        updateStoredArticleFromCard(card, article => ({
+                            ...article,
+                            tldr: {
+                                status: ARTICLE_STATUS.available,
+                                markdown: data.tldr_markdown || '',
+                                effort: summaryEffort,
+                                checkedAt: new Date().toISOString(),
+                                errorMessage: null
+                            }
+                        }));
                         tldrBtn.classList.add('loaded');
                         if (!tldrBtn.classList.contains('expanded')) {
                             tldrBtn.innerHTML = 'Available';
@@ -1991,6 +2572,16 @@
                         btn.classList.remove('collapsed-state');
                         btn.classList.add('loaded');
                     }
+                    updateStoredArticleFromCard(card, article => ({
+                        ...article,
+                        summary: {
+                            status: ARTICLE_STATUS.available,
+                            markdown: loadedSummary,
+                            effort: summaryEffort,
+                            checkedAt: new Date().toISOString(),
+                            errorMessage: null
+                        }
+                    }));
                     toggleCopyButton(card, true);
                     return;
                 }
@@ -2005,6 +2596,16 @@
                 expander.className = 'inline-summary';
                 expander.textContent = 'Summarizing...';
                 card.appendChild(expander);
+                updateStoredArticleFromCard(card, article => ({
+                    ...article,
+                    summary: {
+                        status: ARTICLE_STATUS.creating,
+                        markdown: '',
+                        effort: summaryEffort,
+                        checkedAt: new Date().toISOString(),
+                        errorMessage: null
+                    }
+                }));
 
                 try {
                     const resp = await fetch('/api/summarize-url', {
@@ -2036,6 +2637,16 @@
                         });
 
                         card.setAttribute('data-summary', data.summary_markdown || '');
+                        updateStoredArticleFromCard(card, article => ({
+                            ...article,
+                            summary: {
+                                status: ARTICLE_STATUS.available,
+                                markdown: data.summary_markdown || '',
+                                effort: summaryEffort,
+                                checkedAt: new Date().toISOString(),
+                                errorMessage: null
+                            }
+                        }));
 
                         if (btn) {
                             btn.disabled = false;
@@ -2057,6 +2668,16 @@
                             btn.classList.add('collapsed-state');
                         }
                         toggleCopyButton(card, false);
+                        updateStoredArticleFromCard(card, article => ({
+                            ...article,
+                            summary: {
+                                status: ARTICLE_STATUS.error,
+                                markdown: '',
+                                effort: summaryEffort,
+                                checkedAt: new Date().toISOString(),
+                                errorMessage: data.error || 'Failed to summarize'
+                            }
+                        }));
                     }
                 } catch (err) {
                     expander.classList.add('error');
@@ -2069,6 +2690,16 @@
                         btn.classList.add('collapsed-state');
                     }
                     toggleCopyButton(card, false);
+                    updateStoredArticleFromCard(card, article => ({
+                        ...article,
+                        summary: {
+                            status: ARTICLE_STATUS.error,
+                            markdown: '',
+                            effort: summaryEffort,
+                            checkedAt: new Date().toISOString(),
+                            errorMessage: err?.message || 'Failed to summarize'
+                        }
+                    }));
                 }
             }, true);
         }
@@ -2135,6 +2766,16 @@
                     tldrBtn.classList.add('expanded');
                     tldrBtn.classList.remove('collapsed-state');
                     tldrBtn.classList.add('loaded');
+                    updateStoredArticleFromCard(card, article => ({
+                        ...article,
+                        tldr: {
+                            status: ARTICLE_STATUS.available,
+                            markdown: loadedTldr,
+                            effort: summaryEffort,
+                            checkedAt: new Date().toISOString(),
+                            errorMessage: null
+                        }
+                    }));
                     return;
                 }
 
@@ -2146,6 +2787,16 @@
                 expander.className = 'inline-tldr';
                 expander.textContent = 'Creating TLDR...';
                 card.appendChild(expander);
+                updateStoredArticleFromCard(card, article => ({
+                    ...article,
+                    tldr: {
+                        status: ARTICLE_STATUS.creating,
+                        markdown: '',
+                        effort: summaryEffort,
+                        checkedAt: new Date().toISOString(),
+                        errorMessage: null
+                    }
+                }));
 
                 try {
                     const resp = await fetch('/api/tldr-url', {
@@ -2174,6 +2825,16 @@
                         });
 
                         card.setAttribute('data-tldr', data.tldr_markdown || '');
+                        updateStoredArticleFromCard(card, article => ({
+                            ...article,
+                            tldr: {
+                                status: ARTICLE_STATUS.available,
+                                markdown: data.tldr_markdown || '',
+                                effort: summaryEffort,
+                                checkedAt: new Date().toISOString(),
+                                errorMessage: null
+                            }
+                        }));
 
                         tldrBtn.disabled = false;
                         tldrBtn.innerHTML = 'Hide';
@@ -2189,6 +2850,16 @@
                         tldrBtn.innerHTML = 'TLDR';
                         tldrBtn.title = 'Show TLDR';
                         tldrBtn.classList.add('collapsed-state');
+                        updateStoredArticleFromCard(card, article => ({
+                            ...article,
+                            tldr: {
+                                status: ARTICLE_STATUS.error,
+                                markdown: '',
+                                effort: summaryEffort,
+                                checkedAt: new Date().toISOString(),
+                                errorMessage: data.error || 'Failed to create TLDR'
+                            }
+                        }));
                     }
                 } catch (err) {
                     expander.classList.add('error');
@@ -2198,6 +2869,16 @@
                     tldrBtn.innerHTML = 'TLDR';
                     tldrBtn.title = 'Show TLDR';
                     tldrBtn.classList.add('collapsed-state');
+                    updateStoredArticleFromCard(card, article => ({
+                        ...article,
+                        tldr: {
+                            status: ARTICLE_STATUS.error,
+                            markdown: '',
+                            effort: summaryEffort,
+                            checkedAt: new Date().toISOString(),
+                            errorMessage: err?.message || String(err)
+                        }
+                    }));
                 }
             }, true);
         }
@@ -2254,6 +2935,21 @@
                     return;
                 }
 
+                const rangeDates = computeDateRange(startDate, endDate);
+                const cachedPayloads = hydrateRangeFromStore(startDate, endDate);
+                if (rangeDates.length > 0 && cachedPayloads.length === rangeDates.length) {
+                    renderPayloads(cachedPayloads, { source: 'local cache' });
+                    result.className = 'success';
+                    result.style.display = 'block';
+                    document.getElementById('progress-fill').style.width = '100%';
+                    progress.style.display = 'none';
+                    button.disabled = false;
+                    restoreReadState();
+                    loadSummaries();
+                    loadTldrs();
+                    return;
+                }
+
                 button.disabled = true;
                 progress.style.display = 'block';
                 result.style.display = 'none';
@@ -2271,45 +2967,13 @@
                     const data = await response.json();
 
                     if (data.success) {
-                        if (data.stats.cache_mode) {
-                            const select = document.getElementById('cacheModeSelect');
-                            if (select) {
-                                select.value = data.stats.cache_mode;
-                                select.setAttribute('data-current-value', data.stats.cache_mode);
-                            }
-                            updateCacheModeDescription(data.stats.cache_mode);
-                        }
-
-                        const urlToDateMap = {};
-                        const urlMetaMap = new Map();
-                        if (Array.isArray(data.articles)) {
-                            data.articles.forEach(article => {
-                                urlToDateMap[article.url] = article.date;
-                                urlMetaMap.set(article.url, article);
-                            });
-                        }
-
-                        const issueMetadataList = Array.isArray(data.issues) ? data.issues : [];
-                        const issueMetadataMap = new Map();
-                        issueMetadataList.forEach(issue => {
-                            if (!issue || !issue.date || !issue.category) return;
-                            issueMetadataMap.set(`${issue.date}__${issue.category}`, issue);
+                        const payloads = buildDailyPayloadsFromScrape(data);
+                        payloads.forEach(payload => {
+                            ClientStorage.mergeDay(payload.date, payload);
                         });
 
-                        const statsHtml = `<div class="stats">
-                            📊 Stats: ${data.stats.total_articles} articles found,
-                            ${data.stats.unique_urls} unique URLs,
-                            ${data.stats.dates_with_content}/${data.stats.dates_processed} dates had content<br>
-                            🧠 Cache: hits=${data.stats.cache_hits ?? 0}, misses=${data.stats.cache_misses ?? 0}, other=${data.stats.cache_other ?? 0}<br>
-                            💾 Blob Cache: hits=${data.stats.blob_cache_hits ?? 0}, misses=${data.stats.blob_cache_misses ?? 0}<br>
-                            ☁️ Blob Store present: ${data.stats.blob_store_present ? 'true' : 'false'}<br>
-                            ⚙️ Cache Mode: <strong>${data.stats.cache_mode || 'read_write'}</strong>
-                        </div>`;
-
-                        const html = DOMPurify.sanitize(marked.parse(data.output));
-
-                        const whiteySurface = `<main id="write">${html}</main>`;
-                        result.innerHTML = statsHtml + '<div id="logs-slot"></div>' + whiteySurface;
+                        const hydratedPayloads = hydrateRangeFromStore(startDate, endDate);
+                        renderPayloads(hydratedPayloads, { stats: data.stats, source: 'Live scrape' });
 
                         try {
                             if (Array.isArray(data.stats.debug_logs) && data.stats.debug_logs.length) {
@@ -2320,7 +2984,8 @@
                                     summary.textContent = 'Debug logs';
                                     const pre = document.createElement('pre');
                                     pre.style.whiteSpace = 'pre-wrap';
-                                    pre.textContent = data.stats.debug_logs.map(l => String(l)).join('\n');
+                                    pre.textContent = data.stats.debug_logs.map(l => String(l)).join('
+');
                                     details.appendChild(summary);
                                     details.appendChild(pre);
                                     slot.appendChild(details);
@@ -2328,391 +2993,11 @@
                             }
                         } catch (_) {}
 
-                        result.querySelectorAll('#write h2, #write h3').forEach(function(header) {
-                            const headerText = header.textContent.trim();
-                            const dateMatch = headerText.match(/\d{4}-\d{2}-\d{2}/);
-                            
-                            if (dateMatch) {
-                                const date = dateMatch[0];
-                                
-                                const container = document.createElement('div');
-                                container.className = 'date-header-container';
-                                
-                                const newHeader = header.cloneNode(true);
-                                
-                                const clearBtn = document.createElement('button');
-                                clearBtn.className = 'clear-date-cache-btn';
-                                clearBtn.textContent = 'Clear Cache';
-                                clearBtn.title = 'Remove all cached data (content & summaries) for this date';
-                                clearBtn.type = 'button';
-                                clearBtn.setAttribute('data-date', date);
-                                
-                                container.appendChild(newHeader);
-                                container.appendChild(clearBtn);
-                                
-                                header.parentNode.replaceChild(container, header);
-                            }
-                        });
-
-                        result.querySelectorAll('#write h4').forEach(function(header) {
-                            const container = document.createElement('div');
-                            container.className = 'issue-header-container';
-
-                            let currentDate = null;
-                            let prevElement = header.previousElementSibling;
-                            while (prevElement) {
-                                if (prevElement.classList && prevElement.classList.contains('date-header-container')) {
-                                    const dateHeader = prevElement.querySelector('h2, h3');
-                                    if (dateHeader) {
-                                        const dateMatch = dateHeader.textContent.match(/\d{4}-\d{2}-\d{2}/);
-                                        if (dateMatch) {
-                                            currentDate = dateMatch[0];
-                                            break;
-                                        }
-                                    }
-                                }
-                                prevElement = prevElement.previousElementSibling;
-                            }
-
-                            if (currentDate) {
-                                container.setAttribute('data-date', currentDate);
-                            }
-
-                            const newHeader = header.cloneNode(true);
-                            const categoryText = (newHeader.textContent || '').trim();
-                            if (categoryText) {
-                                container.setAttribute('data-category', categoryText);
-                            }
-
-                            let issueKey = null;
-                            if (currentDate && categoryText) {
-                                issueKey = getIssueKey(currentDate, categoryText);
-                                if (issueKey) {
-                                    container.setAttribute('data-issue-key', issueKey);
-                                }
-                            }
-
-                            newHeader.setAttribute('data-issue-toggle', issueKey || '');
-                            newHeader.setAttribute('data-issue-toggle-action', 'toggle');
-                            newHeader.setAttribute('tabindex', '0');
-                            newHeader.setAttribute('aria-expanded', 'true');
-
-                            const markReadBtn = document.createElement('button');
-                            markReadBtn.className = 'mark-read-btn';
-                            markReadBtn.textContent = 'Mark as Read';
-                            markReadBtn.title = 'Collapse and move to bottom';
-                            markReadBtn.type = 'button';
-                            markReadBtn.setAttribute('data-issue-toggle-action', 'mark-read');
-                            markReadBtn.setAttribute('data-issue-toggle', issueKey || '');
-
-                            container.appendChild(newHeader);
-                            container.appendChild(markReadBtn);
-
-                            let issueBlock = null;
-                            let issueMeta = null;
-                            if (currentDate && categoryText) {
-                                issueMeta = issueMetadataMap.get(`${currentDate}__${categoryText}`) || null;
-                                if (issueMeta && (issueMeta.title || issueMeta.subtitle)) {
-                                    issueBlock = document.createElement('div');
-                                    issueBlock.className = 'issue-title-block';
-
-                                    const lines = [];
-                                    if (issueMeta.title) lines.push(issueMeta.title);
-                                    if (issueMeta.subtitle && issueMeta.subtitle !== issueMeta.title) {
-                                        lines.push(issueMeta.subtitle);
-                                    }
-
-                                    lines.forEach(text => {
-                                        const lineEl = document.createElement('div');
-                                        lineEl.className = 'issue-title-line';
-                                        lineEl.textContent = text;
-                                        issueBlock.appendChild(lineEl);
-                                    });
-
-                                    if (!issueBlock.childElementCount) {
-                                        issueBlock = null;
-                                    }
-                                }
-                            }
-
-                            header.parentNode.replaceChild(container, header);
-                            if (issueBlock) {
-                                container.insertAdjacentElement('afterend', issueBlock);
-
-                                const duplicateLines = new Set();
-                                if (issueMeta.title) {
-                                    duplicateLines.add((issueMeta.title || '').trim());
-                                }
-                                if (issueMeta.subtitle && issueMeta.subtitle !== issueMeta.title) {
-                                    duplicateLines.add((issueMeta.subtitle || '').trim());
-                                }
-
-                                if (duplicateLines.size) {
-                                    let sibling = issueBlock.nextElementSibling;
-                                    while (sibling && sibling.tagName === 'P') {
-                                        const textValue = (sibling.textContent || '').trim();
-                                        if (duplicateLines.has(textValue) || textValue === '') {
-                                            const nodeToRemove = sibling;
-                                            sibling = sibling.nextElementSibling;
-                                            nodeToRemove.remove();
-                                            continue;
-                                        }
-                                        break;
-                                    }
-                                }
-                            }
-                        });
-
-                        // Ensure TLDR AI appears before TLDR Tech within the same date section
-                        const writeRoot = result.querySelector('#write');
-                        Array.from(writeRoot.querySelectorAll('.date-header-container')).forEach(function(container) {
-                            let node = container.nextElementSibling;
-                            let aiHeading = null;
-                            let techHeading = null;
-                            while (node && !(node.classList && node.classList.contains('date-header-container'))) {
-                                if (node.tagName === 'H4') {
-                                    const text = (node.textContent || '').trim();
-                                    if (!aiHeading && /TLDR\s*AI/i.test(text)) aiHeading = node;
-                                    if (!techHeading && /TLDR\s*Tech/i.test(text)) techHeading = node;
-                                }
-                                node = node.nextElementSibling;
-                            }
-                            if (aiHeading && techHeading && (techHeading.compareDocumentPosition(aiHeading) & Node.DOCUMENT_POSITION_FOLLOWING)) {
-                                const aiList = (aiHeading.nextElementSibling && aiHeading.nextElementSibling.tagName === 'OL') ? aiHeading.nextElementSibling : null;
-                                container.parentNode.insertBefore(aiHeading, techHeading);
-                                if (aiList) container.parentNode.insertBefore(aiList, techHeading);
-                            }
-                        });
-
-                        result.querySelectorAll('#write ol').forEach(function(ol) {
-                            const articleList = document.createElement('div');
-                            articleList.className = 'article-list';
-
-                            const listItems = ol.querySelectorAll('li');
-                            let lastSectionKey = null;
-                            let insertedSectionTitle = false;
-
-                            listItems.forEach(function(li, index) {
-                                const link = li.querySelector('a[href]');
-                                if (!link) return;
-
-                                const card = document.createElement('div');
-                                const urlValue = link.getAttribute('href');
-                                const titleText = link.textContent.trim();
-
-                                const isRemoved = urlValue.includes('?data-removed=true');
-                                const cleanUrl = urlValue.replace('?data-removed=true', '');
-
-                                const articleMeta = urlMetaMap.get(cleanUrl);
-                                const titleParts = parseTitleWithDomain(titleText);
-                                const originalTitle = (articleMeta && articleMeta.title) || titleParts.title || titleText;
-                                card.setAttribute('data-original-title', originalTitle);
-                                const domainLabel = titleParts.domain || getDomainLabelFromUrl(cleanUrl);
-                                if (domainLabel) {
-                                    card.setAttribute('data-domain-label', domainLabel);
-                                }
-                                let sectionKey = null;
-                                if (articleMeta && articleMeta.section_title) {
-                                    const sectionOrder = articleMeta.section_order ?? '';
-                                    sectionKey = `${sectionOrder}__${articleMeta.section_title}`;
-                                    if (sectionKey !== lastSectionKey) {
-                                        const labelParts = [];
-                                        if (articleMeta.section_emoji) {
-                                            labelParts.push(articleMeta.section_emoji);
-                                        }
-                                        labelParts.push(articleMeta.section_title);
-                                        const sectionLabel = labelParts.join(' ').trim();
-                                        if (sectionLabel) {
-                                            const sectionEl = document.createElement('div');
-                                            sectionEl.className = 'section-title';
-                                            sectionEl.textContent = sectionLabel;
-                                            articleList.appendChild(sectionEl);
-                                            lastSectionKey = sectionKey;
-                                            insertedSectionTitle = true;
-                                        }
-                                    }
-                                } else if (lastSectionKey !== null) {
-                                    lastSectionKey = null;
-                                }
-
-                                card.className = 'article-card ' + (isRemoved ? 'removed' : 'unread');
-                                card.setAttribute('data-url', cleanUrl);
-                                card.setAttribute('data-title', titleText);
-
-                                if (articleMeta && articleMeta.section_title) {
-                                    card.setAttribute('data-section-title', articleMeta.section_title);
-                                    if (articleMeta.section_emoji) {
-                                        card.setAttribute('data-section-emoji', articleMeta.section_emoji);
-                                    }
-                                }
-                                if (articleMeta && articleMeta.newsletter_type) {
-                                    card.setAttribute('data-newsletter-type', articleMeta.newsletter_type);
-                                }
-
-                                const articleDate = urlToDateMap[cleanUrl];
-                                if (articleDate) {
-                                    card.setAttribute('data-date', articleDate);
-                                }
-
-                                const header = document.createElement('div');
-                                header.className = 'article-header';
-
-                                const number = document.createElement('div');
-                                number.className = 'article-number';
-                                number.textContent = index + 1;
-
-                                const content = document.createElement('div');
-                                content.className = 'article-content';
-
-                                const newLink = link.cloneNode(true);
-                                newLink.className = 'article-link';
-                                newLink.setAttribute('target', '_blank');
-                                newLink.setAttribute('rel', 'noopener noreferrer');
-                                newLink.setAttribute('data-url', cleanUrl);
-                                newLink.setAttribute('href', cleanUrl);
-                                newLink.textContent = '';
-
-                                let faviconUrl = '';
-                                try {
-                                    const parsedUrl = new URL(cleanUrl);
-                                    faviconUrl = `${parsedUrl.origin}/favicon.ico`;
-                                } catch (err) {
-                                    faviconUrl = '';
-                                }
-
-                                if (faviconUrl) {
-                                    const favicon = document.createElement('img');
-                                    favicon.className = 'article-favicon';
-                                    favicon.setAttribute('loading', 'lazy');
-                                    favicon.setAttribute('alt', '');
-                                    favicon.src = faviconUrl;
-                                    const space = document.createTextNode(' ');
-                                    favicon.addEventListener('error', () => {
-                                        space.remove();
-                                        favicon.remove();
-                                    });
-                                    newLink.appendChild(favicon);
-                                    newLink.appendChild(space);
-                                }
-
-                                const linkTextSpan = document.createElement('span');
-                                linkTextSpan.className = 'article-link-text';
-                                newLink.appendChild(linkTextSpan);
-                                setArticleLinkText(newLink, titleText);
-
-                                const actions = document.createElement('div');
-                                actions.className = 'article-actions';
-
-                                const expandBtnContainer = document.createElement('div');
-                                expandBtnContainer.className = 'expand-btn-container';
-
-                                const expandBtn = document.createElement('button');
-                                expandBtn.className = 'article-btn expand-btn collapsed-state';
-                                expandBtn.innerHTML = 'Summarize';
-                                expandBtn.title = 'Show summary with default reasoning effort';
-                                expandBtn.setAttribute('data-url', cleanUrl);
-                                expandBtn.type = 'button';
-
-                                const chevronBtn = document.createElement('button');
-                                chevronBtn.className = 'article-btn expand-chevron-btn';
-                                chevronBtn.innerHTML = '▾';
-                                chevronBtn.title = 'Choose reasoning effort level';
-                                chevronBtn.type = 'button';
-
-                                const dropdown = document.createElement('div');
-                                dropdown.className = 'effort-dropdown';
-
-                                SUMMARY_EFFORT_OPTIONS.forEach((option) => {
-                                    const item = document.createElement('button');
-                                    item.className = 'effort-dropdown-item';
-                                    item.type = 'button';
-                                    item.setAttribute('data-effort', option.value);
-
-                                    const label = document.createElement('span');
-                                    label.className = 'effort-label';
-                                    label.textContent = option.label;
-
-                                    item.appendChild(label);
-                                    dropdown.appendChild(item);
-                                });
-
-                                expandBtnContainer.appendChild(expandBtn);
-                                expandBtnContainer.appendChild(chevronBtn);
-                                expandBtnContainer.appendChild(dropdown);
-
-                                const tldrBtn = document.createElement('button');
-                                tldrBtn.className = 'article-btn tldr-btn collapsed-state';
-                                tldrBtn.innerHTML = 'TLDR';
-                                tldrBtn.title = 'Show TLDR';
-                                tldrBtn.setAttribute('data-url', cleanUrl);
-                                tldrBtn.type = 'button';
-
-                                const copyBtn = document.createElement('button');
-                                copyBtn.className = 'article-btn copy-summary-btn';
-                                copyBtn.innerHTML = clipboardIconMarkup;
-                                copyBtn.title = 'Copy summary';
-                                copyBtn.type = 'button';
-                                copyBtn.setAttribute('data-url', cleanUrl);
-
-                                const removeBtn = document.createElement('button');
-                                removeBtn.className = 'article-btn remove-btn';
-                                removeBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-                                removeBtn.title = 'Remove article';
-                                removeBtn.type = 'button';
-                                removeBtn.setAttribute('data-url', cleanUrl);
-
-                                content.appendChild(newLink);
-                                header.appendChild(number);
-                                header.appendChild(content);
-
-                                if (!isRemoved) {
-                                    header.appendChild(actions);
-                                    actions.appendChild(expandBtnContainer);
-                                    actions.appendChild(tldrBtn);
-                                    actions.appendChild(copyBtn);
-                                    actions.appendChild(removeBtn);
-
-                                    setCardSummaryEffort(card, 'low');
-                                    setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown);
-                                }
-
-                                card.appendChild(header);
-
-                                articleList.appendChild(card);
-                            });
-
-                            sortArticlesByState(articleList);
-
-                            ol.parentNode.replaceChild(articleList, ol);
-
-                            if (insertedSectionTitle) {
-                                let prevNode = articleList.previousElementSibling;
-                                while (prevNode) {
-                                    if (prevNode.tagName === 'H5') {
-                                        const nodeToRemove = prevNode;
-                                        prevNode = prevNode.previousElementSibling;
-                                        nodeToRemove.remove();
-                                        continue;
-                                    }
-                                    if (prevNode.tagName === 'P' && !(prevNode.textContent || '').trim()) {
-                                        const nodeToRemove = prevNode;
-                                        prevNode = prevNode.previousElementSibling;
-                                        nodeToRemove.remove();
-                                        continue;
-                                    }
-                                    break;
-                                }
-                            }
-
-                        });
-
-                        result.style.display = 'block';
                         result.className = 'success';
                         document.getElementById('progress-fill').style.width = '100%';
 
                         restoreReadState();
 
-                        // Smooth scroll to first main#write h1 after scrape completion
                         setTimeout(() => {
                             const firstH1 = document.querySelector('main#write h1');
                             if (firstH1) {
@@ -2738,143 +3023,6 @@
                 progress.style.display = 'none';
                 button.disabled = false;
             });
-        }
-        // #endregion
-
-        /**
-         * RemovalLifecycle enforces cache-mode gating and updates UI after /api/remove-url, introduced in remove-button refactor.
-         */
-        // #region -------[ RemovalLifecycle ]-------
-        async function handleRemoveButtonClick(button) {
-            if (shouldDisableRemovals()) {
-                alert('Removal is disabled in ' + getActiveCacheMode() + ' mode');
-                return;
-            }
-
-            const card = button.closest('.article-card');
-            if (!card) return;
-
-            const url = card.getAttribute('data-url');
-            if (!url) return;
-
-            card.classList.add('removing');
-            button.classList.add('removing');
-
-            try {
-                const resp = await fetch('/api/remove-url', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url })
-                });
-                const data = await resp.json();
-
-                if (data.success) {
-                    card.classList.remove('removing');
-                    button.classList.remove('removing');
-                    markArticleAsRemoved(card);
-                } else {
-                    card.classList.remove('removing');
-                    button.classList.remove('removing');
-                    alert('Failed to remove: ' + (data.error || 'Unknown error'));
-                }
-            } catch (err) {
-                card.classList.remove('removing');
-                button.classList.remove('removing');
-                alert('Error: ' + err.message);
-            }
-        }
-
-        function bindRemovalFlow() {
-            document.addEventListener('click', async function(e) {
-                const removeBtn = e.target.closest('.remove-btn');
-                if (!removeBtn) return;
-
-                e.preventDefault();
-                e.stopPropagation();
-
-                await handleRemoveButtonClick(removeBtn);
-            }, true);
-        }
-        // #endregion
-
-        /**
-         * DateCacheClear removes all cached data for a specific date from blob storage.
-         */
-        // #region -------[ DateCacheClear ]-------
-        async function handleClearDateCache(button) {
-            if (shouldDisableRemovals()) {
-                alert('Cache clearing is disabled in ' + getActiveCacheMode() + ' mode');
-                return;
-            }
-
-            const date = button.getAttribute('data-date');
-            if (!date) return;
-
-            if (!confirm(`Clear all cached data for ${date}?\n\nThis will remove:\n• Newsletter cache\n• All article content\n• All summaries (all effort levels)`)) {
-                return;
-            }
-
-            button.disabled = true;
-            button.classList.add('clearing');
-            const originalText = button.textContent;
-            button.textContent = 'Clearing';
-
-            try {
-                const resp = await fetch('/api/invalidate-date-cache', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ date: date })
-                });
-                const data = await resp.json();
-
-                if (data.success) {
-                    button.textContent = 'Cleared!';
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                        button.disabled = false;
-                        button.classList.remove('clearing');
-                    }, 2000);
-                    
-                    const result = document.getElementById('result');
-                    const cards = result.querySelectorAll(`.article-card[data-date="${date}"]`);
-                    cards.forEach(card => {
-                        card.removeAttribute('data-summary');
-                        const summary = card.querySelector('.inline-summary');
-                        if (summary) summary.remove();
-                        
-                        const expandBtn = card.querySelector('.expand-btn');
-                        if (expandBtn) {
-                            expandBtn.classList.remove('expanded', 'loaded');
-                            expandBtn.innerHTML = 'Summarize';
-                            expandBtn.title = 'Show summary with default reasoning effort';
-                        }
-                        
-                        toggleCopyButton(card, false);
-                    });
-                } else {
-                    button.textContent = originalText;
-                    button.disabled = false;
-                    button.classList.remove('clearing');
-                    alert('Failed to clear cache: ' + (data.error || 'Unknown error'));
-                }
-            } catch (err) {
-                button.textContent = originalText;
-                button.disabled = false;
-                button.classList.remove('clearing');
-                alert('Error: ' + err.message);
-            }
-        }
-
-        function bindDateCacheClear() {
-            document.addEventListener('click', async function(e) {
-                const clearBtn = e.target.closest('.clear-date-cache-btn');
-                if (!clearBtn) return;
-
-                e.preventDefault();
-                e.stopPropagation();
-
-                await handleClearDateCache(clearBtn);
-            }, true);
         }
         // #endregion
 
@@ -3207,12 +3355,27 @@
          */
         // #region -------[ AppBootstrap ]-------
         setDefaultDates();
-        loadCacheMode();
-        bindCacheModeSelector();
+        (function hydrateInitialRange() {
+            const startInput = document.getElementById('start_date');
+            const endInput = document.getElementById('end_date');
+            if (!startInput || !endInput) return;
+            const startValue = startInput.value;
+            const endValue = endInput.value;
+            if (!startValue || !endValue) return;
+            const cachedPayloads = hydrateRangeFromStore(startValue, endValue);
+            if (!cachedPayloads.length) return;
+            renderPayloads(cachedPayloads, { source: 'local cache' });
+            const result = document.getElementById('result');
+            if (result) {
+                result.className = 'success';
+                result.style.display = 'block';
+            }
+            restoreReadState();
+            loadSummaries();
+            loadTldrs();
+        })();
         bindScrapeForm();
         bindCopySummaryFlow();
-        bindRemovalFlow();
-        bindDateCacheClear();
         bindSummaryExpansion();
         bindTldrExpansion();
         bindCollapsedIssueClick();
