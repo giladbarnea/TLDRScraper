@@ -2984,8 +2984,7 @@
                                     summary.textContent = 'Debug logs';
                                     const pre = document.createElement('pre');
                                     pre.style.whiteSpace = 'pre-wrap';
-                                    pre.textContent = data.stats.debug_logs.map(l => String(l)).join('
-');
+                                    pre.textContent = data.stats.debug_logs.map(l => String(l)).join('\n');
                                     details.appendChild(summary);
                                     details.appendChild(pre);
                                     slot.appendChild(details);
