@@ -2346,153 +2346,6 @@
         }
         // #endregion
 
-        /**
-         * SummaryDelivery handles inline summary retrieval, honoring cache-only hints and live fetches from the summarize endpoint.
-         */
-        // #region -------[ SummaryDelivery ]-------
-        function getCardsForRecentDates() {
-            const cardsByDate = {};
-            document.querySelectorAll('.article-card').forEach(card => {
-                const date = card.getAttribute('data-date');
-                if (!date) return;
-                if (!cardsByDate[date]) {
-                    cardsByDate[date] = [];
-                }
-                cardsByDate[date].push(card);
-            });
-
-            return Object.keys(cardsByDate)
-                .sort()
-                .reverse()
-                .slice(0, 2)
-                .flatMap(date => cardsByDate[date]);
-        }
-
-        async function loadSummaries() {
-            const cardsToLoad = getCardsForRecentDates();
-
-            cardsToLoad.forEach((card, index) => {
-                setTimeout(async () => {
-                    const btn = card.querySelector('.expand-btn');
-                    if (!btn) return;
-
-                    const url = btn.getAttribute('data-url');
-                    if (!url) return;
-                    
-                    const summaryEffort = getCardSummaryEffort(card);
-
-                    try {
-                        const resp = await fetch('/api/summarize-url', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ url: url, cache_only: true, summary_effort: summaryEffort })
-                        });
-                        const data = await resp.json();
-
-                        if (data.success) {
-                            if (card && getCardSummaryEffort(card) !== summaryEffort) {
-                                return;
-                            }
-                            btn.classList.add('loaded');
-                            btn.innerHTML = 'Available';
-                            btn.title = 'Summary cached - click to show';
-
-                            if (card) {
-                                card.setAttribute('data-summary', data.summary_markdown || '');
-                                updateStoredArticleFromCard(card, article => ({
-                                    ...article,
-                                    summary: {
-                                        status: ARTICLE_STATUS.available,
-                                        markdown: data.summary_markdown || '',
-                                        effort: summaryEffort,
-                                        checkedAt: new Date().toISOString(),
-                                        errorMessage: null
-                                    },
-                                }));
-                                markArticleAsRead(card);
-                            }
-                        }
-                    } catch (err) {
-                        console.debug('Load failed for', url, err);
-                    }
-                }, index * 250);
-            });
-        }
-
-        async function loadTldrs() {
-            const cardsToLoad = getCardsForRecentDates();
-
-            cardsToLoad.forEach((card, index) => {
-                setTimeout(async () => {
-                    if (!card || !card.isConnected) return;
-
-                    const tldrBtn = card.querySelector('.tldr-btn');
-                    if (!tldrBtn || tldrBtn.classList.contains('loaded')) {
-                        return;
-                    }
-
-                    const summaryEffort = getCardSummaryEffort(card);
-
-                    const existingTldr = card.getAttribute('data-tldr');
-                    if (existingTldr) {
-                        tldrBtn.classList.add('loaded');
-                        if (!tldrBtn.classList.contains('expanded')) {
-                            tldrBtn.innerHTML = 'Available';
-                            tldrBtn.title = 'TLDR cached - click to show';
-                        }
-                        return;
-                    }
-
-                    const url = card.getAttribute('data-url');
-                    if (!url) return;
-
-                    try {
-                        const resp = await fetch('/api/tldr-url', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                url: url,
-                                cache_only: true,
-                                summary_effort: summaryEffort
-                            })
-                        });
-                        const data = await resp.json();
-
-                        if (!card.isConnected) {
-                            return;
-                        }
-
-                        if (getCardSummaryEffort(card) !== summaryEffort) {
-                            return;
-                        }
-
-                        if (!data.success) {
-                            return;
-                        }
-
-                        card.setAttribute('data-tldr', data.tldr_markdown || '');
-                        updateStoredArticleFromCard(card, article => ({
-                            ...article,
-                            tldr: {
-                                status: ARTICLE_STATUS.available,
-                                markdown: data.tldr_markdown || '',
-                                effort: summaryEffort,
-                                checkedAt: new Date().toISOString(),
-                                errorMessage: null
-                            }
-                        }));
-                        tldrBtn.classList.add('loaded');
-                        if (!tldrBtn.classList.contains('expanded')) {
-                            tldrBtn.innerHTML = 'Available';
-                            tldrBtn.title = 'TLDR cached - click to show';
-                        }
-                    } catch (err) {
-                        console.debug('TLDR load failed for', url, err);
-                    }
-                }, index * 250);
-            });
-        }
-
         function bindSummaryExpansion() {
             document.addEventListener('click', async function(e) {
                 const expandBtn = e.target.closest('.expand-btn:not(.expand-chevron-btn)');
@@ -2945,8 +2798,6 @@
                     progress.style.display = 'none';
                     button.disabled = false;
                     restoreReadState();
-                    loadSummaries();
-                    loadTldrs();
                     return;
                 }
 
@@ -3003,9 +2854,6 @@
                                 firstH1.scrollIntoView({ behavior: 'smooth' });
                             }
                         }, 100);
-
-                        loadSummaries();
-                        loadTldrs();
                     } else {
                         result.style.display = 'block';
                         result.className = 'error';
@@ -3370,8 +3218,6 @@
                 result.style.display = 'block';
             }
             restoreReadState();
-            loadSummaries();
-            loadTldrs();
         })();
         bindScrapeForm();
         bindCopySummaryFlow();
