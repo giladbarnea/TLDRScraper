@@ -107,6 +107,22 @@ summary/TLDR prefetch.
 `hydrateRangeFromStore` pulls a date range entirely from `localStorage` so the
 UI can render instantly when all days are cached.
 
+#### Flow A – Hydrate daily payload
+
+```
+User opens dashboard
+        ↓
+ClientHydration.hydrateRangeFromStore
+        ├─ readLocal('tldr:scrapes:<date>')
+        │       ↓
+        │   hit → reuse stored Article + Issue state (summary/tldr/read)
+        │   miss → fetchNewsletter(date)
+        │           ↓
+        │       buildDailyPayloadsFromScrape → normalize articles →
+        │       mergeDay(date, payload) → writeLocal('tldr:scrapes:<date>')
+        └─ Renderer draws cards from hydrated store without server round-trips
+```
+
 ### Article ordering and read tracking (`ArticleStateTracks`)
 
 Cards stay ordered by unread → read via `sortArticlesByState`. `markArticleAsRead`
@@ -138,12 +154,63 @@ Each card owns a reasoning level dropdown. Selecting a new effort:
 - Successful fetches mark the article as read and surface a copy-to-clipboard
   action.
 
+#### Flow B – User requests summary
+
+```
+User clicks Summary button
+        ↓
+SummaryDelivery.bindSummaryExpansion
+        ├─ read Article from in-memory payload (hydrated in Flow A)
+        ├─ if article.summary.markdown exists
+        │       ↓
+        │   toggle inline view
+        │   ArticleStateTracks.markArticleAsRead()
+        ├─ else if status !== 'creating'
+        │       ↓
+        │   updateArticle → set status='creating' → writeLocal()
+        │   fetch('/api/summarize-url', { url, summary_effort })
+        │       ↓
+        │   success → persist markdown, status='available'
+        │   failure → status='error', set errorMessage
+        │   writeLocal()
+        └─ Renderer reacts to state (markdown, spinner, or error)
+```
+
 ### TLDR flow (`TldrDelivery`)
 
 `loadTldrs` mirrors `loadSummaries`, prefilling TLDRs for the most recent
 issues. `bindTldrExpansion` owns manual TLDR toggles: it draws
 `div.inline-tldr`, updates storage, and handles retries. Both success and error
 paths keep `tldr.status` synchronized with the UI.
+
+#### Flow C – Hydrate TLDR state
+
+```
+Flow A completes hydration
+        ↓
+Articles already include TLDR status persisted in localStorage
+        ↓
+Renderer labels TLDR buttons directly from article.tldr.status
+```
+
+#### Flow D – User requests TLDR creation
+
+```
+User clicks TLDR button
+        ↓
+TldrDelivery.bindTldrExpansion
+        ├─ read Article from store
+        ├─ if article.tldr.markdown exists → toggle display, mark as read
+        ├─ else if status !== 'creating'
+        │       ↓
+        │   updateArticle → set status='creating' → writeLocal()
+        │   fetch('/api/tldr-url', { url, summary_effort })
+        │       ↓
+        │   success → status='available', markdown=resp.tldr_markdown
+        │   failure → status='error', errorMessage
+        │   writeLocal()
+        └─ Renderer shows TLDR markdown / spinner / error
+```
 
 ### Issue-level read state (`IssueDayReadState` and `IssueCollapseManager`)
 
@@ -158,6 +225,32 @@ state.
 
 `IssueCollapseManager` centralizes the DOM bookkeeping so header buttons,
 chevrons, and collapsed cards all act consistently.
+
+#### Flow E – Automatic mark-as-read on expansion
+
+```
+Summary or TLDR expansion completes
+        ↓
+ArticleStateTracks.markArticleAsRead
+        ├─ if article.read.isRead → no-op
+        ├─ else
+        │       ↓
+        │   set article.read = { isRead: true, markedAt: now }
+        │   ClientStorage.updateArticle → writeLocal('tldr:scrapes:<date>')
+        └─ Renderer immediately applies "Read" styling
+```
+
+#### Flow F – Manual mark/unmark control
+
+```
+User toggles mark-as-read control (card or issue-level)
+        ↓
+IssueDayReadState / IssueCollapseManager
+        ├─ lookup targeted articles via ClientStorage
+        ├─ update read.isRead flag per action
+        ├─ writeLocal()
+        └─ Renderer syncs badges, collapse state, and ordering
+```
 
 ### Additional client systems
 
@@ -229,6 +322,48 @@ No caching hooks remain—each request re-scrapes the TLDR site.
 - Calls the OpenAI Responses API (`gpt-5`) with reasoning effort derived from the
   request. `_call_llm` accepts multiple response shapes and always returns a
   string.
+
+### End-to-end request flows
+
+**Summarize request flow**
+
+```
+[Client]
+  POST /api/summarize-url {url, summary_effort}
+      ↓
+serve.summarize_url
+      ↓
+tldr_app.summarize_url
+      ↓
+tldr_service.summarize_url_content
+      ↓
+summarizer.summarize_url
+      ↓
+summarizer.url_to_markdown → summarizer.scrape_url → external HTTP
+      ↓
+summarizer._call_llm → OpenAI Responses API
+      ↓
+JSON {success, summary_markdown, canonical_url, summary_effort}
+```
+
+**Newsletter scrape flow**
+
+```
+[Client]
+  POST /api/scrape {start_date, end_date}
+      ↓
+serve.scrape_newsletters_in_date_range
+      ↓
+tldr_app.scrape_newsletters
+      ↓
+tldr_service.scrape_newsletters_in_date_range
+      ↓
+newsletter_scraper.scrape_date_range
+      ↓
+requests → TLDR newsletter pages
+      ↓
+JSON {articles[], issues[], stats}
+```
 
 ## Request and response contracts
 
