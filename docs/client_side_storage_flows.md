@@ -1,281 +1,311 @@
 # Client-Side Local Storage Architecture
 
-## Context: original user request
+The TLDR scraper now runs as a stateless pipeline: the browser is the only
+persistent store, while the Python backend simply proxies scrape and LLM
+requests. This document captures the current implementation so new changes can
+stay aligned with the live system.
 
-Discard completely from backend storage and move 100% of the storage in the app, as well as 100% of the storage responsibility, to the client-side's local storage.
-Expected stateless backend requests and significant architecture simpliciation.
+## Architecture overview
 
-## Design
+- **Browser-owned persistence** – Newsletter payloads, article metadata,
+  summary/TLDR results, and read state all live in `localStorage`. Every user
+  action mutates in-memory state first, mirrors that change to disk, and renders
+  directly from the hydrated snapshot.
+- **Stateless backend** – Flask only exposes `/`, `POST /api/scrape`, `POST
+  /api/summarize-url`, `POST /api/tldr-url`, and `GET /api/prompt`. Each request
+  forwards to `tldr_app` → `tldr_service` → the newsletter scraper or
+  summarizer helpers without touching any cache store.
+- **Deterministic contracts** – The frontend expects canonicalized URLs, issue
+  metadata, and article lists with `removed` hints. All status flags are managed
+  in the browser and never echoed by the server.
 
-This document expands the "everything lives in the browser" design by mapping each feature to its client-owned data and event sequence. The browser is the sole source of truth: every user action mutates in-memory state first, immediately mirrors that change to `localStorage`, and renders directly from the hydrated objects. No other persistence layer exists.
+## Client implementation
 
-## Tasks
-
-1. **Implement the client-owned storage model and controllers** — Stand up the `Article`/`Issue` shapes in front-end state, ensure hydration writes to `localStorage`, and wire the summary, TLDR, and read flows so they persist and render strictly from the browser cache.
-   - Purpose: Establish the in-browser source of truth so the UI, persistence, and controllers operate without backend state.
-   - Define the `Article` and `Issue` data structures plus the `tldr:scrapes:<ISO-date>` schema in the front-end store, including serialization helpers for `localStorage` round-trips.
-   - Build a `HydrateController` that loads daily payloads, fetches on cache miss, normalizes articles, and keeps the in-memory store synchronized with `localStorage`.
-   - Implement `SummaryController`, `TldrController`, and `ReadStateManager` to orchestrate flows B–F: manage status transitions, trigger API calls, persist updates, and render UI purely from local state.
-
-2. **Convert backend services to a stateless pipeline** — Excise blob storage dependencies and rewrite newsletter, summarizer, and service layers so they fetch, process, and return data without persistence side effects.
-   - Purpose: Eliminate server-side persistence so every request executes against live data and the backend remains stateless.
-   - Delete blob persistence modules (`blob_store.py`, `blob_cache.py`, `removed_urls.py`, `cache_mode.py`) along with related environment variables and documentation references.
-   - Refactor `newsletter_scraper.py` to scrape on demand without cache branches, and adjust `summarizer.py` to drop blob cache decorators and pathname helpers.
-   - Update `tldr_service.py` and `tldr_app.py` so responses only reflect live computation, and ensure tests, prompts, and scripts stop referencing blob persistence.
-
-3. **Trim HTTP/UI scaffolding and validate the lean footprint** — Simplify Flask routes, remove cache-era UI affordances, and confirm the remaining endpoints match the stateless contract described in the plan.
-   - Purpose: Align the server surface area and client UI with the stateless architecture to avoid dead routes and legacy controls.
-   - Update `serve.py` (and `api/index.py`) to expose only scrape, summarize, TLDR, and prompt endpoints, removing cache and removal routes or branching.
-   - Clean `templates/index.html` and any front-end bootstrapping of cache statistics, removal toggles, and server-driven state so controllers supply all behavior.
-   - Audit utility modules, deployment manifests, and documentation to reflect the final stateless architecture and verify end-to-end flows against the summarized request diagrams.
-
-## Local Storage Keys and Shapes
+### Persistent keys and shapes
 
 | Key | Shape | Purpose |
 | --- | ----- | ------- |
-| `tldr:scrapes:<ISO-date>` | `{ articles: Article[], issues: Issue[], cachedAt: ISO-string }` | Stores the newsletter payload for a specific day. Each `Article` carries summary, TLDR, removal, and read flags. |
+| `tldr:scrapes:<ISO-date>` | `{ cachedAt: ISO-string \| null, issues: Issue[], articles: Article[] }` | Browser-owned payload for a single day. |
+| `tldr-read-issues` | `{ [issueKey: string]: true }` | Tracks collapsed “read” issues so they stay hidden across sessions. |
 
-`Article` objects include the fields below; they are the *only* authority for card rendering.
+#### `Article`
 
 ```
 type Article = {
-    url: string;              // canonical key
+    url: string;
     title: string;
-    issueDate: string;        // same ISO date used in key
-    section: string | null;
+    issueDate: string;          // ISO date for the owning day
+    category: string;           // e.g. "TLDR Tech"
+    section: string | null;     // section title, if present
+    sectionEmoji: string | null;
+    sectionOrder: number | null;
+    newsletterType: string | null; // raw TLDR section type
     removed: boolean;
     summary: {
-        status: 'unknown' | 'available' | 'creating' | 'error';
-        markdown?: string;
-        effort: 'low' | 'medium' | 'high';
-        checkedAt?: ISO-string;
-        errorMessage?: string;
+        status: 'unknown' | 'creating' | 'available' | 'error';
+        markdown: string;
+        effort: 'minimal' | 'low' | 'medium' | 'high';
+        checkedAt: string | null;
+        errorMessage: string | null;
     };
     tldr: {
-        status: 'unknown' | 'available' | 'creating' | 'error';
-        markdown?: string;
-        effort: 'low' | 'medium' | 'high';
-        checkedAt?: ISO-string;
-        errorMessage?: string;
+        status: 'unknown' | 'creating' | 'available' | 'error';
+        markdown: string;
+        effort: 'minimal' | 'low' | 'medium' | 'high';
+        checkedAt: string | null;
+        errorMessage: string | null;
     };
     read: {
         isRead: boolean;
-        markedAt?: ISO-string;
+        markedAt: string | null;
     };
 };
 ```
 
-`Issue` objects mirror the current cache format (metadata, sections) and are unchanged.
-
----
-
-## Summaries → `"Available"` UI State
-
-### Flow A – Hydrate daily payload
+#### `Issue`
 
 ```
-User opens dashboard
-        ↓
-HydrateController
-        ├─ readLocal('tldr:scrapes:<date>')
-        │       ↓
-        │   hit → hydrate in-memory store exactly as saved (including summary/tldr/read state)
-        │   miss → fetchNewsletter(date)
-        │           ↓
-        │       normalize articles → set summary.status='unknown'
-        │       writeLocal('tldr:scrapes:<date>', payload)
-        └─ Renderer draws cards from hydrated store
+type Issue = {
+    date: string | null;            // ISO date for the issue
+    category: string;               // TLDR Tech / TLDR AI / etc.
+    newsletterType: string | null;  // tech, ai, etc.
+    title: string | null;
+    subtitle: string | null;
+    sections: Array<{
+        order: number | null;
+        title: string | null;
+        emoji: string | null;
+    }>;
+};
 ```
 
-### Flow B – User requests summary
+### Storage helpers (`ClientStorage`)
+
+`ClientStorage` (see `templates/index.html`) wraps all `localStorage` access:
+
+- `readDay(date)` → parse `tldr:scrapes:<date>` into the canonical Article/Issue
+  shape.
+- `writeDay(date, payload)` → persist a normalized snapshot back to storage.
+- `mergeDay(date, payload)` → combine a fresh scrape with stored summaries/TLDRs
+  so repeat visits keep prior results.
+- `hasDay(date)` → boolean existence check used before hitting the network.
+- `updateArticle(date, url, updater)` → transactional updater that applies a
+  mutation function, clones the result, and rewrites the owning day.
+
+### Hydration and rendering (`ClientHydration`)
+
+`buildDailyPayloadsFromScrape` normalizes live `/api/scrape` responses,
+canonicalizes URLs, and seeds new articles with `unknown` summary/TLDR states.
+When merges find prior entries, the stored summary/TLDR/read data wins so state
+persists across fetches.
+
+`renderPayloads` rebuilds the Whitey reading surface: it prints stats, renders
+the Markdown-like layout, indexes payload metadata, applies stored article
+state (including error/loading flags), and triggers downstream flows like
+summary/TLDR prefetch.
+
+`hydrateRangeFromStore` pulls a date range entirely from `localStorage` so the
+UI can render instantly when all days are cached.
+
+### Article ordering and read tracking (`ArticleStateTracks`)
+
+Cards stay ordered by unread → read via `sortArticlesByState`. `markArticleAsRead`
+updates DOM classes, resorts the list, and persists `{ isRead: true,
+markedAt: now }` with `ClientStorage.updateArticle`.
+
+### Summary effort controls (`SummaryEffortSelector`)
+
+Each card owns a reasoning level dropdown. Selecting a new effort:
+
+1. Clears any cached summary markup and inline expander.
+2. Resets the Summary button to "Summarize".
+3. Stores the effort in `data-summary-effort` and writes it to storage so future
+   fetches use the same effort value.
+4. Immediately triggers a fresh summary request by programmatically clicking the
+   expand button.
+
+### Summary flow (`SummaryDelivery`)
+
+- `loadSummaries` walks the newest two newsletter days and posts to
+  `/api/summarize-url` with `summary_effort` from each card. Because the backend
+  is stateless, these requests always produce fresh summaries that are then
+  cached in `localStorage`.
+- `bindSummaryExpansion` intercepts clicks on card titles or the "Summarize"
+  button. It toggles cached summaries, injects new `div.inline-summary`
+  elements, and wraps all state changes in `ClientStorage.updateArticle` so
+  success, error, and in-flight flags persist. Errors reset the button to
+  "Summarize" with a retry affordance.
+- Successful fetches mark the article as read and surface a copy-to-clipboard
+  action.
+
+### TLDR flow (`TldrDelivery`)
+
+`loadTldrs` mirrors `loadSummaries`, prefilling TLDRs for the most recent
+issues. `bindTldrExpansion` owns manual TLDR toggles: it draws
+`div.inline-tldr`, updates storage, and handles retries. Both success and error
+paths keep `tldr.status` synchronized with the UI.
+
+### Issue-level read state (`IssueDayReadState` and `IssueCollapseManager`)
+
+Entire issues can be collapsed into a "Read Issues" section. `IssueDayReadState`
+serializes the `date-category` issue key into `tldr-read-issues`. When an issue
+is marked read:
+
+1. The header container moves into the collapsed section.
+2. Subsequent hydrations hide the issue immediately.
+3. Clicking the issue again expands it in place without disturbing the stored
+state.
+
+`IssueCollapseManager` centralizes the DOM bookkeeping so header buttons,
+chevrons, and collapsed cards all act consistently.
+
+### Additional client systems
+
+- **SummaryClipboard** – Formats YAML front matter + markdown and copies it to
+  the clipboard with toast feedback.
+- **ScrapeIntake** – Validates date ranges, hydrates from cache when possible,
+  calls `/api/scrape` for misses, and pipes responses through `ClientStorage`.
+- **Debug panel** – Overrides `console.log`/`console.error` to surface messages
+  in a collapsible UI panel for easier QA.
+
+## Backend implementation
+
+### HTTP surface (`serve.py`)
+
+| Route | Method | Handler | Notes |
+| ----- | ------ | ------- | ----- |
+| `/` | GET | `index` | Serves `templates/index.html` |
+| `/api/scrape` | POST | `scrape_newsletters_in_date_range` | Validates JSON body and proxies to `tldr_app.scrape_newsletters`. |
+| `/api/prompt` | GET | `get_summarize_prompt_template` | Returns the summarize prompt as plain text. |
+| `/api/summarize-url` | POST | `summarize_url` | Expects `{"url", "summary_effort"}` and forwards to `tldr_app.summarize_url`. |
+| `/api/tldr-url` | POST | `tldr_url` | Expects `{"url", "summary_effort"}` and forwards to `tldr_app.tldr_url`. |
+
+Handlers log failures via `util.log` and rely on upstream validation. The API is
+strict: missing JSON fields trigger 400s; network issues bubble up as 5xx.
+
+### Application façade (`tldr_app.py`)
+
+`tldr_app` is a thin wrapper that adapts service responses into the exact JSON
+shape the frontend expects:
+
+- `scrape_newsletters` – forwards to `tldr_service.scrape_newsletters_in_date_range`.
+- `summarize_url` / `tldr_url` – return `{ success: True, summary_markdown?, tldr_markdown?, canonical_url?, summary_effort? }`.
+- Prompt helpers simply expose the templates loaded by the service.
+
+### Service layer (`tldr_service.py`)
+
+- `_parse_date_range` enforces ISO strings, range ordering, and a 31-day cap.
+- `scrape_newsletters_in_date_range` logs start/end, delegates to
+  `newsletter_scraper.scrape_date_range`, and returns the scraper payload as-is.
+- `summarize_url_content` / `tldr_url_content` normalize URLs, normalize effort,
+  call `summarizer`, and return canonical URLs with markdown output.
+- `fetch_*_prompt_template` lazily load prompts through the summarizer helpers.
+
+### Newsletter scraping (`newsletter_scraper.py`)
+
+`scrape_date_range` iterates TLDR newsletter types (tech + ai) for each day in
+the requested range:
+
+1. `_collect_newsletters_for_date` fetches each newsletter, parses headings and
+   section structure into `NewsletterIssue`, and deduplicates articles by
+   canonical URL.
+2. Articles record timing metadata (`timing_*_ms`) for debugging and always set
+   `removed` to `False` unless the source indicated otherwise.
+3. `_build_scrape_response` composes:
+   - `articles`: flattened list with category, section, and removal hints.
+   - `issues`: sorted issue metadata for rendering.
+   - `stats`: totals plus `debug_logs` (mirroring `util.LOGS`).
+   - `output`: Markdown summary of the scrape used when copying the newsletter.
+
+No caching hooks remain—each request re-scrapes the TLDR site.
+
+### Summarizer pipeline (`summarizer.py`)
+
+- Fetches page content with `curl_cffi` and falls back to the r.jina.ai reader.
+- Converts HTML to Markdown via `markitdown`. GitHub repository URLs fetch the
+  README directly using the GitHub API when possible.
+- Loads summarize/TLDR prompts from `giladbarnea/llm-templates`, caching the
+  raw text in process globals.
+- Calls the OpenAI Responses API (`gpt-5`) with reasoning effort derived from the
+  request. `_call_llm` accepts multiple response shapes and always returns a
+  string.
+
+## Request and response contracts
+
+### `POST /api/scrape`
+
+Request:
 
 ```
-User clicks Summary button
-        ↓
-SummaryController
-        ├─ lookup article from in-memory store (already hydrated from localStorage)
-        ├─ if article.summary.markdown exists
-        │       ↓
-        │   toggle inline view
-        │   markArticleAsRead()
-        ├─ else if status !== 'creating'
-        │       ↓
-        │   set status='creating', writeLocal()
-        │   fetch('/api/summarize-url', { method: 'POST', body: { url } })
-        │       ↓
-        │   on success → persist markdown, status='available'
-        │   on failure → status='error', set errorMessage
-        │   writeLocal()
-        └─ Renderer reacts to state: shows markdown, spinner, or error message
+{ "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD" }
 ```
 
-*Outcome:* `Article.summary.status` flips to `'available'` only when `article.summary.markdown` is stored locally, so the UI and persistence are always in lockstep.
-
----
-
-## TLDR → `"Available"` UI State
-
-### Flow C – Hydrate TLDR state
+Response (success):
 
 ```
-HydrateController completes Flow A
-        ↓
-Articles in memory already include whatever TLDR state localStorage held
-        ↓
-Renderer labels TLDR buttons directly from article.tldr.status
+{
+  "success": true,
+  "articles": [
+    {
+      "url": "https://…",
+      "title": "Example (2 minute read)",
+      "date": "2024-05-01",
+      "category": "TLDR Tech",
+      "removed": false,
+      "section_title": "Headlines",
+      "section_emoji": "🚀",
+      "section_order": 1,
+      "newsletter_type": "tech"
+    },
+    …
+  ],
+  "issues": [Issue, …],
+  "stats": {
+    "total_articles": number,
+    "unique_urls": number,
+    "dates_processed": number,
+    "dates_with_content": number,
+    "network_fetches": number,
+    "cache_mode": "read_write",
+    "debug_logs": string[]
+  ],
+  "output": "# TLDR Newsletter Articles …"
+}
 ```
 
-### Flow D – User requests TLDR creation
+### `POST /api/summarize-url`
+
+Request:
 
 ```
-User clicks TLDR button
-        ↓
-TldrController
-        ├─ read article from store
-        ├─ if tldr.markdown exists → toggle display, mark as read
-        ├─ else if status !== 'creating'
-        │       ↓
-        │   set status='creating', writeLocal()
-        │   fetch('/api/tldr-url', { method: 'POST', body: { url } })
-        │       ↓
-        │   on success → status='available', markdown=resp.tldr_markdown
-        │   on failure → status='error', errorMessage
-        │   writeLocal()
-        └─ Renderer shows TLDR markdown / spinner / error based on state
+{ "url": "https://…", "summary_effort": "minimal" | "low" | "medium" | "high" }
 ```
 
-*Outcome:* TLDR availability is always inferred from `Article.tldr.status`, which only becomes `'available'` after the TLDR markdown is persisted locally.
-
----
-
-## Marked as Read State
-
-The read toggle is purely client-owned; it never reaches the server.
-
-### Flow E – Automatic mark-as-read when content is expanded
+Response (success):
 
 ```
-Summary or TLDR expansion completes
-        ↓
-ReadStateManager
-        ├─ if article.read.isRead already true → no-op
-        ├─ else
-        │       ↓
-        │   set article.read = { isRead: true, markedAt: now }
-        │   writeLocal('tldr:scrapes:<date>')
-        └─ Renderer adds "Read" styling instantly
+{
+  "success": true,
+  "summary_markdown": "…",
+  "canonical_url": "https://…",
+  "summary_effort": "low"
+}
 ```
 
-### Flow F – Manual mark/unmark control (e.g., checkbox or bulk action)
+### `POST /api/tldr-url`
 
-```
-User toggles "Mark as read" control
-        ↓
-ReadStateManager
-        ├─ lookup all targeted articles
-        ├─ update read.isRead flag per action
-        ├─ writeLocal()
-        └─ Renderer syncs badges + collapse state
-```
+Same shape as `/api/summarize-url`, but the response field is `tldr_markdown`.
 
-*Interaction with other subsystems:* Because `Article.read.isRead` lives inside the same record that holds summary and TLDR metadata, any subsequent hydration (Flow A, and the TLDR reflection in Flow C) replays the read state alongside other fields. No cross-store reconciliation is required.
+### `GET /api/prompt`
 
----
+Returns the summarize prompt as plain text for inspection.
 
-## Cross-Feature Observations
+## Operational notes
 
-* The same `Article` payload drives every card. Inline mutations (hydration, summary requests, TLDR requests, read toggles) update the record and immediately write the full object back to the owning day key, so future sessions or tabs start from the latest state.
-* Because each flow writes through the same serialization path, clearing localStorage or switching browsers simply resets the experience—there is no orphaned state elsewhere.
-
----
-
-## Required Backend Changes
-
-To make the backend align with this client-only storage model, every server component that currently reads or writes blob storage must be removed or rewritten to become stateless helpers. The list below captures all affected modules and call paths.
-
-### Remove blob persistence stack entirely
-
-* Delete `blob_store.py`, `blob_cache.py`, `removed_urls.py`, and `cache_mode.py`, along with their exports and environment variable requirements (`BLOB_STORE_BASE_URL`, `BLOB_READ_WRITE_TOKEN`, `FORCE_CACHE_MODE`).
-* Eliminate `CACHE_SYSTEM.md` and any documentation that assumes blob-backed caches, ensuring `setup.sh` and `requirements.txt` no longer mention the removed environment knobs (grep the codebase for the env var names).
-
-### Rework newsletter scraping to be stateless
-
-* In `newsletter_scraper.py`, drop `_get_cached_day`, `_put_cached_day`, `_persist_day_to_cache`, cache-hit statistics, and the `removed_urls` dependency. `scrape_date_range` should always call `_collect_newsletters_for_date` and return the raw articles without annotating `removed` or reporting blob metrics.
-* Remove cache-aware conditionals that guard fetches with `cache_mode.can_read()` / `can_write()`, and strip `cache_mode` imports from the file.
-
-### Simplify summarizer pipeline
-
-* In `summarizer.py`, remove the `@blob_cache.blob_cached` decorators, the pathname helpers (`summary_blob_pathname`, `tldr_blob_pathname`, `_url_content_pathname`), and any blob write semantics. The summarizer should always scrape content, call the LLM, and return markdown without persisting it.
-* Update `tldr_service.py` to drop the `cache_only` flag, blob pathname lookups, and blob URL fields. Responses should only echo the canonical URL, effort level, and freshly generated markdown.
-
-### Collapse application services to the new contracts
-
-* Rewrite `tldr_app.py` so that it proxies only the remaining service calls (scrape, summarize, TLDR, prompt fetch). Remove cache-management helpers, removal endpoints, and any references to blob storage or cache modes.
-
-### Update HTTP layer and UI scaffolding
-
-* In `serve.py`, remove the `/api/remove-url`, `/api/removed-urls`, and `/api/cache-mode` endpoints, along with cache-only request handling in the summary and TLDR routes. Ensure `api/index.py` still re-exports the trimmed Flask app.
-* Clean up `templates/index.html` to eliminate cache statistics (`blob_store_present`, cache hits/misses), cache-only fetch calls, and server-driven removal toggles, relying purely on the client’s localStorage state.
-
-### Clean supporting utilities
-
-* Remove helper functions in `util.py` or other modules that were only used for blob bookkeeping (for example, `util.LOGS` debug dumps if they were exclusively surfaced through blob-backed stats).
-* Audit tests and prompt files to make sure nothing references blob persistence or removal endpoints; adjust `package.json` scripts, API routes, and any deployment manifests to match the leaner backend.
-
-
-
-## Backend footprint after client-storage migration
-
-**Scope:** Stateless HTTP proxy for scraping and LLM summarization. No persistence, no blob helpers, no removal registry.
-
-**Code surface:**
-
-* `serve.py` – Flask app with four routes: `GET /` (static index), `POST /api/scrape`, `POST /api/summarize-url`, `POST /api/tldr-url`, `GET /api/prompt`.
-* `tldr_app.py` – Thin façade that forwards each route to service functions. No cache toggles, no removal APIs, no blob URLs in responses.
-* `tldr_service.py` – Business logic:
-  * `_parse_date_range`, `scrape_newsletters_in_date_range` → delegate to `newsletter_scraper.scrape_date_range`.
-  * `fetch_summarize_prompt_template`, `fetch_tldr_prompt_template` → direct calls into `summarizer` prompt fetchers.
-  * `summarize_url_content`, `tldr_url_content` → normalize URL, call summarizer, return `{success, markdown, canonical_url, summary_effort}` dictionaries.
-* `newsletter_scraper.py` – Deterministic HTML fetch + parsing; emits `{articles, issues, stats}` without looking at blob state or removed-url sets.
-* `summarizer.py` – Stateless pipeline: scrape URL (curl_cffi → jina fallback), render markdown, build prompt, invoke LLM. Only in-memory prompt memoization remains.
-* `util.py` – Shared helpers for logging, env lookups, date math, URL normalization.
-
-**Summarize request flow:**
-
-```
-[Client]
-  POST /api/summarize-url {url}
-      ↓
-serve.summarize_url
-      ↓
-tldr_app.summarize_url
-      ↓
-tldr_service.summarize_url_content
-      ↓
-summarizer.summarize_url
-      ↓
-summarizer.url_to_markdown → summarizer.scrape_url → external HTTP
-      ↓
-summarizer._call_llm → OpenAI
-      ↓
-JSON {success, summary_markdown, canonical_url, summary_effort}
-```
-
-**Newsletter scrape flow:**
-
-```
-[Client]
-  POST /api/scrape {start_date, end_date}
-      ↓
-serve.scrape_newsletters_in_date_range
-      ↓
-tldr_app.scrape_newsletters
-      ↓
-tldr_service.scrape_newsletters_in_date_range
-      ↓
-newsletter_scraper.scrape_date_range
-      ↓
-requests → TLDR newsletter pages
-      ↓
-JSON {articles[], issues[], stats}
-```
+- Source `./setup.sh` to install dependencies (`ensure_uv`) and set up helper
+  functions.
+- Use `start_server_and_watchdog` to launch the Flask app with the watchdog
+  health checker, `print_server_and_watchdog_pids` to verify processes, and
+  `kill_server_and_watchdog` for cleanup.
+- Exercise the endpoints with `curl` (see `setup.sh` comments) to validate flows
+  after code changes.
