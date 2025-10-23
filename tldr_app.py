@@ -24,16 +24,11 @@ def summarize_url(
     url: str,
     *,
     summary_effort: str = "low",
-    cache_only: bool = False,
 ) -> dict:
-    try:
-        result = tldr_service.summarize_url_content(
-            url,
-            summary_effort=summary_effort,
-            cache_only=cache_only,
-        )
-    except tldr_service.CacheMissError as error:
-        return {"success": False, "error": str(error)}
+    result = tldr_service.summarize_url_content(
+        url,
+        summary_effort=summary_effort,
+    )
 
     payload: dict[str, Optional[str]] = {
         "success": True,
@@ -55,16 +50,11 @@ def tldr_url(
     url: str,
     *,
     summary_effort: str = "low",
-    cache_only: bool = False,
 ) -> dict:
-    try:
-        result = tldr_service.tldr_url_content(
-            url,
-            summary_effort=summary_effort,
-            cache_only=cache_only,
-        )
-    except tldr_service.CacheMissError as error:
-        return {"success": False, "error": str(error)}
+    result = tldr_service.tldr_url_content(
+        url,
+        summary_effort=summary_effort,
+    )
 
     payload: dict[str, Optional[str]] = {
         "success": True,
