@@ -78,6 +78,7 @@ def summarize_url():
         result = tldr_app.summarize_url(
             data.get("url", ""),
             summary_effort=data.get("summary_effort", "low"),
+            cache_only=bool(data.get("cache_only", False)),
         )
 
         return jsonify(result)
@@ -116,6 +117,7 @@ def tldr_url():
         result = tldr_app.tldr_url(
             data.get("url", ""),
             summary_effort=data.get("summary_effort", "low"),
+            cache_only=bool(data.get("cache_only", False)),
         )
 
         return jsonify(result)
