@@ -64,15 +64,10 @@ def fetch_tldr_prompt_template() -> str:
     return _fetch_tldr_prompt()
 
 
-class CacheMissError(RuntimeError):
-    """Raised when a cache_only lookup misses."""
-
-
 def summarize_url_content(
     url: str,
     *,
     summary_effort: str = "low",
-    cache_only: bool = False,
 ) -> dict:
     cleaned_url = (url or "").strip()
     if not cleaned_url:
@@ -80,9 +75,6 @@ def summarize_url_content(
 
     canonical_url = util.canonicalize_url(cleaned_url)
     normalized_effort = normalize_summary_effort(summary_effort)
-
-    if cache_only:
-        raise CacheMissError("Summary not cached")
 
     try:
         summary_markdown = summarize_url(
@@ -110,7 +102,6 @@ def tldr_url_content(
     url: str,
     *,
     summary_effort: str = "low",
-    cache_only: bool = False,
 ) -> dict:
     cleaned_url = (url or "").strip()
     if not cleaned_url:
@@ -118,9 +109,6 @@ def tldr_url_content(
 
     canonical_url = util.canonicalize_url(cleaned_url)
     normalized_effort = normalize_summary_effort(summary_effort)
-
-    if cache_only:
-        raise CacheMissError("TLDR not cached")
 
     try:
         tldr_markdown = tldr_url(
