@@ -4,9 +4,10 @@ TLDR Newsletter Scraper backend with a proxy.
 Important: cli.py must expose the exact same interfaces to the app logic that serve.py exposes via the web. Any changes made here must also be mirrored in cli.py and verified through cli.py.
 """
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 import logging
 import requests
+import os
 
 import util
 import tldr_app
@@ -20,6 +21,15 @@ logger = logging.getLogger("serve")
 def index():
     """Serve the main page"""
     return render_template("index.html")
+
+
+@app.route("/<path:filename>")
+def serve_static_js(filename):
+    """Serve static JavaScript modules from root directory"""
+    if filename.endswith('.js'):
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        return send_from_directory(root_dir, filename, mimetype='application/javascript')
+    return "Not found", 404
 
 
 @app.route("/api/scrape", methods=["POST"])
