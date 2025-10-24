@@ -482,6 +482,24 @@
             opacity: 1;
         }
 
+        .article-btn.remove-article-btn {
+            width: auto;
+            min-width: 6.2em;
+            padding: 0 10px;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        .article-btn.remove-article-btn:hover {
+            background: rgba(220, 53, 69, 0.12);
+            border-color: rgba(220, 53, 69, 0.4);
+            color: #b91c1c;
+        }
+
         /* Split button container for summarize + effort dropdown */
         .expand-btn-container {
             position: relative;
@@ -747,6 +765,59 @@
 
         .article-btn:active {
             transform: scale(0.95);
+        }
+
+        .article-card.removed {
+            opacity: 0.75;
+            border-style: dashed;
+            background: rgba(220, 53, 69, 0.06);
+        }
+
+        .article-card.removed .article-number {
+            background: transparent;
+            color: var(--muted);
+        }
+
+        .article-card.removed .article-link {
+            text-decoration: line-through;
+            color: var(--muted);
+            pointer-events: none;
+        }
+
+        .article-card.removed .article-favicon {
+            opacity: 0.5;
+        }
+
+        .article-card.removed .article-actions {
+            opacity: 1;
+        }
+
+        .article-card.removed .article-actions .article-btn:not(.remove-article-btn) {
+            display: none;
+        }
+
+        .article-card.removed .article-btn.remove-article-btn {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(5, 150, 105, 0.45);
+            color: #047857;
+        }
+
+        .article-card.removed .article-btn.remove-article-btn:hover {
+            background: rgba(22, 163, 74, 0.16);
+            border-color: rgba(21, 128, 61, 0.6);
+            color: #065f46;
+        }
+
+        .article-removed-note {
+            display: none;
+            margin-top: 10px;
+            font-size: 13px;
+            font-style: italic;
+            color: var(--muted);
+        }
+
+        .article-card.removed .article-removed-note {
+            display: block;
         }
 
         #copyToast {
@@ -1490,6 +1561,7 @@
                     if (!prior) return cloneArticleState(article);
                     return cloneArticleState({
                         ...article,
+                        removed: typeof prior.removed === 'boolean' ? prior.removed : article.removed,
                         summary: prior.summary,
                         tldr: prior.tldr,
                         read: prior.read
@@ -1770,6 +1842,7 @@
                     card.className = 'article-card unread';
                     card.setAttribute('data-url', cleanUrl);
                     card.setAttribute('data-title', titleText);
+                    card.setAttribute('data-original-order', String(index));
 
                     if (articleMeta && articleMeta.section_title) {
                         card.setAttribute('data-section-title', articleMeta.section_title);
@@ -1886,6 +1959,13 @@
                     copyBtn.type = 'button';
                     copyBtn.setAttribute('data-url', cleanUrl);
 
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'article-btn remove-article-btn';
+                    removeBtn.innerHTML = 'Remove';
+                    removeBtn.title = 'Remove this article from the list';
+                    removeBtn.type = 'button';
+                    removeBtn.setAttribute('data-url', cleanUrl);
+
                     content.appendChild(newLink);
                     header.appendChild(number);
                     header.appendChild(content);
@@ -1894,13 +1974,21 @@
                     actions.appendChild(expandBtnContainer);
                     actions.appendChild(tldrBtn);
                     actions.appendChild(copyBtn);
+                    actions.appendChild(removeBtn);
 
                     setCardSummaryEffort(card, 'low');
                     setupSummaryEffortControls(card, expandBtn, chevronBtn, dropdown);
 
                     card.appendChild(header);
 
+                    const removedNote = document.createElement('div');
+                    removedNote.className = 'article-removed-note';
+                    card.appendChild(removedNote);
+
                     articleList.appendChild(card);
+
+                    const initialRemoved = Boolean(articleMeta && articleMeta.removed);
+                    setCardRemovedState(card, initialRemoved);
                 });
 
                 sortArticlesByState(articleList);
@@ -2094,6 +2182,9 @@
 
                     applySummaryState(card, article.summary);
                     applyTldrState(card, article.tldr);
+
+                    const removed = Boolean(article.removed);
+                    setCardRemovedState(card, removed);
                 });
             });
         }
@@ -2103,13 +2194,20 @@
          */
         // #region -------[ ArticleStateTracks ]-------
         function getArticleState(card) {
+            if (card.getAttribute('data-removed') === 'true') return 2;
             if (card.classList.contains('read')) return 1;
             return 0;
         }
 
         function sortArticlesByState(articleList) {
             const cards = Array.from(articleList.querySelectorAll('.article-card'));
-            cards.sort((a, b) => getArticleState(a) - getArticleState(b));
+            cards.sort((a, b) => {
+                const stateDiff = getArticleState(a) - getArticleState(b);
+                if (stateDiff !== 0) return stateDiff;
+                const orderA = Number(a.getAttribute('data-original-order')) || 0;
+                const orderB = Number(b.getAttribute('data-original-order')) || 0;
+                return orderA - orderB;
+            });
             cards.forEach((card, index) => {
                 articleList.appendChild(card);
                 const number = card.querySelector('.article-number');
@@ -2185,6 +2283,79 @@
                 link.appendChild(textSpan);
             }
             textSpan.textContent = text || '';
+        }
+
+        function isCardRemoved(card) {
+            if (!card) return false;
+            return card.getAttribute('data-removed') === 'true';
+        }
+
+        function setCardRemovedState(card, removed) {
+            if (!card) return;
+
+            const isRemoved = Boolean(removed);
+            card.setAttribute('data-removed', isRemoved ? 'true' : 'false');
+            card.classList.toggle('removed', isRemoved);
+
+            const articleList = card.closest('.article-list');
+
+            const removeBtn = card.querySelector('.remove-article-btn');
+            if (removeBtn) {
+                removeBtn.innerHTML = isRemoved ? 'Restore' : 'Remove';
+                removeBtn.title = isRemoved
+                    ? 'Restore this article to the list'
+                    : 'Remove this article from the list';
+            }
+
+            const removedNote = card.querySelector('.article-removed-note');
+            if (removedNote) {
+                removedNote.textContent = isRemoved ? 'Removed from this digest' : '';
+            }
+
+            const link = card.querySelector('.article-link');
+            if (link) {
+                if (isRemoved) {
+                    link.setAttribute('tabindex', '-1');
+                } else {
+                    link.removeAttribute('tabindex');
+                }
+            }
+
+            if (isRemoved) {
+                const summaryExpander = card.querySelector('.inline-summary');
+                if (summaryExpander) summaryExpander.remove();
+
+                const tldrExpander = card.querySelector('.inline-tldr');
+                if (tldrExpander) tldrExpander.remove();
+
+                const expandBtn = card.querySelector('.expand-btn');
+                if (expandBtn) {
+                    expandBtn.classList.remove('expanded');
+                    const loaded = expandBtn.classList.contains('loaded');
+                    expandBtn.innerHTML = loaded ? 'Available' : 'Summarize';
+                    expandBtn.title = loaded
+                        ? 'Summary cached - click to show'
+                        : 'Show summary with default reasoning effort';
+                }
+
+                const tldrBtn = card.querySelector('.tldr-btn');
+                if (tldrBtn) {
+                    tldrBtn.classList.remove('expanded');
+                    const loaded = tldrBtn.classList.contains('loaded');
+                    tldrBtn.innerHTML = loaded ? 'Available' : 'TLDR';
+                    tldrBtn.title = loaded
+                        ? 'TLDR cached - click to show'
+                        : 'Show TLDR';
+                }
+
+                toggleCopyButton(card, false);
+                if (articleList) sortArticlesByState(articleList);
+                return;
+            }
+
+            const hasSummary = Boolean(card.getAttribute('data-summary'));
+            toggleCopyButton(card, hasSummary);
+            if (articleList) sortArticlesByState(articleList);
         }
 
         function markArticleAsRead(card) {
@@ -2337,7 +2508,7 @@
                 e.stopPropagation();
 
                 const card = btn.closest('.article-card');
-                if (!card) return;
+                if (!card || isCardRemoved(card)) return;
 
                 const payload = `---\ntitle: ${card.getAttribute('data-title')}\nurl: ${card.getAttribute('data-url')}\n---\n${card.getAttribute('data-summary')}`;
                 await navigator.clipboard.writeText(payload);
@@ -2345,6 +2516,26 @@
             }, true);
         }
         // #endregion
+
+        function bindRemovalControls() {
+            document.addEventListener('click', function(e) {
+                const removeBtn = e.target.closest('.remove-article-btn');
+                if (!removeBtn) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                const card = removeBtn.closest('.article-card');
+                if (!card) return;
+
+                const nextState = !isCardRemoved(card);
+                setCardRemovedState(card, nextState);
+                updateStoredArticleFromCard(card, article => ({
+                    ...article,
+                    removed: nextState
+                }));
+            });
+        }
 
         function bindSummaryExpansion() {
             document.addEventListener('click', async function(e) {
@@ -2359,7 +2550,7 @@
 
                 const target = expandBtn || link;
                 const card = target.closest('.article-card');
-                if (!card) return;
+                if (!card || isCardRemoved(card)) return;
 
                 if (link && !card.contains(link)) return;
 
@@ -2571,7 +2762,7 @@
                 e.stopPropagation();
 
                 const card = tldrBtn.closest('.article-card');
-                if (!card) return;
+                if (!card || isCardRemoved(card)) return;
 
                 const url = tldrBtn.getAttribute('data-url');
                 if (!url) return;
@@ -3221,6 +3412,7 @@
         })();
         bindScrapeForm();
         bindCopySummaryFlow();
+        bindRemovalControls();
         bindSummaryExpansion();
         bindTldrExpansion();
         bindCollapsedIssueClick();
