@@ -1842,6 +1842,7 @@
                     card.className = 'article-card unread';
                     card.setAttribute('data-url', cleanUrl);
                     card.setAttribute('data-title', titleText);
+                    card.setAttribute('data-original-order', String(index));
 
                     if (articleMeta && articleMeta.section_title) {
                         card.setAttribute('data-section-title', articleMeta.section_title);
@@ -1984,10 +1985,10 @@
                     removedNote.className = 'article-removed-note';
                     card.appendChild(removedNote);
 
+                    articleList.appendChild(card);
+
                     const initialRemoved = Boolean(articleMeta && articleMeta.removed);
                     setCardRemovedState(card, initialRemoved);
-
-                    articleList.appendChild(card);
                 });
 
                 sortArticlesByState(articleList);
@@ -2193,13 +2194,20 @@
          */
         // #region -------[ ArticleStateTracks ]-------
         function getArticleState(card) {
+            if (card.getAttribute('data-removed') === 'true') return 2;
             if (card.classList.contains('read')) return 1;
             return 0;
         }
 
         function sortArticlesByState(articleList) {
             const cards = Array.from(articleList.querySelectorAll('.article-card'));
-            cards.sort((a, b) => getArticleState(a) - getArticleState(b));
+            cards.sort((a, b) => {
+                const stateDiff = getArticleState(a) - getArticleState(b);
+                if (stateDiff !== 0) return stateDiff;
+                const orderA = Number(a.getAttribute('data-original-order')) || 0;
+                const orderB = Number(b.getAttribute('data-original-order')) || 0;
+                return orderA - orderB;
+            });
             cards.forEach((card, index) => {
                 articleList.appendChild(card);
                 const number = card.querySelector('.article-number');
@@ -2289,6 +2297,8 @@
             card.setAttribute('data-removed', isRemoved ? 'true' : 'false');
             card.classList.toggle('removed', isRemoved);
 
+            const articleList = card.closest('.article-list');
+
             const removeBtn = card.querySelector('.remove-article-btn');
             if (removeBtn) {
                 removeBtn.innerHTML = isRemoved ? 'Restore' : 'Remove';
@@ -2339,11 +2349,13 @@
                 }
 
                 toggleCopyButton(card, false);
+                if (articleList) sortArticlesByState(articleList);
                 return;
             }
 
             const hasSummary = Boolean(card.getAttribute('data-summary'));
             toggleCopyButton(card, hasSummary);
+            if (articleList) sortArticlesByState(articleList);
         }
 
         function markArticleAsRead(card) {
