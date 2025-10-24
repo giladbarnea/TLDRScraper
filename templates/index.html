@@ -1849,6 +1849,9 @@
                         if (articleMeta.section_emoji) {
                             card.setAttribute('data-section-emoji', articleMeta.section_emoji);
                         }
+                        if (articleMeta.section_order !== undefined && articleMeta.section_order !== null) {
+                            card.setAttribute('data-section-order', String(articleMeta.section_order));
+                        }
                     }
                     if (articleMeta && articleMeta.newsletter_type) {
                         card.setAttribute('data-newsletter-type', articleMeta.newsletter_type);
@@ -2200,6 +2203,10 @@
         }
 
         function sortArticlesByState(articleList) {
+            // Remove all existing section titles
+            const sectionTitles = Array.from(articleList.querySelectorAll('.section-title'));
+            sectionTitles.forEach(section => section.remove());
+
             const cards = Array.from(articleList.querySelectorAll('.article-card'));
             cards.sort((a, b) => {
                 const stateDiff = getArticleState(a) - getArticleState(b);
@@ -2208,7 +2215,38 @@
                 const orderB = Number(b.getAttribute('data-original-order')) || 0;
                 return orderA - orderB;
             });
+
+            // Re-insert cards and section titles in the correct order
+            let lastSectionKey = null;
             cards.forEach((card, index) => {
+                const sectionTitle = card.getAttribute('data-section-title');
+                const sectionEmoji = card.getAttribute('data-section-emoji');
+                const sectionOrder = card.getAttribute('data-section-order') || '';
+
+                // Create a unique key for this section
+                const sectionKey = sectionTitle ? `${sectionOrder}__${sectionTitle}` : null;
+
+                // If section changes, insert a section title before this card
+                if (sectionKey && sectionKey !== lastSectionKey) {
+                    const labelParts = [];
+                    if (sectionEmoji) {
+                        labelParts.push(sectionEmoji);
+                    }
+                    if (sectionTitle) {
+                        labelParts.push(sectionTitle);
+                    }
+                    const sectionLabel = labelParts.join(' ').trim();
+                    if (sectionLabel) {
+                        const sectionEl = document.createElement('div');
+                        sectionEl.className = 'section-title';
+                        sectionEl.textContent = sectionLabel;
+                        articleList.appendChild(sectionEl);
+                    }
+                    lastSectionKey = sectionKey;
+                } else if (!sectionTitle && lastSectionKey !== null) {
+                    lastSectionKey = null;
+                }
+
                 articleList.appendChild(card);
                 const number = card.querySelector('.article-number');
                 if (number) number.textContent = index + 1;
