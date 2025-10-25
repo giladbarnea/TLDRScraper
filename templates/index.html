@@ -197,7 +197,7 @@
             font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
             max-width: 1000px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 15px;
             background-color: var(--bg);
             color: var(--text);
             -webkit-font-smoothing: antialiased;
@@ -205,11 +205,11 @@
             text-rendering: optimizeLegibility;
             -webkit-text-size-adjust: 100%;
             letter-spacing: 0.003em;
-            line-height: 1.6;
+            line-height: 1.55;
         }
         .container {
             background: var(--surface);
-            padding: 20px;
+            padding: 16px;
             border-radius: var(--radius);
             box-shadow: var(--shadow-sm);
             border: 1px solid var(--border);
@@ -217,14 +217,14 @@
         h1 {
             color: var(--text);
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             font-weight: 700;
             letter-spacing: -0.01em;
             line-height: 1.25;
             text-wrap: balance;
         }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 14px;
             display: inline-block;
             width: 45%;
             margin-right: 5%;
@@ -234,13 +234,13 @@
         }
         label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             font-weight: bold;
             color: var(--muted);
         }
         input[type="date"] {
             width: 100%;
-            padding: 10px 12px;
+            padding: 9px 12px;
             border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 16px;
@@ -252,13 +252,13 @@
         button {
             background-color: #007bff;
             color: white;
-            padding: 12px 24px;
+            padding: 11px 20px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 12px;
             min-height: 44px;
         }
         button:hover {
@@ -281,8 +281,8 @@
         }
         .progress {
             display: none;
-            margin: 20px 0;
-            padding: 15px;
+            margin: 16px 0;
+            padding: 12px;
             background-color: #e3f2fd;
             border-radius: 4px;
             border-left: 4px solid #2196f3;
@@ -304,7 +304,7 @@
 
         /* Result container (we'll inject stats + <main id="write">...</main>) */
         #result {
-            margin-top: 20px;
+            margin-top: 16px;
             padding: 0;
             background-color: transparent;
             border-radius: 0;
@@ -328,7 +328,7 @@
             background-color: #fff3cd;
             border: 1px solid #ffeaa7;
             color: #856404;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             padding: 10px;
             border-radius: 4px;
         }
@@ -337,8 +337,8 @@
         .article-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            margin: 20px 0;
+            gap: 10px;
+            margin: 16px 0;
             padding: 0;
             list-style: none;
         }
@@ -349,7 +349,7 @@
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 14px 16px;
+            padding: 12px 14px;
             transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
             position: relative;
             animation: cardFadeIn 0.3s ease backwards;
@@ -401,8 +401,8 @@
 
         .article-header {
             display: flex;
-            align-items: center;  /* Centered vertically */
-            gap: 12px;
+            align-items: center;
+            gap: 10px;
             width: 100%;
         }
 
@@ -849,26 +849,26 @@
 
         /* Inline summary expansion - 75% old style, 25% new */
         .inline-summary {
-            margin-top: 9px;
-            padding-top: 9px;
-            padding-left: 16px;
-            padding-right: 16px;
+            margin-top: 8px;
+            padding-top: 8px;
+            padding-left: 14px;
+            padding-right: 14px;
             padding-bottom: 0;
             border-top: 1px dashed var(--border);
             font-size: 0.96em;
-            line-height: 1.675;
+            line-height: 1.6;
             animation: slideDown 0.2s ease;
         }
 
         .inline-tldr {
-            margin-top: 9px;
-            padding-top: 9px;
-            padding-left: 16px;
-            padding-right: 16px;
+            margin-top: 8px;
+            padding-top: 8px;
+            padding-left: 14px;
+            padding-right: 14px;
             padding-bottom: 0;
             border-top: 1px dashed var(--border);
             font-size: 0.96em;
-            line-height: 1.675;
+            line-height: 1.6;
             animation: slideDown 0.2s ease;
         }
 
@@ -895,8 +895,8 @@
             font-size: 13px;
             color: var(--muted);
             text-align: center;
-            margin: 16px 0 8px;
-            padding: 8px 12px;
+            margin: 12px 0 6px;
+            padding: 7px 10px;
             background: var(--bg);
             border-radius: 6px;
             opacity: 0.8;
@@ -957,8 +957,8 @@
         }
 
         @media (max-width: 480px) {
-            body { padding: 8px; }
-            .container { padding: 12px; }
+            body { padding: 10px; }
+            .container { padding: 14px; }
             .form-group { width: 100%; margin-right: 0; }
         }
 
@@ -1010,12 +1010,12 @@
         }
 
         .issue-title-block {
-            margin: 12px 0 18px;
+            margin: 10px 0 14px;
             text-align: center;
             font-style: italic;
             color: #9ca3af;
             font-size: 0.95em;
-            line-height: 1.6;
+            line-height: 1.55;
         }
 
         .issue-title-block .issue-title-line + .issue-title-line {
@@ -1023,7 +1023,7 @@
         }
 
         .section-title {
-            margin: 18px 0 6px;
+            margin: 14px 0 6px;
             text-align: center;
             font-style: italic;
             color: #9ca3af;
