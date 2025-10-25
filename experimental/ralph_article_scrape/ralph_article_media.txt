@@ -1,0 +1,81 @@
+Media Resources from https://ghuntley.com/ralph/
+Scraped on: 2025-10-25
+
+Main Article Media Elements:
+=============================
+
+1. HERO IMAGE
+   URL: https://ghuntley.com/content/images/size/w1200/2025/06/3ea367ed-cae3-454a-840f-134531dea1fd.jpg
+   Type: Image
+   Alt: Ralph Wiggum as a "software engineer"
+   Context: Main hero image depicting Ralph Wiggum from The Simpsons as a software engineer
+   Description: Cartoon illustration serving as metaphor for the Ralph technique - AI coding that works through simple iteration
+
+2. PLAYGROUND DIAGRAM
+   URL: https://ghuntley.com/content/images/2025/07/image-1.png
+   Type: Image
+   Alt: [No alt text]
+   Context: Illustrating the Ralph development process
+   Description: Playground slide diagram showing how guardrails/prompts guide Ralph down the correct path
+
+3. EXTERNAL LINK - Y Combinator Report
+   URL: https://github.com/repomirrorhq/repomirror/blob/main/repomirror.md
+   Type: External Link
+   Context: Documentation on using Ralph in competitive hackathon
+   Description: Technical documentation and case study
+
+4. TWEET - Programming Language Creation
+   URL: https://twitter.com/GeoffreyHuntley/status/1944377299425706060
+   Type: Embedded Tweet
+   Date: July 13, 2025
+   Context: Showcasing Amp (@AmpCode) creating a new programming language using Ralph
+   Description: Demonstrates ambitious application of Ralph technique for language creation
+
+5. TWEET - Cost Comparison
+   URL: https://twitter.com/GeoffreyHuntley/status/1943528204393955634
+   Type: Embedded Tweet
+   Date: July 11, 2025
+   Context: $50K contract completed for $297 using Ralph
+   Description: Case study showing 99.4% cost reduction through automated AI coding
+
+Related Content Images (Sidebar):
+==================================
+
+6. CURSED Programming Language
+   URL: https://ghuntley.com/content/images/size/w960/2025/09/universal_upscale_0_dc6aa202-ccbc-4c9d-a60e-7bf677aeb143_0.jpg
+   Alt: i ran Claude in a loop for three months, and it created a genz programming language called cursed
+   Type: Related article thumbnail
+
+7. Secure Code Generation Patterns
+   URL: https://ghuntley.com/content/images/2025/09/warm-golden-hour-light--hand-drawn-sketch-of-AI-agents-generating-secure-code-in-a-roses-tattoo-print-style--in-Color-sketchnote-style--soft-light-just-after-sunrise-or-before-sunset.jpg
+   Alt: anti-patterns and patterns for achieving secure generation of code via AI
+   Type: Related article thumbnail
+
+8. Coding Agent Workshop
+   URL: https://ghuntley.com/content/images/2025/07/how-to-build-an-agent.001.jpg
+   Alt: how to build a coding agent: free workshop
+   Type: Related article thumbnail
+
+9. MCP Servers and LLM Allocations
+   URL: https://ghuntley.com/content/images/2025/08/Depict-AI-robots-dancing-on-a-rose-patterned-dance-floor-in-a-traditional-tattoo-art-style.-The-print-uses-a-vibrant-color-scheme--soft-lighting--and-diffused-shadows--creating-a-calming-atmosphere.-Complex-orna.jpg
+   Alt: too many model context protocol servers and LLM allocations on the dance floor
+   Type: Related article thumbnail
+
+Additional Media Found:
+=======================
+
+10. Author Icon (Geoffrey Huntley)
+    URL: https://ghuntley.com/content/images/icon/7V0ak3am_400x400-1-31.jpg
+    Type: Profile image
+
+11. Tattoo Art Print
+    URL: https://ghuntley.com/content/images/thumbnail/A-vibrant-retro-style-traditional-tattoo-art-print-featuring-a-guitar--rendered-with-high-contrast-and-dramatic-lighting.-The-complex-ornamental-design-is-set-against-a-stark-white-background--showcasing-intense-color-saturation-and-a-symbo-3.jpg
+    Type: Decorative thumbnail
+
+12. Analytics Pixel
+    URL: https://api.ghuntley.com/noscript.gif?collect-dnt=true
+    Type: Tracking pixel
+
+Total Media Elements: 12 primary items
+Article Structure: Saved to /tmp/article_structure.json
+Enhanced Article: /tmp/ralph_article_enhanced.md
