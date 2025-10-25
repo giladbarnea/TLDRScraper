@@ -3,9 +3,8 @@
 This review flags only major omissions, errors, or overstatements that would block a successful shift to a newsletter‑agnostic, multi‑source architecture. Each point includes the why and concrete, minimal fixes.
 
 ### Executive summary
-- Critical omissions: client issue identity collisions, TLDR‑branded markdown output header, TLDR‑branded User‑Agent in the newsletter fetcher, and unaddressed test fallout.
-- False positives/overstatements: storage type constraint claim, and “dom‑builder assumes TLDR throughout.”
-- Optional/non‑blocking: localStorage key prefix branding.
+- Critical omissions: client issue identity collisions, TLDR-branded markdown output header, TLDR-branded User-Agent in the newsletter fetcher, unaddressed test fallout, and LocalStorage key prefix branding.
+- False positives/overstatements: storage type constraint claim, and “dom-builder assumes TLDR throughout.”
 
 ---
 
@@ -110,6 +109,19 @@ await page.getByRole('button', { name: 'Scrape TLDR Newsletters' }).click();
   - Update mocks to include `source_id` and new issue keys.
   - If you debrand the UI titles, update assertions accordingly or target structure (`#write h4`) instead of exact text when the text is non‑essential.
 
+### 5) LocalStorage key prefix branding (`tldr:scrapes:`) leaks TLDR identity and risks cross-source namespace confusion
+**Why this is critical**: The prefix embeds TLDR branding in client-side state and prevents a clean, source-agnostic cache layout. As multiple sources are added, per-date scoping alone cannot disambiguate content across sources or environments, and the branded prefix contradicts the refactor’s de-branding goal.
+
+- Where it happens:
+24:26:/workspace/storage.js → return `tldr:scrapes:${date}`
+
+- Actionable fix:
+  - Adopt a neutral, future-proof key pattern that incorporates `source_id`: `newsletter:scrapes:${source_id}:${date}`.
+  - Implement a one-time read-through migration:
+    - On read, check old (`tldr:scrapes:${date}`) and new (`newsletter:scrapes:${source_id}:${date}`) keys; if only the old exists, write to the new key.
+    - On write, always use the new key.
+  - Update tests/fixtures and any debug tooling to the new prefix and key shape.
+
 ---
 
 ## False positives / overstatements
@@ -141,18 +153,6 @@ if (!techHeading && /TLDR\s*Tech/i.test(text)) techHeading = node;
 ```
 - Action: Remove this reorder block as part of the refactor and rely on backend sort (as the plan already suggests). The rest of the file can remain mostly untouched once `source_id` is added to keys.
 
----
-
-## Optional, non‑blocking observations
-
-### LocalStorage key prefix branding (`tldr:scrapes:`)
-**Why this is optional**: Cosmetic branding only; not functionally blocking multiple sources since the value is per‑date. Renaming would force a migration; better to keep for now unless you want a clean slate rename with a one‑time migration.
-
-- Evidence:
-```24:26:/workspace/storage.js
-return `tldr:scrapes:${date}`;
-```
-- If you later change it, add a read‑through migration: read either key, write back to the new one.
 
 ---
 
