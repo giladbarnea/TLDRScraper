@@ -52,11 +52,6 @@ function getIssueKey(dateStr, category) {
     - `findIssueContainer`/selectors (issue.js): no change if they match on `data-issue-key` (they will pick up the new value).
   - Tests: update mocks/expectations to include `source_id` and use the triple‑key where needed.
 
-<reviewer-comment-on-actionable-fix-audit-when-have-chance>
-Clarify how DOM headings obtain `source_id` for triple issue keys
-
-The proposed fix for issue collisions recommends switching `issueMetadataMap` and `getIssueKey` to `${date}__${sourceId}__${category}` and using that value for `data-issue-key`/`data-issue-toggle`. However `transformWhiteySurface` derives keys solely from header text (date + category) and has no access to `sourceId` when building those attributes or when looking up metadata. Unless the HTML contains a per-heading `sourceId` or the routine is rewritten to emit keys while iterating the payload rather than the DOM text, the client will still generate identical keys for same-date categories from different sources and collisions will persist. The plan needs to spell out how each `h4` header will be annotated with its corresponding source before the triple key can be applied.
-</reviewer-comment-on-actionable-fix-audit-when-have-chance>
 
 ### 2) TLDR‑branded markdown output header
 **Why this is critical**: The unified `output` string is currently branded for TLDR and implies a single source. In a multi‑source merger, it’s semantically wrong and visibly contradicts the goal of an agnostic backend.
