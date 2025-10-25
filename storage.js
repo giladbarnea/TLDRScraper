@@ -22,7 +22,7 @@ export function normalizeIsoDate(value) {
 }
 
 export function getStorageKeyForDate(date) {
-    return `tldr:scrapes:${date}`;
+    return `newsletters:scrapes:${date}`;
 }
 
 export function cloneArticleState(article) {
@@ -31,6 +31,7 @@ export function cloneArticleState(article) {
         title: article.title,
         issueDate: article.issueDate,
         category: article.category,
+        sourceId: article.sourceId || null,  // CRITICAL: Preserve sourceId
         section: article.section,
         sectionEmoji: article.sectionEmoji,
         sectionOrder: article.sectionOrder,
@@ -61,6 +62,7 @@ export function sanitizeIssue(issue) {
     return {
         date: normalizeIsoDate(issue.date) || null,
         category: issue.category || '',
+        sourceId: issue.sourceId || issue.source_id || null,  // CRITICAL: Preserve sourceId
         newsletterType: issue.newsletterType || issue.newsletter_type || null,
         title: issue.title || null,
         subtitle: issue.subtitle || null,

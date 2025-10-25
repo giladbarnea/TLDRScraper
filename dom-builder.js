@@ -66,6 +66,7 @@ export function buildDailyPayloadsFromScrape(data) {
                 title: article.title || article.url,
                 issueDate: date,
                 category: article.category || 'Newsletter',
+                sourceId: article.source_id || null,  // CRITICAL: Map source_id from API
                 section: article.section_title || null,
                 sectionEmoji: article.section_emoji || null,
                 sectionOrder: article.section_order ?? null,
@@ -177,9 +178,11 @@ export function buildPayloadIndices(payloads) {
         });
 
         payload.issues.forEach(issue => {
-            const key = `${payload.date}__${issue.category || ''}`;
+            // CRITICAL: Use triple-key to prevent collisions between sources
+            const key = `${payload.date}__${issue.sourceId || ''}__${issue.category || ''}`;
             issueMetadataMap.set(key, {
                 date: payload.date,
+                sourceId: issue.sourceId || null,  // NEW: Include sourceId
                 category: issue.category || '',
                 title: issue.title || null,
                 subtitle: issue.subtitle || null,
@@ -192,8 +195,9 @@ export function buildPayloadIndices(payloads) {
     return { urlToDateMap, urlMetaMap, issueMetadataMap };
 }
 
-function getIssueKey(dateStr, category) {
-    return `${dateStr}-${category}`.toLowerCase();
+function getIssueKey(dateStr, sourceId, category) {
+    // CRITICAL: Triple-key to prevent collisions between sources
+    return `${dateStr}-${sourceId || ''}-${category}`.toLowerCase();
 }
 
 export function transformWhiteySurface(root, maps, setupSummaryEffortControls, SUMMARY_EFFORT_OPTIONS, clipboardIconMarkup) {
@@ -246,11 +250,26 @@ export function transformWhiteySurface(root, maps, setupSummaryEffortControls, S
             container.setAttribute('data-category', categoryText);
         }
 
-        let issueKey = null;
+        // Find the issue metadata for this date+category by searching all entries
+        let issueMeta = null;
+        let sourceId = null;
         if (currentDate && categoryText) {
-            issueKey = getIssueKey(currentDate, categoryText);
+            // Search for matching issue in the map (triple-key format)
+            for (const [key, meta] of issueMetadataMap.entries()) {
+                if (meta.date === currentDate && meta.category === categoryText) {
+                    issueMeta = meta;
+                    sourceId = meta.sourceId || null;
+                    break;
+                }
+            }
+        }
+
+        let issueKey = null;
+        if (currentDate && categoryText && sourceId) {
+            issueKey = getIssueKey(currentDate, sourceId, categoryText);
             if (issueKey) {
                 container.setAttribute('data-issue-key', issueKey);
+                container.setAttribute('data-source-id', sourceId);
             }
         }
 
@@ -262,26 +281,22 @@ export function transformWhiteySurface(root, maps, setupSummaryEffortControls, S
         container.appendChild(newHeader);
 
         let issueBlock = null;
-        let issueMeta = null;
-        if (currentDate && categoryText) {
-            issueMeta = issueMetadataMap.get(`${currentDate}__${categoryText}`) || null;
-            if (issueMeta && (issueMeta.title || issueMeta.subtitle)) {
-                issueBlock = document.createElement('div');
-                issueBlock.className = 'issue-title-block';
+        if (issueMeta && (issueMeta.title || issueMeta.subtitle)) {
+            issueBlock = document.createElement('div');
+            issueBlock.className = 'issue-title-block';
 
-                const lines = [];
-                if (issueMeta.title) lines.push(issueMeta.title);
-                if (issueMeta.subtitle && issueMeta.subtitle !== issueMeta.title) {
-                    lines.push(issueMeta.subtitle);
-                }
-
-                lines.forEach(text => {
-                    const lineEl = document.createElement('div');
-                    lineEl.className = 'issue-title-line';
-                    lineEl.textContent = text;
-                    issueBlock.appendChild(lineEl);
-                });
+            const lines = [];
+            if (issueMeta.title) lines.push(issueMeta.title);
+            if (issueMeta.subtitle && issueMeta.subtitle !== issueMeta.title) {
+                lines.push(issueMeta.subtitle);
             }
+
+            lines.forEach(text => {
+                const lineEl = document.createElement('div');
+                lineEl.className = 'issue-title-line';
+                lineEl.textContent = text;
+                issueBlock.appendChild(lineEl);
+            });
         }
 
         if (issueBlock) {
@@ -291,27 +306,8 @@ export function transformWhiteySurface(root, maps, setupSummaryEffortControls, S
         header.parentNode.replaceChild(container, header);
     });
 
-    const writeRoot = root.querySelector('#write');
-    if (!writeRoot) return;
-
-    Array.from(writeRoot.querySelectorAll('.date-header-container')).forEach(function(container) {
-        let node = container.nextElementSibling;
-        let aiHeading = null;
-        let techHeading = null;
-        while (node && !(node.classList && node.classList.contains('date-header-container'))) {
-            if (node.tagName === 'H4') {
-                const text = (node.textContent || '').trim();
-                if (!aiHeading && /TLDR\s*AI/i.test(text)) aiHeading = node;
-                if (!techHeading && /TLDR\s*Tech/i.test(text)) techHeading = node;
-            }
-            node = node.nextElementSibling;
-        }
-        if (aiHeading && techHeading && (techHeading.compareDocumentPosition(aiHeading) & Node.DOCUMENT_POSITION_FOLLOWING)) {
-            const aiList = (aiHeading.nextElementSibling && aiHeading.nextElementSibling.tagName === 'OL') ? aiHeading.nextElementSibling : null;
-            container.parentNode.insertBefore(aiHeading, techHeading);
-            if (aiList) container.parentNode.insertBefore(aiList, techHeading);
-        }
-    });
+    // Backend already sorts issues by config.sort_order, so just render in received order
+    // (Removed hardcoded TLDR AI/Tech reordering logic)
 
     root.querySelectorAll('#write ol').forEach(function(ol) {
         const articleList = document.createElement('div');

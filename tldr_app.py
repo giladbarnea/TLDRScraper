@@ -6,9 +6,21 @@ import tldr_service
 logger = logging.getLogger("tldr_app")
 
 
-def scrape_newsletters(start_date_text: str, end_date_text: str) -> dict:
+def scrape_newsletters(
+    start_date_text: str, end_date_text: str, source_ids: list[str] | None = None
+) -> dict:
+    """Scrape newsletters in date range.
+
+    Args:
+        start_date_text: Start date in ISO format
+        end_date_text: End date in ISO format
+        source_ids: Optional list of source IDs to scrape. Defaults to all configured sources.
+
+    Returns:
+        Response dictionary with articles and issues
+    """
     return tldr_service.scrape_newsletters_in_date_range(
-        start_date_text, end_date_text
+        start_date_text, end_date_text, source_ids=source_ids
     )
 
 

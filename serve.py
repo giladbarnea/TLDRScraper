@@ -34,15 +34,26 @@ def serve_static_js(filename):
 
 @app.route("/api/scrape", methods=["POST"])
 def scrape_newsletters_in_date_range():
-    """Backend proxy to scrape TLDR newsletters. Expects start_date and end_date in the request body."""
+    """Backend proxy to scrape newsletters. Expects start_date, end_date, and optionally sources in the request body."""
     try:
         data = request.get_json()
         if data is None:
             return jsonify({"success": False, "error": "No JSON data received"}), 400
 
+        # Extract sources parameter (optional)
+        sources = data.get("sources")
+        if sources is not None and not isinstance(sources, list):
+            return (
+                jsonify(
+                    {"success": False, "error": "sources must be an array of source IDs"}
+                ),
+                400,
+            )
+
         result = tldr_app.scrape_newsletters(
             data.get("start_date"),
             data.get("end_date"),
+            source_ids=sources,
         )
         return jsonify(result)
 
