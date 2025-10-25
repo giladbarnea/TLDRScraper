@@ -627,7 +627,6 @@ The refactoring is complete when:
    - Issue identity uses triple-key (no collisions)
 
 ✅ **Backwards compatible**:
-   - Default behavior (no sources param) scrapes all configured sources
    - UI still works with TLDR newsletters
    - Tests pass (after testid refactor)
 
