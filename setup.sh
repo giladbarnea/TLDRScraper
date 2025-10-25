@@ -310,42 +310,6 @@ function uv_sync(){
 #     return 0
 # }
 
-function ensure_codex(){
-        local quiet=false
-        if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
-                quiet=true
-    elif [[ "$1" == "--quiet=true" ]]; then
-        quiet=true
-    elif [[ "$1" == "--quiet=false" ]]; then
-        quiet=false
-        fi
-
-    ensure_local_bin_path "$quiet"
-    if isdefined codex; then
-        local version_output
-        if version_output=$(codex --version 2>&1); then
-            [[ "$quiet" == false ]] && message "[setup.sh ensure_codex] codex already installed: $(decolor "$version_output")"
-            return 0
-        fi
-        message "[setup.sh ensure_codex] codex detected but failed to run 'codex --version'." >&2
-        return 1
-    fi
-
-    message "[setup.sh ensure_codex] Installing codex with 'npm install -g @openai/codex'" >&2
-    if ! npm install -g @openai/codex; then
-        message "[setup.sh ensure_codex] ERROR: Failed to install codex." >&2
-        return 1
-    fi
-
-    local version_output
-    if version_output=$(codex --version 2>&1); then
-        [[ "$quiet" == false ]] && message "[setup.sh ensure_codex] Installed codex: $(decolor "$version_output")"
-        return 0
-    fi
-
-    message "[setup.sh ensure_codex] ERROR: codex installed but 'codex --version' failed." >&2
-    return 1
-}
 
 # main [-q,-quiet]
 # Idempotent environment and dependencies setup and verification.
@@ -388,12 +352,11 @@ function main() {
 
 
   [[ "$quiet" == false ]] && message "[setup.sh main] Ensuring dependencies..."
-  local ensure_uv_success=true uv_sync_success=true ensure_codex_success=true
+  local ensure_uv_success=true uv_sync_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
-  ensure_codex --quiet="$quiet" || ensure_codex_success=false
 
-  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_codex_success"; then
+  if ! "$ensure_uv_success" || ! "$uv_sync_success"; then
     message "[setup.sh main] Failed to install dependencies. Please check the output above." >&2
     return 1
   fi
@@ -421,20 +384,7 @@ function main() {
     return 1
   fi
   if [[ "$quiet" == false ]]; then
-    message "[setup.sh main] Setup complete successfully. Available: $env_vars.
-
-**Use cli.py frequently to verify your work.**
-
-Codex configuration:
-- OPENAI_API_KEY detected in the environment. It is implicitly used by 'codex'.
-- Never run 'codex' in an interactive mode, because You cannot input key presses.
-- Verify the installation with 'codex --version'.
-- Always use the '--dangerously-bypass-approvals-and-sandbox' cli option when invoking codex.
-- Always use codex with the 'exec' subcommand which ensures a non-interactive command.
-- Basic invocation: codex exec --dangerously-bypass-approvals-and-sandbox \"\$(cat /tmp/ad-hoc-tmp-prompt-file.md)\"
-- You are encouraged to explore additional cmdline codex usages by running 'codex --help' and multiple relevant 'codex <subcommand> --help'
-- Don't specify a model. Let the default be used implicitly.
-"
+    message "[setup.sh main] Setup complete successfully. Available: $env_vars."
   fi
 }
 
