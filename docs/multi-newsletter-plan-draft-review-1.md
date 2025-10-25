@@ -180,4 +180,8 @@ if (!techHeading && /TLDR\s*Tech/i.test(text)) techHeading = node;
 - Update fixtures/mocks to include `source_id` and the triple‑key behavior.
 - Adjust text expectations only when they are semantically important; otherwise prefer structural checks.
 
+5) Client storage namespace and migration (previously “optional”, now required)
+- Key shape: replace `tldr:scrapes:${date}` with a neutral, source-aware key:
+  `newsletter:scrapes:${source_id}:${date}`
+
 With the above, the plan becomes implementable without hidden collisions, leaked branding, or CI regressions.
