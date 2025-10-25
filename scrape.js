@@ -9,7 +9,6 @@ import {
     hydrateRangeFromStore,
     renderPayloads
 } from './dom-builder.js';
-import { restoreReadState } from './issue.js';
 
 // #region -------[ ScrapeIntake ]-------
 
@@ -69,7 +68,6 @@ export function bindScrapeForm(setupSummaryEffortControls, SUMMARY_EFFORT_OPTION
             document.getElementById('progress-fill').style.width = '100%';
             progress.style.display = 'none';
             button.disabled = false;
-            restoreReadState();
             return;
         }
 
@@ -117,8 +115,6 @@ export function bindScrapeForm(setupSummaryEffortControls, SUMMARY_EFFORT_OPTION
 
                 result.className = 'success';
                 document.getElementById('progress-fill').style.width = '100%';
-
-                restoreReadState();
 
                 setTimeout(() => {
                     const firstH1 = document.querySelector('main#write h1');

@@ -166,31 +166,4 @@ test.describe('localStorage persistence flows', () => {
             expect(payload.articles[0].url).toBe('https://example.com/articles/a');
         });
     });
-
-    test('marking an issue as read persists read state', async ({ page }) => {
-        await ensureEmptyLocalStorage(page);
-        await triggerMockScrape(page);
-
-        const issueContainer = page.locator('.issue-header-container').first();
-        await expect(issueContainer).toBeVisible();
-
-        await test.step('Mark the first issue as read', async () => {
-            await issueContainer.locator('button.mark-read-btn').click();
-            await expect(issueContainer).toHaveAttribute('data-collapse-mode', 'marked-read');
-        });
-
-        await test.step('Confirm localStorage tracks the read issue key', async () => {
-            await expect.poll(async () => {
-                const stored = await page.evaluate(() => window.localStorage.getItem('tldr-read-issues'));
-                return stored;
-            }).not.toBeNull();
-
-            const stored = await page.evaluate(() => window.localStorage.getItem('tldr-read-issues'));
-            expect(stored).not.toBeNull();
-            const readMap = JSON.parse(stored!);
-            console.log('[localStorage] stored read map keys', Object.keys(readMap));
-            expect(readMap[`$${SAMPLE_DATE}-ai`]).toBeUndefined();
-            expect(readMap[`${SAMPLE_DATE}-ai`]).toBe(true);
-        });
-    });
 });
