@@ -249,7 +249,7 @@ def _format_final_output(
                 category_groups[category] = []
             category_groups[category].append(article)
 
-        base_order = ["TLDR Tech", "TLDR AI"]
+        base_order = ["TLDR AI", "TLDR Tech"]
         category_order = [c for c in base_order if c in category_groups]
         extra_categories = [c for c in category_groups if c not in category_order]
         category_order.extend(sorted(extra_categories))
