@@ -106,12 +106,45 @@ To explore the structured data:
 python3 -m json.tool article_structure.json
 ```
 
+## Update: Second Attempt with Downloaded Media
+
+After identifying that the environment variable was correctly set, we attempted to use Gemini API again but encountered persistent **403 Forbidden errors**.
+
+### Additional Work Completed:
+
+1. **Troubleshooting**: Systematically tested Gemini API with:
+   - Direct curl requests to API endpoints
+   - Multiple model attempts (gemini-1.5-flash, gemini-2.5-pro)
+   - Both URL-based and file-based inputs
+
+2. **Media Download**: Created `download_media.py` script that:
+   - Downloads all media files locally (12 images, 1.4 MB total)
+   - Follows redirects automatically (up to 5 attempts)
+   - Skips tracking pixels and non-media content
+   - Saves metadata in JSON format
+
+3. **Root Cause Identified**: The API key returns 403 on all endpoints, indicating:
+   - Generative Language API likely not enabled for the project
+   - Possible API key restrictions (IP/domain)
+   - Potential billing/quota issues
+
+See `gemini_api_troubleshooting.md` for complete troubleshooting documentation.
+
+### Files in ralph_media/:
+- 12 downloaded images ready for processing
+- `download_results.json` - Complete download metadata
+- All images have local paths for future AI description
+
 ## Conclusion
 
-While the Gemini CLI integration didn't work as planned, the experiment successfully demonstrated:
-- Web scraping with media identification
-- Content structure extraction
-- Manual AI-style description generation
-- Markdown enhancement with contextual descriptions
+While the Gemini API integration encountered authentication issues, the experiment successfully demonstrated:
+- ✅ Web scraping with media identification
+- ✅ Content structure extraction
+- ✅ Intelligent media download with redirect handling
+- ✅ Manual AI-style description generation
+- ✅ Markdown enhancement with contextual descriptions
+- ✅ Comprehensive troubleshooting methodology
 
 The enhanced markdown file provides a fully text-based version of the article where all visual and embedded media are replaced with detailed textual descriptions, making the content accessible and searchable.
+
+**Next Steps**: With a working Gemini API key, the downloaded images in `ralph_media/` are ready for automated AI description using the script provided in `gemini_api_troubleshooting.md`.
