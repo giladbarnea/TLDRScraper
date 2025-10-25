@@ -6,7 +6,7 @@ import { initDebugPanel, bindCopySummaryFlow, bindRemovalControls, clipboardIcon
 import { setDefaultDates, bindScrapeForm } from './scrape.js';
 import { SUMMARY_EFFORT_OPTIONS, setupSummaryEffortControls, bindSummaryExpansion } from './summary.js';
 import { bindTldrExpansion } from './tldr.js';
-import { bindCollapsedIssueClick, bindIssueToggleControls, restoreReadState } from './issue.js';
+import { bindIssueToggleControls } from './issue.js';
 import { hydrateRangeFromStore, renderPayloads } from './dom-builder.js';
 
 // #region -------[ AppBootstrap ]-------
@@ -30,7 +30,6 @@ setDefaultDates();
         result.className = 'success';
         result.style.display = 'block';
     }
-    restoreReadState();
 })();
 
 bindScrapeForm(setupSummaryEffortControls, SUMMARY_EFFORT_OPTIONS, clipboardIconMarkup);
@@ -38,7 +37,6 @@ bindCopySummaryFlow();
 bindRemovalControls();
 bindSummaryExpansion();
 bindTldrExpansion();
-bindCollapsedIssueClick();
 bindIssueToggleControls();
 
 // #endregion

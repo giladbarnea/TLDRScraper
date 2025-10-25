@@ -19,8 +19,7 @@ The current JavaScript in `index.html` (lines 1242-3461) contains the following 
 9. **TLDR Delivery** (~174 lines) - TLDR expansion and API integration
 10. **Scrape Intake** (~131 lines) - Form handling and scrape workflow
 11. **Issue Collapse Manager** (~92 lines) - Issue content collapse/expand
-12. **Issue Day Read State** (~222 lines) - Issue-level read state persistence
-13. **App Bootstrap** (~26 lines) - Initialization and event binding
+12. **App Bootstrap** (~26 lines) - Initialization and event binding
 
 ## Proposed Module Structure
 
@@ -127,8 +126,8 @@ The current JavaScript in `index.html` (lines 1242-3461) contains the following 
 
 ---
 
-### 6. **issue.js** (~320 lines)
-**Responsibility:** Issue-level operations (collapse/expand and read state)
+### 6. **issue.js** (~130 lines)
+**Responsibility:** Issue-level operations (collapse/expand)
 
 **Exports:**
 - `escapeIssueKeySelector(issueKey)` - CSS selector escaping
@@ -137,20 +136,12 @@ The current JavaScript in `index.html` (lines 1242-3461) contains the following 
 - `collapseIssueContent(container, options)` - Collapse issue
 - `expandIssueContent(container)` - Expand issue
 - `toggleIssueContent(container)` - Toggle collapse state
-- `getIssueKey(dateStr, category)` - Generate issue key
-- `getReadIssues()` - Read issue read state from localStorage
-- `setIssueRead(issueKey, isRead)` - Update issue read state
-- `isIssueRead(issueKey)` - Check if issue is read
-- `markIssueAsRead(container)` - Move issue to collapsed section
-- `ensureCollapsedSection()` - Create collapsed section if needed
-- `bindCollapsedIssueClick()` - Handle collapsed issue clicks
 - `bindIssueToggleControls()` - Handle issue toggle events
-- `restoreReadState()` - Restore read state on hydration
 
 **Dependencies:**
-- Direct localStorage access for read state (separate from article storage)
+- None
 
-**Why cohesive:** Issue operations are distinct from article operations. This handles entire issue sections as units, with their own collapse logic and read persistence.
+**Why cohesive:** Issue operations are distinct from article operations. This handles entire issue sections as units, with their own collapse logic.
 
 ---
 

@@ -259,16 +259,7 @@ export function transformWhiteySurface(root, maps, setupSummaryEffortControls, S
         newHeader.setAttribute('tabindex', '0');
         newHeader.setAttribute('aria-expanded', 'true');
 
-        const markReadBtn = document.createElement('button');
-        markReadBtn.className = 'mark-read-btn';
-        markReadBtn.textContent = 'Mark as Read';
-        markReadBtn.title = 'Collapse and move to bottom';
-        markReadBtn.type = 'button';
-        markReadBtn.setAttribute('data-issue-toggle-action', 'mark-read');
-        markReadBtn.setAttribute('data-issue-toggle', issueKey || '');
-
         container.appendChild(newHeader);
-        container.appendChild(markReadBtn);
 
         let issueBlock = null;
         let issueMeta = null;

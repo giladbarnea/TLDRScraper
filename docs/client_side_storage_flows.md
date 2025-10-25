@@ -26,7 +26,6 @@ stay aligned with the live system.
 | Key | Shape | Purpose |
 | --- | ----- | ------- |
 | `tldr:scrapes:<ISO-date>` | `{ cachedAt: ISO-string \| null, issues: Issue[], articles: Article[] }` | Browser-owned payload for a single day. |
-| `tldr-read-issues` | `{ [issueKey: string]: true }` | Tracks collapsed “read” issues so they stay hidden across sessions. |
 
 #### `Article`
 
@@ -212,19 +211,10 @@ TldrDelivery.bindTldrExpansion
         └─ Renderer shows TLDR markdown / spinner / error
 ```
 
-### Issue-level read state (`IssueDayReadState` and `IssueCollapseManager`)
+### Issue collapse/expand (`IssueCollapseManager`)
 
-Entire issues can be collapsed into a "Read Issues" section. `IssueDayReadState`
-serializes the `date-category` issue key into `tldr-read-issues`. When an issue
-is marked read:
-
-1. The header container moves into the collapsed section.
-2. Subsequent hydrations hide the issue immediately.
-3. Clicking the issue again expands it in place without disturbing the stored
-state.
-
-`IssueCollapseManager` centralizes the DOM bookkeeping so header buttons,
-chevrons, and collapsed cards all act consistently.
+Issues can be collapsed and expanded via toggle controls. `IssueCollapseManager`
+centralizes the DOM bookkeeping so header buttons and chevrons act consistently.
 
 #### Flow E – Automatic mark-as-read on expansion
 
@@ -238,18 +228,6 @@ ArticleStateTracks.markArticleAsRead
         │   set article.read = { isRead: true, markedAt: now }
         │   ClientStorage.updateArticle → writeLocal('tldr:scrapes:<date>')
         └─ Renderer immediately applies "Read" styling
-```
-
-#### Flow F – Manual mark/unmark control
-
-```
-User toggles mark-as-read control (card or issue-level)
-        ↓
-IssueDayReadState / IssueCollapseManager
-        ├─ lookup targeted articles via ClientStorage
-        ├─ update read.isRead flag per action
-        ├─ writeLocal()
-        └─ Renderer syncs badges, collapse state, and ordering
 ```
 
 ### Additional client systems
