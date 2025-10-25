@@ -117,9 +117,7 @@ await page.getByRole('button', { name: 'Scrape TLDR Newsletters' }).click();
 
 - Actionable fix:
   - Adopt a neutral, future-proof key pattern that incorporates `source_id`: `newsletter:scrapes:${source_id}:${date}`.
-  - Implement a one-time read-through migration:
-    - On read, check old (`tldr:scrapes:${date}`) and new (`newsletter:scrapes:${source_id}:${date}`) keys; if only the old exists, write to the new key.
-    - On write, always use the new key.
+  - Migrating from the old keys is uninteresting and out of scope.
   - Update tests/fixtures and any debug tooling to the new prefix and key shape.
 
 ---
