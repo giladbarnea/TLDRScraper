@@ -1,0 +1,155 @@
+[
+  {
+    "type": "image",
+    "url": "https://ghuntley.com/content/images/size/w1200/2025/06/3ea367ed-cae3-454a-840f-134531dea1fd.jpg",
+    "alt": "Ralph Wiggum as a \"software engineer\"",
+    "placeholder": "[IMAGE: Ralph Wiggum as a \"software engineer\"]",
+    "status": "downloaded",
+    "local_path": "/tmp/ralph_media/media_02.jpg",
+    "filename": "media_02.jpg",
+    "content_type": "image/jpeg",
+    "size_kb": 121.4
+  },
+  {
+    "type": "tweet",
+    "url": "https://twitter.com/GeoffreyHuntley/status/1944377299425706060?ref_src=twsrc%5Etfw&ref=ghuntley.com",
+    "placeholder": "[TWEET: https://twitter.com/GeoffreyHuntley/status/1944377299425706060?ref_src=twsrc%5Etfw&ref=ghuntley.com]",
+    "status": "skipped",
+    "reason": "tweet_embed"
+  },
+  {
+    "type": "image",
+    "url": "https://ghuntley.com/content/images/thumbnail/A-vibrant-retro-style-traditional-tattoo-art-print-featuring-a-guitar--rendered-with-high-contrast-and-dramatic-lighting.-The-complex-ornamental-design-is-set-against-a-stark-white-background--showcasing-intense-color-saturation-and-a-symbo-3.jpg",
+    "alt": "",
+    "placeholder": "[IMAGE: Illustration]",
+    "status": "downloaded",
+    "local_path": "/tmp/ralph_media/media_05.jpg",
+    "filename": "media_05.jpg",
+    "content_type": "image/jpeg",
+    "size_kb": 83.8
+  },
+  {
+    "type": "image",
+    "url": "https://ghuntley.com/content/images/thumbnail/download--2--3.jpeg",
+    "alt": "",
+    "placeholder": "[IMAGE: Illustration]",
+    "status": "downloaded",
+    "local_path": "/tmp/ralph_media/media_07.jpg",
+    "filename": "media_07.jpg",
+    "content_type": "image/jpeg",
+    "size_kb": 101.5
+  },
+  {
+    "type": "image",
+    "url": "https://ghuntley.com/content/images/2025/07/image-1.png",
+    "alt": "",
+    "placeholder": "[IMAGE: Illustration]",
+    "status": "downloaded",
+    "local_path": "/tmp/ralph_media/media_08.png",
+    "filename": "media_08.png",
+    "content_type": "image/png",
+    "size_kb": 260.8
+  },
+  {
+    "type": "tweet",
+    "url": "https://twitter.com/AmpCode?ref_src=twsrc%5Etfw&ref=ghuntley.com",
+    "placeholder": "[TWEET: https://twitter.com/AmpCode?ref_src=twsrc%5Etfw&ref=ghuntley.com]",
+    "status": "skipped",
+    "reason": "tweet_embed"
+  },
+  {
+    "type": "tweet",
+    "url": "https://twitter.com/GeoffreyHuntley/status/1943528204393955634?ref_src=twsrc%5Etfw&ref=ghuntley.com",
+    "placeholder": "[TWEET: https://twitter.com/GeoffreyHuntley/status/1943528204393955634?ref_src=twsrc%5Etfw&ref=ghuntley.com]",
+    "status": "skipped",
+    "reason": "tweet_embed"
+  },
+  {
+    "type": "image",
+    "url": "https://ghuntley.com/content/images/size/w960/2025/09/universal_upscale_0_dc6aa202-ccbc-4c9d-a60e-7bf677aeb143_0.jpg",
+    "alt": "i ran Claude in a loop for three months, and it created a genz programming language called cursed",
+    "placeholder": "[IMAGE: i ran Claude in a loop for three months, and it created a genz programming language called cursed]",
+    "status": "downloaded",
+    "local_path": "/tmp/ralph_media/media_11.jpg",
+    "filename": "media_11.jpg",
+    "content_type": "image/jpeg",
+    "size_kb": 110.3
+  },
+  {
+    "type": "image",
+    "url": "https://ghuntley.com/content/images/size/w150/2025/08/A-black-and-white--low-angle-digital-illustration-in-a-symbolic-traditional-tattoo-art-style.--A-bald--light-skinned-man-with-a-bushy-beard--prominent-eyebrows--and-a-friendly-expression-wears-denim-overalls--2--1.jpg",
+    "alt": "Geoffrey Huntley",
+    "placeholder": "[IMAGE: Geoffrey Huntley]",
+    "status": "downloaded",
+    "local_path": "/tmp/ralph_media/media_12.jpg",
+    "filename": "media_12.jpg",
+    "content_type": "image/jpeg",
+    "size_kb": 5.3
+  },
+  {
+    "type": "image",
+    "url": "https://ghuntley.com/content/images/2025/09/warm-golden-hour-light--hand-drawn-sketch-of-AI-agents-generating-secure-code-in-a-roses-tattoo-print-style--in-Color-sketchnote-style--soft-light-just-after-sunrise-or-before-sunset.jpg",
+    "alt": "anti-patterns and patterns for achieving secure generation of code via AI",
+    "placeholder": "[IMAGE: anti-patterns and patterns for achieving secure generation of code via AI]",
+    "status": "downloaded",
+    "local_path": "/tmp/ralph_media/media_13.jpg",
+    "filename": "media_13.jpg",
+    "content_type": "image/jpeg",
+    "size_kb": 112.9
+  },
+  {
+    "type": "image",
+    "url": "https://ghuntley.com/content/images/size/w150/2025/08/A-black-and-white--low-angle-digital-illustration-in-a-symbolic-traditional-tattoo-art-style.--A-bald--light-skinned-man-with-a-bushy-beard--prominent-eyebrows--and-a-friendly-expression-wears-denim-overalls--2--1.jpg",
+    "alt": "Geoffrey Huntley",
+    "placeholder": "[IMAGE: Geoffrey Huntley]",
+    "status": "downloaded",
+    "local_path": "/tmp/ralph_media/media_14.jpg",
+    "filename": "media_14.jpg",
+    "content_type": "image/jpeg",
+    "size_kb": 5.3
+  },
+  {
+    "type": "image",
+    "url": "https://ghuntley.com/content/images/2025/07/how-to-build-an-agent.001.jpg",
+    "alt": "how to build a coding agent: free workshop",
+    "placeholder": "[IMAGE: how to build a coding agent: free workshop]",
+    "status": "downloaded",
+    "local_path": "/tmp/ralph_media/media_15.jpg",
+    "filename": "media_15.jpg",
+    "content_type": "image/jpeg",
+    "size_kb": 190.1
+  },
+  {
+    "type": "image",
+    "url": "https://ghuntley.com/content/images/size/w150/2025/08/A-black-and-white--low-angle-digital-illustration-in-a-symbolic-traditional-tattoo-art-style.--A-bald--light-skinned-man-with-a-bushy-beard--prominent-eyebrows--and-a-friendly-expression-wears-denim-overalls--2--1.jpg",
+    "alt": "Geoffrey Huntley",
+    "placeholder": "[IMAGE: Geoffrey Huntley]",
+    "status": "downloaded",
+    "local_path": "/tmp/ralph_media/media_16.jpg",
+    "filename": "media_16.jpg",
+    "content_type": "image/jpeg",
+    "size_kb": 5.3
+  },
+  {
+    "type": "image",
+    "url": "https://ghuntley.com/content/images/2025/08/Depict-AI-robots-dancing-on-a-rose-patterned-dance-floor-in-a-traditional-tattoo-art-style.-The-print-uses-a-vibrant-color-scheme--soft-lighting--and-diffused-shadows--creating-a-calming-atmosphere.-Complex-orna.jpg",
+    "alt": "too many model context protocol servers and LLM allocations on the dance floor",
+    "placeholder": "[IMAGE: too many model context protocol servers and LLM allocations on the dance floor]",
+    "status": "downloaded",
+    "local_path": "/tmp/ralph_media/media_17.jpg",
+    "filename": "media_17.jpg",
+    "content_type": "image/jpeg",
+    "size_kb": 308.7
+  },
+  {
+    "type": "image",
+    "url": "https://ghuntley.com/content/images/size/w150/2025/08/A-black-and-white--low-angle-digital-illustration-in-a-symbolic-traditional-tattoo-art-style.--A-bald--light-skinned-man-with-a-bushy-beard--prominent-eyebrows--and-a-friendly-expression-wears-denim-overalls--2--1.jpg",
+    "alt": "Geoffrey Huntley",
+    "placeholder": "[IMAGE: Geoffrey Huntley]",
+    "status": "downloaded",
+    "local_path": "/tmp/ralph_media/media_18.jpg",
+    "filename": "media_18.jpg",
+    "content_type": "image/jpeg",
+    "size_kb": 5.3
+  }
+]
