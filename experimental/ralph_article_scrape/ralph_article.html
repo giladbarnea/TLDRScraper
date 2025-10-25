@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ralph Wiggum as a &quot;software engineer&quot;</title>
+    <link rel="stylesheet" href="https://ghuntley.com/assets/built/screen.css?v=adf7ba15d4">
+
+    <link rel="icon" href="https://ghuntley.com/content/images/size/w256h256/format/jpeg/2025/06/7V0ak3am_400x400-1.jpg" type="image/jpeg">
+    <link rel="canonical" href="https://ghuntley.com/ralph/">
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+    <meta property="og:site_name" content="Geoffrey Huntley">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Ralph Wiggum as a &quot;software engineer&quot;">
+    <meta property="og:description" content="😎Here&#x27;s a cool little field report from a Y Combinator hackathon event where they put Ralph Wiggum to the test.
+
+&quot;We Put a Coding Agent in a While Loop and It Shipped 6 Repos Overnight&quot;
+
+https://github.com/repomirrorhq/repomirror/blob/main/repomirror.md
+
+If you&#x27;ve seen my socials lately,">
+    <meta property="og:url" content="https://ghuntley.com/ralph/">
+    <meta property="og:image" content="https://ghuntley.com/content/images/size/w1200/2025/06/3ea367ed-cae3-454a-840f-134531dea1fd.jpg">
+    <meta property="article:published_time" content="2025-07-14T04:22:55.000Z">
+    <meta property="article:modified_time" content="2025-08-30T21:05:11.000Z">
+    <meta property="article:tag" content="AI">
+    <meta property="article:tag" content="Software Development">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Ralph Wiggum as a &quot;software engineer&quot;">
+    <meta name="twitter:description" content="😎Here&#x27;s a cool little field report from a Y Combinator hackathon event where they put Ralph Wiggum to the test.
+
+&quot;We Put a Coding Agent in a While Loop and It Shipped 6 Repos Overnight&quot;
+
+https://github.com/repomirrorhq/repomirror/blob/main/repomirror.md
+
+If you&#x27;ve seen my socials lately,">
+    <meta name="twitter:url" content="https://ghuntley.com/ralph/">
+    <meta name="twitter:image" content="https://ghuntley.com/content/images/size/w1200/2025/06/3ea367ed-cae3-454a-840f-134531dea1fd.jpg">
+    <meta name="twitter:label1" content="Written by">
+    <meta name="twitter:data1" content="Geoffrey Huntley">
+    <meta name="twitter:label2" content="Filed under">
+    <meta name="twitter:data2" content="AI, Software Development">
+    <meta name="twitter:site" content="@geoffreyhuntley">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="670">
+    
+    <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "publisher": {
+        "@type": "Organization",
+        "name": "Geoffrey Huntley",
+        "url": "https://ghuntley.com/",
+        "logo": {
+            "@type": "ImageObject",
+            "url": "https://ghuntley.com/content/images/size/w256h256/format/jpeg/2025/06/7V0ak3am_400x400-1.jpg",
+            "width": 60,
+            "height": 60
+        }
+    },
+    "author": {
+        "@type": "Person",
+        "name": "Geoffrey Huntley",
+        "image": {
+            "@type": "ImageObject",
+            "url": "https://ghuntley.com/content/images/size/w1200/2025/08/A-black-and-white--low-angle-digital-illustration-in-a-symbolic-traditional-tattoo-art-style.--A-bald--light-skinned-man-with-a-bushy-beard--prominent-eyebrows--and-a-friendly-expression-wears-denim-overalls--2--1.jpg",
+            "width": 1200,
+            "height": 1200
+        },
+        "url": "https://ghuntley.com/author/ghuntley/",
+        "sameAs": []
+    },
+    "headline": "Ralph Wiggum as a &quot;software engineer&quot;",
+    "url": "https://ghuntley.com/ralph/",
+    "datePublished": "2025-07-14T04:22:55.000Z",
+    "dateModified": "2025-08-30T21:05:11.000Z",
+    "image": {
+        "@type": "ImageObject",
+        "url": "https://ghuntley.com/content/images/size/w1200/2025/06/3ea367ed-cae3-454a-840f-134531dea1fd.jpg",
+        "width": 1200,
+        "height": 670
+    },
+    "keywords": "AI, Software Development",
+    "description": "😎Here&#x27;s a cool little field report from a Y Combinator hackathon event where they put Ralph Wiggum to the test.\n\n&quot;We Put a Coding Agent in a While Loop and It Shipped 6 Repos Overnight&quot;\n\nhttps://github.com/repomirrorhq/repomirror/blob/main/repomirror.md\n\nIf you&#x27;ve seen my socials lately, you might have seen me talking about Ralph and wondering what Ralph is. Ralph is a technique. In its purest form, Ralph is a Bash loop.\n\nwhile :; do cat PROMPT.md | npx --yes @sourcegraph/amp ; done\n\nRalph can ",
+    "mainEntityOfPage": "https://ghuntley.com/ralph/"
+}
+    </script>
+
+    <meta name="generator" content="Ghost 6.5">
+    <link rel="alternate" type="application/rss+xml" title="Geoffrey Huntley" href="https://ghuntley.com/rss/">
+    <script defer src="https://cdn.jsdelivr.net/ghost/portal@~2.56/umd/portal.min.js" data-i18n="true" data-ghost="https://ghuntley.com/" data-key="1d8547be704545694fd5aa19e8" data-api="https://ghuntley-com.ghost.io/ghost/api/content/" data-locale="en" crossorigin="anonymous"></script><style id="gh-members-styles">.gh-post-upgrade-cta-content,
+.gh-post-upgrade-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    text-align: center;
+    width: 100%;
+    color: #ffffff;
+    font-size: 16px;
+}
+
+.gh-post-upgrade-cta-content {
+    border-radius: 8px;
+    padding: 40px 4vw;
+}
+
+.gh-post-upgrade-cta h2 {
+    color: #ffffff;
+    font-size: 28px;
+    letter-spacing: -0.2px;
+    margin: 0;
+    padding: 0;
+}
+
+.gh-post-upgrade-cta p {
+    margin: 20px 0 0;
+    padding: 0;
+}
+
+.gh-post-upgrade-cta small {
+    font-size: 16px;
+    letter-spacing: -0.2px;
+}
+
+.gh-post-upgrade-cta a {
+    color: #ffffff;
+    cursor: pointer;
+    font-weight: 500;
+    box-shadow: none;
+    text-decoration: underline;
+}
+
+.gh-post-upgrade-cta a:hover {
+    color: #ffffff;
+    opacity: 0.8;
+    box-shadow: none;
+    text-decoration: underline;
+}
+
+.gh-post-upgrade-cta a.gh-btn {
+    display: block;
+    background: #ffffff;
+    text-decoration: none;
+    margin: 28px 0 0;
+    padding: 8px 18px;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.gh-post-upgrade-cta a.gh-btn:hover {
+    opacity: 0.92;
+}</style>
+    <script defer src="https://cdn.jsdelivr.net/ghost/sodo-search@~1.8/umd/sodo-search.min.js" data-key="1d8547be704545694fd5aa19e8" data-styles="https://cdn.jsdelivr.net/ghost/sodo-search@~1.8/umd/main.css" data-sodo-search="https://ghuntley-com.ghost.io/" data-locale="en" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/ghost/announcement-bar@~1.1/umd/announcement-bar.min.js" data-announcement-bar="https://ghuntley.com/" data-api-url="https://ghuntley.com/members/api/announcement/" crossorigin="anonymous"></script>
+    <link href="https://ghuntley.com/webmentions/receive/" rel="webmention">
+    <script defer src="/public/cards.min.js?v=adf7ba15d4"></script>
+    <link rel="stylesheet" type="text/css" href="/public/cards.min.css?v=adf7ba15d4">
+    <script defer src="/public/member-attribution.min.js?v=adf7ba15d4"></script>
+    <script defer src="/public/ghost-stats.min.js?v=adf7ba15d4" data-stringify-payload="false" data-datasource="analytics_events" data-storage="localStorage" data-host="https://ghuntley.com/.ghost/analytics/api/v1/page_hit"  tb_site_uuid="06e5d12b-0328-469d-a0d0-3a0f0ba34c46" tb_post_uuid="eca90b1e-74f1-4d97-94b4-0c9e6908babd" tb_post_type="post" tb_member_uuid="undefined" tb_member_status="undefined"></script><style>:root {--ghost-accent-color: #955189;}</style>
+    <style>
+  :root {
+    --hero-image: url('/assets/light-hero.jpg');
+    --logo-image: url('/assets/light-logo.png');
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-user-color-scheme]) {
+      --hero-image: url('/assets/dark-hero.jpg');
+    }
+  }
+
+  [data-user-color-scheme='dark'] {
+    --hero-image: url('/assets/dark-hero.jpg');
+  }
+
+  .c-hero {
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-image: var(--hero-image);
+  }
+  
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-user-color-scheme]) {
+      --logo-image: url('/assets/dark-logo.png');
+    }
+  }
+
+  [data-user-color-scheme='dark'] {
+    --logo-image: url('/assets/dark-logo.png');
+  }
+    
+  .c-header .is-membership { display: none; }
+
+  .c-post-card__visibility { display: none; }
+    
+  .c-hero__content {  text-shadow: 0 0 8px white; }
+
+  /* Pre tag styles */
+.c-content pre {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem;
+  margin: 0;
+  background-color: var(--bg-gray);
+  border-radius: 0.5rem;
+  font-family: monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: pre;
+  word-wrap: normal;
+  word-break: normal;
+}
+
+/* Optional: Style code blocks inside pre tags */
+.c-content pre code {
+  display: block;
+  color: var(--color-text);
+  padding: 0;
+  background: none;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Optional: Style inline code differently from block code */
+.c-content :not(pre) > code {
+  padding: 0.2em 0.4em;
+  font-size: 85%;
+  background-color: var(--bg-gray);
+  border-radius: 3px;
+}
+
+/* Optional: Add a subtle border */
+.c-content pre {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Optional: Style scrollbar for webkit browsers */
+.c-content pre::-webkit-scrollbar {
+  height: 8px;
+  background-color: transparent;
+}
+
+.c-content pre::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+/* Optional: Add hover effect */
+.c-content pre:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+</style>
+
+<script>
+  var search_api_key = 'afc6d2943f5516cc77e956576b';
+</script>
+
+<script data-collect-dnt="true" async src="https://api.ghuntley.com/latest.js"></script>
+<noscript><img src="https://api.ghuntley.com/noscript.gif?collect-dnt=true" alt="" referrerpolicy="no-referrer-when-downgrade"/></noscript>
+</head>
+
+<body class="post-template tag-ai tag-software-development is-head-stacked">
+<div class="gh-site">
+
+    <header id="gh-head" class="gh-head gh-outer">
+        <div class="gh-head-inner gh-inner">
+            <div class="gh-head-brand">
+                <div class="gh-head-brand-wrapper">
+                    <a class="gh-head-logo" href="https://ghuntley.com">
+                            Geoffrey Huntley
+                    </a>
+                </div>
+                <button class="gh-search gh-icon-btn" aria-label="Search this site" data-ghost-search><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></button>
+                <button class="gh-burger" aria-label="Toggle menu"></button>
+            </div>
+
+            <nav class="gh-head-menu">
+                <ul class="nav">
+    <li class="nav-home"><a href="https://ghuntley.com/">Home</a></li>
+    <li class="nav-lately"><a href="https://ghuntley.com/now/">Lately</a></li>
+    <li class="nav-media"><a href="https://ghuntley.com/media/">Media</a></li>
+    <li class="nav-workshops"><a href="https://ghuntley.com/workshops/">Workshops</a></li>
+    <li class="nav-speaking"><a href="https://ghuntley.com/speaking/">Speaking</a></li>
+    <li class="nav-disclosures"><a href="https://ghuntley.com/disclosures/">Disclosures</a></li>
+    <li class="nav-contact"><a href="https://ghuntley.com/contact/">Contact</a></li>
+</ul>
+
+            </nav>
+
+            <div class="gh-head-actions">
+                    <button class="gh-search gh-icon-btn" aria-label="Search this site" data-ghost-search><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></button>
+                    <div class="gh-head-members">
+                                <a class="gh-head-link" href="#/portal/signin" data-portal="signin">Sign in</a>
+                                <a class="gh-head-btn gh-btn gh-primary-btn" href="#/portal/signup" data-portal="signup">Subscribe</a>
+                    </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="site-content">
+        
+<main class="site-main">
+
+
+    <article class="gh-article post tag-ai tag-software-development featured">
+
+        <header class="gh-article-header gh-canvas">
+            <span class="gh-article-meta">
+                By <a href="/author/ghuntley/">Geoffrey Huntley</a>
+                    in
+                    <a class="gh-article-tag" href="https://ghuntley.com/tag/ai/">AI</a>
+                —
+                <time datetime="2025-07-14">14 Jul 2025</time>
+            </span>
+
+            <h1 class="gh-article-title">Ralph Wiggum as a &quot;software engineer&quot;</h1>
+
+
+                <figure class="gh-article-image kg-width-wide">
+        <img
+            srcset="/content/images/size/w400/2025/06/3ea367ed-cae3-454a-840f-134531dea1fd.jpg 400w,
+                    /content/images/size/w720/2025/06/3ea367ed-cae3-454a-840f-134531dea1fd.jpg 720w,
+                    /content/images/size/w960/2025/06/3ea367ed-cae3-454a-840f-134531dea1fd.jpg 960w,
+                    /content/images/size/w1200/2025/06/3ea367ed-cae3-454a-840f-134531dea1fd.jpg 1200w,
+                    /content/images/size/w2000/2025/06/3ea367ed-cae3-454a-840f-134531dea1fd.jpg 2000w"
+            sizes="(max-width: 1200px) 100vw, 1200px"
+            src="/content/images/size/w1200/2025/06/3ea367ed-cae3-454a-840f-134531dea1fd.jpg"
+            alt="Ralph Wiggum as a &quot;software engineer&quot;"
+        >
+    </figure>
+        </header>
+
+        <div class="gh-content gh-canvas">
+            <div class="kg-card kg-callout-card kg-callout-card-blue"><div class="kg-callout-emoji">😎</div><div class="kg-callout-text">Here's a cool little field report from a Y Combinator hackathon event where they put Ralph Wiggum to the test.<br><br><b><strong style="white-space: pre-wrap;">"We Put a Coding Agent in a While Loop and It Shipped 6 Repos Overnight"</strong></b><br><br><a href="https://github.com/repomirrorhq/repomirror/blob/main/repomirror.md?ref=ghuntley.com">https://github.com/repomirrorhq/repomirror/blob/main/repomirror.md</a></div></div><p>If you've seen my socials lately, you might have seen me talking about Ralph and wondering what Ralph is. Ralph is a technique. In its purest form, Ralph is a Bash loop.</p><pre><code>while :; do cat PROMPT.md | npx --yes @sourcegraph/amp ; done</code></pre><p>Ralph can replace the majority of outsourcing at most companies for greenfield projects. It has defects, but these are identifiable and resolvable through various styles of prompts. </p><blockquote><strong>That's the beauty of Ralph - the technique is deterministically bad in an undeterministic world. </strong></blockquote><p>Ralph can be done with any tool that does not cap tool calls and usage. </p><p>Ralph is currently building a brand new programming language. We are on the final leg before a brand new production-grade esoteric programming language is released.  What's kind of wild to me is that Ralph has been able to build this language and is also able to program in this language without that language being in the LLM's training data set.</p><figure class="kg-card kg-embed-card"><blockquote class="twitter-tweet"><p lang="en" dir="ltr">Amp creating a new programming language AFK <a href="https://t.co/KmmOtHIGK4?ref=ghuntley.com">https://t.co/KmmOtHIGK4</a></p>— geoff (@GeoffreyHuntley) <a href="https://twitter.com/GeoffreyHuntley/status/1944377299425706060?ref_src=twsrc%5Etfw&ref=ghuntley.com">July 13, 2025</a></blockquote>
+<script async="" src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></figure><p>Building software with Ralph requires a great deal of faith and a belief in eventual consistency. Ralph will test you. Every time Ralph has taken a wrong direction in making CURSED, I haven't blamed the tools; instead, I've looked inside. Each time Ralph does something bad, Ralph gets tuned - like a guitar.</p><figure class="kg-card kg-bookmark-card"><a class="kg-bookmark-container" href="https://ghuntley.com/play"><div class="kg-bookmark-content"><div class="kg-bookmark-title">deliberate intentional practice</div><div class="kg-bookmark-description">Something I’ve been wondering about for a really long time is, essentially, why do people say AI doesn’t work for them? What do they mean when they say that? From which identity are they coming from? Are they coming from the perspective of an engineer with a job title and</div><div class="kg-bookmark-metadata"><img class="kg-bookmark-icon" src="https://ghuntley.com/content/images/icon/7V0ak3am_400x400-1-31.jpg" alt=""><span class="kg-bookmark-author">Geoffrey Huntley</span><span class="kg-bookmark-publisher">Geoffrey Huntley</span></div></div><div class="kg-bookmark-thumbnail"><img src="https://ghuntley.com/content/images/thumbnail/A-vibrant-retro-style-traditional-tattoo-art-print-featuring-a-guitar--rendered-with-high-contrast-and-dramatic-lighting.-The-complex-ornamental-design-is-set-against-a-stark-white-background--showcasing-intense-color-saturation-and-a-symbo-3.jpg" alt="" onerror="this.style.display = 'none'"></div></a></figure><figure class="kg-card kg-bookmark-card"><a class="kg-bookmark-container" href="https://ghuntley.com/mirrors"><div class="kg-bookmark-content"><div class="kg-bookmark-title">LLMs are mirrors of operator skill</div><div class="kg-bookmark-description">This is a follow-up from my previous blog post: “deliberate intentional practice”. I didn’t want to get into the distinction between skilled and unskilled because people take offence to it, but AI is a matter of skill. Someone can be highly experienced as a software engineer in 2024, but that</div><div class="kg-bookmark-metadata"><img class="kg-bookmark-icon" src="https://ghuntley.com/content/images/icon/7V0ak3am_400x400-1-30.jpg" alt=""><span class="kg-bookmark-author">Geoffrey Huntley</span><span class="kg-bookmark-publisher">Geoffrey Huntley</span></div></div><div class="kg-bookmark-thumbnail"><img src="https://ghuntley.com/content/images/thumbnail/download--2--3.jpeg" alt="" onerror="this.style.display = 'none'"></div></a></figure><p>It begins with no playground, and Ralph is given instructions to construct one. </p><p>Ralph is very good at making playgrounds, but he comes home bruised because he fell off the slide, so one then tunes Ralph by adding a sign next to the slide saying “SLIDE DOWN, DON’T JUMP, LOOK AROUND,” and Ralph is more likely to look and see the sign.</p><figure class="kg-card kg-image-card"><img src="https://ghuntley.com/content/images/2025/07/image-1.png" class="kg-image" alt="" loading="lazy" width="640" height="362" srcset="https://ghuntley.com/content/images/size/w600/2025/07/image-1.png 600w, https://ghuntley.com/content/images/2025/07/image-1.png 640w"></figure><p>Eventually all Ralph thinks about is the signs so that’s when you get a new Ralph that doesn't feel defective like Ralph, at all.</p><p>When I was in SFO, I taught a few smart people about Ralph. One incredibly talented engineer listened and used Ralph on their next contract, walking away with the wildest ROI. These days, all they think about is Ralph.</p><figure class="kg-card kg-embed-card"><blockquote class="twitter-tweet"><p lang="en" dir="ltr">From my iMessage <br><br>(shared with permission)<br><br>Cost of a $50k USD contract, delivered, MVP, tested + reviewed with <a href="https://twitter.com/AmpCode?ref_src=twsrc%5Etfw&ref=ghuntley.com">@ampcode</a>.<br><br>$297 USD. <a href="https://t.co/0JgT8Q19bV?ref=ghuntley.com">pic.twitter.com/0JgT8Q19bV</a></p>— geoff (@GeoffreyHuntley) <a href="https://twitter.com/GeoffreyHuntley/status/1943528204393955634?ref_src=twsrc%5Etfw&ref=ghuntley.com">July 11, 2025</a></blockquote>
+<script async="" src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></figure><h2 id="whats-in-the-promptmd-can-i-have-it">what's in the prompt.md? can I have it?</h2>
+<aside class="gh-post-upgrade-cta">
+    <div class="gh-post-upgrade-cta-content" style="background-color: #955189">
+            <h2>This post is for subscribers only</h2>
+            <a class="gh-btn" data-portal="signup" href="#/portal/signup" style="color:#955189">Subscribe now</a>
+            <p><small>Already have an account? <a data-portal="signin" href="#/portal/signin">Sign in</a></small></p>
+    </div>
+</aside>
+
+        </div>
+
+    </article>
+
+            <br/>
+        <section class="newsletter-signup gh-canvas">
+            <div class="newsletter-signup-inner">
+                <h3 class="newsletter-signup-title">p.p.s don't miss out on free lifetime access</h3>
+                <p class="newsletter-signup-description">Join thousands getting premium insights delivered weekly. <strong>Subscribe now and you'll never pay</strong> - even when I start charging new subscribers. This free-for-life offer won't last forever.</p>
+                <br/>
+                <div class="newsletter-signup-actions">
+                    <a class="newsletter-signup-btn gh-btn gh-primary-btn" href="#/portal/signup" data-portal="signup">
+                        Subscribe to Newsletter
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    <div class="gh-canvas">
+    <div class="navigation">
+            <a class="navigation-item navigation-previous" href="/cars/">
+                <span class="navigation-label">Previous</span>
+                <h4 class="navigation-title">Claude Sonnet is a small-brained mechanical squirrel of &lt;T&gt;</h4>
+            </a>
+            <a class="navigation-item navigation-next" href="/amazon-kiro-source-code/">
+                <span class="navigation-label">Next</span>
+                <h4 class="navigation-title">source code analysis of Amazon Kiro</h4>
+            </a>
+    </div>
+</div>
+
+
+
+        <div class="related-wrapper gh-outer">
+        <section class="related-posts gh-inner">
+            <h3 class="related-title">
+                <span class="text">You might also like...</span>
+            </h3>
+            <div class="post-feed">
+                    <article class="post tag-vibe-coding tag-ai u-shadow">
+<a class="post-link" href="/cursed/">
+        <figure class="post-media">
+            <div class="u-placeholder same-height rectangle">
+                <img
+                    class="post-image u-object-fit"
+                    srcset="/content/images/size/w400/2025/09/universal_upscale_0_dc6aa202-ccbc-4c9d-a60e-7bf677aeb143_0.jpg 400w,
+                            /content/images/size/w720/2025/09/universal_upscale_0_dc6aa202-ccbc-4c9d-a60e-7bf677aeb143_0.jpg 750w,
+                            /content/images/size/w960/2025/09/universal_upscale_0_dc6aa202-ccbc-4c9d-a60e-7bf677aeb143_0.jpg 960w,
+                            /content/images/size/w1200/2025/09/universal_upscale_0_dc6aa202-ccbc-4c9d-a60e-7bf677aeb143_0.jpg 1140w,
+                            /content/images/size/w2000/2025/09/universal_upscale_0_dc6aa202-ccbc-4c9d-a60e-7bf677aeb143_0.jpg 1920w"
+                    sizes="600px"
+                    src="/content/images/size/w960/2025/09/universal_upscale_0_dc6aa202-ccbc-4c9d-a60e-7bf677aeb143_0.jpg"
+                    alt="i ran Claude in a loop for three months, and it created a genz programming language called cursed"
+                    loading="lazy"
+                >
+            </div>
+        </figure>
+
+    <div class="post-wrapper">
+        <header class="post-header">
+                <span class="post-tag">Vibe Coding</span>
+
+            <h2 class="post-title">
+                i ran Claude in a loop for three months, and it created a genz programming language called cursed
+            </h2>
+        </header>
+
+            <div class="post-excerpt">
+                It&#39;s a strange feeling knowing that you can create anything,
+            </div>
+    </div>
+
+    <footer class="post-footer">
+        <span class="post-more">Read More</span>
+
+        <div class="post-author">
+                    <span class="post-author-link">
+                        <img class="post-author-image" src="/content/images/size/w150/2025/08/A-black-and-white--low-angle-digital-illustration-in-a-symbolic-traditional-tattoo-art-style.--A-bald--light-skinned-man-with-a-bushy-beard--prominent-eyebrows--and-a-friendly-expression-wears-denim-overalls--2--1.jpg" alt="Geoffrey Huntley" loading="lazy">
+                    </span>
+        </div>
+    </footer>
+</a>
+</article>                    <article class="post tag-ai featured u-shadow">
+<a class="post-link" href="/secure-codegen/">
+            <img
+                class="post-image u-object-fit"
+                src="/content/images/2025/09/warm-golden-hour-light--hand-drawn-sketch-of-AI-agents-generating-secure-code-in-a-roses-tattoo-print-style--in-Color-sketchnote-style--soft-light-just-after-sunrise-or-before-sunset.jpg"
+                alt="anti-patterns and patterns for achieving secure generation of code via AI"
+                loading="lazy"
+            >
+
+    <div class="post-wrapper">
+        <header class="post-header">
+                <span class="post-tag">AI</span>
+
+            <h2 class="post-title">
+                anti-patterns and patterns for achieving secure generation of code via AI
+            </h2>
+        </header>
+
+            <div class="post-excerpt">
+                I just finished up a phone call with a &quot;stealth startup&
+            </div>
+    </div>
+
+    <footer class="post-footer">
+        <span class="post-more">Read More</span>
+
+        <div class="post-author">
+                    <span class="post-author-link">
+                        <img class="post-author-image" src="/content/images/size/w150/2025/08/A-black-and-white--low-angle-digital-illustration-in-a-symbolic-traditional-tattoo-art-style.--A-bald--light-skinned-man-with-a-bushy-beard--prominent-eyebrows--and-a-friendly-expression-wears-denim-overalls--2--1.jpg" alt="Geoffrey Huntley" loading="lazy">
+                    </span>
+        </div>
+    </footer>
+</a>
+</article>                    <article class="post tag-ai tag-mentoring tag-workshop featured u-shadow">
+<a class="post-link" href="/agent/">
+            <img
+                class="post-image u-object-fit"
+                src="/content/images/2025/07/how-to-build-an-agent.001.jpg"
+                alt="how to build a coding agent: free workshop"
+                loading="lazy"
+            >
+
+    <div class="post-wrapper">
+        <header class="post-header">
+                <span class="post-tag">AI</span>
+
+            <h2 class="post-title">
+                how to build a coding agent: free workshop
+            </h2>
+        </header>
+
+            <div class="post-excerpt">
+                😎The following was developed last month and has already been delivered at
+            </div>
+    </div>
+
+    <footer class="post-footer">
+        <span class="post-more">Read More</span>
+
+        <div class="post-author">
+                    <span class="post-author-link">
+                        <img class="post-author-image" src="/content/images/size/w150/2025/08/A-black-and-white--low-angle-digital-illustration-in-a-symbolic-traditional-tattoo-art-style.--A-bald--light-skinned-man-with-a-bushy-beard--prominent-eyebrows--and-a-friendly-expression-wears-denim-overalls--2--1.jpg" alt="Geoffrey Huntley" loading="lazy">
+                    </span>
+        </div>
+    </footer>
+</a>
+</article>                    <article class="post tag-ai tag-software-development featured u-shadow">
+<a class="post-link" href="/allocations/">
+            <img
+                class="post-image u-object-fit"
+                src="/content/images/2025/08/Depict-AI-robots-dancing-on-a-rose-patterned-dance-floor-in-a-traditional-tattoo-art-style.-The-print-uses-a-vibrant-color-scheme--soft-lighting--and-diffused-shadows--creating-a-calming-atmosphere.-Complex-orna.jpg"
+                alt="too many model context protocol servers and LLM allocations on the dance floor"
+                loading="lazy"
+            >
+
+    <div class="post-wrapper">
+        <header class="post-header">
+                <span class="post-tag">AI</span>
+
+            <h2 class="post-title">
+                too many model context protocol servers and LLM allocations on the dance floor
+            </h2>
+        </header>
+
+            <div class="post-excerpt">
+                This blog post intends to be a definitive guide to context engineering
+            </div>
+    </div>
+
+    <footer class="post-footer">
+        <span class="post-more">Read More</span>
+
+        <div class="post-author">
+                    <span class="post-author-link">
+                        <img class="post-author-image" src="/content/images/size/w150/2025/08/A-black-and-white--low-angle-digital-illustration-in-a-symbolic-traditional-tattoo-art-style.--A-bald--light-skinned-man-with-a-bushy-beard--prominent-eyebrows--and-a-friendly-expression-wears-denim-overalls--2--1.jpg" alt="Geoffrey Huntley" loading="lazy">
+                    </span>
+        </div>
+    </footer>
+</a>
+</article>            </div>
+        </section>
+</div>
+</main>
+    </div>
+
+    <footer class="gh-foot no-menu gh-outer">
+        <div class="gh-foot-inner gh-inner">
+            <div class="gh-copyright">
+                Geoffrey Huntley © 2025
+            </div>
+            <div class="gh-powered-by">
+                <a href="https://ghost.org/" target="_blank" rel="noopener">Powered by Ghost</a>
+            </div>
+        </div>
+    </footer>
+
+</div>
+
+    <div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="pswp__bg"></div>
+
+    <div class="pswp__scroll-wrap">
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <div class="pswp__ui pswp__ui--hidden">
+            <div class="pswp__top-bar">
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)"></button>
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://ghuntley.com/assets/built/main.min.js?v=adf7ba15d4"></script>
+
+<script>
+    window.ga = function () { ga.q.push(arguments) }; ga.q = []; ga.l = +new Date;
+    ga('create', 'UA-22210999-1', 'auto'); ga('set', 'anonymizeIp', false); ga('set', 'transport', 'beacon'); ga('send', 'pageview')
+</script>
+
+<script src="https://www.google-analytics.com/analytics.js" async></script>
+
+</body>
+</html>
