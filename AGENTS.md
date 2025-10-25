@@ -2,17 +2,17 @@
 
 ### Project overview (short)
 
-- Purpose: Daily TLDR newsletter scraping/curation with a fast, distributed cache.
-- Stack: Bash + curl, Python for scripting, Vercel Blob Store as the cache store.
-- Vercel: Project uses Blob Store for all caching (newsletters, URL content, LLM summaries, scrape results). Reads via Blob Store base URL, writes via Python scripts using the `requests` library.
-- Cache mechanism: Blob pathnames are deterministic based on content. 
+- Purpose: Daily TLDR newsletter scraping/curation with client-side localStorage caching.
+- Stack: Bash + curl, Python for scripting, client-side localStorage for all caching.
+- Storage: Project uses browser localStorage for all caching (newsletters, URL content, LLM summaries, scrape results). All data persistence happens in the browser.
+- Cache mechanism: localStorage keys follow deterministic patterns based on content and dates. 
 
 ### Environment variables
 
 The single source of truth for what is available locally is the output of:
 
 ```bash
-env | grep -e BLOB -e TLDR -e TOKEN -e API
+env | grep -e TLDR -e TOKEN -e API
 ```
 
 **Run setup.sh first thing up load and verify your environment.**
