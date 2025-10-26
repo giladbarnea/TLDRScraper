@@ -1,6 +1,6 @@
 ---
-description: Create detailed implementation plans through interactive research and iteration
-reasoning effort: very high (think deeply)
+description: Create detailed implementation plans with thorough research and iteration
+model: sonnet
 ---
 
 # Implementation Plan
@@ -12,7 +12,7 @@ You are tasked with creating detailed implementation plans through an interactiv
 When this command is invoked:
 
 1. **Check if parameters were provided**:
-   - If a file path or ticket reference was provided as a parameter, skip the default message
+   - If a file path or task reference was provided as a parameter, skip the default message
    - Immediately read any provided files FULLY
    - Begin the research process
 
@@ -21,14 +21,14 @@ When this command is invoked:
 I'll help you create a detailed implementation plan. Let me start by understanding what we're building.
 
 Please provide:
-1. The task/ticket description (or reference to a ticket file)
+1. The task description (or reference to a task/requirements file)
 2. Any relevant context, constraints, or specific requirements
 3. Links to related research or previous implementations
 
 I'll analyze this information and work with you to create a comprehensive plan.
 
-Tip: You can also invoke this command with a ticket file directly: `/create_plan thoughts/allison/tickets/eng_1234.md`
-For deeper analysis, try: `/create_plan think deeply about thoughts/allison/tickets/eng_1234.md`
+Tip: You can also invoke this command with a requirements file directly: `/create_plan_lite thoughts/personal/tasks/ENG-1234.md`
+For deeper analysis, try: `/create_plan_lite think deeply about thoughts/personal/tasks/ENG-1234.md`
 ```
 
 Then wait for the user's input.
@@ -38,7 +38,7 @@ Then wait for the user's input.
 ### Step 1: Context Gathering & Initial Analysis
 
 1. **Read all mentioned files immediately and FULLY**:
-   - Ticket files (e.g., `thoughts/allison/tickets/eng_1234.md`)
+   - Task files (e.g., `thoughts/personal/tasks/ENG-1234.md`)
    - Research documents
    - Related implementation plans
    - Any JSON/data files mentioned
@@ -49,14 +49,12 @@ Then wait for the user's input.
 2. **Spawn initial research tasks to gather context**:
    Before asking the user any questions, use specialized agents to research in parallel:
 
-   - Use the **codebase-locator** agent to find all files related to the ticket/task
+   - Use the **codebase-locator** agent to find all files related to the task
    - Use the **codebase-analyzer** agent to understand how the current implementation works
    - If relevant, use the **thoughts-locator** agent to find any existing thoughts documents about this feature
-   - If a Linear ticket is mentioned, use the **linear-ticket-reader** agent to get full details
 
    These agents will:
    - Find relevant source files, configs, and tests
-   - Identify the specific directories to focus on (e.g., if WUI is mentioned, they'll focus on humanlayer-wui/)
    - Trace data flow and key functions
    - Return detailed explanations with file:line references
 
@@ -66,14 +64,14 @@ Then wait for the user's input.
    - This ensures you have complete understanding before proceeding
 
 4. **Analyze and verify understanding**:
-   - Cross-reference the ticket requirements with actual code
+   - Cross-reference the requirements with actual code
    - Identify any discrepancies or misunderstandings
    - Note assumptions that need verification
    - Determine true scope based on codebase reality
 
 5. **Present informed understanding and focused questions**:
    ```
-   Based on the ticket and my research of the codebase, I understand we need to [accurate summary].
+   Based on the requirements and my research of the codebase, I understand we need to [accurate summary].
 
    I've found that:
    - [Current implementation detail with file:line reference]
@@ -113,9 +111,6 @@ After getting initial clarifications:
    - **thoughts-locator** - To find any research, plans, or decisions about this area
    - **thoughts-analyzer** - To extract key insights from the most relevant documents
 
-   **For related tickets:**
-   - **linear-searcher** - To find similar issues or past implementations
-
    Each agent knows how to:
    - Find the right files and code patterns
    - Identify conventions and patterns to follow
@@ -123,9 +118,9 @@ After getting initial clarifications:
    - Return specific file:line references
    - Find tests and examples
 
-3. **Wait for ALL sub-tasks to complete** before proceeding
+4. **Wait for ALL sub-tasks to complete** before proceeding
 
-4. **Present findings and design options**:
+5. **Present findings and design options**:
    ```
    Based on my research, here's what I found:
 
@@ -225,17 +220,12 @@ After structure approval:
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] Migration applies cleanly: `make migrate`
-- [ ] Unit tests pass: `make test-component`
-- [ ] Type checking passes: `npm run typecheck`
-- [ ] Linting passes: `make lint`
-- [ ] Integration tests pass: `make test-integration`
+- [ ] Tests pass: [test command]
+- [ ] Hard errors checked: [appropriate verification command(s)]
 
-#### Manual Verification:
-- [ ] Feature works as expected when tested via UI
-- [ ] Performance is acceptable under load
+#### Manual Verification
+- [ ] Feature works as expected when tested via the user interface or API
 - [ ] Edge case handling verified manually
-- [ ] No regressions in related features
 
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for manual confirmation from the human that the manual testing was successful before proceeding to the next phase.
 
@@ -254,16 +244,12 @@ After structure approval:
 - [Key edge cases]
 
 ### Integration Tests:
-- [End-to-end scenarios]
+- [Verify important tech stack intersections]
 
 ### Manual Testing Steps:
 1. [Specific step to verify feature]
 2. [Another verification step]
 3. [Edge case to test manually]
-
-## Performance Considerations
-
-[Any performance implications or optimizations needed]
 
 ## Migration Notes
 
@@ -271,7 +257,7 @@ After structure approval:
 
 ## References
 
-- Original ticket: `thoughts/allison/tickets/eng_XXXX.md`
+- Original ticket: `thoughts/personal/tickets/eng_XXXX.md`
 - Related research: `thoughts/shared/research/[relevant].md`
 - Similar implementation: `[file:line]`
 ````
@@ -279,7 +265,6 @@ After structure approval:
 ### Step 5: Sync and Review
 
 1. **Sync the thoughts directory**:
-   - Run `humanlayer thoughts sync` to sync the newly created plan
    - This ensures the plan is properly indexed and available
 
 2. **Present the draft plan location**:
@@ -299,7 +284,6 @@ After structure approval:
    - Adjust technical approach
    - Clarify success criteria (both automated and manual)
    - Add/remove scope items
-   - After making changes, run `humanlayer thoughts sync` again
 
 4. **Continue refining** until the user is satisfied
 
@@ -322,11 +306,9 @@ After structure approval:
    - Research actual code patterns using parallel sub-tasks
    - Include specific file paths and line numbers
    - Write measurable success criteria with clear automated vs manual distinction
-   - automated steps should use `make` whenever possible - for example `make -C humanlayer-wui check` instead of `cd humanlayer-wui && bun run fmt`
 
 4. **Be Practical**:
    - Focus on incremental, testable changes
-   - Consider migration and rollback
    - Think about edge cases
    - Include "what we're NOT doing"
 
@@ -347,14 +329,13 @@ After structure approval:
 **Always separate success criteria into two categories:**
 
 1. **Automated Verification** (can be run by execution agents):
-   - Commands that can be run: `make test`, `npm run lint`, etc.
+   - Commands that can be run: test commands, lint commands, etc.
    - Specific files that should exist
-   - Code compilation/type checking
+   - Rule out hard errors: syntax, reference, name errors, unbound local variables or import errors, etc.
    - Automated test suites
 
 2. **Manual Verification** (requires human testing):
    - UI/UX functionality
-   - Performance under real conditions
    - Edge cases that are hard to automate
    - User acceptance criteria
 
@@ -363,23 +344,21 @@ After structure approval:
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] Database migration runs successfully: `make migrate`
-- [ ] All unit tests pass: `go test ./...`
-- [ ] No linting errors: `golangci-lint run`
-- [ ] API endpoint returns 200: `curl localhost:8080/api/new-endpoint`
+- [ ] All unit tests pass: [test command]
+- [ ] Hard errors checked: [appropriate verification command(s)]
+- [ ] API endpoint returns expected response: [curl command or test]
 
 #### Manual Verification:
 - [ ] New feature appears correctly in the UI
-- [ ] Performance is acceptable with 1000+ items
 - [ ] Error messages are user-friendly
-- [ ] Feature works correctly on mobile devices
+- [ ] Feature works correctly across different environments
 ```
 
 ## Common Patterns
 
 ### For Database Changes:
 - Start with schema/migration
-- Add store methods
+- Add data access methods
 - Update business logic
 - Expose via API
 - Update clients
@@ -409,9 +388,6 @@ When spawning research sub-tasks:
    - What information to extract
    - Expected output format
 4. **Be EXTREMELY specific about directories**:
-   - If the ticket mentions "WUI", specify `humanlayer-wui/` directory
-   - If it mentions "daemon", specify `hld/` directory
-   - Never use generic terms like "UI" when you mean "WUI"
    - Include the full path context in your prompts
 5. **Specify read-only tools** to use
 6. **Request specific file:line references** in responses
@@ -435,15 +411,15 @@ tasks = [
 ## Example Interaction Flow
 
 ```
-User: /implementation_plan
+User: /create_plan_lite
 Assistant: I'll help you create a detailed implementation plan...
 
-User: We need to add parent-child tracking for Claude sub-tasks. See thoughts/allison/tickets/eng_1478.md
-Assistant: Let me read that ticket file completely first...
+User: We need to add parent-child tracking for Claude sub-tasks. See thoughts/personal/tickets/ENG-1478.md
+Assistant: Let me read that requirements file completely first...
 
 [Reads file fully]
 
-Based on the ticket, I understand we need to track parent-child relationships for Claude sub-task events in the hld daemon. Before I start planning, I have some questions...
+Based on the requirements, I understand we need to track parent-child relationships for Claude sub-task events in the daemon. Before I start planning, I have some questions...
 
 [Interactive process continues...]
 ```
