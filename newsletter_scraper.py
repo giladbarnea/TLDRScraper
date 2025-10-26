@@ -2,6 +2,7 @@ import logging
 import re
 import json
 import time
+from datetime import datetime
 
 from newsletter_config import NEWSLETTER_CONFIGS
 from tldr_adapter import TLDRAdapter
@@ -80,10 +81,26 @@ def _build_scrape_response(
             payload["newsletter_type"] = article["newsletter_type"]
         articles_data.append(payload)
 
+    def _issue_sort_key(issue: dict) -> tuple:
+        date_text = issue.get("date", "") or ""
+        try:
+            date_ordinal = datetime.fromisoformat(date_text).toordinal()
+        except Exception:
+            date_ordinal = 0
+
+        source_id = issue.get("source_id")
+        sort_order = (
+            NEWSLETTER_CONFIGS[source_id].sort_order
+            if source_id in NEWSLETTER_CONFIGS
+            else 999
+        )
+
+        # Sort by: date DESC (via negative ordinal), then source sort_order ASC, then category ASC
+        return (-date_ordinal, sort_order, issue.get("category", ""))
+
     issues_output = sorted(
         issue_metadata_by_key.values(),
-        key=lambda issue: (issue.get("date", ""), issue.get("category", "")),
-        reverse=True,
+        key=_issue_sort_key,
     )
 
     return {
