@@ -89,12 +89,14 @@ export function bindScrapeForm(setupSummaryEffortControls, SUMMARY_EFFORT_OPTION
 
             if (data.success) {
                 const payloads = buildDailyPayloadsFromScrape(data);
-                payloads.forEach(payload => {
-                    ClientStorage.mergeDay(payload.date, payload);
-                });
 
-                const hydratedPayloads = hydrateRangeFromStore(startDate, endDate);
-                renderPayloads(hydratedPayloads, { stats: data.stats, source: 'Live scrape' }, setupSummaryEffortControls, SUMMARY_EFFORT_OPTIONS, clipboardIconMarkup);
+                // Merge with cache and use return values directly
+                // This allows rendering even when cache is disabled
+                const mergedPayloads = payloads
+                    .map(payload => ClientStorage.mergeDay(payload.date, payload))
+                    .filter(p => p !== null);
+
+                renderPayloads(mergedPayloads, { stats: data.stats, source: 'Live scrape' }, setupSummaryEffortControls, SUMMARY_EFFORT_OPTIONS, clipboardIconMarkup);
 
                 try {
                     if (Array.isArray(data.stats.debug_logs) && data.stats.debug_logs.length) {
