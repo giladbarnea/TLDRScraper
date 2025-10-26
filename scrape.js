@@ -9,6 +9,7 @@ import {
     hydrateRangeFromStore,
     renderPayloads
 } from './dom-builder.js';
+import { formatClientLogs, clearClientLogs } from './client-logger.js';
 
 // #region -------[ ScrapeIntake ]-------
 
@@ -99,7 +100,12 @@ export function bindScrapeForm(setupSummaryEffortControls, SUMMARY_EFFORT_OPTION
                 renderPayloads(mergedPayloads, { stats: data.stats, source: 'Live scrape' }, setupSummaryEffortControls, SUMMARY_EFFORT_OPTIONS, clipboardIconMarkup);
 
                 try {
-                    if (Array.isArray(data.stats.debug_logs) && data.stats.debug_logs.length) {
+                    // Merge server logs and client logs
+                    const serverLogs = Array.isArray(data.stats.debug_logs) ? data.stats.debug_logs : [];
+                    const clientLogs = formatClientLogs();
+                    const hasLogs = serverLogs.length > 0 || clientLogs.length > 0;
+
+                    if (hasLogs) {
                         const slot = document.getElementById('logs-slot');
                         if (slot) {
                             const details = document.createElement('details');
@@ -107,10 +113,20 @@ export function bindScrapeForm(setupSummaryEffortControls, SUMMARY_EFFORT_OPTION
                             summary.textContent = 'Debug logs';
                             const pre = document.createElement('pre');
                             pre.style.whiteSpace = 'pre-wrap';
-                            pre.textContent = data.stats.debug_logs.map(l => String(l)).join('\n');
+
+                            // Format server logs with [Server] prefix
+                            const formattedServerLogs = serverLogs.map(l => `[Server] ${String(l)}`);
+
+                            // Combine server logs and client logs
+                            const allLogs = [...formattedServerLogs, ...clientLogs];
+                            pre.textContent = allLogs.join('\n');
+
                             details.appendChild(summary);
                             details.appendChild(pre);
                             slot.appendChild(details);
+
+                            // Clear client logs after displaying them
+                            clearClientLogs();
                         }
                     }
                 } catch (_) {}
