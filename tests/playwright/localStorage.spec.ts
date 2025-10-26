@@ -24,6 +24,7 @@ const SAMPLE_SCRAPE_RESPONSE = {
     issues: [
         {
             date: SAMPLE_DATE,
+            source_id: 'test_source',
             category: 'AI',
             title: 'AI Highlights',
             slug: 'ai-highlights',
@@ -37,6 +38,7 @@ const SAMPLE_SCRAPE_RESPONSE = {
             date: SAMPLE_DATE,
             url: 'https://example.com/articles/a',
             title: 'Example AI Article',
+            source_id: 'test_source',
             category: 'AI',
             section_title: null,
             section_order: null,
@@ -135,7 +137,7 @@ async function triggerMockScrape(page: Page) {
         await endInput.fill(SAMPLE_DATE);
 
         const scrapeResponse = page.waitForResponse('**/api/scrape');
-        await page.getByRole('button', { name: 'Scrape TLDR Newsletters' }).click();
+        await page.getByRole('button', { name: 'Scrape Newsletters' }).click();
         await scrapeResponse;
         console.log('[scrape] triggered for', SAMPLE_DATE);
     });
@@ -156,7 +158,7 @@ test.describe('localStorage persistence flows', () => {
         await triggerMockScrape(page);
 
         await test.step('Validate cached payload for the requested date', async () => {
-            const storageKey = `tldr:scrapes:${SAMPLE_DATE}`;
+            const storageKey = `newsletters:scrapes:${SAMPLE_DATE}`;
             const stored = await page.evaluate(key => window.localStorage.getItem(key), storageKey);
             expect(stored, 'Expected scrape payload to be stored in localStorage').not.toBeNull();
             const payload = JSON.parse(stored!);
