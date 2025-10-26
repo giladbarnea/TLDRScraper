@@ -42,13 +42,29 @@ def _parse_date_range(
     return start_date, end_date
 
 
-def scrape_newsletters_in_date_range(start_date_text: str, end_date_text: str) -> dict:
+def scrape_newsletters_in_date_range(
+    start_date_text: str, end_date_text: str, source_ids: list[str] | None = None
+) -> dict:
+    """Scrape newsletters in date range.
+
+    Args:
+        start_date_text: Start date in ISO format
+        end_date_text: End date in ISO format
+        source_ids: Optional list of source IDs to scrape. Defaults to all configured sources.
+
+    Returns:
+        Response dictionary with articles and issues
+    """
     start_date, end_date = _parse_date_range(start_date_text, end_date_text)
+
+    sources_str = ", ".join(source_ids) if source_ids else "all"
     util.log(
-        f"[tldr_service.scrape_newsletters] start start_date={start_date_text} end_date={end_date_text}",
+        f"[tldr_service.scrape_newsletters] start start_date={start_date_text} end_date={end_date_text} sources={sources_str}",
         logger=logger,
     )
-    result = scrape_date_range(start_date, end_date)
+
+    result = scrape_date_range(start_date, end_date, source_ids=source_ids)
+
     util.log(
         f"[tldr_service.scrape_newsletters] done dates_processed={result['stats']['dates_processed']} total_articles={result['stats']['total_articles']}",
         logger=logger,
