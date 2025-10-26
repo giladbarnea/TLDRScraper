@@ -920,7 +920,8 @@
             /* Move actions below content on mobile */
             .article-actions {
                 width: 100%;
-                margin-left: 36px; /* Align with content (number width + gap) */
+                /* Actions row should span full card width, independent of number/title columns */
+                margin-left: 0;
                 margin-top: 8px;
                 justify-content: flex-start;
                 gap: 8px;
