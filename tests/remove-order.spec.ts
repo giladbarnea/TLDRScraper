@@ -89,6 +89,7 @@ test('removed card moves to bottom and restores to original position', async ({ 
         issues: [
             {
                 date: sampleDate,
+                source_id: 'test_source',
                 category: 'Sample Issue',
                 title: 'Sample Issue',
                 slug: 'sample-issue',
@@ -102,6 +103,7 @@ test('removed card moves to bottom and restores to original position', async ({ 
                 date: sampleDate,
                 url: 'https://example.com/article-a',
                 title: 'Article A (example.com)',
+                source_id: 'test_source',
                 category: 'Sample Issue',
                 section_title: null,
                 section_order: null,
@@ -113,6 +115,7 @@ test('removed card moves to bottom and restores to original position', async ({ 
                 date: sampleDate,
                 url: 'https://example.com/article-b',
                 title: 'Article B (example.com)',
+                source_id: 'test_source',
                 category: 'Sample Issue',
                 section_title: null,
                 section_order: null,
@@ -132,7 +135,7 @@ test('removed card moves to bottom and restores to original position', async ({ 
     );
 
     const scrapeResponse = page.waitForResponse('**/api/scrape');
-    await page.getByRole('button', { name: 'Scrape TLDR Newsletters' }).click();
+    await page.getByRole('button', { name: 'Scrape Newsletters' }).click();
     await scrapeResponse;
 
     const cards = page.locator('.article-card');
