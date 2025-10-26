@@ -108,11 +108,6 @@ export const ClientStorage = (() => {
     }
 
     function writeDay(date, payload) {
-        // Early return if cache is disabled - no-op
-        if (!CacheSettings.isCacheEnabled()) {
-            return null;
-        }
-
         const normalized = normalizeIsoDate(date) || date;
         const serializable = {
             date: normalized,
@@ -122,6 +117,12 @@ export const ClientStorage = (() => {
                 ? payload.articles.map(cloneArticleState)
                 : []
         };
+
+        // If cache is disabled, return the data structure without persisting
+        if (!CacheSettings.isCacheEnabled()) {
+            return serializable;
+        }
+
         localStorage.setItem(
             getStorageKeyForDate(normalized),
             JSON.stringify(serializable)
