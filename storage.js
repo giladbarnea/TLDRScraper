@@ -3,6 +3,8 @@
  * persistence helpers for the stateless architecture.
  */
 
+import { CacheSettings } from './cache-settings.js';
+
 // #region -------[ ClientStorageModel ]-------
 
 export const ARTICLE_STATUS = {
@@ -78,6 +80,11 @@ export function sanitizeIssue(issue) {
 
 export const ClientStorage = (() => {
     function readDay(date) {
+        // Early return if cache is disabled - return cache miss
+        if (!CacheSettings.isCacheEnabled()) {
+            return null;
+        }
+
         const normalized = normalizeIsoDate(date) || date;
         const raw = localStorage.getItem(getStorageKeyForDate(normalized));
         if (!raw) return null;
@@ -101,6 +108,11 @@ export const ClientStorage = (() => {
     }
 
     function writeDay(date, payload) {
+        // Early return if cache is disabled - no-op
+        if (!CacheSettings.isCacheEnabled()) {
+            return null;
+        }
+
         const normalized = normalizeIsoDate(date) || date;
         const serializable = {
             date: normalized,
