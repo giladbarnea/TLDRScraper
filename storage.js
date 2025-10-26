@@ -4,6 +4,7 @@
  */
 
 import { CacheSettings } from './cache-settings.js';
+import { clientLog } from './client-logger.js';
 
 // #region -------[ ClientStorageModel ]-------
 
@@ -102,7 +103,7 @@ export const ClientStorage = (() => {
                 articles
             };
         } catch (error) {
-            console.error('Failed to parse stored payload', error, { show: true, error: true });
+            clientLog(`Failed to parse stored payload: ${error.message}`, { error: true });
             return null;
         }
     }
