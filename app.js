@@ -2,7 +2,7 @@
  * AppBootstrap wires feature bindings so the UI state machine starts in sync with backend data.
  */
 
-import { initDebugPanel, bindCopySummaryFlow, bindRemovalControls, clipboardIconMarkup } from './ui-utils.js';
+import { bindCopySummaryFlow, bindRemovalControls, clipboardIconMarkup } from './ui-utils.js';
 import { setDefaultDates, bindScrapeForm } from './scrape.js';
 import { SUMMARY_EFFORT_OPTIONS, setupSummaryEffortControls, bindSummaryExpansion } from './summary.js';
 import { bindTldrExpansion } from './tldr.js';
@@ -11,8 +11,6 @@ import { hydrateRangeFromStore, renderPayloads } from './dom-builder.js';
 import { initCacheToggle } from './cache-toggle.js';
 
 // #region -------[ AppBootstrap ]-------
-
-initDebugPanel();
 
 initCacheToggle();
 
