@@ -8,10 +8,13 @@ import { SUMMARY_EFFORT_OPTIONS, setupSummaryEffortControls, bindSummaryExpansio
 import { bindTldrExpansion } from './tldr.js';
 import { bindIssueToggleControls } from './issue.js';
 import { hydrateRangeFromStore, renderPayloads } from './dom-builder.js';
+import { initCacheToggle } from './cache-toggle.js';
 
 // #region -------[ AppBootstrap ]-------
 
 initDebugPanel();
+
+initCacheToggle();
 
 setDefaultDates();
 
