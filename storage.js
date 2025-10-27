@@ -40,6 +40,8 @@ export function cloneArticleState(article) {
         sectionOrder: article.sectionOrder,
         newsletterType: article.newsletterType,
         removed: Boolean(article.removed),
+        score: article.score ?? null,  // HackerNews upvotes
+        comments: article.comments ?? null,  // HackerNews comment count
         summary: {
             status: article.summary?.status || ARTICLE_STATUS.unknown,
             markdown: article.summary?.markdown || '',

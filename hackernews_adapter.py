@@ -181,4 +181,6 @@ class HackerNewsAdapter(NewsletterAdapter):
             "date": util.format_date_for_url(date),
             "newsletter_type": story_type,
             "removed": False,
+            "score": story.score or 0,
+            "comments": story.descendants or 0,
         }
