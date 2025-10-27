@@ -218,6 +218,7 @@ This adapter implements the NewsletterAdapter interface for HackerNews,
 using the HackerNews API instead of HTML scraping.
 """
 
+import asyncio
 import logging
 from datetime import datetime
 
@@ -263,7 +264,10 @@ class HackerNewsAdapter(NewsletterAdapter):
 
             # Fetch stories from API
             try:
-                stories = self._fetch_stories_by_type(story_type, limit=500)
+                # Top stories: fetch 5 (already ranked by HN)
+                # Other types: fetch 100, then filter to top 5 by leading score
+                fetch_limit = 5 if story_type == "top" else 100
+                stories = self._fetch_stories_by_type(story_type, limit=fetch_limit)
             except Exception as e:
                 util.log(
                     f"[hackernews_adapter.scrape_date] Error fetching {story_type}: {e}",
@@ -278,6 +282,10 @@ class HackerNewsAdapter(NewsletterAdapter):
                 s for s in stories
                 if s.submission_time.date() == target_date
             ]
+
+            # For non-top types, sort by leading score and take top 5
+            if story_type != "top" and filtered_stories:
+                filtered_stories = self._get_leading_stories(filtered_stories, limit=5)
 
             util.log(
                 f"[hackernews_adapter.scrape_date] Found {len(filtered_stories)}/{len(stories)} {story_type} stories for {date}",
@@ -295,7 +303,28 @@ class HackerNewsAdapter(NewsletterAdapter):
 
         return self._normalize_response(articles, issues)
 
-    def _fetch_stories_by_type(self, story_type: str, limit: int = 500):
+    def _get_leading_stories(self, stories: list, limit: int = 5) -> list:
+        """Sort stories by leading score and return top N.
+
+        Leading score = (2 * upvotes + comment_count)
+        Upvotes are weighted twice as important as comments.
+
+        Args:
+            stories: List of HackerNews Item objects
+            limit: Number of top stories to return
+
+        Returns:
+            List of top N stories sorted by leading score (descending)
+        """
+        def leading_score(story):
+            score = story.score or 0
+            comments = story.descendants or 0
+            return (2 * score) + comments
+
+        sorted_stories = sorted(stories, key=leading_score, reverse=True)
+        return sorted_stories[:limit]
+
+    def _fetch_stories_by_type(self, story_type: str, limit: int = 100):
         """Fetch stories from HackerNews API by type.
 
         Args:
@@ -305,6 +334,17 @@ class HackerNewsAdapter(NewsletterAdapter):
         Returns:
             List of Item objects
         """
+        # Ensure we have an event loop in this thread
+        # (Flask runs in threads without event loops)
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
         if story_type == "top":
             return self.hn.top_stories(limit=limit)
         elif story_type == "new":
@@ -508,13 +548,15 @@ Not applicable - this is a new source, not a migration.
 
 ## Potential Issues and Solutions
 
-### Issue 1: HackerNews API Rate Limiting
+### Issue 1: HackerNews API Rate Limiting ✅ RESOLVED
 **Problem**: Fetching 500 stories per type (4 types = 2000 stories) might trigger rate limits
 
-**Solution**:
-- Start with smaller limit (100 stories per type)
-- Add configurable limit in NewsletterSourceConfig
-- Add retry logic with exponential backoff if needed
+**Solution Implemented**:
+- **Top stories**: Fetch only 5 (already ranked by HN algorithm)
+- **New/Ask/Show**: Fetch 100 each, then filter to top 5 by leading score
+- **Leading score formula**: `(2 × upvotes) + comment_count` (upvotes weighted 2× comments)
+- **Total API calls**: 5 + (3 × 100) = **305 max** (85% reduction from original plan)
+- No retry logic needed - conservative limits avoid rate limiting entirely
 
 ### Issue 2: No Stories Found for Past Dates
 **Problem**: HackerNews API only returns latest stories, may not have any from requested date
@@ -538,6 +580,36 @@ Not applicable - this is a new source, not a migration.
 - Catch exceptions in `_fetch_stories_by_type()`
 - Log errors but continue with other types
 - Return partial results rather than failing completely
+
+### Issue 5: Asyncio Event Loop in Flask Threads ✅ RESOLVED
+**Problem**: haxor library uses asyncio internally, but Flask runs request handlers in threads without event loops
+
+**Error Encountered**:
+```
+RuntimeError: There is no current event loop in thread 'Thread-1 (serve_forever)'
+```
+
+**Solution Implemented**:
+- Added event loop creation in `_fetch_stories_by_type()`
+- Check if loop exists and is open, create new one if needed
+- Set as current event loop for the thread
+- Code:
+```python
+try:
+    loop = asyncio.get_event_loop()
+    if loop.is_closed():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+```
+
+**Testing Results**:
+- ✅ HackerNews API calls work correctly
+- ✅ No event loop errors
+- ✅ TLDR sources unaffected (no regression)
+- ✅ Multi-source scraping works (TLDR + HackerNews)
 
 ## References
 
