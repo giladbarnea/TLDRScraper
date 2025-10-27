@@ -27,8 +27,9 @@ def _get_adapter_for_source(config):
     """
     if config.source_id.startswith("tldr_"):
         return TLDRAdapter(config)
-    # elif config.source_id == "hackernews":
-    #     return HackerNewsAdapter(config)
+    elif config.source_id == "hackernews":
+        from hackernews_adapter import HackerNewsAdapter
+        return HackerNewsAdapter(config)
     else:
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 

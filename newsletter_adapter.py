@@ -6,7 +6,6 @@ providing a template method pattern for fetching, parsing, and normalizing
 newsletter content from different sources.
 """
 
-from abc import ABC, abstractmethod
 from io import BytesIO
 
 from bs4 import BeautifulSoup
@@ -16,11 +15,12 @@ from newsletter_config import NewsletterSourceConfig
 import util
 
 
-class NewsletterAdapter(ABC):
-    """Abstract adapter for newsletter sources.
+class NewsletterAdapter:
+    """Base adapter for newsletter sources.
 
-    Subclasses must implement fetch_issue, parse_articles, and extract_issue_metadata
-    to provide source-specific logic for their newsletter format.
+    Subclasses can either:
+    1. Implement fetch_issue, parse_articles, and extract_issue_metadata for HTML-based sources
+    2. Override scrape_date() entirely for API-based sources or custom workflows
     """
 
     def __init__(self, config: NewsletterSourceConfig):
@@ -32,9 +32,11 @@ class NewsletterAdapter(ABC):
         self.config = config
         self.md = MarkItDown()
 
-    @abstractmethod
     def fetch_issue(self, date: str, newsletter_type: str) -> str | None:
         """Fetch raw HTML for a specific issue.
+
+        Override this method for HTML-based sources.
+        For API-based sources, override scrape_date() instead.
 
         Args:
             date: Date string in format used by source
@@ -43,13 +45,17 @@ class NewsletterAdapter(ABC):
         Returns:
             HTML content as string, or None if issue not found
         """
-        pass
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement fetch_issue() or override scrape_date()"
+        )
 
-    @abstractmethod
     def parse_articles(
         self, markdown: str, date: str, newsletter_type: str
     ) -> list[dict]:
         """Parse articles from markdown content.
+
+        Override this method for HTML-based sources.
+        For API-based sources, override scrape_date() instead.
 
         Args:
             markdown: Converted markdown content
@@ -59,13 +65,17 @@ class NewsletterAdapter(ABC):
         Returns:
             List of article dictionaries with keys: title, url, category, date, etc.
         """
-        pass
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement parse_articles() or override scrape_date()"
+        )
 
-    @abstractmethod
     def extract_issue_metadata(
         self, markdown: str, date: str, newsletter_type: str
     ) -> dict | None:
         """Extract issue metadata (title, subtitle, sections).
+
+        Override this method for HTML-based sources.
+        For API-based sources, override scrape_date() instead.
 
         Args:
             markdown: Converted markdown content
@@ -75,16 +85,21 @@ class NewsletterAdapter(ABC):
         Returns:
             Dictionary with issue metadata, or None if no metadata found
         """
-        pass
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement extract_issue_metadata() or override scrape_date()"
+        )
 
     def scrape_date(self, date: str) -> dict:
         """Template method - orchestrates fetch + parse + normalize.
 
-        This method implements the overall scraping workflow:
+        This default implementation follows the HTML scraping workflow:
         1. Fetch HTML for each type configured for this source
         2. Convert HTML to markdown
         3. Parse articles and extract metadata
         4. Normalize response with source_id
+
+        Subclasses can override this entire method for different workflows
+        (e.g., API-based sources that don't use HTML conversion).
 
         Args:
             date: Date string to scrape
