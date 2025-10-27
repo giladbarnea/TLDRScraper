@@ -173,9 +173,7 @@ export function buildPayloadIndices(payloads) {
                 section_order: article.sectionOrder,
                 newsletter_type: article.newsletterType,
                 removed: article.removed,
-                category: article.category,
-                score: article.score,  // HackerNews upvotes
-                comments: article.comments  // HackerNews comment count
+                category: article.category
             });
         });
 
@@ -428,23 +426,7 @@ export function transformWhiteySurface(root, maps, setupSummaryEffortControls, S
             const linkTextSpan = document.createElement('span');
             linkTextSpan.className = 'article-link-text';
             newLink.appendChild(linkTextSpan);
-
-            // Add HackerNews metadata (upvotes, comments) to title if available
-            let displayTitle = titleText;
-            if (articleMeta && (articleMeta.score !== undefined || articleMeta.comments !== undefined)) {
-                const metaParts = [];
-                if (articleMeta.score !== undefined && articleMeta.score !== null) {
-                    metaParts.push(`${articleMeta.score} upvotes`);
-                }
-                if (articleMeta.comments !== undefined && articleMeta.comments !== null) {
-                    metaParts.push(`${articleMeta.comments} comments`);
-                }
-                if (metaParts.length > 0) {
-                    displayTitle = `${titleText} (${metaParts.join(', ')})`;
-                }
-            }
-
-            setArticleLinkText(newLink, displayTitle);
+            setArticleLinkText(newLink, titleText);
 
             const actions = document.createElement('div');
             actions.className = 'article-actions';

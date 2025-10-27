@@ -174,13 +174,31 @@ class HackerNewsAdapter(NewsletterAdapter):
             story_type, f"HN {story_type.capitalize()}"
         )
 
+        # Format title with metadata (similar to TLDR's "N minute read" format)
+        base_title = story.title or f"HN Story {story.item_id}"
+        score = story.score or 0
+        comments = story.descendants or 0
+
+        # Build metadata suffix
+        meta_parts = []
+        if score > 0:
+            meta_parts.append(f"{score} upvotes")
+        if comments > 0:
+            meta_parts.append(f"{comments} comments")
+
+        # Finalize title with metadata
+        if meta_parts:
+            formatted_title = f"{base_title} ({', '.join(meta_parts)})"
+        else:
+            formatted_title = base_title
+
         return {
-            "title": story.title or f"HN Story {story.item_id}",
+            "title": formatted_title,
             "url": story.url,
             "category": category,
             "date": util.format_date_for_url(date),
             "newsletter_type": story_type,
             "removed": False,
-            "score": story.score or 0,
-            "comments": story.descendants or 0,
+            "score": score,  # Keep for potential future use
+            "comments": comments,  # Keep for potential future use
         }
