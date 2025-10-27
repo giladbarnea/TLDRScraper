@@ -55,4 +55,21 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"ai": "TLDR AI"},
         sort_order=1,  # AI comes before Tech
     ),
+    "hackernews": NewsletterSourceConfig(
+        source_id="hackernews",
+        display_name="Hacker News",
+        base_url="https://hacker-news.firebaseio.com/v0",
+        url_pattern="",  # Not used for API-based sources
+        types=["top", "new", "ask", "show"],
+        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
+        article_pattern="",  # Not used for API-based sources
+        section_emoji_enabled=False,  # HackerNews doesn't have sections
+        category_display_names={
+            "top": "HN Top",
+            "new": "HN New",
+            "ask": "HN Ask",
+            "show": "HN Show",
+        },
+        sort_order=3,  # After TLDR AI (1) and TLDR Tech (2)
+    ),
 }
