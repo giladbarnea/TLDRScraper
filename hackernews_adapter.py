@@ -5,6 +5,7 @@ This adapter implements the NewsletterAdapter interface for HackerNews,
 using the HackerNews API instead of HTML scraping.
 """
 
+import asyncio
 import logging
 from datetime import datetime
 
@@ -120,6 +121,17 @@ class HackerNewsAdapter(NewsletterAdapter):
         Returns:
             List of Item objects
         """
+        # Ensure we have an event loop in this thread
+        # (Flask runs in threads without event loops)
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
         if story_type == "top":
             return self.hn.top_stories(limit=limit)
         elif story_type == "new":
