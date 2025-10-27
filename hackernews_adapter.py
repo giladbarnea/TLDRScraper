@@ -50,7 +50,10 @@ class HackerNewsAdapter(NewsletterAdapter):
 
             # Fetch stories from API
             try:
-                stories = self._fetch_stories_by_type(story_type, limit=500)
+                # Top stories: fetch 5 (already ranked by HN)
+                # Other types: fetch 100, then filter to top 5 by leading score
+                fetch_limit = 5 if story_type == "top" else 100
+                stories = self._fetch_stories_by_type(story_type, limit=fetch_limit)
             except Exception as e:
                 util.log(
                     f"[hackernews_adapter.scrape_date] Error fetching {story_type}: {e}",
@@ -65,6 +68,10 @@ class HackerNewsAdapter(NewsletterAdapter):
                 s for s in stories
                 if s.submission_time.date() == target_date
             ]
+
+            # For non-top types, sort by leading score and take top 5
+            if story_type != "top" and filtered_stories:
+                filtered_stories = self._get_leading_stories(filtered_stories, limit=5)
 
             util.log(
                 f"[hackernews_adapter.scrape_date] Found {len(filtered_stories)}/{len(stories)} {story_type} stories for {date}",
@@ -82,7 +89,28 @@ class HackerNewsAdapter(NewsletterAdapter):
 
         return self._normalize_response(articles, issues)
 
-    def _fetch_stories_by_type(self, story_type: str, limit: int = 500):
+    def _get_leading_stories(self, stories: list, limit: int = 5) -> list:
+        """Sort stories by leading score and return top N.
+
+        Leading score = (2 * upvotes + comment_count)
+        Upvotes are weighted twice as important as comments.
+
+        Args:
+            stories: List of HackerNews Item objects
+            limit: Number of top stories to return
+
+        Returns:
+            List of top N stories sorted by leading score (descending)
+        """
+        def leading_score(story):
+            score = story.score or 0
+            comments = story.descendants or 0
+            return (2 * score) + comments
+
+        sorted_stories = sorted(stories, key=leading_score, reverse=True)
+        return sorted_stories[:limit]
+
+    def _fetch_stories_by_type(self, story_type: str, limit: int = 100):
         """Fetch stories from HackerNews API by type.
 
         Args:
