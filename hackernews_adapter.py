@@ -174,8 +174,14 @@ class HackerNewsAdapter(NewsletterAdapter):
             story_type, f"HN {story_type.capitalize()}"
         )
 
+        # Format title with upvote and comment counts
+        base_title = story.title or f"HN Story {story.item_id}"
+        upvotes = story.score or 0
+        comments = story.descendants or 0
+        formatted_title = f"{base_title} ({upvotes} upvotes, {comments} comments)"
+
         return {
-            "title": story.title or f"HN Story {story.item_id}",
+            "title": formatted_title,
             "url": story.url,
             "category": category,
             "date": util.format_date_for_url(date),
