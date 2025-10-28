@@ -504,10 +504,6 @@ export function transformWhiteySurface(root, maps, setupSummaryEffortControls, S
 
             card.appendChild(header);
 
-            const removedNote = document.createElement('div');
-            removedNote.className = 'article-removed-note';
-            card.appendChild(removedNote);
-
             articleList.appendChild(card);
 
             const initialRemoved = Boolean(articleMeta && articleMeta.removed);
