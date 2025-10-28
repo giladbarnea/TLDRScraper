@@ -644,6 +644,7 @@ export function applyStoredArticleState(payloads) {
         tldrBtn.classList.remove('error');
         card.removeAttribute('data-tldr-error');
 
+        tldrBtn.innerHTML = 'TLDR ' + (tldr?.status || 'undefined');
         if (tldr?.status === ARTICLE_STATUS.available && tldr.markdown) {
             card.setAttribute('data-tldr', tldr.markdown);
             if (!tldrBtn.classList.contains('expanded')) {
