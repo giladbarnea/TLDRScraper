@@ -636,7 +636,7 @@ export function applyStoredArticleState(payloads) {
         toggleCopyButton(card, false);
     };
 
-    const applyTldrState = (card, tldr) => {
+    const applyTldrState = (card, tldr, debugInfo) => {
         const tldrBtn = card.querySelector('.tldr-btn');
         if (!tldrBtn) return;
 
@@ -644,7 +644,27 @@ export function applyStoredArticleState(payloads) {
         tldrBtn.classList.remove('error');
         card.removeAttribute('data-tldr-error');
 
-        tldrBtn.innerHTML = 'TLDR ' + (tldr?.status || 'undefined');
+        // Debug: Add inspection note
+        let existingNote = card.querySelector('.article-note.debug-note');
+        if (!existingNote) {
+            existingNote = document.createElement('div');
+            existingNote.className = 'article-note debug-note';
+            existingNote.style.display = 'block';
+            existingNote.style.backgroundColor = '#f0f0f0';
+            existingNote.style.padding = '8px';
+            existingNote.style.marginTop = '8px';
+            existingNote.style.borderLeft = '3px solid #666';
+            card.appendChild(existingNote);
+        }
+        existingNote.innerHTML = `
+            <strong>Debug Info:</strong><br>
+            TLDR Status: "${tldr?.status || 'undefined'}"<br>
+            Has Markdown: ${tldr?.markdown ? `Yes (${tldr.markdown.length} chars)` : 'No'}<br>
+            Storage Key: ${debugInfo.storageKey}<br>
+            Found in Cache: ${debugInfo.foundInCache ? 'Yes' : 'No'}
+        `;
+
+        tldrBtn.innerHTML = 'TLDR "' + (tldr?.status || 'undefined') + '"';
         if (tldr?.status === ARTICLE_STATUS.available && tldr.markdown) {
             card.setAttribute('data-tldr', tldr.markdown);
             if (!tldrBtn.classList.contains('expanded')) {
@@ -683,6 +703,9 @@ export function applyStoredArticleState(payloads) {
     };
 
     payloads.forEach(payload => {
+        const storageKey = `newsletters:scrapes:${payload.date}`;
+        const foundInCache = payload.cachedAt !== undefined;
+
         payload.articles.forEach(article => {
             const selector = `.article-card[data-date="${payload.date}"][data-url="${cssEscape(article.url)}"]`;
             const card = document.querySelector(selector);
@@ -696,8 +719,14 @@ export function applyStoredArticleState(payloads) {
                 card.classList.add('unread');
             }
 
+            const debugInfo = {
+                storageKey: storageKey,
+                foundInCache: foundInCache,
+                articleUrl: article.url
+            };
+
             applySummaryState(card, article.summary);
-            applyTldrState(card, article.tldr);
+            applyTldrState(card, article.tldr, debugInfo);
 
             const removed = Boolean(article.removed);
             setCardRemovedState(card, removed);
