@@ -151,11 +151,6 @@ export function setCardRemovedState(card, removed) {
             : 'Remove this article from the list';
     }
 
-    const articleNote = card.querySelector('.article-note');
-    if (articleNote) {
-        articleNote.textContent = isRemoved ? 'Removed from this digest' : '';
-    }
-
     const link = card.querySelector('.article-link');
     if (link) {
         if (isRemoved) {
