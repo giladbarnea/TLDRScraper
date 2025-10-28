@@ -9,6 +9,7 @@ import {
     isCardRemoved,
     toggleCopyButton
 } from './article-card.js';
+import { reapplyArticleState } from './dom-builder.js';
 
 // #region -------[ SummaryEffortSelector ]-------
 
@@ -200,6 +201,12 @@ export function bindSummaryExpansion() {
                     errorMessage: null
                 }
             }));
+
+            // Re-sync state from cache to ensure consistency
+            const date = card.getAttribute('data-date');
+            const url = card.getAttribute('data-url');
+            if (date && url) reapplyArticleState(date, url);
+
             toggleCopyButton(card, true);
             return;
         }
@@ -265,6 +272,11 @@ export function bindSummaryExpansion() {
                         errorMessage: null
                     }
                 }));
+
+                // Re-sync state from cache to ensure consistency
+                const date = card.getAttribute('data-date');
+                const url = card.getAttribute('data-url');
+                if (date && url) reapplyArticleState(date, url);
 
                 if (btn) {
                     btn.disabled = false;

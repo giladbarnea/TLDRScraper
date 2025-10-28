@@ -3,6 +3,7 @@
  */
 
 import { isCardRemoved, setCardRemovedState, updateStoredArticleFromCard } from './article-card.js';
+import { reapplyArticleState } from './dom-builder.js';
 
 // #region -------[ SummaryClipboard ]-------
 
@@ -53,11 +54,19 @@ export function bindRemovalControls() {
         if (!card) return;
 
         const nextState = !isCardRemoved(card);
-        setCardRemovedState(card, nextState);
+
+        // Update storage FIRST, then UI
         updateStoredArticleFromCard(card, article => ({
             ...article,
             removed: nextState
         }));
+
+        // Re-sync state from cache to ensure consistency
+        const date = card.getAttribute('data-date');
+        const url = card.getAttribute('data-url');
+        if (date && url) reapplyArticleState(date, url);
+
+        setCardRemovedState(card, nextState);
     });
 }
 

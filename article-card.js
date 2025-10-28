@@ -3,6 +3,7 @@
  */
 
 import { ClientStorage } from './storage.js';
+import { reapplyArticleState } from './dom-builder.js';
 
 // #region -------[ ArticleStateTracks ]-------
 
@@ -198,10 +199,7 @@ export function setCardRemovedState(card, removed) {
 }
 
 export function markArticleAsRead(card) {
-    card.classList.remove('unread');
-    card.classList.add('read');
-    const articleList = card.closest('.article-list');
-    if (articleList) sortArticlesByState(articleList);
+    // Update storage FIRST, then UI
     updateStoredArticleFromCard(card, article => ({
         ...article,
         read: {
@@ -209,6 +207,37 @@ export function markArticleAsRead(card) {
             markedAt: new Date().toISOString()
         }
     }));
+
+    // Re-sync state from cache to ensure consistency
+    const date = card.getAttribute('data-date');
+    const url = card.getAttribute('data-url');
+    if (date && url) reapplyArticleState(date, url);
+
+    card.classList.remove('unread');
+    card.classList.add('read');
+    const articleList = card.closest('.article-list');
+    if (articleList) sortArticlesByState(articleList);
+}
+
+export function markArticleAsUnread(card) {
+    // Update storage FIRST, then UI
+    updateStoredArticleFromCard(card, article => ({
+        ...article,
+        read: {
+            isRead: false,
+            markedAt: null
+        }
+    }));
+
+    // Re-sync state from cache to ensure consistency
+    const date = card.getAttribute('data-date');
+    const url = card.getAttribute('data-url');
+    if (date && url) reapplyArticleState(date, url);
+
+    card.classList.remove('read');
+    card.classList.add('unread');
+    const articleList = card.closest('.article-list');
+    if (articleList) sortArticlesByState(articleList);
 }
 
 export function updateStoredArticleFromCard(card, updater) {
