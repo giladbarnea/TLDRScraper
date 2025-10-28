@@ -9,6 +9,7 @@ import {
     isCardRemoved
 } from './article-card.js';
 import { getCardSummaryEffort } from './summary.js';
+import { reapplyArticleState } from './dom-builder.js';
 
 // #region -------[ TldrDelivery ]-------
 
@@ -79,6 +80,12 @@ export function bindTldrExpansion() {
                     errorMessage: null
                 }
             }));
+
+            // Re-sync state from cache to ensure consistency
+            const date = card.getAttribute('data-date');
+            const url = card.getAttribute('data-url');
+            if (date && url) reapplyArticleState(date, url);
+
             return;
         }
 
@@ -138,6 +145,11 @@ export function bindTldrExpansion() {
                         errorMessage: null
                     }
                 }));
+
+                // Re-sync state from cache to ensure consistency
+                const date = card.getAttribute('data-date');
+                const url = card.getAttribute('data-url');
+                if (date && url) reapplyArticleState(date, url);
 
                 tldrBtn.disabled = false;
                 tldrBtn.innerHTML = 'Hide';

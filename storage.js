@@ -179,12 +179,21 @@ export const ClientStorage = (() => {
         return writeDay(normalized, snapshot);
     }
 
+    function readArticle(date, url) {
+        const normalized = normalizeIsoDate(date) || date;
+        const snapshot = readDay(normalized);
+        if (!snapshot) return null;
+        const article = snapshot.articles.find(article => article.url === url);
+        return article ? cloneArticleState(article) : null;
+    }
+
     return {
         readDay,
         writeDay,
         mergeDay,
         hasDay,
-        updateArticle
+        updateArticle,
+        readArticle
     };
 })();
 
