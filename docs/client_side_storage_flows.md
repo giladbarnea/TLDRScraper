@@ -9,8 +9,8 @@ stay aligned with the live system.
 
 - **Browser-owned persistence** – Newsletter payloads, article metadata,
   summary/TLDR results, and read state all live in `localStorage`. Every user
-  action mutates in-memory state first, mirrors that change to disk, and renders
-  directly from the hydrated snapshot.
+  action persists to `localStorage` first, then updates the UI to reflect the
+  stored state.
 - **Stateless backend** – Flask only exposes `/`, `POST /api/scrape`, `POST
   /api/summarize-url`, `POST /api/tldr-url`, and `GET /api/prompt`. Each request
   forwards to `tldr_app` → `tldr_service` → the newsletter scraper or
@@ -90,6 +90,7 @@ type Issue = {
 - `hasDay(date)` → boolean existence check used before hitting the network.
 - `updateArticle(date, url, updater)` → transactional updater that applies a
   mutation function, clones the result, and rewrites the owning day.
+- `readArticle(date, url)` → fetch a single article from the stored day payload.
 
 ### Hydration and rendering (`ClientHydration`)
 
@@ -105,6 +106,10 @@ summary/TLDR prefetch.
 
 `hydrateRangeFromStore` pulls a date range entirely from `localStorage` so the
 UI can render instantly when all days are cached.
+
+`reapplyArticleState(date, url)` reads a single article from storage and
+re-applies its state to the corresponding DOM card, ensuring the UI matches the
+persisted data after mutations.
 
 #### Flow A – Hydrate daily payload
 
@@ -125,8 +130,9 @@ ClientHydration.hydrateRangeFromStore
 ### Article ordering and read tracking (`ArticleStateTracks`)
 
 Cards stay ordered by unread → read via `sortArticlesByState`. `markArticleAsRead`
-updates DOM classes, resorts the list, and persists `{ isRead: true,
-markedAt: now }` with `ClientStorage.updateArticle`.
+and `markArticleAsUnread` persist read state to `localStorage` via
+`ClientStorage.updateArticle`, re-sync the card with `reapplyArticleState`, then
+update DOM classes and resort the list.
 
 ### Summary effort controls (`SummaryEffortSelector`)
 
@@ -171,7 +177,7 @@ SummaryDelivery.bindSummaryExpansion
         │       ↓
         │   success → persist markdown, status='available'
         │   failure → status='error', set errorMessage
-        │   writeLocal()
+        │   writeLocal() → reapplyArticleState(date, url)
         └─ Renderer reacts to state (markdown, spinner, or error)
 ```
 
@@ -207,7 +213,7 @@ TldrDelivery.bindTldrExpansion
         │       ↓
         │   success → status='available', markdown=resp.tldr_markdown
         │   failure → status='error', errorMessage
-        │   writeLocal()
+        │   writeLocal() → reapplyArticleState(date, url)
         └─ Renderer shows TLDR markdown / spinner / error
 ```
 
@@ -225,9 +231,9 @@ ArticleStateTracks.markArticleAsRead
         ├─ if article.read.isRead → no-op
         ├─ else
         │       ↓
-        │   set article.read = { isRead: true, markedAt: now }
         │   ClientStorage.updateArticle → writeLocal('tldr:scrapes:<date>')
-        └─ Renderer immediately applies "Read" styling
+        │   reapplyArticleState(date, url)
+        └─ Renderer applies "Read" styling
 ```
 
 ### Additional client systems
