@@ -4,6 +4,7 @@
  */
 
 import { ClientStorage, ARTICLE_STATUS, normalizeIsoDate, cloneArticleState, sanitizeIssue } from './storage.js';
+import { clientLog } from './client-logger.js';
 import {
     parseTitleWithDomain,
     getDomainLabelFromUrl,
@@ -732,6 +733,24 @@ export function applyStoredArticleState(payloads) {
             setCardRemovedState(card, removed);
         });
     });
+}
+
+export function reapplyArticleState(date, url) {
+    const article = ClientStorage.readArticle(date, url);
+    if (!article) {
+        clientLog(`reapplyArticleState: Article not found in cache (${date}, ${url})`, { error: true });
+        return false;
+    }
+
+    const payload = {
+        date: date,
+        cachedAt: new Date().toISOString(),
+        articles: [article],
+        issues: []
+    };
+
+    applyStoredArticleState([payload]);
+    return true;
 }
 
 // #endregion
