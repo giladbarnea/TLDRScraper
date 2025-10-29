@@ -12,7 +12,7 @@ export function useScraper() {
   const progress = ref(0)
   const results = ref(null)
 
-  const { isCacheEnabled } = useCacheSettings()
+  const { enabled: cacheEnabled } = useCacheSettings()
 
   /**
    * Compute date range between start and end dates
@@ -41,7 +41,7 @@ export function useScraper() {
    * Check if range is fully cached
    */
   function isRangeCached(startDate, endDate) {
-    if (!isCacheEnabled()) return false
+    if (!cacheEnabled.value) return false
 
     const dates = computeDateRange(startDate, endDate)
     return dates.every(date => {
@@ -176,7 +176,7 @@ export function useScraper() {
         const payloads = buildDailyPayloadsFromScrape(data)
 
         // Merge with cache if enabled
-        const mergedPayloads = isCacheEnabled()
+        const mergedPayloads = cacheEnabled.value
           ? mergeWithCache(payloads)
           : payloads
 

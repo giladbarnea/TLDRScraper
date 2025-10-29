@@ -1,30 +1,198 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+import { ref, onMounted } from 'vue'
+import CacheToggle from './components/CacheToggle.vue'
+import ScrapeForm from './components/ScrapeForm.vue'
+import ResultsDisplay from './components/ResultsDisplay.vue'
+import { useScraper } from './composables/useScraper'
+
+const results = ref(null)
+const { loadFromCache } = useScraper()
+
+// On mount, try to hydrate from cache based on default date range
+onMounted(() => {
+  const today = new Date()
+  const threeDaysAgo = new Date(today)
+  threeDaysAgo.setDate(today.getDate() - 3)
+
+  const endDate = today.toISOString().split('T')[0]
+  const startDate = threeDaysAgo.toISOString().split('T')[0]
+
+  // Try to load from cache
+  const cached = loadFromCache(startDate, endDate)
+  if (cached) {
+    results.value = cached
+  }
+})
+
+function handleResults(data) {
+  results.value = data
+}
 </script>
 
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
+  <div class="container">
+    <h1>Newsletter Aggregator</h1>
+
+    <CacheToggle />
+
+    <ScrapeForm @results="handleResults" />
+
+    <ResultsDisplay v-if="results" :results="results" />
   </div>
-  <HelloWorld msg="Vite + Vue" />
 </template>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+<style>
+/* CSS Variables */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --text: #0f172a;
+  --muted: #475569;
+  --border: #e5e7eb;
+  --link: #1a73e8;
+  --radius: 10px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10);
+
+  /* Whitey reading surface colors */
+  --whitey-text: #333;
+  --whitey-link: #2484c1;
+  --whitey-divider: #2f2f2f;
+  --whitey-rule: #ddd;
+  --whitey-s-1: 0.5rem;
+  --whitey-s-2: 1rem;
+  --whitey-s-3: 1.5rem;
+  --whitey-s-4: 2.5rem;
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+
+/* Global resets and base styles */
+* {
+  box-sizing: border-box;
 }
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+  letter-spacing: 0.003em;
+  line-height: 1.6;
+}
+
+/* Container styles */
+.container {
+  background: var(--surface);
+  padding: 20px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+
+h1 {
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 30px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+/* Focus styles */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgba(26,115,232,0.45);
+  outline-offset: 2px;
+}
+
+/* Whitey reading surface styles (for #write) */
+#write {
+  font-size: 19px;
+  max-width: 960px;
+  margin: 0 auto 2em;
+  padding-top: 40px;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  color: var(--whitey-text);
+  font-family: "Vollkorn", Palatino, Times, serif;
+  line-height: 1.53;
+  text-align: left;
+  background: transparent;
+}
+
+@media only screen and (min-width: 1400px) {
+  #write {
+    max-width: 1100px;
+  }
+}
+
+#write h1,
+#write h2,
+#write h3 {
+  text-align: center;
+  font-weight: normal;
+  color: var(--whitey-text);
+}
+
+#write h1 {
+  margin-top: 1.6em;
+  font-size: 3em;
+}
+
+#write h2 {
+  margin-top: 2em;
+}
+
+#write h3 {
+  margin-top: 3em;
+  font-style: italic;
+}
+
+#write h1 + h2,
+#write h2 + h3 {
+  margin-top: 0.83em;
+}
+
+/* Mobile responsive */
+@media (max-width: 42em) {
+  #write {
+    font-size: clamp(16px, 0.95rem + 0.6vw, 18px);
+    line-height: 1.6;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  #write h1 {
+    font-size: clamp(2rem, 7vw, 2.6rem);
+    line-height: 1.15;
+    margin: var(--whitey-s-4) 0 var(--whitey-s-2);
+  }
+
+  #write h2 {
+    font-size: clamp(1.5rem, 5.5vw, 2rem);
+    line-height: 1.25;
+    margin: var(--whitey-s-4) 0 var(--whitey-s-1);
+  }
+
+  #write h3 {
+    font-size: clamp(1.25rem, 4.5vw, 1.6rem);
+    line-height: 1.3;
+    margin: var(--whitey-s-3) 0 var(--whitey-s-1);
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 8px;
+  }
+  .container {
+    padding: 12px;
+  }
 }
 </style>

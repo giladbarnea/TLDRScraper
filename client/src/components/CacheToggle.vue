@@ -9,7 +9,7 @@ const { enabled, statusText } = useCacheSettings()
     <label class="cache-toggle-label" for="cacheToggle">
       <input
         id="cacheToggle"
-        v-model="enabled.value"
+        v-model="enabled"
         type="checkbox"
         class="cache-toggle-input"
         data-testid="cache-toggle-input"
