@@ -58,15 +58,14 @@ NEWSLETTER_CONFIGS = {
     "hackernews": NewsletterSourceConfig(
         source_id="hackernews",
         display_name="Hacker News",
-        base_url="https://hacker-news.firebaseio.com/v0",
-        url_pattern="",  # Not used for API-based sources
-        types=["top", "new", "ask", "show"],
+        base_url="http://hn.algolia.com/api/v1",  # Using Algolia HN Search API
+        url_pattern="",  # Not used (Algolia API-based)
+        types=["top", "ask", "show"],  # Combined in single query via Algolia
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",  # Not used for API-based sources
         section_emoji_enabled=False,  # HackerNews doesn't have sections
         category_display_names={
             "top": "HN Top",
-            "new": "HN New",
             "ask": "HN Ask",
             "show": "HN Show",
         },
