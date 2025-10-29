@@ -3,7 +3,7 @@
 ### Project overview (short)
 
 - Purpose: Daily TLDR newsletter scraping/curation with client-side localStorage caching.
-- Stack: Bash + curl, Python for scripting, client-side localStorage for all caching.
+- Stack: Python (Flask backend), Vue 3 + Vite (frontend), client-side localStorage for all caching.
 - Storage: Project uses browser localStorage for all caching (newsletters, URL content, LLM summaries, scrape results). All data persistence happens in the browser.
 - Cache mechanism: localStorage keys follow deterministic patterns based on content and dates. 
 
