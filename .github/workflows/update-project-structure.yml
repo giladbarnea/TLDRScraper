@@ -55,5 +55,5 @@ jobs:
             echo "No changes to PROJECT_STRUCTURE.md"
           else
             git commit -m "chore: Update PROJECT_STRUCTURE.md [skip ci]"
-            git push
+            git push origin HEAD:main
           fi
