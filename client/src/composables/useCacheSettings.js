@@ -16,13 +16,11 @@ export function useCacheSettings() {
 
   function toggle() {
     enabled.value = !enabled.value
-    return enabled.value
   }
 
   return {
     enabled,
     statusText,
-    toggle,
-    isCacheEnabled: () => enabled.value
+    toggle
   }
 }
