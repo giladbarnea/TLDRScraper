@@ -5,14 +5,14 @@ on:
     branches:
       - main
   pull_request:
-    types: [closed]
+    types: [opened, synchronize, reopened, closed]
     branches:
       - main
 
 jobs:
   update-structure:
-    # Only run on merged PRs or direct pushes to main
-    if: github.event_name == 'push' || (github.event.pull_request.merged == true)
+    # Run on: direct pushes to main, open/updated PRs, or merged PRs
+    if: github.event_name == 'push' || github.event.pull_request.merged == true || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
 
     permissions:
@@ -22,7 +22,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+          # For open PRs: checkout the PR branch
+          # For merged PRs: checkout the merge commit
+          # For direct pushes: checkout the pushed commit
+          ref: ${{ github.event.pull_request.head.sha || github.event.pull_request.merge_commit_sha || github.sha }}
           fetch-depth: 0
 
       - name: Install eza
@@ -50,10 +53,17 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add PROJECT_STRUCTURE.md
 
-          # Determine target branch (works for both push and PR events)
+          # Determine target branch
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+            if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+              # For merged PRs: push to base branch (main)
+              TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+            else
+              # For open PRs: push to PR branch
+              TARGET_BRANCH="${{ github.event.pull_request.head.ref }}"
+            fi
           else
+            # For direct pushes: push to the same branch
             TARGET_BRANCH="${{ github.ref_name }}"
           fi
 
