@@ -17,6 +17,7 @@
 │   └── README.md
 ├── .github
 │   └── workflows
+│       ├── update-doc-frontmatter.yml
 │       └── update-project-structure.yml
 ├── .gitignore
 ├── .replit
@@ -90,6 +91,8 @@
 ├── PROJECT_STRUCTURE.md
 ├── pyproject.toml
 ├── requirements.txt
+├── scripts
+│   └── update_doc_frontmatter.py
 ├── serve.py
 ├── setup-hooks.sh
 ├── setup.sh
