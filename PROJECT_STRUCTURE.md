@@ -79,6 +79,7 @@
 │       │   ├── media_17.jpg
 │       │   └── media_18.jpg
 │       └── README.md
+├── eza_x86_64-unknown-linux-gnu.tar.gz
 ├── hackernews_adapter.py
 ├── newsletter_adapter.py
 ├── newsletter_config.py
