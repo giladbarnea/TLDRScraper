@@ -12,24 +12,21 @@ import os
 import util
 import tldr_app
 
-app = Flask(__name__)
+# Configure Flask to serve Vue build output
+app = Flask(
+    __name__,
+    static_folder='static/dist/assets',
+    static_url_path='/assets'
+)
 logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("serve")
 
 
 @app.route("/")
 def index():
-    """Serve the main page"""
-    return render_template("index.html")
-
-
-@app.route("/<path:filename>")
-def serve_static_js(filename):
-    """Serve static JavaScript modules from root directory"""
-    if filename.endswith('.js'):
-        root_dir = os.path.dirname(os.path.abspath(__file__))
-        return send_from_directory(root_dir, filename, mimetype='application/javascript')
-    return "Not found", 404
+    """Serve the Vue app"""
+    static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
+    return send_from_directory(static_dist, 'index.html')
 
 
 @app.route("/api/scrape", methods=["POST"])

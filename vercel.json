@@ -1,4 +1,6 @@
 {
+  "buildCommand": "cd client && npm install && npm run build",
+  "installCommand": "pip install -r requirements.txt",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
   ]
