@@ -1,3 +1,7 @@
+---
+last-updated: 2025-10-26 00:35, 88f850c
+---
+
 # Multi-Newsletter Refactoring Plan
 
 **Status:** Final, Ready for Implementation

@@ -1,3 +1,7 @@
+---
+last-updated: 2025-10-27 19:32, a787105
+---
+
 # HackerNews Integration Research
 
 **Date**: 2025-10-27
