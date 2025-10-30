@@ -78,7 +78,7 @@ PY
 
 - Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables. 
 - **Run ./setup.sh to verify the environment and dependencies are set up correctly. After sourcing it, use `start_server_and_watchdog` and `print_server_and_watchdog_pids` to confirm the local server is running, then exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/summarize-url`, `/api/tldr-url`). Use `kill_server_and_watchdog` for cleanup.**
-- Use `jq -S .` for sorted pretty-printing; `to_entries | length` for counts.
+- Read all the markdown files at the root directory before starting your task. Markdown files at the project root are importance documentation. ls thoughts/ for historical docs that may be relevant.
 - Try the new feature or behavior you have just implemented in your shell. Is the app making a new API call? Call it directly with `curl` after launching the server via `start_server_and_watchdog`. New dependency and Python interface? Try it by running Python via uv, and so on.
 
 
