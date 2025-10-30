@@ -29,5 +29,16 @@ The hook will attempt to auto-install `eza` on Ubuntu/Debian systems.
 
 ## GitHub Actions
 
-The same functionality runs automatically in GitHub Actions when PRs are merged to main.
-See `.github/workflows/update-project-structure.yml` for details.
+The same functionality runs automatically in GitHub Actions in two modes:
+
+1. **PR Check** (before merge):
+   - Runs when a PR is opened, updated, or reopened
+   - Generates `PROJECT_STRUCTURE.md` and commits to the PR branch
+   - Ensures the file is up-to-date during review
+
+2. **Update** (after merge):
+   - Runs when a PR is merged to main or when pushing directly to main
+   - Generates `PROJECT_STRUCTURE.md` and commits to main
+   - Keeps the main branch synchronized
+
+See `.github/workflows/update-project-structure.yml` for implementation details.
