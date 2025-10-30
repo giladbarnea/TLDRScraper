@@ -22,10 +22,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          # For merged PRs: checkout the merge commit (prioritize over head)
           # For open PRs: checkout the PR branch
-          # For merged PRs: checkout the merge commit
           # For direct pushes: checkout the pushed commit
-          ref: ${{ github.event.pull_request.head.sha || github.event.pull_request.merge_commit_sha || github.sha }}
+          ref: ${{ github.event.pull_request.merged == true && github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
       - name: Install eza
