@@ -1,3 +1,7 @@
+---
+last-updated: 2025-10-25 06:42, eea904d
+---
+
 # Client-side Testing Notes
 
 ## LocalStorage-focused coverage

@@ -1,3 +1,7 @@
+---
+last-updated: 2025-10-29 21:39, 1261599
+---
+
 ## Agents Guide
 
 ### Project overview (short)

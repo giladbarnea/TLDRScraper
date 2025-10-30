@@ -1,3 +1,7 @@
+---
+last-updated: 2025-10-27 23:12, 2dd2aac
+---
+
 # HackerNews Integration Implementation Plan
 
 ## Overview
