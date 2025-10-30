@@ -28,6 +28,7 @@
 ├── AGENTS.md
 ├── api
 │   └── index.py
+├── ARCHITECTURE.md
 ├── BUGS.md
 ├── client
 │   ├── .gitignore
