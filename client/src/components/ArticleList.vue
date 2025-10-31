@@ -13,7 +13,8 @@ const emit = defineEmits(['copy-summary'])
 
 // Get article state for sorting
 function getArticleState(article) {
-  if (article.removed) return 2  // Removed articles last
+  if (article.removed) return 3  // Removed articles last
+  if (article.tldrHidden) return 2  // TLDR hidden articles second to last
   if (article.read?.isRead) return 1  // Read articles middle
   return 0  // Unread articles first
 }
