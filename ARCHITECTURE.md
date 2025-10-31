@@ -18,6 +18,8 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 **Backend:**
 - Flask (Python web framework)
 - curl_cffi (web scraping)
+- Jina Reader API (web scraping fallback)
+- Firecrawl API (web scraping fallback, optional)
 - MarkItDown (HTML → Markdown conversion)
 - OpenAI GPT-5 (AI summaries/TLDRs)
 
@@ -93,10 +95,10 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  Newsletter  │  │  API         │  │  (Summaries & TLDRs)       │   │
 │  │  Archives    │  │              │  │                            │   │
 │  └──────────────┘  └──────────────┘  └────────────────────────────┘   │
-│  ┌──────────────┐  ┌──────────────┐                                    │
-│  │  Jina Reader │  │  curl_cffi   │                                    │
-│  │  r.jina.ai   │  │  (Chrome)    │                                    │
-│  └──────────────┘  └──────────────┘                                    │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────┐   │
+│  │  Jina Reader │  │  curl_cffi   │  │  Firecrawl API             │   │
+│  │  r.jina.ai   │  │  (Chrome)    │  │  api.firecrawl.dev         │   │
+│  └──────────────┘  └──────────────┘  └────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -693,18 +695,25 @@ User clicks "Summarize" button
   │                        │                   │    │
   │                        │                   │    └─ summarizer.py:100 scrape_url(url)
   │                        │                   │         │
-  │                        │                   │         ├─ Try Method 1: curl_cffi
+  │                        │                   │         ├─ Try Method 1: curl_cffi (timeout: 10s)
   │                        │                   │         │    │
   │                        │                   │         │    ├─ curl_requests.get(url, impersonate="chrome131")
   │                        │                   │         │    │
   │                        │                   │         │    └─ If success: return response
   │                        │                   │         │
-  │                        │                   │         └─ Try Method 2: Jina Reader
+  │                        │                   │         ├─ Try Method 2: Jina Reader (timeout: 10s)
+  │                        │                   │         │    │
+  │                        │                   │         │    ├─ Build Jina URL: "https://r.jina.ai/http://..."
+  │                        │                   │         │    ├─ requests.get(jina_url)
+  │                        │                   │         │    │
+  │                        │                   │         │    └─ If success: return response
+  │                        │                   │         │
+  │                        │                   │         └─ Try Method 3: Firecrawl (timeout: 60s, if API key configured)
   │                        │                   │              │
-  │                        │                   │              ├─ Build Jina URL: "https://r.jina.ai/http://..."
-  │                        │                   │              ├─ requests.get(jina_url)
+  │                        │                   │              ├─ POST api.firecrawl.dev/v1/scrape
+  │                        │                   │              ├─ Requires FIRECRAWL_API_KEY
   │                        │                   │              │
-  │                        │                   │              └─ If success: return response
+  │                        │                   │              └─ If success: return mock response with HTML
   │                        │                   │
   │                        │                   ├─ Convert response to markdown:
   │                        │                   │    │
@@ -1057,7 +1066,7 @@ sequenceDiagram
         useSummary->>Flask: POST /api/summarize-url {url, summary_effort}
         Flask->>Summarizer: summarize_url(url, effort)
 
-        Summarizer->>Summarizer: scrape_url() via curl_cffi/Jina
+        Summarizer->>Summarizer: scrape_url() via curl_cffi/Jina/Firecrawl
         Summarizer->>Summarizer: Convert HTML → Markdown
         Summarizer->>Summarizer: Fetch prompt template from GitHub
         Summarizer->>Summarizer: Insert markdown into template
@@ -1209,7 +1218,7 @@ newsletters:scrapes:{date} → DailyPayload
    - All sources fail → Return partial results
 
 2. **Summary/TLDR Errors**
-   - Try multiple scraping methods (curl_cffi → Jina Reader)
+   - Try multiple scraping methods (curl_cffi → Jina Reader → Firecrawl)
    - Return 502 on network errors
    - Return 500 on LLM errors
 
@@ -1254,6 +1263,7 @@ newsletters:scrapes:{date} → DailyPayload
 4. **API Key Management**
    - OpenAI API key server-side only
    - GitHub token for private repos (optional)
+   - Firecrawl API key for hard-to-scrape sites (optional)
 
 ---
 
