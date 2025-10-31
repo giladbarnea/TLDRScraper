@@ -20,7 +20,6 @@
 │       ├── update-doc-frontmatter.yml
 │       └── update-project-structure.yml
 ├── .gitignore
-├── .replit
 ├── agent-commands
 │   └── output
 │       ├── hackernews-integration-plan.md
