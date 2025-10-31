@@ -1,3 +1,7 @@
+---
+last-updated: 2025-10-31 11:03, 2fad697
+---
+
 Title: React 19 Upgrade Guide – React
 
 URL Source: https://react.dev/blog/2024/04/25/react-19-upgrade-guide

@@ -1,3 +1,7 @@
+---
+last-updated: 2025-10-31 11:03, 2fad697
+---
+
 Title: React v19 – React
 
 URL Source: https://react.dev/blog/2024/12/05/react-19

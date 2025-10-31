@@ -1,3 +1,7 @@
+---
+last-updated: 2025-10-31 11:03, 2fad697
+---
+
 Title: React Compiler v1.0 – React
 
 URL Source: https://react.dev/blog/2025/10/07/react-compiler-1
