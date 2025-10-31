@@ -29,6 +29,7 @@
 │   └── index.py
 ├── ARCHITECTURE.md
 ├── BUGS.md
+├── CLAUDE.md
 ├── client
 │   ├── .gitignore
 │   ├── .vscode
