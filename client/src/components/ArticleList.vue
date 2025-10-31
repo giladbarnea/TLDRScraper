@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watchEffect, onMounted, onUnmounted } from 'vue'
 import ArticleCard from './ArticleCard.vue'
 
 const props = defineProps({
@@ -11,11 +11,51 @@ const props = defineProps({
 
 const emit = defineEmits(['copy-summary'])
 
-// Get article state for sorting
+// Force re-computation trigger for storage changes
+const storageVersion = ref(0)
+
+// Watch for localStorage changes
+function handleStorageChange() {
+  storageVersion.value++
+}
+
+onMounted(() => {
+  // Listen for storage changes (from useLocalStorage's deep watcher)
+  window.addEventListener('local-storage-change', handleStorageChange)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('local-storage-change', handleStorageChange)
+})
+
+// Get live article state from localStorage for sorting
 function getArticleState(article) {
-  if (article.removed) return 2  // Removed articles last
-  if (article.read?.isRead) return 1  // Read articles middle
-  return 0  // Unread articles first
+  // Access storageVersion to make this reactive to storage changes
+  storageVersion.value
+
+  const storageKey = `newsletters:scrapes:${article.issueDate}`
+  try {
+    const raw = localStorage.getItem(storageKey)
+    if (raw) {
+      const payload = JSON.parse(raw)
+      const liveArticle = payload.articles?.find(a => a.url === article.url)
+      if (liveArticle) {
+        // Use live state from localStorage
+        if (liveArticle.removed) return 3  // Removed articles last
+        if (liveArticle.tldrHidden) return 2  // TLDR hidden articles second to last
+        if (liveArticle.read?.isRead) return 1  // Read articles middle
+        return 0  // Unread articles first
+      }
+    }
+  } catch (err) {
+    console.error('Failed to read from localStorage:', err)
+  }
+
+  // Fallback to prop values if storage not available
+  if (article.removed) return 3
+  if (article.tldrHidden) return 2
+  if (article.read?.isRead) return 1
+  return 0
 }
 
 // Sort articles by state, then by original order

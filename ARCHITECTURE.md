@@ -146,7 +146,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 **Available Interactions:**
 - Click "TLDR" → Fetch TLDR from API
 - TLDR displayed inline below article
-- Click again → Collapse TLDR
+- Click again → Collapse TLDR (marks as tldrHidden; deprioritized)
 - Cached TLDRs show "Available" (green)
 
 ### 6. Results Display
@@ -154,7 +154,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 
 **Available Interactions:**
 - Articles grouped by: Date → Issue/Category → Section
-- Articles sorted by state: Unread → Read → Removed
+- Articles sorted by state: Unread → Read → TLDR-hidden → Removed
 - Visual state indicators (bold = unread, muted = read, strikethrough = removed)
 - Stats display (article count, unique URLs, dates processed)
 - Collapsible debug logs
@@ -892,6 +892,7 @@ User clicks "TLDR" button
 
   // User state
   removed: boolean,
+  tldrHidden: boolean,
   read: {
     isRead: boolean,
     markedAt: string | null  // ISO timestamp
@@ -1081,10 +1082,10 @@ sequenceDiagram
 ### 1. Article Sorting Algorithm (ArticleList.vue:22)
 
 ```javascript
-// Sort articles by state (unread → read → removed), then by original order
+// Sort articles by state (unread → read → tldrHidden → removed), then by original order
 function sortArticles(articles) {
   return articles.sort((a, b) => {
-    const stateA = getArticleState(a)  // 0=unread, 1=read, 2=removed
+    const stateA = getArticleState(a)  // 0=unread, 1=read, 2=tldrHidden, 3=removed
     const stateB = getArticleState(b)
 
     // Primary sort: by state
@@ -1124,14 +1125,14 @@ function mergeWithCache(payloads) {
     const cached = localStorage.getItem(`newsletters:scrapes:${payload.date}`)
 
     if (cached) {
-      // Merge: preserve user state (read, removed) and AI content (summary, tldr)
+      // Merge: preserve user state (read, removed, tldrHidden) and AI content (summary, tldr)
       return {
         ...payload,
         articles: payload.articles.map(article => {
           const existing = cached.articles.find(a => a.url === article.url)
           return existing
             ? { ...article, summary: existing.summary, tldr: existing.tldr,
-                read: existing.read, removed: existing.removed }
+                read: existing.read, removed: existing.removed, tldrHidden: existing.tldrHidden }
             : article
         })
       }
@@ -1180,7 +1181,7 @@ newsletters:scrapes:{date} → DailyPayload
 
 1. **Initial Scrape**: API response → Build payloads → Save to localStorage
 2. **Cache Hit**: Read from localStorage → Skip API call
-3. **User Interaction**: Modify article state → localStorage auto-updates (via Vue watcher)
+3. **User Interaction**: Modify article state → localStorage auto-updates (via Vue watcher) and dispatches 'local-storage-change' (same-tab reactivity)
 4. **Summary/TLDR**: Fetch from API → Update article → localStorage auto-updates
 
 ---
