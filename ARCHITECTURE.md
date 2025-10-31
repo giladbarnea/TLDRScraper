@@ -1,7 +1,6 @@
 ---
-last-updated: 2025-10-30 21:38, c50a78b
+last-updated: 2025-10-31 09:47, cca7a5d
 ---
-
 # TLDRScraper Architecture Documentation
 
 ## Overview

@@ -1,7 +1,6 @@
 ---
-last-updated: 2025-10-31 08:19, cfae2fa
+last-updated: 2025-10-31 09:47, cca7a5d
 ---
-
 # Client-side State Management & Reactivity
 
 This document catalogs recurring pitfalls in managing client-side state persistence and reactivity.
