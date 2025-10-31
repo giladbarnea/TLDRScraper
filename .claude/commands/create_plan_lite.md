@@ -1,1 +1,0 @@
-commands/create_plan_lite.md
