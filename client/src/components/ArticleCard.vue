@@ -527,6 +527,14 @@ function handleTldrClick() {
   color: var(--text, #0f172a);
 }
 
+.inline-summary > div > ul,
+.inline-summary > div > ol,
+.inline-tldr > div > ul,
+.inline-tldr > div > ol {
+  padding-left: 0;
+  padding-inline-start: 0;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .article-actions {
