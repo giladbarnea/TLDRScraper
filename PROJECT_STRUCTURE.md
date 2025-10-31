@@ -1,7 +1,3 @@
----
-last-updated: 2025-10-31 19:57, 0942042
----
-
 .
 ├── .claude
 │   ├── agents
@@ -120,7 +116,8 @@ last-updated: 2025-10-31 19:57, 0942042
 ├── thoughts
 │   └── shared
 │       └── plans
-│           └── 2025-10-28-fix-cache-ui-state-sync.md
+│           ├── 2025-10-28-fix-cache-ui-state-sync.md
+│           └── vue-to-react-19-migration-plan.md
 ├── tldr_adapter.py
 ├── tldr_app.py
 ├── tldr_service.py
