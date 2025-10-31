@@ -1,7 +1,3 @@
----
-last-updated: 2025-10-31 06:23, c2f4f25
----
-
 .
 ├── .claude
 │   ├── agents
@@ -21,6 +17,7 @@ last-updated: 2025-10-31 06:23, c2f4f25
 │   └── README.md
 ├── .github
 │   └── workflows
+│       ├── copy-agents-to-claude.yml
 │       ├── update-doc-frontmatter.yml
 │       └── update-project-structure.yml
 ├── .gitignore
@@ -33,6 +30,7 @@ last-updated: 2025-10-31 06:23, c2f4f25
 │   └── index.py
 ├── ARCHITECTURE.md
 ├── BUGS.md
+├── CLAUDE.md
 ├── client
 │   ├── .gitignore
 │   ├── .vscode
