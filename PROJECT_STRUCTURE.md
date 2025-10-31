@@ -1,3 +1,7 @@
+---
+last-updated: 2025-10-31 10:10, 4213ab8
+---
+
 .
 ├── .claude
 │   ├── agents
