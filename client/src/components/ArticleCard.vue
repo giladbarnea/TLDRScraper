@@ -17,7 +17,7 @@ const props = defineProps({
 const emit = defineEmits(['copy-summary'])
 
 // Destructure article state management
-const { isRead, isRemoved, toggleRead, toggleRemove } = useArticleState(
+const { isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden } = useArticleState(
   props.article.issueDate,
   props.article.url
 )
@@ -74,9 +74,21 @@ ${summary.markdown.value}`
 // Handle TLDR click
 function handleTldrClick() {
   if (isRemoved.value) return
+
+  const wasExpanded = tldr.expanded.value
   tldr.toggle()
+
+  // Mark as read when expanding TLDR
   if (!isRead.value && tldr.expanded.value) {
     toggleRead()
+  }
+
+  // Mark as tldrHidden when collapsing TLDR (moving to bottom of stack)
+  if (wasExpanded && !tldr.expanded.value) {
+    markTldrHidden()
+  } else if (tldr.expanded.value) {
+    // Unmark when expanding again
+    unmarkTldrHidden()
   }
 }
 </script>

@@ -24,11 +24,16 @@ export function useArticleState(date, url) {
     Boolean(article.value?.removed)
   )
 
+  const isTldrHidden = computed(() =>
+    Boolean(article.value?.tldrHidden)
+  )
+
   const state = computed(() => {
     if (!article.value) return 0
-    if (article.value.removed) return 2
-    if (article.value.read?.isRead) return 1
-    return 0  // unread
+    if (article.value.removed) return 3  // Removed articles last
+    if (article.value.tldrHidden) return 2  // TLDR hidden articles second to last
+    if (article.value.read?.isRead) return 1  // Read articles middle
+    return 0  // Unread articles first
   })
 
   // State mutation methods
@@ -65,6 +70,19 @@ export function useArticleState(date, url) {
     setRemoved(!isRemoved.value)
   }
 
+  function setTldrHidden(hidden) {
+    if (!article.value) return
+    article.value.tldrHidden = Boolean(hidden)
+  }
+
+  function markTldrHidden() {
+    setTldrHidden(true)
+  }
+
+  function unmarkTldrHidden() {
+    setTldrHidden(false)
+  }
+
   // Update article with custom updater function
   function updateArticle(updater) {
     if (!article.value) return null
@@ -77,12 +95,16 @@ export function useArticleState(date, url) {
     article,
     isRead,
     isRemoved,
+    isTldrHidden,
     state,
     markAsRead,
     markAsUnread,
     toggleRead,
     setRemoved,
     toggleRemove,
+    setTldrHidden,
+    markTldrHidden,
+    unmarkTldrHidden,
     updateArticle
   }
 }
