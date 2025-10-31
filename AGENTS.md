@@ -6,7 +6,7 @@ last-updated: 2025-10-29 21:39, 1261599
 
 ### Project overview (short)
 
-- Purpose: Daily TLDR newsletter scraping/curation with client-side localStorage caching.
+- Purpose: Daily tech newsletter scraping/curation with client-side localStorage caching.
 - Stack: Python (Flask backend), Vue 3 + Vite (frontend), client-side localStorage for all caching.
 - Storage: Project uses browser localStorage for all caching (newsletters, URL content, LLM summaries, scrape results). All data persistence happens in the browser.
 - Cache mechanism: localStorage keys follow deterministic patterns based on content and dates. 
@@ -16,7 +16,7 @@ last-updated: 2025-10-29 21:39, 1261599
 The single source of truth for what is available locally is the output of:
 
 ```bash
-env | grep -e TLDR -e TOKEN -e API
+env | grep -e TLDR -e TOKEN -e API -e KEY
 ```
 
 **Run setup.sh first thing up load and verify your environment.**
@@ -41,16 +41,7 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 uv run python3 serve.py
 ```
 
-### jq and uv setup
-
-- Install jq (Linux x86_64):
-```bash
-mkdir -p "$HOME/.local/bin"
-curl -fsSL -o "$HOME/.local/bin/jq" \
-  "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64"
-chmod +x "$HOME/.local/bin/jq"
-export PATH="$HOME/.local/bin:$PATH"
-```
+### `uv` setup
 
 - Install uv and use Python via uv:
 ```bash
@@ -73,13 +64,16 @@ import dep1, dep2, dep3, os
 dep1.do(os.environ["MY_API_KEY"])
 PY
 ```
+### YOU MUST FULLY READ ALL MARKDOWN FILES IN THE ROOT DIRECTORY BEFORE DOING ANYTHING ELSE
+
+The markdown docs at the project's root contain crucial information. Read them fully. Studying and internalizing them is essential for you to complete a task successfully and efficiently.
 
 ### Practical guidance
 
 - Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables. 
 - **Run ./setup.sh to verify the environment and dependencies are set up correctly. After sourcing it, use `start_server_and_watchdog` and `print_server_and_watchdog_pids` to confirm the local server is running, then exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/summarize-url`, `/api/tldr-url`). Use `kill_server_and_watchdog` for cleanup.**
-- Read all the markdown files at the root directory before starting your task. Markdown files at the project root are importance documentation. ls thoughts/ for historical docs that may be relevant.
-- Try the new feature or behavior you have just implemented in your shell. Is the app making a new API call? Call it directly with `curl` after launching the server via `start_server_and_watchdog`. New dependency and Python interface? Try it by running Python via uv, and so on.
+- Read all the markdown files at the root directory before starting your task. Markdown files at the project root are importance documentation. `ls -R thoughts/` for historical docs that may be relevant.
+- Verify every new behavior, fix or modification you make by utilizing your shell. Execute the modified flow to ensure nothing is broken. Run `source setup.sh && start_server_and_watchdog`, then liberally use `curl`, `uv run python3`, `npx`, etc to validate.
 
 
 ### Development Conventions
@@ -117,21 +111,24 @@ def summarize_url():
 
 ### The Right Engineering Mindset
 
-1. Increasing complexity is detrimental. Each new function or logical branch adds to this complexity. In your decision-making, try to think of ways to reduce complexity, rather than just to solve the immediate problem ad-hoc. Sometimes reducing complexity requires removing code, which is OK. If done right, removing code is beneficial similarly to how clearing Tetris blocks is beneficial — it simplifies and creates more space.
-2. Prefer declarative approaches. People understand things better when they can see the full picture instead of having to dive in. Difficulty arises when flow and logic are embedded implicitly in a sprawling implementation.
-3. Avoid over-engineering and excessive abstraction. Code is ephemeral. Simplicity and clarity are key to success.
+1. Avoid increasing complexity without a truly justified reason. Each new line of code or logical branch increases complexity. Complexity is the enemy of the project. In your decision-making, ask yourself how might you **REDUCE complexity** in your solution, rather than just solve the immediate problem ad-hoc. Oftentimes, reducing complexity means **removing code**, which is OK. If done right, removing code is beneficial similarly to how clearing Tetris blocks is beneficial — it simplifies and creates more space.
+2. Prefer declarative code design over imperative approaches. From a variable to an entire system, if it can be declaratively expressed upfront, do so. People understand things better when they can see the full picture instead of having to dive in. Difficulty arises when flow and logic are embedded implicitly in a sprawling implementation.
+3. Avoid over-engineering and excessive abstraction. Abstractions have to be clearly justified. Simplicity and clarity are key.
 4. If you're unsure whether your response is correct, that's completely fine—just let me know of your uncertainty and continue responding. We're a team.
-5. Do not write comments in code, unless they are critical for understanding. Especially, do not write "breadcrumb" comments saying "modified: foo" or "added: bar", as if to leave a modification trail behind.
+5. Do not write comments in code, unless they are critical for understanding. Especially, do not write "journaling" comments saying "modified: foo", "added: bar" or "new implementation", as if to leave a modification trail behind.
 6. For simple tasks that could be performed straight away, do not think much. Just do it. For more complex tasks that would benefit from thinking, think deeper, proportionally to the task's complexity. Regardless, always present your final response in a direct and concise manner. No fluff.
 7. Do NOT fix linter errors unless instructed by the user to do so.
 8. Docstrings should be few and far between. When you do write one, keep it to 1-2 sentences max.
 
-### Crucial Important Rules
-1. When asked to implement a feature, first plan it.
-2. When asked to fix a problem, first think and explore until you understand the "moving parts" related to the hypothesized root cause — the dependencies and dependents around the codebase. This helps you pin down the actual root cause rather than applying band aids. Then plan your fix step-by-step before changing files or writing code.
-**Important**: For each planned step, identify and clearly lay out the logical dependencies of that change, as well as potentially affected logical dependents. This ensures you uncover coupling between components and implicit dependencies, which is absolutely necessary for avoiding bugs.
-3. When making changes, be absolutely SURGICAL. Every line of code you add incurs a small debt; this debt compounds over time through maintenance costs, potential bugs, and cognitive load for everyone who must understand it later. Therefore, make only laser-focused changes, executing exactly what the user required — no less, no more.
+### Crucial Important Rules: How To Approach a Task.
+
+The following points are close to my heart:
+1. Before starting your task, you must understand how big the affected scope is. Will the change affect the entire stack & flow, from the db architecture to the client logic? Map out the moving parts and coupling instances before thinking and planning.
+2. If you are fixing a bug, hypothesize of the root cause before planning your changes.
+3. Plan step-by-step. Account for the moving parts and coupling you found in step (1).
+4. When making changes, be absolutely SURGICAL. Every line of code you add incurs a small debt; this debt compounds over time through maintenance costs, potential bugs, and cognitive load for everyone who must understand it later. Therefore, make only laser-focused changes.
 4. No band-aid fixes. When encountering a problem, first brainstorm what possible root causes may explain it. band-aid fixes are bad because they increase complexity significantly. Root-cause solutions are good because they reduce complexity.
+
 
 ### Being an Effective AI Agent
 
