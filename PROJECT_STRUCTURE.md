@@ -20,7 +20,6 @@
 │       ├── update-doc-frontmatter.yml
 │       └── update-project-structure.yml
 ├── .gitignore
-├── .replit
 ├── agent-commands
 │   └── output
 │       ├── hackernews-integration-plan.md
@@ -54,7 +53,6 @@
 │   │   │   └── useSummary.js
 │   │   └── main.js
 │   └── vite.config.js
-├── CLIENTSIDE_TESTING.md
 ├── docs
 │   └── multi-newsletter-plan.md
 ├── experimental
