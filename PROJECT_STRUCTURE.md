@@ -1,21 +1,13 @@
----
-last-updated: 2025-10-31 10:10, 4213ab8
----
-
 .
 ├── .claude
 │   ├── agents
-│   │   ├── codebase-analyzer.md -> agents/codebase-analyzer.md
-│   │   ├── codebase-locator.md -> agents/codebase-locator.md
-│   │   ├── codebase-pattern-finder.md -> agents/codebase-pattern-finder.md
-│   │   ├── thoughts-analyzer.md -> agents/thoughts-analyzer.md
-│   │   ├── thoughts-locator.md -> agents/thoughts-locator.md
-│   │   └── web-search-researcher.md -> agents/web-search-researcher.md
+│   │   ├── codebase-analyzer.md
+│   │   ├── codebase-locator.md
+│   │   └── codebase-pattern-finder.md
 │   └── commands
-│       ├── create_plan_lite.md -> commands/create_plan_lite.md
-│       ├── debug.md -> commands/debug.md
-│       ├── implement_plan.md -> commands/implement_plan.md
-│       └── research_codebase.md -> commands/research_codebase.md
+│       ├── create_plan.md
+│       ├── implement_plan.md
+│       └── research_codebase.md
 ├── .githooks
 │   ├── pre-merge-commit
 │   └── README.md
@@ -61,7 +53,20 @@ last-updated: 2025-10-31 10:10, 4213ab8
 │   └── vite.config.js
 ├── CLIENTSIDE_TESTING.md
 ├── docs
-│   └── multi-newsletter-plan.md
+│   ├── multi-newsletter-plan.md
+│   └── react-19
+│       ├── react-19-2.md
+│       ├── react-19-release.md
+│       ├── react-19-upgrade-guide.md
+│       ├── react-19-use.md
+│       ├── react-compiler-1-0.md
+│       ├── react-compiler-debugging.md
+│       ├── react-compiler-install.md
+│       ├── react-dom-hooks-useFormStatus.md
+│       ├── react-separating-events-from-effects.md
+│       ├── react-useActionState.md
+│       ├── react-useOptimistic.md
+│       └── react-useTransition.md
 ├── experimental
 │   └── ralph_article_scrape
 │       ├── article_structure.json
