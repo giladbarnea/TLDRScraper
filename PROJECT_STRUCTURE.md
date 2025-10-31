@@ -1,7 +1,3 @@
----
-last-updated: 2025-10-31 19:30, c714563
----
-
 .
 ├── .claude
 │   ├── agents
@@ -62,9 +58,6 @@ last-updated: 2025-10-31 19:30, c714563
 │       ├── react-19-release.md
 │       ├── react-19-upgrade-guide.md
 │       ├── react-19-use.md
-│       ├── react-compiler-1-0.md
-│       ├── react-compiler-debugging.md
-│       ├── react-compiler-install.md
 │       ├── react-dom-hooks-useFormStatus.md
 │       ├── react-separating-events-from-effects.md
 │       ├── react-useActionState.md
