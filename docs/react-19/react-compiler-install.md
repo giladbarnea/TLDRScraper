@@ -1,3 +1,7 @@
+---
+last-updated: 2025-10-31 11:03, 2fad697
+---
+
 Title: Installation – React
 
 URL Source: https://react.dev/learn/react-compiler/installation

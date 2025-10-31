@@ -1,3 +1,7 @@
+---
+last-updated: 2025-10-31 11:03, 2fad697
+---
+
 Title: useTransition – React
 
 URL Source: https://react.dev/reference/react/useTransition
