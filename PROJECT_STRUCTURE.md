@@ -1,7 +1,3 @@
----
-last-updated: 2025-10-30 22:33, a15022d
----
-
 .
 ├── .claude
 │   ├── agents
@@ -95,6 +91,7 @@ last-updated: 2025-10-30 22:33, a15022d
 ├── package.json
 ├── PROJECT_STRUCTURE.md
 ├── pyproject.toml
+├── README.md
 ├── requirements.txt
 ├── scripts
 │   └── update_doc_frontmatter.py
