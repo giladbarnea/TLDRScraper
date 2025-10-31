@@ -91,6 +91,7 @@
 ├── package.json
 ├── PROJECT_STRUCTURE.md
 ├── pyproject.toml
+├── README.md
 ├── requirements.txt
 ├── scripts
 │   └── update_doc_frontmatter.py
