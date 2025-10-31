@@ -240,6 +240,7 @@ export function useScraper() {
           sectionOrder: article.section_order ?? null,
           newsletterType: article.newsletter_type || null,
           removed: Boolean(article.removed),
+          tldrHidden: false,
           summary: { status: 'unknown', markdown: '', effort: 'low', checkedAt: null, errorMessage: null },
           tldr: { status: 'unknown', markdown: '', effort: 'low', checkedAt: null, errorMessage: null },
           read: { isRead: false, markedAt: null }
