@@ -7,7 +7,7 @@ status: draft
 
 ## Executive Summary
 
-This document outlines a comprehensive plan to migrate TLDRScraper from Vue 3 to React 19. The migration takes advantage of React 19's new features (Actions, `use` hook, `useOptimistic`, `useActionState`, `useTransition`) and the React Compiler for automatic memoization. The focus is on preserving the existing state management patterns while translating them to React 19 paradigms.
+This document outlines a comprehensive plan to migrate TLDRScraper from Vue 3 to React 19. The migration takes advantage of React 19's new features (the `use` hook, `useTransition`, and the React Compiler for automatic memoization) while simplifying local state management compared to the Vue implementation. The focus is on preserving the existing state management patterns while translating them to React 19 paradigms.
 
 **Timeline Estimate**: 3-4 weeks for full migration with testing
 
@@ -227,47 +227,50 @@ App.vue
 | `computed()` | Inline calculations | React Compiler auto-memoizes, no need for `useMemo` |
 | `computed()` (complex) | `useMemo()` (if needed) | Only for effect dependencies |
 | `watch()` | `useEffect()` | For side effects |
-| Custom events | Context + `useState` | More idiomatic React pattern |
+| Custom events | Shared subscription map + `useSyncExternalStore` | React-managed notifications without DOM events |
 | `useLocalStorage()` deep watch | Custom hook with explicit updates | Need manual sync |
 
 ### React 19 Features to Leverage
 
-#### 1. Actions (`useTransition`, `useActionState`)
+#### 1. Form Submission Flow
 
 **Use for:**
-- Form submission (scraping)
-- Summary/TLDR fetching
-- Any async operation that updates state
+- Scrape form submission
+- Summary/TLDR fetch buttons (if they evolve into forms)
 
-**Benefits:**
-- Automatic pending state
-- Error handling via Error Boundaries
-- Optimistic updates with `useOptimistic`
-- No manual loading/error state management
+**Approach:**
+- Controlled inputs with `useState`
+- Local `isSubmitting`/`error` state for feedback
+- Introduce `useTransition` later if the UI needs to stay responsive during slower requests
 
 **Example:**
 ```javascript
 function ScrapeForm() {
-  const [error, submitAction, isPending] = useActionState(
-    async (previousState, formData) => {
-      const startDate = formData.get("startDate")
-      const endDate = formData.get("endDate")
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState(null)
 
-      try {
-        const results = await scrapeNewsletters(startDate, endDate)
-        return { success: true, data: results }
-      } catch (err) {
-        return { success: false, error: err.message }
-      }
-    },
-    null
-  )
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const results = await scrapeNewsletters(startDate, endDate)
+      onResults(results)
+    } catch (err) {
+      setError(err.message ?? 'Failed to scrape newsletters')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
-    <form action={submitAction}>
+    <form onSubmit={handleSubmit}>
       {/* form fields */}
-      <button type="submit" disabled={isPending}>
-        {isPending ? 'Scraping...' : 'Scrape Newsletters'}
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Scraping...' : 'Scrape Newsletters'}
       </button>
       {error && <div className="error">{error}</div>}
     </form>
@@ -275,31 +278,30 @@ function ScrapeForm() {
 }
 ```
 
-#### 2. Optimistic Updates (`useOptimistic`)
+#### 2. Direct Local Updates
 
 **Use for:**
 - Marking articles as read
 - Toggling removed state
-- Any UI state that should update immediately
+- Updating TLDR hidden flag
 
 **Example:**
 ```javascript
 function ArticleCard({ article }) {
-  const [optimisticArticle, setOptimisticArticle] = useOptimistic(
-    article,
-    (currentArticle, optimisticValue) => ({
-      ...currentArticle,
-      ...optimisticValue
-    })
-  )
+  const { article: liveArticle, updateArticle } = useArticleState(article.issueDate, article.url)
+  const currentArticle = liveArticle ?? article
 
-  const toggleRead = async () => {
-    setOptimisticArticle({ read: { isRead: !article.read.isRead } })
-    await updateArticleInStorage(article.url, { read: { isRead: !article.read.isRead } })
+  const toggleRead = () => {
+    updateArticle((current) => ({
+      read: {
+        isRead: !current.read?.isRead,
+        markedAt: !current.read?.isRead ? new Date().toISOString() : null
+      }
+    }))
   }
 
   return (
-    <div className={optimisticArticle.read.isRead ? 'read' : 'unread'}>
+    <div className={currentArticle.read?.isRead ? 'read' : 'unread'}>
       {/* article content */}
     </div>
   )
@@ -341,26 +343,34 @@ export default {
 **Custom Hook: `useLocalStorage`**
 
 ```javascript
-import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
+
+const listeners = new Map()
+
+function subscribeToKey(key, callback) {
+  if (!listeners.has(key)) {
+    listeners.set(key, new Set())
+  }
+
+  const callbacks = listeners.get(key)
+  callbacks.add(callback)
+
+  return () => {
+    callbacks.delete(callback)
+    if (callbacks.size === 0) {
+      listeners.delete(key)
+    }
+  }
+}
+
+function notifyKey(key) {
+  const callbacks = listeners.get(key)
+  if (callbacks) {
+    callbacks.forEach((callback) => callback())
+  }
+}
 
 function useLocalStorage(key, defaultValue) {
-  // Use external store pattern for same-tab sync
-  const subscribe = useCallback((callback) => {
-    const handleStorageChange = (event) => {
-      const eventKey = event.detail?.key
-      if (eventKey === undefined || eventKey === key) {
-        callback()
-      }
-    }
-
-    // Listen for custom events (same-tab)
-    window.addEventListener('local-storage-change', handleStorageChange)
-
-    return () => {
-      window.removeEventListener('local-storage-change', handleStorageChange)
-    }
-  }, [key])
-
   const getSnapshot = useCallback(() => {
     try {
       const item = localStorage.getItem(key)
@@ -370,20 +380,19 @@ function useLocalStorage(key, defaultValue) {
     }
   }, [key, defaultValue])
 
+  const subscribe = useCallback((callback) => subscribeToKey(key, callback), [key])
+
   const value = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
   const setValue = useCallback((newValue) => {
     try {
+      const previous = getSnapshot()
       const valueToStore = typeof newValue === 'function'
-        ? newValue(getSnapshot())
+        ? newValue(previous)
         : newValue
 
       localStorage.setItem(key, JSON.stringify(valueToStore))
-
-      // Dispatch custom event for same-tab reactivity
-      window.dispatchEvent(new CustomEvent('local-storage-change', {
-        detail: { key }
-      }))
+      notifyKey(key)
     } catch (error) {
       console.error('Failed to save to localStorage:', error)
     }
@@ -391,9 +400,7 @@ function useLocalStorage(key, defaultValue) {
 
   const remove = useCallback(() => {
     localStorage.removeItem(key)
-    window.dispatchEvent(new CustomEvent('local-storage-change', {
-      detail: { key }
-    }))
+    notifyKey(key)
   }, [key])
 
   return [value, setValue, remove]
@@ -706,31 +713,15 @@ async function handleSubmit() {
 
 **React 19: `ScrapeForm.jsx`**
 ```javascript
-import { useState, useEffect, useActionState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { scrapeNewsletters } from '../lib/scraper'
 
 function ScrapeForm({ onResults }) {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState(null)
 
-  // Use React 19 Actions for form handling
-  const [state, submitAction, isPending] = useActionState(
-    async (previousState, formData) => {
-      const start = formData.get('startDate')
-      const end = formData.get('endDate')
-
-      try {
-        const results = await scrapeNewsletters(start, end)
-        onResults(results)
-        return { success: true, error: null }
-      } catch (err) {
-        return { success: false, error: err.message }
-      }
-    },
-    { success: false, error: null }
-  )
-
-  // Set default dates on mount
   useEffect(() => {
     const today = new Date()
     const threeDaysAgo = new Date(today)
@@ -740,7 +731,6 @@ function ScrapeForm({ onResults }) {
     setStartDate(threeDaysAgo.toISOString().split('T')[0])
   }, [])
 
-  // Validation (React Compiler auto-memoizes)
   const daysDiff = !startDate || !endDate ? 0 :
     Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24))
 
@@ -751,19 +741,37 @@ function ScrapeForm({ onResults }) {
       ? 'Date range cannot exceed 31 days.'
       : null
 
-  const isDisabled = isPending || !!validationError
+  const handleSubmit = useCallback(async (event) => {
+    event.preventDefault()
+    if (validationError) {
+      return
+    }
+
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const results = await scrapeNewsletters(startDate, endDate)
+      onResults(results)
+    } catch (err) {
+      setError(err.message ?? 'Failed to scrape newsletters')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [validationError, startDate, endDate, onResults])
+
+  const isDisabled = isSubmitting || !!validationError
 
   return (
     <div>
-      <form action={submitAction}>
+      <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="startDate">Start Date:</label>
           <input
             id="startDate"
             type="date"
-            name="startDate"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={(event) => setStartDate(event.target.value)}
             required
           />
         </div>
@@ -773,9 +781,8 @@ function ScrapeForm({ onResults }) {
           <input
             id="endDate"
             type="date"
-            name="endDate"
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={(event) => setEndDate(event.target.value)}
             required
           />
         </div>
@@ -784,11 +791,11 @@ function ScrapeForm({ onResults }) {
           type="submit"
           disabled={isDisabled}
         >
-          {isPending ? 'Scraping...' : 'Scrape Newsletters'}
+          {isSubmitting ? 'Scraping...' : 'Scrape Newsletters'}
         </button>
       </form>
 
-      {isPending && (
+      {isSubmitting && (
         <div className="progress">
           <div>Scraping newsletters... This may take several minutes.</div>
           <div className="progress-bar">
@@ -801,8 +808,8 @@ function ScrapeForm({ onResults }) {
         <div className="error" role="alert">{validationError}</div>
       )}
 
-      {state.error && (
-        <div className="error" role="alert">Error: {state.error}</div>
+      {error && (
+        <div className="error" role="alert">Error: {error}</div>
       )}
     </div>
   )
@@ -812,11 +819,11 @@ export default ScrapeForm
 ```
 
 **Changes:**
-- `useScraper()` → inline `useActionState()` (React 19 Actions pattern)
-- No separate loading/error refs (Actions handle this)
+- `useScraper()` → local `handleSubmit` that delegates to `scrapeNewsletters`
+- Pending/error feedback managed with component state (`useState`)
 - `computed()` → inline calculations (React Compiler memoizes)
 - `emit('results')` → `onResults(results)` callback prop
-- Form submission uses Action pattern
+- Form submission handled with a controlled `onSubmit` function
 
 **Note**: Progress tracking simplified. In React 19, we can enhance this with streaming if needed.
 
@@ -877,26 +884,17 @@ function handleCopySummary() {
 ```javascript
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useLocalStorage } from '../hooks/useLocalStorage'
 import ArticleList from './ArticleList'
 
 function ResultsDisplay({ results }) {
   const [showToast, setShowToast] = useState(false)
 
-  // React Compiler auto-memoizes these
   const statsLines = [
     `📊 Stats: ${results.stats.total_articles} articles, ${results.stats.unique_urls} unique URLs`,
     `📅 Dates: ${results.stats.dates_with_content}/${results.stats.dates_processed} with content`,
     results.source && `Source: ${results.source}`
   ].filter(Boolean)
-
-  const articlesByDate = (results.payloads || []).map(payload => ({
-    date: payload.date,
-    articles: payload.articles.map((article, index) => ({
-      ...article,
-      originalOrder: index
-    })),
-    issues: payload.issues || []
-  }))
 
   const debugLogs = results.debugLogs || []
 
@@ -907,14 +905,12 @@ function ResultsDisplay({ results }) {
 
   return (
     <div className="result success">
-      {/* Stats display */}
       <div className="stats">
         {statsLines.map((line, index) => (
           <div key={index}>{line}</div>
         ))}
       </div>
 
-      {/* Debug logs */}
       {debugLogs.length > 0 && (
         <div className="logs-slot">
           <details>
@@ -924,55 +920,16 @@ function ResultsDisplay({ results }) {
         </div>
       )}
 
-      {/* Articles grouped by date */}
       <main id="write">
-        {articlesByDate.map(dateGroup => (
-          <div key={dateGroup.date} className="date-group">
-            {/* Date header */}
-            <div className="date-header-container" data-date={dateGroup.date}>
-              <h2>{dateGroup.date}</h2>
-            </div>
-
-            {/* Issues/Categories */}
-            {dateGroup.issues.map(issue => (
-              <div
-                key={`${dateGroup.date}-${issue.category}`}
-                className="issue-section"
-              >
-                <div className="issue-header-container">
-                  <h4>{issue.category}</h4>
-                </div>
-
-                {(issue.title || issue.subtitle) && (
-                  <div className="issue-title-block">
-                    {issue.title && (
-                      <div className="issue-title-line">{issue.title}</div>
-                    )}
-                    {issue.subtitle && issue.subtitle !== issue.title && (
-                      <div className="issue-title-line">{issue.subtitle}</div>
-                    )}
-                  </div>
-                )}
-
-                <ArticleList
-                  articles={dateGroup.articles.filter(a => a.category === issue.category)}
-                  onCopySummary={handleCopySummary}
-                />
-              </div>
-            ))}
-
-            {/* Articles without category */}
-            {dateGroup.articles.some(a => !a.category) && (
-              <ArticleList
-                articles={dateGroup.articles.filter(a => !a.category)}
-                onCopySummary={handleCopySummary}
-              />
-            )}
-          </div>
+        {(results.payloads || []).map((payload) => (
+          <DailyResults
+            key={payload.date}
+            payload={payload}
+            onCopySummary={handleCopySummary}
+          />
         ))}
       </main>
 
-      {/* Copy toast notification (using Portal instead of Teleport) */}
       {createPortal(
         <div className={`copy-toast ${showToast ? 'show' : ''}`}>
           Copied to clipboard
@@ -983,15 +940,71 @@ function ResultsDisplay({ results }) {
   )
 }
 
+function DailyResults({ payload, onCopySummary }) {
+  const [livePayload] = useLocalStorage(
+    `newsletters:scrapes:${payload.date}`,
+    payload
+  )
+
+  const date = livePayload?.date ?? payload.date
+  const articles = (livePayload?.articles ?? payload.articles).map((article, index) => ({
+    ...article,
+    originalOrder: index
+  }))
+  const issues = livePayload?.issues ?? payload.issues ?? []
+
+  return (
+    <div className="date-group">
+      <div className="date-header-container" data-date={date}>
+        <h2>{date}</h2>
+      </div>
+
+      {issues.map((issue) => (
+        <div
+          key={`${date}-${issue.category}`}
+          className="issue-section"
+        >
+          <div className="issue-header-container">
+            <h4>{issue.category}</h4>
+          </div>
+
+          {(issue.title || issue.subtitle) && (
+            <div className="issue-title-block">
+              {issue.title && (
+                <div className="issue-title-line">{issue.title}</div>
+              )}
+              {issue.subtitle && issue.subtitle !== issue.title && (
+                <div className="issue-title-line">{issue.subtitle}</div>
+              )}
+            </div>
+          )}
+
+          <ArticleList
+            articles={articles.filter((article) => article.category === issue.category)}
+            onCopySummary={onCopySummary}
+          />
+        </div>
+      ))}
+
+      {articles.some((article) => !article.category) && (
+        <ArticleList
+          articles={articles.filter((article) => !article.category)}
+          onCopySummary={onCopySummary}
+        />
+      )}
+    </div>
+  )
+}
+
 export default ResultsDisplay
 ```
 
 **Changes:**
 - `computed()` → inline calculations (React Compiler memoizes)
+- Daily storage sync handled inside `DailyResults` with `useLocalStorage`, no custom DOM events
 - `Teleport` → `createPortal()` from `react-dom`
 - `v-for` → `.map()`
 - `v-if` → `&&` or ternary
-- Toast timeout management simpler (no cleanup needed)
 
 ---
 
@@ -1100,62 +1113,26 @@ const sectionsWithArticles = computed(() => {
 
 **React 19: `ArticleList.jsx`**
 ```javascript
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import ArticleCard from './ArticleCard'
 
 function ArticleList({ articles, onCopySummary }) {
-  // Force re-render on storage changes
-  const [, forceUpdate] = useState({})
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      forceUpdate({})
-    }
-
-    window.addEventListener('local-storage-change', handleStorageChange)
-    return () => {
-      window.removeEventListener('local-storage-change', handleStorageChange)
-    }
-  }, [])
-
-  const getArticleState = (article) => {
-    const storageKey = `newsletters:scrapes:${article.issueDate}`
-    try {
-      const raw = localStorage.getItem(storageKey)
-      if (raw) {
-        const payload = JSON.parse(raw)
-        const liveArticle = payload.articles?.find(a => a.url === article.url)
-        if (liveArticle) {
-          if (liveArticle.removed) return 3
-          if (liveArticle.tldrHidden) return 2
-          if (liveArticle.read?.isRead) return 1
-          return 0
-        }
-      }
-    } catch (err) {
-      console.error('Failed to read from localStorage:', err)
-    }
-
-    if (article.removed) return 3
-    if (article.tldrHidden) return 2
-    if (article.read?.isRead) return 1
-    return 0
-  }
-
-  // Sort articles (use useMemo since it's used as effect dependency implicitly)
   const sortedArticles = useMemo(() => {
     return [...articles].sort((a, b) => {
-      const stateDiff = getArticleState(a) - getArticleState(b)
-      if (stateDiff !== 0) return stateDiff
+      const stateA = a.removed ? 3 : a.tldrHidden ? 2 : a.read?.isRead ? 1 : 0
+      const stateB = b.removed ? 3 : b.tldrHidden ? 2 : b.read?.isRead ? 1 : 0
+
+      if (stateA !== stateB) {
+        return stateA - stateB
+      }
 
       const orderA = a.originalOrder ?? 0
       const orderB = b.originalOrder ?? 0
       return orderA - orderB
     })
-  }, [articles]) // Note: getArticleState reads from localStorage, so changes trigger re-render
+  }, [articles])
 
-  // Build sections (React Compiler auto-memoizes)
-  const sectionsWithArticles = (() => {
+  const sectionsWithArticles = useMemo(() => {
     const sections = []
     let currentSection = null
 
@@ -1178,17 +1155,17 @@ function ArticleList({ articles, onCopySummary }) {
       sections.push({
         type: 'article',
         key: article.url,
-        article: article,
-        index: index
+        article,
+        index
       })
     })
 
     return sections
-  })()
+  }, [sortedArticles])
 
   return (
     <div className="article-list">
-      {sectionsWithArticles.map(item => (
+      {sectionsWithArticles.map((item) => (
         item.type === 'section' ? (
           <div key={item.key} className="section-title">
             {item.label}
@@ -1210,12 +1187,11 @@ export default ArticleList
 ```
 
 **Changes:**
-- `storageVersion` hack → `forceUpdate` pattern
-- `computed()` → inline IIFE (React Compiler memoizes)
-- `sortedArticles` uses `useMemo` (conservative approach)
-- Event listener setup/cleanup in `useEffect`
+- Sorting handled with `useMemo`, using article state passed in from `DailyResults`
+- No direct `localStorage` access; parent hook keeps the data fresh
+- Section assembly remains declarative with memoized derivations
 
-**Note**: This is the most complex component due to the sorting logic that depends on live localStorage state. The `forceUpdate` pattern ensures re-renders when storage changes.
+**Note**: The parent subscription ensures article arrays stay current, so this component can stay purely presentational.
 
 ---
 
@@ -1776,7 +1752,7 @@ Use tools like Percy or Chromatic to catch CSS issues during migration.
 
 1. **Day 1-2: App & ScrapeForm**
    - Migrate App.jsx
-   - Migrate ScrapeForm.jsx with Actions
+   - Migrate ScrapeForm.jsx with controlled submit handling
    - Test scraping flow
    - Test date validation
 
@@ -1862,7 +1838,7 @@ Use tools like Percy or Chromatic to catch CSS issues during migration.
 
 **Tests:**
 - Mark article as read in one component, verify sort in ArticleList
-- Dispatch `local-storage-change` events and confirm components react
+- Mutate localStorage entries and confirm the subscription map notifies consumers
 - Test cache merge with partial data
 
 ---
@@ -1914,9 +1890,9 @@ Use tools like Percy or Chromatic to catch CSS issues during migration.
 **Probability**: MEDIUM
 
 **Mitigation:**
-1. Use React 19 Actions pattern
+1. Use explicit submit handlers and keep storage writes atomic
 2. Test race conditions
-3. Test optimistic updates
+3. Rapidly toggle article state to exercise subscription updates
 4. Test error recovery
 
 **Tests:**
@@ -1935,25 +1911,25 @@ Use tools like Percy or Chromatic to catch CSS issues during migration.
 
 2. **No Deep Watchers**: Must explicitly update nested objects with `setState` updater functions
 
-3. **Custom Events → Context/Props**: More idiomatic to pass callbacks or use Context
+3. **Custom Events → Shared Store**: Replace DOM events with a module-level subscription map exposed through hooks
 
 4. **Reactivity System**: Vue tracks dependencies automatically, React needs explicit subscriptions (`useSyncExternalStore`)
 
 ### React 19 Advantages
 
-1. **Actions > Manual State**: `useActionState` eliminates 90% of loading/error boilerplate
+1. **Controlled forms stay predictable**: Local `useState` keeps async flows explicit, with `useTransition` available if we need to defer UI updates
 
-2. **Optimistic Updates**: `useOptimistic` makes immediate UI feedback trivial
+2. **Compiler > Manual Memoization**: No need to think about `useMemo` / `useCallback` in most cases
 
-3. **Compiler > Manual Memoization**: No need to think about `useMemo` / `useCallback` in most cases
+3. **Cleaner Code**: Less "magic", more explicit
 
-4. **Cleaner Code**: Less "magic", more explicit
+4. **External stores fit naturally**: `useSyncExternalStore` keeps localStorage-backed state in sync without DOM events
 
 ### Critical Gotchas
 
-1. **localStorage Sync**: MUST use `useSyncExternalStore` and custom events, or state will desync
+1. **localStorage Sync**: The shared subscription map must notify every key write; missing it will desync components
 
-2. **Sorting Logic**: Depends on live localStorage reads, must trigger re-render on storage changes
+2. **Sorting Logic**: Article order depends on up-to-date arrays; ensure parents subscribe per day so lists re-render
 
 3. **Merge Logic**: Easy to forget properties when merging cache (bug #1), be exhaustive
 
@@ -1994,10 +1970,10 @@ Use tools like Percy or Chromatic to catch CSS issues during migration.
 
 ## Conclusion
 
-This migration plan translates TLDRScraper's Vue 3 architecture to React 19 while leveraging new features like Actions, `useOptimistic`, and the React Compiler. The most critical aspects are:
+This migration plan translates TLDRScraper's Vue 3 architecture to React 19 while leveraging modern primitives such as the `use` hook, `useTransition`, and the React Compiler. The most critical aspects are:
 
 1. **localStorage sync** using `useSyncExternalStore`
-2. **Article sorting** with live state reads
+2. **Article sorting** driven by up-to-date arrays supplied from subscribed parents
 3. **Cache merging** with complete property preservation
 
 By following this plan systematically and testing thoroughly, the migration should be smooth and result in a more maintainable, performant application.
