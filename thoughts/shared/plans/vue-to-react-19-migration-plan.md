@@ -344,22 +344,19 @@ export default {
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
 
 function useLocalStorage(key, defaultValue) {
-  // Use external store pattern for cross-tab sync
+  // Use external store pattern for same-tab sync
   const subscribe = useCallback((callback) => {
-    const handleStorageChange = (e) => {
-      if (e.key === key || e.key === null) {
+    const handleStorageChange = (event) => {
+      const eventKey = event.detail?.key
+      if (eventKey === undefined || eventKey === key) {
         callback()
       }
     }
-
-    // Listen for storage events (cross-tab)
-    window.addEventListener('storage', handleStorageChange)
 
     // Listen for custom events (same-tab)
     window.addEventListener('local-storage-change', handleStorageChange)
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('local-storage-change', handleStorageChange)
     }
   }, [key])
@@ -1729,25 +1726,6 @@ describe('localStorage sync', () => {
     expect(stored.articles[0].read.isRead).toBe(true)
   })
 
-  it('syncs state across tabs', async () => {
-    render(<App />)
-
-    // Simulate storage event from another tab
-    const event = new StorageEvent('storage', {
-      key: 'newsletters:scrapes:2024-01-01',
-      newValue: JSON.stringify({
-        date: '2024-01-01',
-        articles: [{ url: 'test', read: { isRead: true } }]
-      })
-    })
-
-    window.dispatchEvent(event)
-
-    // Component should re-render with new state
-    await waitFor(() => {
-      // Assert updated state
-    })
-  })
 })
 ```
 
@@ -1878,14 +1856,13 @@ Use tools like Percy or Chromatic to catch CSS issues during migration.
 
 **Mitigation:**
 1. Use `useSyncExternalStore` for proper React integration
-2. Extensive testing of storage events
-3. Test same-tab and cross-tab sync separately
-4. Test merge logic with edge cases
-5. Add logging to detect sync issues early
+2. Extensive testing of same-tab storage events
+3. Test merge logic with edge cases
+4. Add logging to detect sync issues early
 
 **Tests:**
 - Mark article as read in one component, verify sort in ArticleList
-- Modify state in multiple tabs simultaneously
+- Dispatch `local-storage-change` events and confirm components react
 - Test cache merge with partial data
 
 ---
@@ -2003,7 +1980,6 @@ Use tools like Percy or Chromatic to catch CSS issues during migration.
 - [ ] Article sorting matches Vue behavior
 - [ ] Summary/TLDR fetching works
 - [ ] Cache merge preserves all user state
-- [ ] Cross-tab sync works
 - [ ] Error handling is robust
 
 ### Performance
