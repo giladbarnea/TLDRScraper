@@ -1895,11 +1895,6 @@ Use tools like Percy or Chromatic to catch CSS issues during migration.
 3. Use compiler diagnostics
 4. Gradual rollout
 
-**Tests:**
-- Performance benchmarks (before/after)
-- Memory profiling
-- Re-render tracking
-
 ---
 
 ### Risk 4: CSS Breakage
@@ -1911,12 +1906,6 @@ Use tools like Percy or Chromatic to catch CSS issues during migration.
 2. Use CSS modules for scoping
 3. Visual regression testing
 4. Test all interactive states
-
-**Tests:**
-- Screenshot comparison
-- Hover states
-- Animation timing
-- Responsive layouts
 
 ---
 
