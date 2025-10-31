@@ -17,7 +17,7 @@ const props = defineProps({
 const emit = defineEmits(['copy-summary'])
 
 // Destructure article state management
-const { isRead, isRemoved, toggleRead, toggleRemove } = useArticleState(
+const { isRead, isRemoved, isTldrHidden, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden } = useArticleState(
   props.article.issueDate,
   props.article.url
 )
@@ -31,7 +31,8 @@ const cardClasses = computed(() => ({
   'article-card': true,
   'unread': !isRead.value,
   'read': isRead.value,
-  'removed': isRemoved.value
+  'removed': isRemoved.value,
+  'tldr-hidden': isTldrHidden.value
 }))
 
 // Favicon URL
@@ -74,9 +75,21 @@ ${summary.markdown.value}`
 // Handle TLDR click
 function handleTldrClick() {
   if (isRemoved.value) return
+
+  const wasExpanded = tldr.expanded.value
   tldr.toggle()
+
+  // Mark as read when expanding TLDR
   if (!isRead.value && tldr.expanded.value) {
     toggleRead()
+  }
+
+  // Mark as tldrHidden when collapsing TLDR (moving to bottom of stack)
+  if (wasExpanded && !tldr.expanded.value) {
+    markTldrHidden()
+  } else if (tldr.expanded.value) {
+    // Unmark when expanding again
+    unmarkTldrHidden()
   }
 }
 </script>
@@ -242,6 +255,16 @@ function handleTldrClick() {
 }
 
 .article-card.read .article-link {
+  font-weight: normal;
+  color: var(--muted, #475569);
+}
+
+.article-card.tldr-hidden {
+  opacity: 0.6;
+  background: rgba(156, 163, 175, 0.04);
+}
+
+.article-card.tldr-hidden .article-link {
   font-weight: normal;
   color: var(--muted, #475569);
 }

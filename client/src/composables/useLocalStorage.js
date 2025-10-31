@@ -14,6 +14,8 @@ export function useLocalStorage(key, defaultValue) {
     (newValue) => {
       try {
         localStorage.setItem(key, JSON.stringify(newValue))
+        // Dispatch custom event for same-page reactivity
+        window.dispatchEvent(new CustomEvent('local-storage-change', { detail: { key } }))
       } catch (error) {
         console.error(`Failed to persist to localStorage: ${error.message}`)
       }

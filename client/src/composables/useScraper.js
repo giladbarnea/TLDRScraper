@@ -122,7 +122,8 @@ export function useScraper() {
                 summary: existing.summary || article.summary,
                 tldr: existing.tldr || article.tldr,
                 read: existing.read || article.read,
-                removed: existing.removed ?? article.removed
+                removed: existing.removed ?? article.removed,
+                tldrHidden: existing.tldrHidden ?? article.tldrHidden
               }
             }
             return article
