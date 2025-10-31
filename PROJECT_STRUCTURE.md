@@ -51,7 +51,6 @@
 │   │   │   └── useSummary.js
 │   │   └── main.js
 │   └── vite.config.js
-├── CLIENTSIDE_TESTING.md
 ├── docs
 │   ├── multi-newsletter-plan.md
 │   └── react-19
