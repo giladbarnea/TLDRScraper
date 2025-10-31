@@ -144,16 +144,7 @@ decolor () {
 }
 
 function message(){
-	local string="$1"
-	local string_length=${#string}
-	if [[ $string_length -gt 80 ]]; then
-		string_length=80
-	fi
-	# Use `--` so printf doesn't parse the format starting with '-' as an option
-	local horizontal_line=$(printf -- '-%.0s' $(seq 1 $string_length))
-	echo "$horizontal_line"
-	echo "$string"
-	echo "$horizontal_line"
+	echo "[LOG] $*"
 }
 
 # # ensure_uv [-q,-quiet]
@@ -357,7 +348,7 @@ function main() {
   uv_sync --quiet="$quiet" || uv_sync_success=false
 
   if ! "$ensure_uv_success" || ! "$uv_sync_success"; then
-    message "[setup.sh main] Failed to install dependencies. Please check the output above." >&2
+    message "[setup.sh main] ERROR: Failed to install dependencies. Please check the output above." >&2
     return 1
   fi
   
@@ -367,24 +358,26 @@ function main() {
         eval export "$line"
       done
   fi
-    local env_vars="$(env | egrep '(OPENAI|GITHUB|TLDR)' | sort -u)"
-    local -a env_var_names=(
+    local existing_env_vars="$(env | egrep '(OPENAI|GITHUB|TLDR|FIRECRAWL)' | sort -u)"
+    local -a expected_env_var_names=(
       'GITHUB_API_TOKEN'
       'OPENAI_API_KEY'
+	  'FIRECRAWL_API_KEY'
     )
   local -a env_vars_missing=()
   local env_var_name
-  for env_var_name in "${env_var_names[@]}"; do
-    if ! egrep -q "${env_var_name}=.+" <<< "$env_vars"; then
+  for env_var_name in "${expected_env_var_name[@]}"; do
+    if ! egrep -q "${env_var_name}=.+" <<< "$existing_env_vars"; then
       env_vars_missing+=("$env_var_name")
     fi
   done
   if [[ "${#env_vars_missing[@]}" -gt 0 ]]; then
-    message "[setup.sh main] Environment variables missing: ${env_vars_missing[@]}. Stop and tell the user." >&2
+    message "[setup.sh main] ERROR: Environment variables missing: ${env_vars_missing[@]}. Stop and tell the user." >&2
     return 1
   fi
   if [[ "$quiet" == false ]]; then
-    message "[setup.sh main] Setup complete successfully. Available: $env_vars."
+    message "[setup.sh main] Setup complete successfully. Available env vars: $expected_env_var_names."
+	echo "<system-reminder>READ AGENTS.md IN FULL</system-reminder>"
   fi
 }
 
@@ -403,14 +396,14 @@ watchdog() {
   local pid_file="$server_pid_file"
 
   if [[ ! -f "$pid_file" ]]; then
-    echo "watchdog: missing PID file $pid_file" >&2
+    echo "watchdog: ERROR: missing PID file $pid_file" >&2
     return 1
   fi
 
   local pid
   pid="$(cat "$pid_file" 2>/dev/null || true)"
   if [[ -z "$pid" ]]; then
-    echo "watchdog: empty PID in $pid_file" >&2
+    echo "watchdog: ERROR: empty PID in $pid_file" >&2
     return 1
   fi
 
