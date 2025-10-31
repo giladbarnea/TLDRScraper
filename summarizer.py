@@ -97,18 +97,79 @@ def _scrape_with_jina_reader(url: str, *, timeout: int) -> requests.Response:
     return response
 
 
+def _scrape_with_firecrawl(url: str, *, timeout: int) -> requests.Response:
+    api_key = util.resolve_env_var("FIRECRAWL_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("FIRECRAWL_API_KEY not configured")
+
+    util.log(
+        f"[summarizer.scrape_url] Scraping with Firecrawl url={url}",
+        logger=logger,
+    )
+
+    response = requests.post(
+        "https://api.firecrawl.dev/v1/scrape",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "url": url,
+            "formats": ["markdown", "html"],
+        },
+        timeout=timeout,
+    )
+    response.raise_for_status()
+
+    data = response.json()
+    if not data.get("success"):
+        raise requests.HTTPError("Firecrawl scraping failed", response=response)
+
+    html_content = data.get("data", {}).get("html", "")
+    if not html_content:
+        raise RuntimeError("Firecrawl returned empty content")
+
+    # Create a mock Response object with the HTML content
+    # (MarkItDown will convert it to markdown)
+    from io import BytesIO
+    from urllib3.response import HTTPResponse
+
+    mock_response = requests.Response()
+    mock_response.status_code = 200
+    mock_response._content = html_content.encode("utf-8")
+    mock_response.headers["Content-Type"] = "text/html"
+
+    # Create a proper raw response for iter_content to work
+    raw = HTTPResponse(
+        body=BytesIO(html_content.encode("utf-8")),
+        headers={"Content-Type": "text/html"},
+        status=200,
+        preload_content=False,
+    )
+    mock_response.raw = raw
+
+    return mock_response
+
+
 def scrape_url(url: str, *, timeout: int = 10) -> Response:
-    scraping_methods: tuple[tuple[str, Callable[..., Response]], ...] = (
+    scraping_methods = [
         ("curl_cffi", _scrape_with_curl_cffi),
         ("jina_reader", _scrape_with_jina_reader),
-    )
+    ]
+
+    # Add Firecrawl as fallback if API key is configured
+    firecrawl_api_key = util.resolve_env_var("FIRECRAWL_API_KEY", "")
+    if firecrawl_api_key:
+        scraping_methods.append(("firecrawl", _scrape_with_firecrawl))
 
     last_status_error: Optional[requests.HTTPError] = None
     errors = []
 
     for name, scrape in scraping_methods:
         try:
-            result = scrape(url, timeout=timeout)
+            # Use extended timeout for Firecrawl since it does full browser rendering
+            method_timeout = 60 if name == "firecrawl" else timeout
+            result = scrape(url, timeout=method_timeout)
             # Only log intermediate failures if all methods fail
             if errors:
                 util.log(
