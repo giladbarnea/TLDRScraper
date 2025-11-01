@@ -1,7 +1,3 @@
----
-last-updated: 2025-10-31 21:01, 10a0fad
----
-
 .
 ├── .claude
 │   ├── agents
@@ -102,6 +98,7 @@ last-updated: 2025-10-31 21:01, 10a0fad
 ├── newsletter_scraper.py
 ├── package-lock.json
 ├── package.json
+├── pr-166-codex-comments.md
 ├── PROJECT_STRUCTURE.md
 ├── pyproject.toml
 ├── README.md
