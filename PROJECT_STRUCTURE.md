@@ -1,7 +1,3 @@
----
-last-updated: 2025-10-31 21:01, 10a0fad
----
-
 .
 ├── .claude
 │   ├── agents
@@ -21,10 +17,6 @@ last-updated: 2025-10-31 21:01, 10a0fad
 │       ├── update-doc-frontmatter.yml
 │       └── update-project-structure.yml
 ├── .gitignore
-├── agent-commands
-│   └── output
-│       ├── hackernews-integration-plan.md
-│       └── hackernews-integration-research.md
 ├── AGENTS.md
 ├── api
 │   └── index.py
@@ -123,7 +115,9 @@ last-updated: 2025-10-31 21:01, 10a0fad
 ├── thoughts
 │   └── shared
 │       └── plans
-│           └── 2025-10-28-fix-cache-ui-state-sync.md
+│           ├── 2025-10-28-fix-cache-ui-state-sync.md
+│           ├── hackernews-integration-plan.md
+│           └── hackernews-integration-research.md
 ├── tldr_adapter.py
 ├── tldr_app.py
 ├── tldr_service.py
