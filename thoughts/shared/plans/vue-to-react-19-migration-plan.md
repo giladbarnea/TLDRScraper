@@ -7,9 +7,7 @@ status: draft
 
 ## Executive Summary
 
-This document outlines a comprehensive plan to migrate TLDRScraper from Vue 3 to React 19. The migration takes advantage of React 19's new features (the `use` hook, `useTransition`, and the React Compiler for automatic memoization) while simplifying local state management compared to the Vue implementation. The focus is on preserving the existing state management patterns while translating them to React 19 paradigms.
-
-**Timeline Estimate**: 3-4 weeks for full migration with testing
+This document outlines a plan to migrate TLDRScraper from Vue 3 to React 19. The migration uses React 19's `useActionState` for form handling while keeping state management straightforward. The focus is on preserving the existing behavior while simplifying the implementation.
 
 ## Table of Contents
 
@@ -17,9 +15,6 @@ This document outlines a comprehensive plan to migrate TLDRScraper from Vue 3 to
 2. [React 19 State Management Strategy](#react-19-state-management-strategy)
 3. [Component-by-Component Migration Map](#component-by-component-migration-map)
 4. [Build System Changes](#build-system-changes)
-5. [Testing Strategy](#testing-strategy)
-6. [Implementation Order](#implementation-order)
-7. [Risk Mitigation](#risk-mitigation)
 
 ---
 
@@ -224,55 +219,46 @@ App.vue
 | Vue Pattern | React 19 Pattern | Notes |
 |-------------|------------------|-------|
 | `ref()` | `useState()` | Direct replacement for reactive primitives |
-| `computed()` | Inline calculations | React Compiler auto-memoizes, no need for `useMemo` |
-| `computed()` (complex) | `useMemo()` (if needed) | Only for effect dependencies |
+| `computed()` | Inline calculations | No memoization needed for simple derivations |
+| `computed()` (complex) | `useMemo()` | Only when computation is expensive |
 | `watch()` | `useEffect()` | For side effects |
-| Custom events | Shared subscription map + `useSyncExternalStore` | React-managed notifications without DOM events |
 | `useLocalStorage()` deep watch | Custom hook with explicit updates | Need manual sync |
 
 ### React 19 Features to Leverage
 
-#### 1. Form Submission Flow
+#### 1. Form Submission with `useActionState`
 
 **Use for:**
 - Scrape form submission
-- Summary/TLDR fetch buttons (if they evolve into forms)
-
-**Approach:**
-- Controlled inputs with `useState`
-- Local `isSubmitting`/`error` state for feedback
-- Introduce `useTransition` later if the UI needs to stay responsive during slower requests
 
 **Example:**
 ```javascript
-function ScrapeForm() {
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState(null)
+import { useActionState } from 'react'
 
-  const handleSubmit = async (event) => {
-    event.preventDefault()
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
-      const results = await scrapeNewsletters(startDate, endDate)
-      onResults(results)
-    } catch (err) {
-      setError(err.message ?? 'Failed to scrape newsletters')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+function ScrapeForm({ onResults }) {
+  const [state, formAction, isPending] = useActionState(
+    async (previousState, formData) => {
+      try {
+        const startDate = formData.get('startDate')
+        const endDate = formData.get('endDate')
+        const results = await scrapeNewsletters(startDate, endDate)
+        onResults(results)
+        return { success: true }
+      } catch (error) {
+        return { success: false, error: error.message }
+      }
+    },
+    { success: true }
+  )
 
   return (
-    <form onSubmit={handleSubmit}>
-      {/* form fields */}
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Scraping...' : 'Scrape Newsletters'}
+    <form action={formAction}>
+      <input name="startDate" type="date" required />
+      <input name="endDate" type="date" required />
+      <button type="submit" disabled={isPending}>
+        {isPending ? 'Scraping...' : 'Scrape Newsletters'}
       </button>
-      {error && <div className="error">{error}</div>}
+      {state.error && <div className="error">{state.error}</div>}
     </form>
   )
 }
@@ -308,110 +294,43 @@ function ArticleCard({ article }) {
 }
 ```
 
-#### 3. The `use` Hook
+#### 3. Avoiding Over-Optimization
 
-**Use for:**
-- Reading context conditionally
-- Reading promises (for future streaming)
-
-**Not needed initially** but good to know for future enhancements.
-
-#### 4. React Compiler
-
-**Enable by default**. Benefits:
-- Automatic memoization of computed values
-- No need for manual `useMemo` / `useCallback`
-- Better performance than Vue's reactivity system
-- Simpler code
-
-**Configuration:**
-```javascript
-// vite.config.js
-export default {
-  plugins: [
-    react({
-      babel: {
-        plugins: [['babel-plugin-react-compiler', { target: '19' }]]
-      }
-    })
-  ]
-}
-```
+Use `useMemo` only when calculations are genuinely expensive. For simple derivations (like `statusText = enabled ? '(enabled)' : '(disabled)'`), inline calculations are clearer and sufficient.
 
 ### localStorage Sync Solution
 
 **Custom Hook: `useLocalStorage`**
 
 ```javascript
-import { useCallback, useSyncExternalStore } from 'react'
-
-const listeners = new Map()
-
-function subscribeToKey(key, callback) {
-  if (!listeners.has(key)) {
-    listeners.set(key, new Set())
-  }
-
-  const callbacks = listeners.get(key)
-  callbacks.add(callback)
-
-  return () => {
-    callbacks.delete(callback)
-    if (callbacks.size === 0) {
-      listeners.delete(key)
-    }
-  }
-}
-
-function notifyKey(key) {
-  const callbacks = listeners.get(key)
-  if (callbacks) {
-    callbacks.forEach((callback) => callback())
-  }
-}
+import { useState, useEffect } from 'react'
 
 function useLocalStorage(key, defaultValue) {
-  const getSnapshot = useCallback(() => {
+  const [value, setValue] = useState(() => {
     try {
       const item = localStorage.getItem(key)
       return item ? JSON.parse(item) : defaultValue
     } catch {
       return defaultValue
     }
-  }, [key, defaultValue])
+  })
 
-  const subscribe = useCallback((callback) => subscribeToKey(key, callback), [key])
-
-  const value = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
-
-  const setValue = useCallback((newValue) => {
+  useEffect(() => {
     try {
-      const previous = getSnapshot()
-      const valueToStore = typeof newValue === 'function'
-        ? newValue(previous)
-        : newValue
-
-      localStorage.setItem(key, JSON.stringify(valueToStore))
-      notifyKey(key)
+      localStorage.setItem(key, JSON.stringify(value))
     } catch (error) {
       console.error('Failed to save to localStorage:', error)
     }
-  }, [key, getSnapshot])
+  }, [key, value])
 
-  const remove = useCallback(() => {
+  const remove = () => {
     localStorage.removeItem(key)
-    notifyKey(key)
-  }, [key])
+    setValue(defaultValue)
+  }
 
   return [value, setValue, remove]
 }
 ```
-
-**Why `useSyncExternalStore`?**
-1. Built for exactly this use case (syncing with external state)
-2. Handles concurrent rendering correctly
-3. Built-in support for hydration
-4. Works with React 18+ and React 19
 
 ### Article State Management Solution
 
@@ -425,7 +344,7 @@ function useArticleState(date, url) {
   // Find article in payload
   const article = payload?.articles?.find(a => a.url === url) || null
 
-  // Derived state (React Compiler will memoize these)
+  // Derived state
   const isRead = article?.read?.isRead ?? false
   const isRemoved = article?.removed ?? false
   const isTldrHidden = article?.tldrHidden ?? false
@@ -580,7 +499,6 @@ export default App
 - `onMounted()` → `useEffect(() => {}, [])`
 - `@results` event → `onResults` prop
 - Template syntax → JSX
-- No reactivity system needed (React Compiler handles it)
 
 ---
 
@@ -618,8 +536,6 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 function CacheToggle() {
   const [enabled, setEnabled] = useLocalStorage('cache:enabled', true)
 
-  const statusText = enabled ? '(enabled)' : '(disabled)'
-
   return (
     <div className="cache-toggle-container">
       <label className="cache-toggle-label" htmlFor="cacheToggle">
@@ -629,11 +545,12 @@ function CacheToggle() {
           className="cache-toggle-input"
           checked={enabled}
           onChange={(e) => setEnabled(e.target.checked)}
-          aria-label="Enable cache"
         />
         <span className="cache-toggle-checkbox" />
         <span className="cache-toggle-text">Cache</span>
-        <span className="cache-toggle-status">{statusText}</span>
+        <span className="cache-toggle-status">
+          {enabled ? '(enabled)' : '(disabled)'}
+        </span>
       </label>
     </div>
   )
@@ -643,10 +560,8 @@ export default CacheToggle
 ```
 
 **Changes:**
-- Inline `useCacheSettings` logic into component (simpler)
 - `v-model` → `checked` + `onChange`
-- Computed `statusText` becomes inline expression
-- React Compiler auto-memoizes `statusText`
+- Inline status text (no need for separate variable)
 
 ---
 
@@ -713,65 +628,57 @@ async function handleSubmit() {
 
 **React 19: `ScrapeForm.jsx`**
 ```javascript
-import { useState, useEffect, useCallback } from 'react'
+import { useActionState, useState, useEffect } from 'react'
 import { scrapeNewsletters } from '../lib/scraper'
 
 function ScrapeForm({ onResults }) {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState(null)
 
   useEffect(() => {
     const today = new Date()
     const threeDaysAgo = new Date(today)
     threeDaysAgo.setDate(today.getDate() - 3)
-
     setEndDate(today.toISOString().split('T')[0])
     setStartDate(threeDaysAgo.toISOString().split('T')[0])
   }, [])
 
-  const daysDiff = !startDate || !endDate ? 0 :
-    Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24))
+  const [state, formAction, isPending] = useActionState(
+    async (previousState, formData) => {
+      const start = formData.get('startDate')
+      const end = formData.get('endDate')
+      
+      const daysDiff = Math.ceil((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24))
+      
+      if (new Date(start) > new Date(end)) {
+        return { error: 'Start date must be before or equal to end date.' }
+      }
+      if (daysDiff >= 31) {
+        return { error: 'Date range cannot exceed 31 days.' }
+      }
 
-  const validationError = !startDate || !endDate ? null :
-    new Date(startDate) > new Date(endDate)
-      ? 'Start date must be before or equal to end date.'
-      : daysDiff >= 31
-      ? 'Date range cannot exceed 31 days.'
-      : null
-
-  const handleSubmit = useCallback(async (event) => {
-    event.preventDefault()
-    if (validationError) {
-      return
-    }
-
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
-      const results = await scrapeNewsletters(startDate, endDate)
-      onResults(results)
-    } catch (err) {
-      setError(err.message ?? 'Failed to scrape newsletters')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }, [validationError, startDate, endDate, onResults])
-
-  const isDisabled = isSubmitting || !!validationError
+      try {
+        const results = await scrapeNewsletters(start, end)
+        onResults(results)
+        return { success: true }
+      } catch (err) {
+        return { error: err.message }
+      }
+    },
+    { success: false }
+  )
 
   return (
     <div>
-      <form onSubmit={handleSubmit}>
+      <form action={formAction}>
         <div className="form-group">
           <label htmlFor="startDate">Start Date:</label>
           <input
             id="startDate"
+            name="startDate"
             type="date"
             value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
+            onChange={(e) => setStartDate(e.target.value)}
             required
           />
         </div>
@@ -780,36 +687,27 @@ function ScrapeForm({ onResults }) {
           <label htmlFor="endDate">End Date:</label>
           <input
             id="endDate"
+            name="endDate"
             type="date"
             value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
+            onChange={(e) => setEndDate(e.target.value)}
             required
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={isDisabled}
-        >
-          {isSubmitting ? 'Scraping...' : 'Scrape Newsletters'}
+        <button type="submit" disabled={isPending}>
+          {isPending ? 'Scraping...' : 'Scrape Newsletters'}
         </button>
       </form>
 
-      {isSubmitting && (
+      {isPending && (
         <div className="progress">
           <div>Scraping newsletters... This may take several minutes.</div>
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: '50%' }} />
-          </div>
         </div>
       )}
 
-      {validationError && (
-        <div className="error" role="alert">{validationError}</div>
-      )}
-
-      {error && (
-        <div className="error" role="alert">Error: {error}</div>
+      {state.error && (
+        <div className="error" role="alert">{state.error}</div>
       )}
     </div>
   )
@@ -819,13 +717,9 @@ export default ScrapeForm
 ```
 
 **Changes:**
-- `useScraper()` → local `handleSubmit` that delegates to `scrapeNewsletters`
-- Pending/error feedback managed with component state (`useState`)
-- `computed()` → inline calculations (React Compiler memoizes)
+- Uses `useActionState` for form handling
+- Validation moved into action
 - `emit('results')` → `onResults(results)` callback prop
-- Form submission handled with a controlled `onSubmit` function
-
-**Note**: Progress tracking simplified. In React 19, we can enhance this with streaming if needed.
 
 ---
 
@@ -1000,8 +894,8 @@ export default ResultsDisplay
 ```
 
 **Changes:**
-- `computed()` → inline calculations (React Compiler memoizes)
-- Daily storage sync handled inside `DailyResults` with `useLocalStorage`, no custom DOM events
+- `computed()` → inline calculations
+- Daily storage sync handled inside `DailyResults` with `useLocalStorage`
 - `Teleport` → `createPortal()` from `react-dom`
 - `v-for` → `.map()`
 - `v-if` → `&&` or ternary
@@ -1187,11 +1081,9 @@ export default ArticleList
 ```
 
 **Changes:**
-- Sorting handled with `useMemo`, using article state passed in from `DailyResults`
+- Sorting handled with `useMemo`
 - No direct `localStorage` access; parent hook keeps the data fresh
-- Section assembly remains declarative with memoized derivations
-
-**Note**: The parent subscription ensures article arrays stay current, so this component can stay purely presentational.
+- Section assembly remains declarative
 
 ---
 
@@ -1237,7 +1129,6 @@ function ArticleCard({ article, index, onCopySummary }) {
   const summary = useSummary(article.issueDate, article.url, 'summary')
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
 
-  // Card classes (React Compiler auto-memoizes)
   const cardClasses = [
     'article-card',
     !isRead && 'unread',
@@ -1419,7 +1310,7 @@ export default ArticleCard
 ```
 
 **Changes:**
-- `computed()` → inline calculations (React Compiler memoizes)
+- `computed()` → inline calculations
 - `v-if` → `&&` or ternary
 - `v-html` → `dangerouslySetInnerHTML` (still sanitized by DOMPurify in `useSummary`)
 - `:class` → `className` with conditional logic
@@ -1455,7 +1346,6 @@ export default ArticleCard
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^x.x.x",
-    "babel-plugin-react-compiler": "^1.0.0",
     "eslint-plugin-react-hooks": "^6.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0"
@@ -1493,17 +1383,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [
-    react({
-      babel: {
-        plugins: [
-          ['babel-plugin-react-compiler', {
-            target: '19'
-          }]
-        ]
-      }
-    })
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
@@ -1603,377 +1483,33 @@ export default [
 
 ### 6. CSS Migration
 
-Vue scoped styles need to become CSS modules or regular CSS:
+Convert Vue scoped styles to regular CSS files with component-specific class names.
 
-**Option 1: CSS Modules**
-```javascript
-// Component.jsx
-import styles from './Component.module.css'
-
-function Component() {
-  return <div className={styles.container}>...</div>
-}
-```
-
-**Option 2: Global CSS**
-```css
-/* All styles in src/App.css or component-specific files */
-```
 
 ---
 
-## Testing Strategy
-
-### 1. Unit Testing Migration
-
-**Vue Test Utils → React Testing Library**
-
-**Before (Vue):**
-```javascript
-import { mount } from '@vue/test-utils'
-import ArticleCard from '@/components/ArticleCard.vue'
-
-describe('ArticleCard', () => {
-  it('marks article as read when clicked', async () => {
-    const wrapper = mount(ArticleCard, {
-      props: {
-        article: { url: 'https://example.com', title: 'Test' },
-        index: 0
-      }
-    })
-
-    await wrapper.find('.article-link').trigger('click')
-
-    expect(wrapper.classes()).toContain('read')
-  })
-})
-```
-
-**After (React):**
-```javascript
-import { render, screen, fireEvent } from '@testing-library/react'
-import ArticleCard from './ArticleCard'
-
-describe('ArticleCard', () => {
-  it('marks article as read when clicked', () => {
-    const article = { url: 'https://example.com', title: 'Test' }
-
-    render(<ArticleCard article={article} index={0} />)
-
-    const link = screen.getByText('Test')
-    fireEvent.click(link)
-
-    expect(link.parentElement).toHaveClass('read')
-  })
-})
-```
-
-### 2. Integration Testing
-
-**Test localStorage sync:**
-
-```javascript
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import App from './App'
-
-describe('localStorage sync', () => {
-  beforeEach(() => {
-    localStorage.clear()
-  })
-
-  it('persists article state to localStorage', async () => {
-    render(<App />)
-
-    // Scrape articles
-    await userEvent.type(screen.getByLabelText('Start Date'), '2024-01-01')
-    await userEvent.type(screen.getByLabelText('End Date'), '2024-01-03')
-    await userEvent.click(screen.getByText('Scrape Newsletters'))
-
-    // Wait for results
-    await waitFor(() => screen.getByText(/Stats:/))
-
-    // Mark article as read
-    const article = screen.getAllByRole('link')[0]
-    await userEvent.click(article)
-
-    // Check localStorage
-    const stored = JSON.parse(localStorage.getItem('newsletters:scrapes:2024-01-01'))
-    expect(stored.articles[0].read.isRead).toBe(true)
-  })
-
-})
-```
-
-### 3. E2E Testing
-
-No changes needed if using Playwright or Cypress (they interact with DOM, not framework-specific).
-
-### 4. Visual Regression Testing
-
-Use tools like Percy or Chromatic to catch CSS issues during migration.
-
----
-
-## Implementation Order
-
-### Phase 1: Foundation (Week 1)
-
-**Goal**: Set up React 19 infrastructure and migrate non-state components.
-
-1. **Day 1-2: Setup**
-   - Update package.json dependencies
-   - Update vite.config.js
-   - Update index.html
-   - Create src/main.jsx
-   - Install React Compiler
-   - Configure ESLint
-
-2. **Day 3-4: Core Hooks**
-   - Create `hooks/useLocalStorage.js`
-   - Create `hooks/useArticleState.js`
-   - Create `hooks/useCacheSettings.js`
-   - Create `hooks/useScraper.js`
-   - Create `hooks/useSummary.js`
-   - Write unit tests for each hook
-
-3. **Day 5: Simple Components**
-   - Migrate CacheToggle
-   - Migrate CSS to CSS modules or global
-   - Test localStorage sync
-
-**Checkpoint**: Cache toggle works, localStorage syncs correctly.
-
----
-
-### Phase 2: Core Components (Week 2)
-
-**Goal**: Migrate main UI components.
-
-1. **Day 1-2: App & ScrapeForm**
-   - Migrate App.jsx
-   - Migrate ScrapeForm.jsx with controlled submit handling
-   - Test scraping flow
-   - Test date validation
-
-2. **Day 3: ResultsDisplay**
-   - Migrate ResultsDisplay.jsx
-   - Test stats display
-   - Test debug logs
-
-3. **Day 4-5: ArticleList**
-   - Migrate ArticleList.jsx
-   - Test sorting logic (CRITICAL)
-   - Test storage change reactivity
-   - Test section grouping
-
-**Checkpoint**: Can scrape, view results, articles sort correctly.
-
----
-
-### Phase 3: Complex Features (Week 3)
-
-**Goal**: Migrate article interactions.
-
-1. **Day 1-3: ArticleCard**
-   - Migrate ArticleCard.jsx
-   - Test read/unread toggle
-   - Test remove/restore
-   - Test TLDR hidden state
-   - Test summary/TLDR fetching
-
-2. **Day 4: Summary Integration**
-   - Test markdown rendering
-   - Test DOMPurify sanitization
-   - Test copy to clipboard
-
-3. **Day 5: Testing & Bug Fixes**
-   - Run full integration tests
-   - Fix any state sync issues
-   - Performance testing
-
-**Checkpoint**: All features work, state syncs correctly.
-
----
-
-### Phase 4: Polish & Testing (Week 4)
-
-**Goal**: Ensure production readiness.
-
-1. **Day 1-2: E2E Testing**
-   - Write comprehensive E2E tests
-   - Test cache merge logic
-   - Test error handling
-
-2. **Day 3: Performance**
-   - Run React Compiler analysis
-   - Optimize re-renders
-   - Test with large datasets
-
-3. **Day 4: Documentation**
-   - Update README
-   - Document new patterns
-   - Migration notes
-
-4. **Day 5: Deployment**
-   - Build for production
-   - Test production build
-   - Deploy
-
-**Checkpoint**: Production-ready React 19 app.
-
----
-
-## Risk Mitigation
-
-### Risk 1: localStorage Sync Bugs
-
-**Probability**: HIGH (historical bugs: commit 16bd653, 3bfceee)
-
-**Mitigation:**
-1. Use `useSyncExternalStore` for proper React integration
-2. Extensive testing of same-tab storage events
-3. Test merge logic with edge cases
-4. Add logging to detect sync issues early
-
-**Tests:**
-- Mark article as read in one component, verify sort in ArticleList
-- Mutate localStorage entries and confirm the subscription map notifies consumers
-- Test cache merge with partial data
-
----
-
-### Risk 2: Sorting Regression
-
-**Probability**: MEDIUM
-
-**Mitigation:**
-1. Port exact sorting algorithm from Vue
-2. Test with various article states
-3. Test with large datasets
-4. Visual regression testing
-5. Compare side-by-side with Vue version
-
-**Tests:**
-- Articles in all 4 states (unread, read, tldrHidden, removed)
-- Multiple articles with same state (preserve original order)
-- Dynamic state changes (mark read, then hide TLDR)
-
----
-
-### Risk 3: React Compiler Issues
-
-**Probability**: LOW-MEDIUM
-
-**Mitigation:**
-1. Keep `useMemo` for complex calculations
-2. Test with compiler disabled first
-3. Use compiler diagnostics
-4. Gradual rollout
-
----
-
-### Risk 4: CSS Breakage
-
-**Probability**: MEDIUM
-
-**Mitigation:**
-1. Keep same class names
-2. Use CSS modules for scoping
-3. Visual regression testing
-4. Test all interactive states
-
----
-
-### Risk 5: Async State Updates
-
-**Probability**: MEDIUM
-
-**Mitigation:**
-1. Use explicit submit handlers and keep storage writes atomic
-2. Test race conditions
-3. Rapidly toggle article state to exercise subscription updates
-4. Test error recovery
-
-**Tests:**
-- Rapid clicking (summary, TLDR, remove)
-- Slow network simulation
-- API errors
-- Concurrent updates
-
----
-
-## Key Insights Summary
+## Key Insights
 
 ### Vue → React Patterns
 
-1. **No Direct `computed()` Equivalent**: React Compiler auto-memoizes, but for effect dependencies, use `useMemo`
+1. **No Direct `computed()` Equivalent**: Use inline calculations for simple derivations, `useMemo` only when expensive
 
 2. **No Deep Watchers**: Must explicitly update nested objects with `setState` updater functions
 
-3. **Custom Events → Shared Store**: Replace DOM events with a module-level subscription map exposed through hooks
-
-4. **Reactivity System**: Vue tracks dependencies automatically, React needs explicit subscriptions (`useSyncExternalStore`)
+3. **Reactivity System**: Vue tracks dependencies automatically, React needs explicit state updates
 
 ### React 19 Advantages
 
-1. **Controlled forms stay predictable**: Local `useState` keeps async flows explicit, with `useTransition` available if we need to defer UI updates
+1. **`useActionState` for forms**: Handles pending/error states automatically, cleaner than manual state management
 
-2. **Compiler > Manual Memoization**: No need to think about `useMemo` / `useCallback` in most cases
+2. **Cleaner Code**: Less "magic", more explicit
 
-3. **Cleaner Code**: Less "magic", more explicit
-
-4. **External stores fit naturally**: `useSyncExternalStore` keeps localStorage-backed state in sync without DOM events
+3. **Simpler mental model**: State flows in one direction
 
 ### Critical Gotchas
 
-1. **localStorage Sync**: The shared subscription map must notify every key write; missing it will desync components
+1. **localStorage Sync**: Must trigger re-renders when localStorage changes
 
-2. **Sorting Logic**: Article order depends on up-to-date arrays; ensure parents subscribe per day so lists re-render
+2. **Sorting Logic**: Article order depends on current state from localStorage
 
-3. **Merge Logic**: Easy to forget properties when merging cache (bug #1), be exhaustive
-
-4. **Effect Dependencies**: React Compiler doesn't eliminate useEffect dependencies, be careful
-
----
-
-## Success Criteria
-
-### Functional
-- [ ] All features work identically to Vue version
-- [ ] localStorage sync is reliable
-- [ ] Article sorting matches Vue behavior
-- [ ] Summary/TLDR fetching works
-- [ ] Cache merge preserves all user state
-- [ ] Error handling is robust
-
-### Performance
-- [ ] Initial load ≤ Vue version
-- [ ] Re-renders are minimal (React Compiler)
-- [ ] Memory usage comparable
-- [ ] No layout thrashing
-
-### Code Quality
-- [ ] No console errors/warnings
-- [ ] ESLint passes
-- [ ] TypeScript (if added) compiles
-- [ ] Tests pass
-- [ ] Code coverage ≥ 80%
-
-### Documentation
-- [ ] Migration guide written
-- [ ] New patterns documented
-- [ ] Breaking changes noted
-- [ ] Deployment checklist complete
-
----
-
-## Conclusion
-
-This migration plan translates TLDRScraper's Vue 3 architecture to React 19 while leveraging modern primitives such as the `use` hook, `useTransition`, and the React Compiler. The most critical aspects are:
-
-1. **localStorage sync** using `useSyncExternalStore`
-2. **Article sorting** driven by up-to-date arrays supplied from subscribed parents
-3. **Cache merging** with complete property preservation
-
-By following this plan systematically and testing thoroughly, the migration should be smooth and result in a more maintainable, performant application.
+3. **Merge Logic**: Easy to forget properties when merging cache (historical bug in commit 3bfceee), be exhaustive
