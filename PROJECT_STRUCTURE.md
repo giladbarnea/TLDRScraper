@@ -17,10 +17,6 @@
 │       ├── update-doc-frontmatter.yml
 │       └── update-project-structure.yml
 ├── .gitignore
-├── agent-commands
-│   └── output
-│       ├── hackernews-integration-plan.md
-│       └── hackernews-integration-research.md
 ├── AGENTS.md
 ├── api
 │   └── index.py
@@ -58,6 +54,9 @@
 │       ├── react-19-release.md
 │       ├── react-19-upgrade-guide.md
 │       ├── react-19-use.md
+│       ├── react-compiler-1-0.md
+│       ├── react-compiler-debugging.md
+│       ├── react-compiler-install.md
 │       ├── react-dom-hooks-useFormStatus.md
 │       ├── react-separating-events-from-effects.md
 │       ├── react-useActionState.md
@@ -117,6 +116,8 @@
 │   └── shared
 │       └── plans
 │           ├── 2025-10-28-fix-cache-ui-state-sync.md
+│           ├── hackernews-integration-plan.md
+│           ├── hackernews-integration-research.md
 │           └── vue-to-react-19-migration-plan.md
 ├── tldr_adapter.py
 ├── tldr_app.py
