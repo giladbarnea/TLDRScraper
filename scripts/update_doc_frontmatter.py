@@ -11,6 +11,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
 
+SKIP_FILES = {
+    'PROJECT_STRUCTURE.md',
+}
+
 
 def run_git_command(cmd: List[str]) -> str:
     """Run a git command and return its output."""
@@ -38,8 +42,8 @@ def get_modified_markdown_files() -> List[Path]:
     # Filter for markdown files
     files = [Path(f) for f in output.split('\n') if f.endswith('.md')]
 
-    # Only return files that exist
-    return [f for f in files if f.exists()]
+    # Only return files that exist and are not in skip list
+    return [f for f in files if f.exists() and f.name not in SKIP_FILES]
 
 
 def get_current_commit_info() -> Tuple[str, str]:
