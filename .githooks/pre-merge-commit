@@ -32,8 +32,5 @@ eza \
   --all \
   . > PROJECT_STRUCTURE.md
 
-# Add the generated file to the merge commit
-git add PROJECT_STRUCTURE.md
-
-# Exit with 0 to allow the merge to proceed
+# Exit with 0 to allow the merge to proceed even though the file is ignored
 exit 0

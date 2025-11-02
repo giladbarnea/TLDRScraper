@@ -145,7 +145,7 @@ Flask is configured to:
 ## Documentation
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed architecture and data flow
-- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - File structure overview
+- `PROJECT_STRUCTURE.md` - Generated locally (run `./setup-hooks.sh` and then run any git command to regenerate a fresh structure preview)
 - [BUGS.md](BUGS.md) - Known issues
 - [CLIENTSIDE_TESTING.md](CLIENTSIDE_TESTING.md) - Frontend testing guide
 
