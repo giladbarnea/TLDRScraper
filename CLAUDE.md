@@ -4,12 +4,19 @@ last-updated: 2025-10-29 21:39, 1261599
 
 ## Agents Guide
 
-### Project overview (short)
+### Project overview
 
-- Purpose: Daily tech newsletter scraping/curation with client-side localStorage caching.
-- Stack: Python (Flask backend), Vue 3 + Vite (frontend), client-side localStorage for all caching.
+Newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered summaries and TLDRs.
+
+- Stack: 
+   * Python: Flask backend, serverless on Vercel
+   * Vue 3 + Vite (frontend) (in `client/`)
+   * Client-side localStorage for all caching
+   * OpenAI GPT-5 for summaries and TLDRs
 - Storage: Project uses browser localStorage for all caching (newsletters, URL content, LLM summaries, scrape results). All data persistence happens in the browser.
 - Cache mechanism: localStorage keys follow deterministic patterns based on content and dates. 
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
 
 ### Environment variables
 
@@ -31,14 +38,25 @@ Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_
 - `OPENAI_API_KEY`: `sk-...` (unprefixed in all environments)
 - `GITHUB_API_TOKEN`: `github_pat_...` (unprefixed in all environments)
 
-### Common tasks and examples
-#### Run serve.py locally
+### Development & Setup
 
 ```bash
-# Takes care of installing dependencies and bootstrapping the environment.
+# Verify the environment and dependencies are set up correctly.
 ./setup.sh
 
-uv run python3 serve.py
+# Start the server and watchdog in the background. Logs output to file.
+start_server_and_watchdog
+
+# Verify the server is running.
+print_server_and_watchdog_pids
+
+# Exercise the API with curl requests.
+curl http://localhost:5001/api/scrape
+curl http://localhost:5001/api/summarize-url
+curl http://localhost:5001/api/tldr-url
+
+# Stop the server and watchdog.
+kill_server_and_watchdog
 ```
 
 ### `uv` setup
@@ -64,7 +82,8 @@ import dep1, dep2, dep3, os
 dep1.do(os.environ["MY_API_KEY"])
 PY
 ```
-### YOU MUST FULLY READ ALL MARKDOWN FILES IN THE ROOT DIRECTORY BEFORE DOING ANYTHING ELSE
+
+### YOU MUST **FULLY** READ **ALL** MARKDOWN FILES IN THE ROOT DIRECTORY BEFORE DOING ANYTHING ELSE
 
 The markdown docs at the project's root contain crucial information. Read them fully. Studying and internalizing them is essential for you to complete a task successfully and efficiently.
 
