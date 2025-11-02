@@ -6,6 +6,7 @@
 *.log
 .vercel
 .env*.local
+PROJECT_STRUCTURE.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
