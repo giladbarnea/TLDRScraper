@@ -1,8 +1,8 @@
 ---
+last-updated: 2025-11-02 06:40, 0f8b601
 created: 2025-10-31
 status: draft
 ---
-
 # Vue 3 to React 19 Migration Plan
 
 ## Executive Summary
