@@ -11,7 +11,7 @@ import os
 import util
 import tldr_app
 
-# Configure Flask to serve Vue build output
+# Configure Flask to serve React build output
 app = Flask(
     __name__,
     static_folder='static/dist/assets',
@@ -23,7 +23,7 @@ logger = logging.getLogger("serve")
 
 @app.route("/")
 def index():
-    """Serve the Vue app"""
+    """Serve the React app"""
     static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
     return send_from_directory(static_dist, 'index.html')
 

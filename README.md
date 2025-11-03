@@ -7,36 +7,48 @@ Newsletter aggregator that scrapes tech newsletters from multiple sources, displ
 
 ## Architecture
 
-- **Frontend**: Vue 3 + Vite (in `client/`)
+- **Frontend**: React 19 + Vite (in `client/`)
 - **Backend**: Flask + Python (serverless on Vercel)
 - **AI**: OpenAI GPT-5 for summaries
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
 
 ## Development
 
-### Local Setup
+## Development & Setup
 
-1. **Install Python dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Running the server and logs watchdog
+```bash
+# Verify the environment and dependencies are set up correctly.
+source ./setup.sh
 
-2. **Install and build the Vue app:**
-   ```bash
-   cd client
-   npm install
-   npm run build
-   ```
+# Start the server and watchdog in the background. Logs output to file.
+start_server_and_watchdog
 
-3. **Run the Flask server:**
-   ```bash
-   python serve.py
-   ```
+# Verify the server is running.
+print_server_and_watchdog_pids
 
-The app will be available at http://localhost:5001
+# Exercise the API with curl requests.
+curl http://localhost:5001/api/scrape
+curl http://localhost:5001/api/summarize-url
+curl http://localhost:5001/api/tldr-url
+curl ...additional endpoints that may be relevant...
 
-### Development Mode
+# Stop the server and watchdog.
+kill_server_and_watchdog
+```
+
+
+## Client setup
+
+```bash
+cd client
+npm install
+npm run build
+npm run dev
+```
+
+### Frontend development
 
 For frontend development with hot reload:
 
@@ -47,15 +59,25 @@ npm run dev
 
 This runs Vite dev server on port 3000 with API proxy to localhost:5000.
 
+
+### `uv` installation and usage
+
+- Install `uv` and use Python via `uv`:
+```bash
+source setup.sh
+ensure_uv
+uv --version
+```
+
 ## Vercel Deployment
 
 ### How It Works
 
-The application is deployed to Vercel as a Python serverless function with a built Vue frontend:
+The application is deployed to Vercel as a Python serverless function with a built React frontend:
 
 1. **Build Phase** (`buildCommand` in `vercel.json`):
    - `cd client && npm install && npm run build`
-   - Builds Vue app to `static/dist/`
+   - Builds React app
 
 2. **Install Phase** (automatic):
    - Vercel auto-detects `requirements.txt`
@@ -64,7 +86,7 @@ The application is deployed to Vercel as a Python serverless function with a bui
 3. **Runtime**:
    - `/api/index.py` imports the Flask app from `serve.py`
    - All routes (`/`, `/api/*`) are handled by the Python serverless function
-   - Flask serves the built Vue app from `static/dist/`
+   - Flask serves the built React app from `client/static/dist/`
    - API endpoints process requests
 
 ### Key Configuration Files
@@ -80,8 +102,8 @@ The application is deployed to Vercel as a Python serverless function with a bui
 }
 ```
 
-- **buildCommand**: Builds the Vue frontend
-- **outputDirectory**: Points to where Vue builds output (matches `client/vite.config.js` outDir)
+- **buildCommand**: Builds the React frontend
+- **outputDirectory**: Points to where React builds output (matches `client/vite.config.js` outDir)
 - **rewrites**: Routes all requests to the Python serverless function
 
 #### `api/index.py`
@@ -101,7 +123,7 @@ This is the Vercel serverless function entry point. The path manipulation is req
 
 #### `serve.py`
 ```python
-# Configure Flask to serve Vue build output
+# Configure Flask to serve React build output
 app = Flask(
     __name__,
     static_folder='static/dist/assets',
@@ -110,24 +132,24 @@ app = Flask(
 
 @app.route("/")
 def index():
-    """Serve the Vue app"""
+    """Serve the React app"""
     static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
     return send_from_directory(static_dist, 'index.html')
 ```
 
 Flask is configured to:
 - Serve static assets from `static/dist/assets` at `/assets/*`
-- Serve the Vue app's `index.html` at the root `/`
+- Serve the React app's `index.html` at the root `/`
 - Handle API routes at `/api/*`
 
 ### Deployment Requirements
 
-1. **Vue build output** must be in `static/dist/` (configured in `client/vite.config.js`)
-2. **Python dependencies** must be in `requirements.txt` (Vercel auto-installs)
+1. **React build output** must be in `client/static/dist/` (configured in `client/vite.config.js`)
+2. **Python dependencies** are managed by `uv` and must manually be added to `requirements.txt` (Vercel auto-installs)
 3. **Module imports** in `api/index.py` must handle parent directory path
-4. **Flask static configuration** must point to built Vue assets
+4. **Flask static configuration** must point to built React assets
 
-### Common Deployment Issues
+### Common Vercel Deployment Issues
 
 **Issue**: `pip: command not found`
 - **Cause**: Explicit `installCommand` in vercel.json trying to run pip in Node.js context
@@ -143,20 +165,7 @@ Flask is configured to:
 
 ## Documentation
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed architecture and data flow
-- `PROJECT_STRUCTURE.md` - Generated locally (run `./setup-hooks.sh` and then run any git command to regenerate a fresh structure preview)
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed flows & user interactions documentation
+- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Map of the project structure
+- [STATE_GOTCHAS.md](STATE_GOTCHAS.md) - Documented solved tricky past bugs
 - [BUGS.md](BUGS.md) - Known issues
-- [CLIENTSIDE_TESTING.md](CLIENTSIDE_TESTING.md) - Frontend testing guide
-
-## Environment Variables
-
-Create a `.env` file with:
-
-```bash
-OPENAI_API_KEY=your_api_key_here
-LOG_LEVEL=INFO  # Optional, defaults to INFO
-```
-
-## License
-
-MIT
