@@ -43,7 +43,7 @@ def _parse_date_range(
 
 
 def scrape_newsletters_in_date_range(
-    start_date_text: str, end_date_text: str, source_ids: list[str] | None = None, excluded_urls: list[str] = None
+    start_date_text: str, end_date_text: str, source_ids: list[str] | None = None, excluded_urls: list[str] | None = None
 ) -> dict:
     """Scrape newsletters in date range.
 
@@ -57,6 +57,9 @@ def scrape_newsletters_in_date_range(
         Response dictionary with articles and issues
     """
     start_date, end_date = _parse_date_range(start_date_text, end_date_text)
+    
+    if excluded_urls is None:
+        excluded_urls = []
 
     sources_str = ", ".join(source_ids) if source_ids else "all"
     util.log(

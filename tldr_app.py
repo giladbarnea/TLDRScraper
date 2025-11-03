@@ -7,7 +7,7 @@ logger = logging.getLogger("tldr_app")
 
 
 def scrape_newsletters(
-    start_date_text: str, end_date_text: str, source_ids: list[str] | None = None, excluded_urls: list[str] = None
+    start_date_text: str, end_date_text: str, source_ids: list[str] | None = None, excluded_urls: list[str] | None = None
 ) -> dict:
     """Scrape newsletters in date range.
 
