@@ -89,7 +89,7 @@ class NewsletterAdapter:
             f"{self.__class__.__name__} must implement extract_issue_metadata() or override scrape_date()"
         )
 
-    def scrape_date(self, date: str) -> dict:
+    def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
         """Template method - orchestrates fetch + parse + normalize.
 
         This default implementation follows the HTML scraping workflow:
@@ -103,12 +103,14 @@ class NewsletterAdapter:
 
         Args:
             date: Date string to scrape
+            excluded_urls: List of canonical URLs to exclude from results
 
         Returns:
             Normalized response dictionary with source_id, articles, and issues
         """
         articles = []
         issues = []
+        excluded_set = set(excluded_urls)
 
         for newsletter_type in self.config.types:
             # Fetch raw HTML
@@ -121,7 +123,12 @@ class NewsletterAdapter:
 
             # Parse articles and metadata
             parsed_articles = self.parse_articles(markdown, date, newsletter_type)
-            articles.extend(parsed_articles)
+
+            # Filter out excluded URLs
+            for article in parsed_articles:
+                canonical_url = util.canonicalize_url(article['url'])
+                if canonical_url not in excluded_set:
+                    articles.append(article)
 
             issue_meta = self.extract_issue_metadata(markdown, date, newsletter_type)
             if issue_meta:

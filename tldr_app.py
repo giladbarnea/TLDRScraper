@@ -7,7 +7,7 @@ logger = logging.getLogger("tldr_app")
 
 
 def scrape_newsletters(
-    start_date_text: str, end_date_text: str, source_ids: list[str] | None = None
+    start_date_text: str, end_date_text: str, source_ids: list[str] | None = None, excluded_urls: list[str] = None
 ) -> dict:
     """Scrape newsletters in date range.
 
@@ -15,12 +15,13 @@ def scrape_newsletters(
         start_date_text: Start date in ISO format
         end_date_text: End date in ISO format
         source_ids: Optional list of source IDs to scrape. Defaults to all configured sources.
+        excluded_urls: List of canonical URLs to exclude from results
 
     Returns:
         Response dictionary with articles and issues
     """
     return tldr_service.scrape_newsletters_in_date_range(
-        start_date_text, end_date_text, source_ids=source_ids
+        start_date_text, end_date_text, source_ids=source_ids, excluded_urls=excluded_urls
     )
 
 

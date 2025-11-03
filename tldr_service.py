@@ -43,7 +43,7 @@ def _parse_date_range(
 
 
 def scrape_newsletters_in_date_range(
-    start_date_text: str, end_date_text: str, source_ids: list[str] | None = None
+    start_date_text: str, end_date_text: str, source_ids: list[str] | None = None, excluded_urls: list[str] = None
 ) -> dict:
     """Scrape newsletters in date range.
 
@@ -51,6 +51,7 @@ def scrape_newsletters_in_date_range(
         start_date_text: Start date in ISO format
         end_date_text: End date in ISO format
         source_ids: Optional list of source IDs to scrape. Defaults to all configured sources.
+        excluded_urls: List of canonical URLs to exclude from results
 
     Returns:
         Response dictionary with articles and issues
@@ -59,11 +60,11 @@ def scrape_newsletters_in_date_range(
 
     sources_str = ", ".join(source_ids) if source_ids else "all"
     util.log(
-        f"[tldr_service.scrape_newsletters] start start_date={start_date_text} end_date={end_date_text} sources={sources_str}",
+        f"[tldr_service.scrape_newsletters] start start_date={start_date_text} end_date={end_date_text} sources={sources_str} excluded_count={len(excluded_urls)}",
         logger=logger,
     )
 
-    result = scrape_date_range(start_date, end_date, source_ids=source_ids)
+    result = scrape_date_range(start_date, end_date, source_ids=source_ids, excluded_urls=excluded_urls)
 
     util.log(
         f"[tldr_service.scrape_newsletters] done dates_processed={result['stats']['dates_processed']} total_articles={result['stats']['total_articles']}",

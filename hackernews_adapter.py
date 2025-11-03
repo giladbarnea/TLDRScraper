@@ -41,7 +41,7 @@ class HackerNewsAdapter(NewsletterAdapter):
         self.min_comments = 5
         self.max_stories = 50  # Fetch up to 50 pre-filtered stories
 
-    def scrape_date(self, date: str) -> dict:
+    def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
         """Fetch HackerNews stories using Algolia API with server-side filtering.
 
         Strategy: Single combined query for all story types (story, ask_hn, show_hn)
@@ -50,11 +50,13 @@ class HackerNewsAdapter(NewsletterAdapter):
 
         Args:
             date: Date string in YYYY-MM-DD format
+            excluded_urls: List of canonical URLs to exclude from results
 
         Returns:
             Normalized response dictionary
         """
         articles = []
+        excluded_set = set(excluded_urls)
 
         # Parse target date and get timestamp range
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
@@ -65,7 +67,7 @@ class HackerNewsAdapter(NewsletterAdapter):
         end_timestamp = int(end_of_day.timestamp())
 
         util.log(
-            f"[hackernews_adapter.scrape_date] Fetching stories for {date} using Algolia API",
+            f"[hackernews_adapter.scrape_date] Fetching stories for {date} using Algolia API (excluding {len(excluded_urls)} URLs)",
             logger=logger,
         )
 
@@ -84,9 +86,23 @@ class HackerNewsAdapter(NewsletterAdapter):
                 logger=logger,
             )
 
+            # Filter out excluded URLs before scoring
+            filtered_stories = []
+            for story in stories:
+                if not story.get('url'):
+                    continue
+                canonical_url = util.canonicalize_url(story['url'])
+                if canonical_url not in excluded_set:
+                    filtered_stories.append(story)
+
+            util.log(
+                f"[hackernews_adapter.scrape_date] {len(filtered_stories)} stories after filtering excluded URLs",
+                logger=logger,
+            )
+
             # Sort by leading score (already have points and comments from API)
             stories_with_scores = []
-            for story in stories:
+            for story in filtered_stories:
                 points = story.get('points', 0)
                 comments = story.get('num_comments', 0)
                 leading_score = (2 * points) + comments

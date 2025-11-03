@@ -30,7 +30,7 @@ def index():
 
 @app.route("/api/scrape", methods=["POST"])
 def scrape_newsletters_in_date_range():
-    """Backend proxy to scrape newsletters. Expects start_date, end_date, and optionally sources in the request body."""
+    """Backend proxy to scrape newsletters. Expects start_date, end_date, excluded_urls, and optionally sources in the request body."""
     try:
         data = request.get_json()
         if data is None:
@@ -50,6 +50,7 @@ def scrape_newsletters_in_date_range():
             data.get("start_date"),
             data.get("end_date"),
             source_ids=sources,
+            excluded_urls=data['excluded_urls'],
         )
         return jsonify(result)
 

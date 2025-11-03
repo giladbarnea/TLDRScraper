@@ -140,6 +140,36 @@ export function useScraper() {
   }
 
   /**
+   * Collect excluded URLs from localStorage
+   */
+  function collectExcludedUrls() {
+    const excluded = new Set()
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith('newsletters:scrapes:')) {
+        const raw = localStorage.getItem(key)
+        if (raw) {
+          try {
+            const payload = JSON.parse(raw)
+            if (payload.articles) {
+              for (const article of payload.articles) {
+                if (article.removed || article.read?.isRead) {
+                  excluded.add(article.url)
+                }
+              }
+            }
+          } catch (err) {
+            console.error(`Failed to parse cached data for ${key}:`, err)
+          }
+        }
+      }
+    }
+
+    return Array.from(excluded)
+  }
+
+  /**
    * Scrape newsletters from API
    */
   async function scrape(startDate, endDate) {
@@ -161,12 +191,14 @@ export function useScraper() {
 
       // Call API
       progress.value = 50
+      const excludedUrls = collectExcludedUrls()
       const response = await window.fetch('/api/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           start_date: startDate,
-          end_date: endDate
+          end_date: endDate,
+          excluded_urls: excludedUrls
         })
       })
 
