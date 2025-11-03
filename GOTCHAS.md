@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-10-31 09:47, cca7a5d
+last-updated: 2025-11-04 00:00, 102a8dcd
 ---
 # Gotchas
 
@@ -7,7 +7,13 @@ This document catalogs recurring pitfalls in various topics, including managing 
 
 ---
 
-#### 2025-11-04 `???`: HackerNews articles not displayed in UI because of surprising server response shape
+#### 2025-11-04 `102a8dcd`: HackerNews articles not displayed in UI because of surprising server response shape
+
+**Desired behavior that didn't work**: HackerNews articles fetched by backend should appear in the UI.
+
+**What actually happened and falsified original thesis**: HackerNews articles were fetched (183 articles in API response) but invisible in the UI. We had wrongly assumed `articles` field alone was sufficient for display.
+
+**Cause & Fix**: The frontend requires both `articles` and `issues` arrays. It only displays articles that match an issue's category. HackerNews adapter returned empty `issues` array, so all HN articles were filtered out during rendering. The fix was to generate fake issue objects for each HackerNews category.
 
 ---
 
