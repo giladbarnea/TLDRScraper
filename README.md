@@ -167,5 +167,5 @@ Flask is configured to:
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed flows & user interactions documentation
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Map of the project structure
-- [STATE_GOTCHAS.md](STATE_GOTCHAS.md) - Documented solved tricky past bugs
+- [GOTCHAS.md](GOTCHAS.md) - Documented solved tricky past bugs
 - [BUGS.md](BUGS.md) - Known issues

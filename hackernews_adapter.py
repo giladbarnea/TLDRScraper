@@ -118,8 +118,18 @@ class HackerNewsAdapter(NewsletterAdapter):
                 logger=logger,
             )
 
-        # HackerNews doesn't have newsletter-style issues
-        issues = []
+        # Create issues for each category that has articles
+        categories_in_articles = {article['category'] for article in articles}
+        issues = [
+            {
+                'date': util.format_date_for_url(date),
+                'source_id': self.config.source_id,
+                'category': category,
+                'title': None,
+                'subtitle': None
+            }
+            for category in sorted(categories_in_articles)
+        ]
 
         return self._normalize_response(articles, issues)
 
