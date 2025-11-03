@@ -1,9 +1,13 @@
 ---
 last-updated: 2025-10-31 09:47, cca7a5d
 ---
-# Client-side State Management & Reactivity
+# Gotchas
 
-This document catalogs recurring pitfalls in managing client-side state persistence and reactivity.
+This document catalogs recurring pitfalls in various topics, including managing client-side state persistence and reactivity, surprising design decisions, and so on.
+
+---
+
+#### 2025-11-04 `???`: HackerNews articles not displayed in UI because of surprising server response shape
 
 ---
 

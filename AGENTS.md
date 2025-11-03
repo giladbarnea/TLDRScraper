@@ -113,7 +113,7 @@ The markdown docs at the project's root contain crucial information. Read them f
 This includes, but is not limited to:
 1. PROJECT_STRUCTURE.md
 2. ARCHITECTURE.md
-3. STATE_GOTCHAS.md
+3. GOTCHAS.md
 
 ## Practical guidance
 
