@@ -80,7 +80,7 @@ cd client
 npm run dev
 ```
 
-This runs Vite dev server on port 3000 with API proxy to localhost:5000.
+This runs Vite dev server on port 3000 with API proxy to localhost:5001.
 
 
 ### `uv` installation and usage
