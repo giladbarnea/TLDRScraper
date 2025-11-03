@@ -218,11 +218,9 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
     """
     dates = util.get_date_range(start_date, end_date)
 
+    # Default to all configured sources
     if source_ids is None:
         source_ids = list(NEWSLETTER_CONFIGS.keys())
-    
-    if excluded_urls is None:
-        excluded_urls = []
 
     all_articles: list[dict] = []
     url_set: set[str] = set()
