@@ -19,7 +19,19 @@ def log(msg, *args, **kwargs):
 
 
 def resolve_env_var(name: str, default: str = "") -> str:
-    return os.getenv(name) or os.getenv(f"TLDR_SCRAPER_{name}") or default
+    """
+    Resolve environment variable, trying both direct name and TLDR_SCRAPER_ prefixed version.
+    Strips surrounding quotes from the value if present.
+
+    >>> os.environ['TEST_VAR'] = '"value"'
+    >>> resolve_env_var('TEST_VAR')
+    'value'
+    >>> os.environ['TEST_VAR'] = 'value'
+    >>> resolve_env_var('TEST_VAR')
+    'value'
+    """
+    value = os.getenv(name) or os.getenv(f"TLDR_SCRAPER_{name}") or default
+    return value.strip('"').strip("'") if value else value
 
 
 def get_date_range(start_date, end_date):
