@@ -27,8 +27,8 @@ Please provide:
 
 I'll analyze this information and work with you to create a comprehensive plan.
 
-Tip: You can also invoke this command with a requirements file directly: `/create_plan_lite thoughts/personal/tasks/ENG-1234.md`
-For deeper analysis, try: `/create_plan_lite think deeply about thoughts/personal/tasks/ENG-1234.md`
+Tip: You can also invoke this command with a requirements file directly: `/create_plan_lite thoughts/yy-mm-dd-ENG-1234/ticket.md`
+For deeper analysis, try: `/create_plan_lite think deeply about thoughts/yy-mm-dd-ENG-1234/ticket.md`
 ```
 
 Then wait for the user's input.
@@ -38,7 +38,7 @@ Then wait for the user's input.
 ### Step 1: Context Gathering & Initial Analysis
 
 1. **Read all mentioned files immediately and FULLY**:
-   - Task files (e.g., `thoughts/personal/tasks/ENG-1234.md`)
+   - Task files (e.g., `thoughts/yy-mm-dd-ENG-1234/ticket.md`)
    - Research documents
    - Related implementation plans
    - Any JSON/data files mentioned
@@ -51,7 +51,6 @@ Then wait for the user's input.
 
    - Use the **codebase-locator** agent to find all files related to the task
    - Use the **codebase-analyzer** agent to understand how the current implementation works
-   - If relevant, use the **thoughts-locator** agent to find any existing thoughts documents about this feature
 
    These agents will:
    - Find relevant source files, configs, and tests
@@ -108,8 +107,6 @@ After getting initial clarifications:
    - **codebase-pattern-finder** - To find similar features we can model after
 
    **For historical context:**
-   - **thoughts-locator** - To find any research, plans, or decisions about this area
-   - **thoughts-analyzer** - To extract key insights from the most relevant documents
 
    Each agent knows how to:
    - Find the right files and code patterns
@@ -164,14 +161,12 @@ Once aligned on approach:
 
 After structure approval:
 
-1. **Write the plan** to `thoughts/shared/plans/YYYY-MM-DD-ENG-XXXX-description.md`
-   - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
-     - YYYY-MM-DD is today's date
-     - ENG-XXXX is the ticket number (omit if no ticket)
+1. **Write the plan** to `thoughts/YY-MM-DD-ENG-XXXX/plans/description.md`
+   - Format: `thoughts/YY-MM-DD-ENG-XXXX/plans/description.md` where:
+     - YY-MM-DD is today's date
+     - ENG-XXXX is the ticket number
      - description is a brief kebab-case description
-   - Examples:
-     - With ticket: `2025-01-08-ENG-1478-parent-child-tracking.md`
-     - Without ticket: `2025-01-08-improve-error-handling.md`
+   - Example: `thoughts/25-01-08-ENG-1478/plans/parent-child-tracking.md`
 2. **Use this template structure**:
 
 ````markdown
@@ -257,8 +252,8 @@ After structure approval:
 
 ## References
 
-- Original ticket: `thoughts/personal/tickets/eng_XXXX.md`
-- Related research: `thoughts/shared/research/[relevant].md`
+- Original ticket: `thoughts/yy-mm-dd-ENG-XXXX/ticket.md`
+- Related research: `thoughts/yy-mm-dd-ENG-1234/research/topic.md`
 - Similar implementation: `[file:line]`
 ````
 
@@ -270,7 +265,7 @@ After structure approval:
 2. **Present the draft plan location**:
    ```
    I've created the initial implementation plan at:
-   `thoughts/shared/plans/YYYY-MM-DD-ENG-XXXX-description.md`
+   `thoughts/YY-MM-DD-ENG-XXXX/plans/description.md`
 
    Please review it and let me know:
    - Are the phases properly scoped?
@@ -414,7 +409,7 @@ tasks = [
 User: /create_plan_lite
 Assistant: I'll help you create a detailed implementation plan...
 
-User: We need to add parent-child tracking for Claude sub-tasks. See thoughts/personal/tickets/ENG-1478.md
+User: We need to add parent-child tracking for Claude sub-tasks. See thoughts/yy-mm-dd-ENG-1478/ticket.md
 Assistant: Let me read that requirements file completely first...
 
 [Reads file fully]
