@@ -413,7 +413,6 @@ def extract_issue_metadata(
 - Run existing tests (if any)
 - Manual testing with `curl http://localhost:5001/api/scrape`
 - Compare article/issue data before/after (should be identical)
-- Measure performance improvement (optional)
 
 ## Testing Strategy
 
@@ -523,90 +522,12 @@ Compare outputs before and after each phase:
 
 ## Risks & Considerations
 
-### Risk 1: Breaking Backward Compatibility
+### Risk: Breaking Backward Compatibility
 
 **Mitigation**:
 - Preserve exact function signatures
 - Preserve exact response structure
 - Run regression tests after each step
-
-### Risk 2: Performance Regression (Issue B)
-
-**Analysis**: Extracting functions adds minimal overhead (function call stack)
-
-**Mitigation**:
-- Python function calls are cheap
-- Any overhead is negligible compared to network I/O
-- Can measure with Python profiling if needed
-
-### Risk 3: Logic Errors During Extraction
-
-**Mitigation**:
-- Extract code mechanically (copy-paste, then clean up)
-- Test after each extraction step
-- Use git to track changes granularly
-
-### Risk 4: Missing Edge Cases (Issue C)
-
-**Analysis**: Both methods currently handle same cases, but subtle differences may exist
-
-**Mitigation**:
-- Carefully review both implementations line-by-line
-- Test with actual TLDR newsletters (multiple types: tech, ai)
-- Ensure symbol-only line detection works in unified version
-
-### Risk 5: Section Order Tracking Bug
-
-**Analysis**: Section order logic is complex and replicated
-
-**Mitigation**:
-- Unit test section order specifically
-- Verify `section_order` field in articles matches before/after
-- Test newsletters with multiple sections
-
-## Success Criteria
-
-### Issue B Success Criteria
-
-- [ ] `_build_scrape_response()` reduced from 86 lines to ~20 lines (coordinator only)
-- [ ] 4 new single-responsibility functions created
-- [ ] All existing tests pass
-- [ ] Manual testing shows identical response structure
-- [ ] Code is more readable and maintainable
-
-### Issue C Success Criteria
-
-- [ ] Markdown parsing happens once per newsletter issue (not twice)
-- [ ] `parse_articles()` and `extract_issue_metadata()` share parsing logic
-- [ ] All existing tests pass
-- [ ] Manual testing shows identical article/issue output
-- [ ] Duplicate code reduced by ~100 lines
-
-## Rollback Plan
-
-If issues arise during or after refactoring:
-
-1. **During development**: Use `git reset --hard` to previous commit
-2. **After merge**: Use `git revert` to undo specific commits
-3. **In production**: Redeploy previous version
-
-Git strategy:
-- Commit Issue B refactor separately from Issue C
-- This allows selective rollback if one introduces problems
-
-## Timeline Estimate
-
-- **Issue B**: 1-2 hours
-  - 30 min: Extract functions
-  - 30 min: Testing and verification
-  - 30 min: Buffer for edge cases
-
-- **Issue C**: 2-3 hours
-  - 60 min: Create unified parsing method
-  - 45 min: Refactor both consuming methods
-  - 45 min: Testing and verification
-
-**Total**: 3-5 hours
 
 ## Conclusion
 
