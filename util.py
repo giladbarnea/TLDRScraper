@@ -55,8 +55,8 @@ def canonicalize_url(url) -> str:
     """Canonicalize URL for better deduplication.
 
     Normalizes:
-    - http -> https
-    - www.example.com -> example.com
+    - Removes scheme (http:// or https://)
+    - Removes www. prefix
     - Removes query parameters
     - Removes URL fragments
     - Removes trailing slashes
@@ -66,19 +66,14 @@ def canonicalize_url(url) -> str:
 
     parsed = urlparse.urlparse(url)
 
-    # Normalize scheme: http -> https
-    scheme = parsed.scheme.lower()
-    if scheme == 'http':
-        scheme = 'https'
-
     # Normalize netloc: lowercase and remove www. prefix
     netloc = parsed.netloc.lower()
     if netloc.startswith('www.'):
         netloc = netloc[4:]
 
-    # Build canonical URL (strips query params and fragments)
+    # Build canonical URL without scheme (strips query params and fragments)
     path = parsed.path
-    canonical = f"{scheme}://{netloc}{path}"
+    canonical = f"{netloc}{path}"
 
     # Remove trailing slash only for non-root paths
     if path.endswith("/") and path != "/":
