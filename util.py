@@ -59,10 +59,14 @@ def canonicalize_url(url) -> str:
     - Removes www. prefix
     - Removes query parameters
     - Removes URL fragments
-    - Removes trailing slashes
+    - Removes trailing slashes (including root)
     - Lowercases domain
     """
     import urllib.parse as urlparse
+
+    # Handle protocol-less URLs by adding a temporary scheme for parsing
+    if not url.startswith(('http://', 'https://', '//')):
+        url = f'https://{url}'
 
     parsed = urlparse.urlparse(url)
 
@@ -75,8 +79,8 @@ def canonicalize_url(url) -> str:
     path = parsed.path
     canonical = f"{netloc}{path}"
 
-    # Remove trailing slash only for non-root paths
-    if path.endswith("/") and path != "/":
+    # Remove trailing slash (including root to normalize example.com/ → example.com)
+    if canonical.endswith('/'):
         canonical = canonical[:-1]
 
     return canonical
