@@ -234,7 +234,7 @@ Recommended sequence (from simplest to most complex):
 2. Update 6 import statements and 6 call sites
 3. Test manually (scrape, check localStorage, verify cache works)
 
-### Phase 2: Issue C (article normalization) - 20 minutes
+### Phase 2: Issue C (article normalization)
 **Why second**: Isolated to one file, clear boundaries, has doctest for verification.
 
 1. Add `_normalize_article_payload()` function
@@ -251,8 +251,6 @@ Recommended sequence (from simplest to most complex):
 3. Update `extract_issue_metadata()` to use it
 4. Test with TLDR Tech and TLDR AI newsletters
 5. Verify section emoji extraction still works correctly
-
-**Total estimated time**: ~65 minutes
 
 ---
 
@@ -306,14 +304,9 @@ Git makes rollback trivial since changes are isolated to specific files.
 
 ---
 
-## Follow-up Opportunities
+## Opportunities
 
-After completing this refactoring, consider:
-
-1. **Create more storage key utilities**: Move `CACHE_ENABLED` constant to `storageKeys.js`
-2. **Add TypeScript types**: Consider adding JSDoc types to `storageKeys.js` for better IDE support
-3. **Extract more adapter helpers**: The `_is_symbol_only_line()` and `_is_file_url()` methods could be shared utilities
-4. **Add unit tests**: Consider adding pytest tests for `_normalize_article_payload()` and `_parse_sections()`
+**Add TypeScript types**: Consider adding JSDoc types to `storageKeys.js` for better IDE support  // this is a good idea. do it
 
 ---
 
