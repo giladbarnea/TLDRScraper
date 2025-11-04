@@ -6,10 +6,8 @@ import requests
 import util
 from newsletter_scraper import scrape_date_range
 from summarizer import (
-    _fetch_summarize_prompt,
     _fetch_tldr_prompt,
     normalize_summary_effort,
-    summarize_url,
     tldr_url,
 )
 
@@ -74,46 +72,8 @@ def scrape_newsletters_in_date_range(
     return result
 
 
-def fetch_summarize_prompt_template() -> str:
-    return _fetch_summarize_prompt()
-
-
 def fetch_tldr_prompt_template() -> str:
     return _fetch_tldr_prompt()
-
-
-def summarize_url_content(
-    url: str,
-    *,
-    summary_effort: str = "low",
-) -> dict:
-    cleaned_url = (url or "").strip()
-    if not cleaned_url:
-        raise ValueError("Missing url")
-
-    canonical_url = util.canonicalize_url(cleaned_url)
-    normalized_effort = normalize_summary_effort(summary_effort)
-
-    try:
-        summary_markdown = summarize_url(
-            canonical_url,
-            summary_effort=normalized_effort,
-        )
-    except requests.RequestException as error:
-        util.log(
-            "[tldr_service.summarize_url_content] request error error=%s",
-            repr(error),
-            level=logging.ERROR,
-            exc_info=True,
-            logger=logger,
-        )
-        raise
-
-    return {
-        "summary_markdown": summary_markdown,
-        "canonical_url": canonical_url,
-        "summary_effort": normalized_effort,
-    }
 
 
 def tldr_url_content(

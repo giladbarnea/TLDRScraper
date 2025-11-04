@@ -96,7 +96,6 @@ function buildDailyPayloadsFromScrape(data) {
         newsletterType: article.newsletter_type || null,
         removed: Boolean(article.removed),
         tldrHidden: false,
-        summary: { status: 'unknown', markdown: '', effort: 'low', checkedAt: null, errorMessage: null },
         tldr: { status: 'unknown', markdown: '', effort: 'low', checkedAt: null, errorMessage: null },
         read: { isRead: false, markedAt: null }
       }
@@ -137,7 +136,6 @@ function mergeWithCache(payloads) {
             if (existingArticle) {
               return {
                 ...article,
-                summary: existingArticle.summary || article.summary,
                 tldr: existingArticle.tldr || article.tldr,
                 read: existingArticle.read || article.read,
                 removed: existingArticle.removed ?? article.removed,

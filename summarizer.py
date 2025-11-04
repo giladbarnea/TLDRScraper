@@ -14,7 +14,6 @@ import urllib.parse as urlparse
 logger = logging.getLogger("summarizer")
 md = MarkItDown()
 
-_PROMPT_CACHE = None
 _TLDR_PROMPT_CACHE = None
 
 SUMMARY_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
@@ -289,26 +288,6 @@ def url_to_markdown(url: str) -> str:
     return markdown
 
 
-def summarize_url(url: str, summary_effort: str = "low") -> str:
-    """Get markdown content from URL and summarize it with LLM.
-
-    Args:
-        url: The URL to summarize
-        summary_effort: OpenAI reasoning effort level
-
-    Returns:
-        The summary markdown
-    """
-    effort = normalize_summary_effort(summary_effort)
-    markdown = url_to_markdown(url)
-
-    template = _fetch_summarize_prompt()
-    prompt = _insert_markdown_into_template(template, markdown)
-    summary = _call_llm(prompt, summary_effort=effort)
-
-    return summary
-
-
 def tldr_url(url: str, summary_effort: str = "low") -> str:
     """Get markdown content from URL and create a TLDR with LLM.
 
@@ -380,22 +359,6 @@ def _fetch_prompt(
             return response_no_auth.text
 
     raise RuntimeError(f"Failed to fetch {path}: {response.status_code}")
-
-
-def _fetch_summarize_prompt(
-    owner: str = "giladbarnea",
-    repo: str = "llm-templates",
-    path: str = "text/summarize.md",
-    ref: str = "main",
-) -> str:
-    """Fetch summarize prompt from GitHub (cached in memory)."""
-    return _fetch_prompt(
-        owner=owner,
-        repo=repo,
-        path=path,
-        ref=ref,
-        cache_attr="_PROMPT_CACHE",
-    )
 
 
 def _fetch_tldr_prompt(

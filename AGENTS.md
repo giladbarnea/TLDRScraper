@@ -5,14 +5,14 @@ last-updated: 2025-11-03 23:10, 102a8dc
 
 ## Project overview
 
-Newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered summaries and TLDRs.
+Newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered TLDRs.
 
-- Stack: 
+- Stack:
    * Python: Flask backend, serverless on Vercel
    * React 19 + Vite (frontend) (in `client/`)
    * Client-side localStorage for all caching
-   * OpenAI GPT-5 for summaries and TLDRs
-- Storage: Project uses browser localStorage for all caching (newsletters, URL content, LLM summaries, scrape results). All data persistence happens in the browser.
+   * OpenAI GPT-5 for TLDRs
+- Storage: Project uses browser localStorage for all caching (newsletters, URL content, LLM TLDRs, scrape results). All data persistence happens in the browser.
 - Cache mechanism: localStorage keys follow deterministic patterns based on content and dates. 
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
@@ -76,7 +76,6 @@ print_server_and_watchdog_pids
 
 # Exercise the API with curl requests.
 curl http://localhost:5001/api/scrape
-curl http://localhost:5001/api/summarize-url
 curl http://localhost:5001/api/tldr-url
 curl ...additional endpoints that may be relevant...
 
@@ -141,7 +140,7 @@ This includes, but is not limited to:
 ## Practical guidance
 
 - Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables. 
-- **Run `source ./setup.sh` to verify the environment and dependencies are set up correctly. After sourcing it, use `start_server_and_watchdog` and `print_server_and_watchdog_pids` to confirm the local server is running. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/summarize-url`, `/api/tldr-url`) throughout the development process to catch regressions early. Use `kill_server_and_watchdog` for cleanup.**
+- **Run `source ./setup.sh` to verify the environment and dependencies are set up correctly. After sourcing it, use `start_server_and_watchdog` and `print_server_and_watchdog_pids` to confirm the local server is running. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/tldr-url`) throughout the development process to catch regressions early. Use `kill_server_and_watchdog` for cleanup.**
 - Verify every new behavior, fix or modification you make by utilizing your shell. If possible, execute the modified flow to ensure nothing is broken.
 
 
@@ -160,26 +159,26 @@ This includes, but is not limited to:
 
 <Bad: fallback-rich, squirmy code>
 ```py
-@app.route("/api/summarize-url", methods=["POST"])
-def summarize_url():
+@app.route("/api/tldr-url", methods=["POST"])
+def tldr_url():
     """Requires 'url' in request body"""
     # Unnecessarily defends against broken upstream guarantees.
     data = request.get_json() or {}
     url = data.get("url", "")
-    result = tldr_service.summarize_url_content(url) or ""
+    result = tldr_service.tldr_url_content(url) or ""
 ```
 </Bad: fallback-rich, squirmy code>
 
 <Good: straightforward, upstream-trusting code>
 ```py
-@app.route("/api/summarize-url", methods=["POST"])
-def summarize_url():
+@app.route("/api/tldr-url", methods=["POST"])
+def tldr_url():
     """Requires 'url' in request body"""
     # Assumes upstream guarantees are upheld (inputs are valid and complete) — thus keeps the state machine simpler.
     # If upstream guarantees are broken (e.g., missing 'url'), we WANT to fail as early as possible (in this case, `data['url']` will throw a KeyError)
     data = request.get_json()
     url = data['url']
-    result = tldr_service.summarize_url_content(url)
+    result = tldr_service.tldr_url_content(url)
 ```
 </Good: straightforward, upstream-trusting code>
 

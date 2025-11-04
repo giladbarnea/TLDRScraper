@@ -64,65 +64,6 @@ def scrape_newsletters_in_date_range():
         return jsonify({"success": False, "error": str(error)}), 500
 
 
-@app.route("/api/prompt", methods=["GET"])
-def get_summarize_prompt_template():
-    """Return the loaded summarize.md prompt (for debugging/inspection)."""
-    try:
-        prompt = tldr_app.get_summarize_prompt_template()
-        return prompt, 200, {"Content-Type": "text/plain; charset=utf-8"}
-    except Exception as e:
-        util.log(
-            "[serve.get_prompt_template] error loading prompt=%s",
-            repr(e),
-            level=logging.ERROR,
-            exc_info=True,
-            logger=logger,
-        )
-        return (
-            f"Error loading prompt: {e!r}",
-            500,
-            {"Content-Type": "text/plain; charset=utf-8"},
-        )
-
-
-@app.route("/api/summarize-url", methods=["POST"])
-def summarize_url():
-    """Summarize the content at a URL: fetch the HTML, convert it to Markdown, insert it into a template, then call OpenAI.
-
-    Requires 'url'. Optional: 'summary_effort' to set the reasoning effort level.
-    """
-    try:
-        data = request.get_json() or {}
-        result = tldr_app.summarize_url(
-            data.get("url", ""),
-            summary_effort=data.get("summary_effort", "low"),
-        )
-
-        return jsonify(result)
-
-    except ValueError as error:
-        return jsonify({"success": False, "error": str(error)}), 400
-    except requests.RequestException as e:
-        util.log(
-            "[serve.summarize_url] request error error=%s",
-            repr(e),
-            level=logging.ERROR,
-            exc_info=True,
-            logger=logger,
-        )
-        return jsonify({"success": False, "error": f"Network error: {repr(e)}"}), 502
-
-    except Exception as e:
-        util.log(
-            "[serve.summarize_url] error error=%s",
-            repr(e),
-            level=logging.ERROR,
-            exc_info=True,
-            logger=logger,
-        )
-        return jsonify({"success": False, "error": repr(e)}), 500
-
-
 @app.route("/api/tldr-url", methods=["POST"])
 def tldr_url():
     """Create a TLDR of the content at a URL.
