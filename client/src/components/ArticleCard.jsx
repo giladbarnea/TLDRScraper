@@ -19,14 +19,22 @@ function ArticleCard({ article, index }) {
     isTldrHidden && 'tldr-hidden'
   ].filter(Boolean).join(' ')
 
+  const fullUrl = useMemo(() => {
+    const url = article.url
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url
+    }
+    return `https://${url}`
+  }, [article.url])
+
   const faviconUrl = useMemo(() => {
     try {
-      const url = new URL(article.url)
+      const url = new URL(fullUrl)
       return `${url.origin}/favicon.ico`
     } catch {
       return null
     }
-  }, [article.url])
+  }, [fullUrl])
 
   const handleLinkClick = (e) => {
     if (isRemoved) return
@@ -61,11 +69,11 @@ function ArticleCard({ article, index }) {
 
         <div className="article-content">
           <a
-            href={article.url}
+            href={fullUrl}
             className="article-link"
             target="_blank"
             rel="noopener noreferrer"
-            data-url={article.url}
+            data-url={fullUrl}
             tabIndex={isRemoved ? -1 : 0}
             onClick={handleLinkClick}
           >
