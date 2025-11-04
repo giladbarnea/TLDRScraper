@@ -1,7 +1,6 @@
 ---
-last-updated: 2025-11-02 05:39, d5a23db
+last-updated: 2025-11-04 21:58, 5eaedb8
 ---
-
 # Git Hooks
 
 This directory contains git hooks for the repository.
@@ -34,6 +33,8 @@ The hook will attempt to auto-install `eza` on Ubuntu/Debian systems.
 ### post-checkout, post-merge, post-rewrite
 
 These hooks ensure the local clone always has the `merge.ours` driver configured so Git respects the `PROJECT_STRUCTURE.md merge=ours` rule from `.gitattributes`.
+
+They also regenerate `PROJECT_STRUCTURE.md` using `eza` to ensure the file is always present and up-to-date in the local worktree (the file remains untracked/ignored in git).
 
 ## GitHub Actions
 
