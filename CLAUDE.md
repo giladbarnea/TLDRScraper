@@ -147,17 +147,19 @@ This includes, but is not limited to:
 
 ## Development Conventions
 
-1. Always use `util.resolve_env_var` to get environment variables.
-2. Add a doctest example to pure-ish functions (data in, data out).
-3. Do not abbreviate variable, function or class names. Use complete words. Write clean code.
-4. `util.log` when something is going wrong, even if it is recoverable. Be consistent with existing logging style.
-5. Failing early is better than fallbacks. Zero "Just in case" code. Fallback-rich code is to be avoided because it explodes complexity and often just propagates bugs downstream. Good code assumes that its inputs are valid and complete. It trusts upstream code to have done its job. And if something important fails, or an assumption is broken, fail early and clearly. Broken code should be fixed, not to tolerated, not worked around.
-6. Make sure to write highly cohesive, decoupled logic.
-7. Utilize existing logic when possible. Do not re-implement anything.
-8. Write flat, optimized logical branches. Avoid nested, duplicate-y code. Write DRY and elegant logic.
-9. Prefer `import modulename` and call `modulename.function()` rather than `from modulename import function`. Namespacing is an easy clarity win.
+1. Do not abbreviate variable, function or class names. Use complete words. Write clean code.
+2. Write code that fails early and clearly rather than writing fallbacks to "maybe broken" inputs. Zero "Just in case my inputs are corrupted" code. Fallback-rich code is to be avoided because it explodes complexity and often just silently propagates bugs downstream. Good code assumes that its inputs are valid and complete. It trusts upstream code to have completed its job. This ties closely to separation of concerns. And if something important fails, or an assumption is broken, fail early and clearly. Broken code should be discovered early and loudly and fixed quickly; It should not be tolerated, nor worked around.
+3. Write highly cohesive, decoupled logic.
+4. Early return from functions when possible.
+5. Utilize existing logic when possible. Do not re-implement anything.
+6. Write flat, optimized logical branches. Avoid nested, duplicate-y code. Write DRY and elegant logic.
+7. Prefer `import modulename` and call `modulename.function()` rather than `from modulename import function`. Namespacing is an easy clarity win. `import os.path; os.path.join(...)` is better than `from os.path import join(...)`.
+8. Always use `util.resolve_env_var` to get environment variables.
+9. Add a doctest example to pure-ish functions (data in, data out).
+10. `util.log` when something is going wrong, even if it is recoverable. Be consistent with existing logging style.
 
 <Bad: fallback-rich, squirmy code>
+```py
 @app.route("/api/summarize-url", methods=["POST"])
 def summarize_url():
     """Requires 'url' in request body"""
@@ -165,9 +167,11 @@ def summarize_url():
     data = request.get_json() or {}
     url = data.get("url", "")
     result = tldr_service.summarize_url_content(url) or ""
+```
 </Bad: fallback-rich, squirmy code>
 
 <Good: straightforward, upstream-trusting code>
+```py
 @app.route("/api/summarize-url", methods=["POST"])
 def summarize_url():
     """Requires 'url' in request body"""
@@ -176,7 +180,32 @@ def summarize_url():
     data = request.get_json()
     url = data['url']
     result = tldr_service.summarize_url_content(url)
+```
 </Good: straightforward, upstream-trusting code>
+
+<Bad: unnecessarily defensive, therefore nested code>
+```py
+# `MyResponse.words` is an optional list, defaulting to None (`words: list | None = None`).
+response: MyResponse = requests.post(...)
+
+# Both checks are redundant:
+#  1. `response.words` is guaranteed to exist by the MyResponse model
+#  2. `response.words` can be coerced to an empty iterable if it is None instead of checked.
+if hasattr(response, 'words') and response.words:
+    for word in response.words:
+        ...  # Nested indentation level
+```
+</Bad: unnecessarily defensive, therefore nested code>
+
+<Good: straightforward, confident, flatter code with fewer logical branches>
+```py
+response: MyResponse = requests.post(...)
+
+# The `or []` is a safe coercion to an empty iterable if `response.words` is None. In the empty case, the loop will not run, which is the desired behavior.
+for word in response.words or []:
+    ...  # Single indentation level; as safe if not safer than the bad, defensive example above.
+```
+</Good: straightforward, confident, flatter code with fewer logical branches>
 
 ## The Right Engineering Mindset
 
