@@ -17,26 +17,49 @@ Newsletter aggregator that scrapes tech newsletters from multiple sources, displ
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
 
-## Environment variables
+## Environment
 
 The single source of truth for what is available locally is the output of:
 
 ```bash
-env | grep -e TLDR -e TOKEN -e API -e KEY
+env | grep -E -o '^[A-Z_]+' | grep -e TLDR -e TOKEN -e API -e KEY | sort -u  # Should print the names of all environment variables without values on a need-to-know basis.
 ```
 
-**Run setup.sh first thing up load and verify your environment.**
+**Run `source ./setup.sh` first thing up load and verify your environment.**
 
-Rules:
+### Expected Environment Variables for AI Agents **besides Cursor Background Agents** (for Claude, Codex, etc.)
 
-- **Local (Cursor background agents developing the app):** Env vars are prefixed with `TLDR_SCRAPER_` (except `OPENAI_API_KEY`, and `GITHUB_API_TOKEN`).
-- **Production:** Exactly the same variables but without the `TLDR_SCRAPER_` prefix.
+- FIRECRAWL_API_KEY
+- GITHUB_API_TOKEN
+- OPENAI_API_KEY
+- SUPABASE_API_KEY
+- SUPABASE_DATABASE_PASSWORD
+- SUPABASE_SERVICE_KEY
+- SUPABASE_URL
 
-Expected variables (shown here with their base names; prefix with `TLDR_SCRAPER_` locally):
+This is true both for local and production environments.
 
-- `OPENAI_API_KEY`: `sk-...` (unprefixed in all environments)
-- `GITHUB_API_TOKEN`: `github_pat_...` (unprefixed in all environments)
-- `FIRECRAWL_API_KEY`: `fc_...` (unprefixed in all environments)
+### Expected Environment Variables for AI Agents **only for Cursor Background Agents** (for Cursor)
+
+- **Local:** All environment variables are prefixed with `TLDR_SCRAPER_`. To be explicit:
+
+- TLDR_SCRAPER_FIRECRAWL_API_KEY
+- TLDR_SCRAPER_GITHUB_API_TOKEN
+- TLDR_SCRAPER_OPENAI_API_KEY
+- TLDR_SCRAPER_SUPABASE_API_KEY
+- TLDR_SCRAPER_SUPABASE_DATABASE_PASSWORD
+- TLDR_SCRAPER_SUPABASE_SERVICE_KEY
+- TLDR_SCRAPER_SUPABASE_URL
+
+- **Production:** All environment variables are unprefixed. To be explicit:
+- FIRECRAWL_API_KEY
+- GITHUB_API_TOKEN
+- OPENAI_API_KEY
+- SUPABASE_API_KEY
+- SUPABASE_DATABASE_PASSWORD
+- SUPABASE_SERVICE_KEY
+- SUPABASE_URL
+
 
 ## Development & Setup
 
@@ -180,3 +203,8 @@ The following points are close to my heart:
 
 1. Know your weaknesses: your eagerness to solve a problem can cause tunnel vision. You may fix the issue but unintentionally create code duplication, deviate from the existing design, or introduce a regression in other coupled parts of the project you didn't consider. The solution is to literally look around beyond the immediate fix, be aware of (and account for) coupling around the codebase, integrate with the existing design, and periodically refactor.
 2. You do your best work when you can verify yourself. With self-verification, you can and should practice continuous trial and error instead of a single shot in the dark.
+
+## Documentation
+
+1. YAML frontmatter is automatically updated in CI. Do not manually update it.
+2. CLAUDE.md is a read-only exact copy of AGENTS.md. It is generated automatically in CI. It is read-only for you. Any updates should be made in AGENTS.md and not CLAUDE.md.
