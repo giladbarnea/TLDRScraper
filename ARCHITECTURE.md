@@ -478,10 +478,11 @@ User clicks "Scrape Newsletters"
        ├─ Step 2: API Call
        │    │
        │    ├─ progress.value = 50
+       │    ├─ Collect excluded URLs from localStorage (removed + read articles)
        │    │
        │    └─ window.fetch('/api/scrape', {
        │         method: 'POST',
-       │         body: JSON.stringify({ start_date, end_date })
+       │         body: JSON.stringify({ start_date, end_date, excluded_urls })
        │       })
        │         │
        │         └─ Server receives request...
@@ -492,8 +493,9 @@ User clicks "Scrape Newsletters"
        │              │    │    - start_date: "2024-01-01"
        │              │    │    - end_date: "2024-01-03"
        │              │    │    - sources: null (optional)
+       │              │    │    - excluded_urls: ["https://example.com/...", ...]
        │              │    │
-       │              │    └─ tldr_app.py:9 scrape_newsletters(start_date, end_date, source_ids)
+       │              │    └─ tldr_app.py:9 scrape_newsletters(start_date, end_date, source_ids, excluded_urls)
        │              │         │
        │              │         └─ tldr_service.py:45 scrape_newsletters_in_date_range()
        │              │              │
@@ -505,7 +507,7 @@ User clicks "Scrape Newsletters"
        │              │              │    │
        │              │              │    └─ Return (datetime, datetime)
        │              │              │
-       │              │              └─ newsletter_scraper.py:205 scrape_date_range(start_date, end_date, source_ids)
+       │              │              └─ newsletter_scraper.py:205 scrape_date_range(start_date, end_date, source_ids, excluded_urls)
        │              │                   │
        │              │                   ├─ util.get_date_range(start, end)
        │              │                   │    │
@@ -535,21 +537,24 @@ User clicks "Scrape Newsletters"
        │              │                             │    │         │
        │              │                             │    │         └─ Return HackerNewsAdapter(config)
        │              │                             │    │
-       │              │                             │    └─ adapter.scrape_date(date)
+       │              │                             │    └─ adapter.scrape_date(date, excluded_urls)
        │              │                             │         │
        │              │                             │         ├─ TLDRAdapter: Scrapes tldr.tech archives
        │              │                             │         │    │
        │              │                             │         │    ├─ Build URL: f"https://tldr.tech/{newsletter_type}/archives/{date}"
        │              │                             │         │    ├─ HTTP GET request
        │              │                             │         │    ├─ Parse HTML for articles
+       │              │                             │         │    ├─ Filter out excluded URLs
        │              │                             │         │    │
        │              │                             │         │    └─ Return { articles: [...], issues: [...] }
        │              │                             │         │
-       │              │                             │         └─ HackerNewsAdapter: Scrapes HN API
+       │              │                             │         └─ HackerNewsAdapter: Scrapes HN API (Algolia)
        │              │                             │              │
-       │              │                             │              ├─ Build URL: f"https://hacker-news.firebaseio.com/v0/topstories.json"
-       │              │                             │              ├─ Fetch story IDs
-       │              │                             │              ├─ Fetch each story details
+       │              │                             │              ├─ Fetch 50 stories from Algolia (pre-filtered by date/score)
+       │              │                             │              ├─ Filter out excluded URLs (canonical matching)
+       │              │                             │              ├─ Calculate leading scores: (2 × upvotes) + comments
+       │              │                             │              ├─ Sort by leading score descending
+       │              │                             │              ├─ Convert top stories to articles
        │              │                             │              │
        │              │                             │              └─ Return { articles: [...], issues: [] }
        │              │                             │
@@ -934,6 +939,17 @@ User clicks "TLDR" button
   category: string,          // "TLDR Tech"
   title: string | null,      // Issue title
   subtitle: string | null    // Issue subtitle
+}
+```
+
+### ScrapeRequest (POST /api/scrape)
+
+```typescript
+{
+  start_date: string,        // "2024-01-01"
+  end_date: string,          // "2024-01-03"
+  sources?: string[],        // ["tldr_tech", "hackernews"] (optional)
+  excluded_urls: string[]    // Canonical URLs to exclude (removed + read articles)
 }
 ```
 
