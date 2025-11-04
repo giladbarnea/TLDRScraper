@@ -378,6 +378,18 @@ function main() {
     return 1
   fi
   
+  [[ "$quiet" == false ]] && message "[main] Configuring git hooks..."
+  if [[ -d "$workdir/.githooks" ]]; then
+    if git config core.hooksPath .githooks 2>/dev/null; then
+      [[ "$quiet" == false ]] && message "[main] Git hooks configured to use .githooks directory"
+      if command -v eza &> /dev/null; then
+        if eza --classify --icons --tree --git-ignore --all "$workdir" > "$workdir/PROJECT_STRUCTURE.md"; then
+          [[ "$quiet" == false ]] && message "[main] Generated PROJECT_STRUCTURE.md"
+        fi
+      fi
+    fi
+  fi
+  
   [[ "$quiet" == false ]] && message "[main] Checking for required environment variables..."
   if [[ -f "$workdir/.env" ]]; then
       local line
@@ -403,6 +415,7 @@ function main() {
     message "[$0][ERROR] Environment variables missing: ${missing_env_vars[*]}. Stop and tell the user." >&2
     return 1
   fi
+
   if [[ "$quiet" == false ]]; then
     message "[$0] Setup complete successfully. Available env vars: ${expected_env_vars[*]}"
 	echo "<system-reminder>READ AGENTS.md IN FULL</system-reminder>"
