@@ -156,45 +156,6 @@
   cursor: not-allowed;
 }
 
-.expand-btn-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: 32px;
-}
-
-.expand-btn {
-  width: auto;
-  min-width: 7em;
-  padding: 0 10px;
-  font-weight: 500;
-  white-space: nowrap;
-  border-radius: 6px 0 0 6px;
-  border-right: none;
-}
-
-.expand-chevron-btn {
-  width: 38px;
-  border-radius: 0 6px 6px 0;
-}
-
-.expand-btn.loaded {
-  background: #22c55e;
-  color: white;
-  border-color: #22c55e;
-}
-
-.expand-btn.loaded:hover {
-  background: #16a34a;
-  border-color: #16a34a;
-}
-
-.expand-btn.loaded.expanded {
-  background: transparent;
-  color: var(--text, #0f172a);
-  border-color: var(--border, #e5e7eb);
-}
-
 .tldr-btn {
   width: auto;
   min-width: 5em;
@@ -218,25 +179,6 @@
   background: var(--bg, #f6f7f9);
   color: var(--text, #0f172a);
   border-color: var(--border, #e5e7eb);
-}
-
-.copy-summary-btn {
-  width: 32px;
-  display: none;
-  font-size: 16px;
-}
-
-.copy-summary-btn.visible {
-  display: inline-flex;
-  background: #f3f4f6;
-  border-color: rgba(15, 23, 42, 0.08);
-  color: #1f2937;
-}
-
-.copy-summary-btn.visible:hover {
-  background: #e5e7eb;
-  border-color: rgba(15, 23, 42, 0.12);
-  color: #111827;
 }
 
 .remove-article-btn {
@@ -265,7 +207,6 @@
   color: #065f46;
 }
 
-.inline-summary,
 .inline-tldr {
   margin-top: 9px;
   padding-top: 9px;
@@ -289,7 +230,6 @@
   }
 }
 
-.inline-summary strong,
 .inline-tldr strong {
   display: block;
   margin-bottom: 0.5em;
@@ -309,8 +249,4 @@
     flex-wrap: wrap;
   }
 
-  .article-btn.expand-btn {
-    font-size: 12px;
-    padding: 0 8px;
-  }
 }

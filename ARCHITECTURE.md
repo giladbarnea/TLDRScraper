@@ -5,12 +5,12 @@ last-updated: 2025-11-04 15:46, 707d0ac
 
 ## Overview
 
-TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered summaries and TLDRs. The architecture follows a Vue 3 + Vite frontend communicating with a Flask backend via REST API.
+TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered TLDRs. The architecture follows a React 19 + Vite frontend communicating with a Flask backend via REST API.
 
 ## Technology Stack
 
 **Frontend:**
-- Vue 3 (Composition API)
+- React 19
 - Vite (build tool)
 - Marked.js (markdown parsing)
 - DOMPurify (XSS sanitization)
@@ -21,7 +21,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - Jina Reader API (web scraping fallback)
 - Firecrawl API (web scraping fallback, optional)
 - MarkItDown (HTML → Markdown conversion)
-- OpenAI GPT-5 (AI summaries/TLDRs)
+- OpenAI GPT-5 (AI TLDRs)
 
 ## Architecture Diagram
 
@@ -55,22 +55,20 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │                          Flask Backend (Python)                          │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │                         serve.py (Routes)                         │  │
-│  │  POST /api/scrape          │  POST /api/summarize-url             │  │
-│  │  POST /api/tldr-url        │  GET  /api/prompt                    │  │
+│  │  POST /api/scrape          │  POST /api/tldr-url                  │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                    │                                     │
 │                                    ▼                                     │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │                       tldr_app.py (App Logic)                     │  │
-│  │  - scrape_newsletters()    - summarize_url()                      │  │
-│  │  - tldr_url()              - get_*_prompt_template()              │  │
+│  │  - scrape_newsletters()    - tldr_url()                           │  │
+│  │  - get_tldr_prompt_template()                                    │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                    │                                     │
 │                                    ▼                                     │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │                    tldr_service.py (Service Layer)                │  │
 │  │  - scrape_newsletters_in_date_range()                             │  │
-│  │  - summarize_url_content()                                        │  │
 │  │  - tldr_url_content()                                             │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │              │                            │                              │
@@ -78,7 +76,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  ┌────────────────────────┐   ┌──────────────────────────────────────┐ │
 │  │  newsletter_scraper.py │   │       summarizer.py                  │ │
 │  │                        │   │                                      │ │
-│  │  - scrape_date_range() │   │  - summarize_url()                  │ │
+│  │  - scrape_date_range() │   │  - tldr_url()                       │ │
 │  │  - Adapter Factory     │   │  - tldr_url()                       │ │
 │  │                        │   │  - url_to_markdown()                │ │
 │  │  Uses:                 │   │  - scrape_url()                     │ │
@@ -126,22 +124,12 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 **User Action:** Click article link / Remove button / Restore button
 
 **Available Interactions:**
-- Click article title → Mark as read + expand summary
+- Click article title → Mark as read
 - Click "Remove" → Mark as removed (visual strikethrough)
 - Click "Restore" → Restore removed article
 - Removed articles persist in localStorage
 
-### 4. Summary Generation
-**User Action:** Click "Summarize" button on article
-
-**Available Interactions:**
-- Click "Summarize" → Fetch summary from API
-- Summary displayed inline below article
-- Click again → Collapse summary
-- Copy summary to clipboard
-- Cached summaries show "Available" (green)
-
-### 5. TLDR Generation
+### 4. TLDR Generation
 **User Action:** Click "TLDR" button on article
 
 **Available Interactions:**
@@ -150,7 +138,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - Click again → Collapse TLDR (marks as tldrHidden; deprioritized)
 - Cached TLDRs show "Available" (green)
 
-### 6. Results Display
+### 5. Results Display
 **User Action:** View scraped results
 
 **Available Interactions:**
@@ -310,66 +298,7 @@ removed
 
 ---
 
-### Feature 4: Summary Generation
-
-#### States (per article summary)
-1. **unknown** - Summary not yet requested
-2. **creating** - API request in progress
-3. **available** - Summary cached and ready
-4. **error** - API request failed
-
-#### State Transitions
-
-```
-unknown
-  │
-  └─ User clicks "Summarize"
-       ↓
-     creating
-       │
-       ├─ POST /api/summarize-url { url, summary_effort }
-       │
-       ├─ Success
-       │    ↓
-       │  available
-       │    │
-       │    ├─ summary.status = 'available'
-       │    ├─ summary.markdown = response.summary_markdown
-       │    ├─ summary.expanded = true
-       │    │
-       │    └─ localStorage updated
-       │
-       └─ Failure
-            ↓
-          error
-            │
-            ├─ summary.status = 'error'
-            ├─ summary.errorMessage = error text
-            │
-            └─ localStorage updated
-
-available
-  │
-  ├─ User clicks "Available"
-  │    ↓
-  │  (toggle expanded state, no API call)
-  │
-  └─ User clicks "Copy"
-       ↓
-     (copy to clipboard, no state change)
-```
-
-#### Key State Data (per article)
-- **summary.status**: 'unknown' | 'creating' | 'available' | 'error'
-- **summary.markdown**: string
-- **summary.html**: computed (marked + DOMPurify)
-- **summary.effort**: 'minimal' | 'low' | 'medium' | 'high'
-- **summary.expanded**: boolean (UI state)
-- **summary.errorMessage**: string | null
-
----
-
-### Feature 5: TLDR Generation
+### Feature 4: TLDR Generation
 
 #### States (per article TLDR)
 1. **unknown** - TLDR not yet requested
@@ -640,172 +569,7 @@ User clicks "Scrape Newsletters"
 
 ---
 
-### Feature 4: Summary Generation - Complete Flow
-
-```
-User clicks "Summarize" button
-  │
-  ├─ ArticleCard.vue:126 @click="summary.toggle()"
-  │    │
-  │    └─ useSummary.js:109 toggle(summaryEffort)
-  │         │
-  │         ├─ Check if summary already available:
-  │         │    │
-  │         │    ├─ If isAvailable = true:
-  │         │    │    │
-  │         │    │    └─ expanded.value = !expanded.value (no API call)
-  │         │    │
-  │         │    └─ If isAvailable = false:
-  │         │         │
-  │         │         └─ useSummary.js:55 fetch(summaryEffort)
-  │         │
-  │         └─ fetch() flow:
-  │              │
-  │              ├─ loading.value = true
-  │              ├─ article.value.summary.status = 'creating'
-  │              │
-  │              └─ window.fetch('/api/summarize-url', {
-  │                   method: 'POST',
-  │                   body: JSON.stringify({ url, summary_effort })
-  │                 })
-  │                   │
-  │                   └─ Server receives request...
-  │                        │
-  │                        ├─ serve.py:92 summarize_url()
-  │                        │    │
-  │                        │    ├─ Extract request.get_json()
-  │                        │    │    - url: "https://example.com/article"
-  │                        │    │    - summary_effort: "low"
-  │                        │    │
-  │                        │    └─ tldr_app.py:35 summarize_url(url, summary_effort)
-  │                        │         │
-  │                        │         └─ tldr_service.py:83 summarize_url_content(url, summary_effort)
-  │                        │              │
-  │                        │              ├─ util.canonicalize_url(url)
-  │                        │              │    │
-  │                        │              │    └─ Returns canonical URL
-  │                        │              │
-  │                        │              └─ summarizer.py:231 summarize_url(canonical_url, summary_effort)
-  │                        │                   │
-  │                        │                   ├─ summarizer.py:215 url_to_markdown(url)
-  │                        │                   │    │
-  │                        │                   │    ├─ Check if GitHub repo URL:
-  │                        │                   │    │    │
-  │                        │                   │    │    ├─ If yes: _fetch_github_readme(url)
-  │                        │                   │    │    │    │
-  │                        │                   │    │    │    ├─ Try: raw.githubusercontent.com/.../README.md
-  │                        │                   │    │    │    └─ Return markdown content
-  │                        │                   │    │    │
-  │                        │                   │    │    └─ If no: scrape_url(url)
-  │                        │                   │    │
-  │                        │                   │    └─ summarizer.py:100 scrape_url(url)
-  │                        │                   │         │
-  │                        │                   │         ├─ Try Method 1: curl_cffi (timeout: 10s)
-  │                        │                   │         │    │
-  │                        │                   │         │    ├─ curl_requests.get(url, impersonate="chrome131")
-  │                        │                   │         │    │
-  │                        │                   │         │    └─ If success: return response
-  │                        │                   │         │
-  │                        │                   │         ├─ Try Method 2: Jina Reader (timeout: 10s)
-  │                        │                   │         │    │
-  │                        │                   │         │    ├─ Build Jina URL: "https://r.jina.ai/http://..."
-  │                        │                   │         │    ├─ requests.get(jina_url)
-  │                        │                   │         │    │
-  │                        │                   │         │    └─ If success: return response
-  │                        │                   │         │
-  │                        │                   │         └─ Try Method 3: Firecrawl (timeout: 60s, if API key configured)
-  │                        │                   │              │
-  │                        │                   │              ├─ POST api.firecrawl.dev/v1/scrape
-  │                        │                   │              ├─ Requires FIRECRAWL_API_KEY
-  │                        │                   │              │
-  │                        │                   │              └─ If success: return mock response with HTML
-  │                        │                   │
-  │                        │                   ├─ Convert response to markdown:
-  │                        │                   │    │
-  │                        │                   │    └─ MarkItDown.convert_response(response)
-  │                        │                   │         │
-  │                        │                   │         └─ Returns markdown string
-  │                        │                   │
-  │                        │                   ├─ Fetch prompt template:
-  │                        │                   │    │
-  │                        │                   │    └─ summarizer.py:324 _fetch_summarize_prompt()
-  │                        │                   │         │
-  │                        │                   │         ├─ Check cache: globals()['_PROMPT_CACHE']
-  │                        │                   │         │    │
-  │                        │                   │         │    └─ If cached: return cached prompt
-  │                        │                   │         │
-  │                        │                   │         └─ If not cached:
-  │                        │                   │              │
-  │                        │                   │              ├─ Fetch from GitHub:
-  │                        │                   │              │    "https://api.github.com/repos/giladbarnea/llm-templates/contents/text/summarize.md"
-  │                        │                   │              │
-  │                        │                   │              └─ Cache and return
-  │                        │                   │
-  │                        │                   ├─ Insert markdown into prompt:
-  │                        │                   │    │
-  │                        │                   │    └─ _insert_markdown_into_template(template, markdown)
-  │                        │                   │         │
-  │                        │                   │         └─ Inject between <summarize this> tags
-  │                        │                   │
-  │                        │                   └─ Call LLM:
-  │                        │                        │
-  │                        │                        └─ summarizer.py:377 _call_llm(prompt, summary_effort)
-  │                        │                             │
-  │                        │                             ├─ Build OpenAI request:
-  │                        │                             │    {
-  │                        │                             │      model: "gpt-5",
-  │                        │                             │      input: prompt,
-  │                        │                             │      reasoning: { effort: "low" }
-  │                        │                             │    }
-  │                        │                             │
-  │                        │                             ├─ POST https://api.openai.com/v1/responses
-  │                        │                             │
-  │                        │                             ├─ Parse response:
-  │                        │                             │    - Extract output_text or content
-  │                        │                             │
-  │                        │                             └─ Return summary markdown
-  │                        │
-  │                        ├─ Build response payload:
-  │                        │    {
-  │                        │      success: true,
-  │                        │      summary_markdown: "...",
-  │                        │      canonical_url: "...",
-  │                        │      summary_effort: "low"
-  │                        │    }
-  │                        │
-  │                        └─ Flask jsonify() → HTTP Response
-  │
-  └─ Client receives response:
-       │
-       ├─ useSummary.js:79 response.json()
-       │    │
-       │    └─ If result.success:
-       │         │
-       │         ├─ Update article.value.summary:
-       │         │    {
-       │         │      status: 'available',
-       │         │      markdown: result.summary_markdown,
-       │         │      effort: summaryEffort,
-       │         │      checkedAt: new Date().toISOString(),
-       │         │      errorMessage: null
-       │         │    }
-       │         │
-       │         ├─ expanded.value = true
-       │         │
-       │         └─ localStorage auto-updates (via useLocalStorage watcher)
-       │
-       └─ ArticleCard.vue renders:
-            │
-            └─ v-if="summary.expanded.value && summary.html.value"
-                 │
-                 ├─ Compute summary.html (marked + DOMPurify)
-                 │
-                 └─ Display inline summary
-```
-
----
-
-### Feature 5: TLDR Generation - Complete Flow
+### Feature 4: TLDR Generation - Complete Flow
 
 ```
 User clicks "TLDR" button
@@ -1060,47 +824,6 @@ sequenceDiagram
 
 ---
 
-## Sequence Diagram: Summary Generation Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant ArticleCard
-    participant useSummary
-    participant localStorage
-    participant Flask
-    participant Summarizer
-    participant OpenAI
-
-    User->>ArticleCard: Click "Summarize"
-    ArticleCard->>useSummary: toggle()
-
-    alt Summary already available
-        useSummary->>useSummary: Toggle expanded state
-        useSummary-->>ArticleCard: Update UI
-    else Summary not available
-        useSummary->>Flask: POST /api/summarize-url {url, summary_effort}
-        Flask->>Summarizer: summarize_url(url, effort)
-
-        Summarizer->>Summarizer: scrape_url() via curl_cffi/Jina/Firecrawl
-        Summarizer->>Summarizer: Convert HTML → Markdown
-        Summarizer->>Summarizer: Fetch prompt template from GitHub
-        Summarizer->>Summarizer: Insert markdown into template
-
-        Summarizer->>OpenAI: POST /v1/responses {model, input, reasoning}
-        OpenAI-->>Summarizer: {output_text: "summary..."}
-
-        Summarizer-->>Flask: summary_markdown
-        Flask-->>useSummary: {success, summary_markdown}
-
-        useSummary->>useSummary: Update article.summary
-        useSummary->>localStorage: Auto-save (via watcher)
-        useSummary-->>ArticleCard: Display summary
-    end
-```
-
----
-
 ## Key Algorithms
 
 ### 1. Article Sorting Algorithm (ArticleList.vue:22)
@@ -1149,13 +872,13 @@ function mergeWithCache(payloads) {
     const cached = localStorage.getItem(`newsletters:scrapes:${payload.date}`)
 
     if (cached) {
-      // Merge: preserve user state (read, removed, tldrHidden) and AI content (summary, tldr)
+      // Merge: preserve user state (read, removed, tldrHidden) and AI content (tldr)
       return {
         ...payload,
         articles: payload.articles.map(article => {
           const existing = cached.articles.find(a => a.url === article.url)
           return existing
-            ? { ...article, summary: existing.summary, tldr: existing.tldr,
+            ? { ...article, tldr: existing.tldr,
                 read: existing.read, removed: existing.removed, tldrHidden: existing.tldrHidden }
             : article
         })

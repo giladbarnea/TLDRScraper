@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import ArticleCard from './ArticleCard'
 import './ArticleList.css'
 
-function ArticleList({ articles, onCopySummary }) {
+function ArticleList({ articles }) {
   const [storageVersion, setStorageVersion] = useState(0)
 
   useEffect(() => {
@@ -93,7 +93,6 @@ function ArticleList({ articles, onCopySummary }) {
             key={item.key}
             article={item.article}
             index={item.index}
-            onCopySummary={onCopySummary}
           />
         )
       ))}

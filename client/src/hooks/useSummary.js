@@ -3,7 +3,11 @@ import { useArticleState } from './useArticleState'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 
-export function useSummary(date, url, type = 'summary') {
+export function useSummary(date, url, type = 'tldr') {
+  if (type === 'summary') {
+    throw new Error('Summary feature has been removed. Use type="tldr" instead.')
+  }
+
   const { article, updateArticle } = useArticleState(date, url)
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -34,7 +38,7 @@ export function useSummary(date, url, type = 'summary') {
     if (expanded) return 'Hide'
     if (isAvailable) return 'Available'
     if (isError) return 'Retry'
-    return type === 'summary' ? 'Summarize' : 'TLDR'
+    return 'TLDR'
   }, [isLoading, expanded, isAvailable, isError, type])
 
   const fetch = useCallback(async (summaryEffort = effort) => {
@@ -50,7 +54,7 @@ export function useSummary(date, url, type = 'summary') {
       }
     }))
 
-    const endpoint = type === 'summary' ? '/api/summarize-url' : '/api/tldr-url'
+    const endpoint = '/api/tldr-url'
 
     try {
       const response = await window.fetch(endpoint, {

@@ -1,12 +1,8 @@
-import { useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import ArticleList from './ArticleList'
 import './ResultsDisplay.css'
 
 function ResultsDisplay({ results }) {
-  const [showToast, setShowToast] = useState(false)
-
   const statsLines = [
     `📊 Stats: ${results.stats.total_articles} articles, ${results.stats.unique_urls} unique URLs`,
     `📅 Dates: ${results.stats.dates_with_content}/${results.stats.dates_processed} with content`,
@@ -14,11 +10,6 @@ function ResultsDisplay({ results }) {
   ].filter(Boolean)
 
   const debugLogs = results.debugLogs || []
-
-  const handleCopySummary = () => {
-    setShowToast(true)
-    setTimeout(() => setShowToast(false), 2000)
-  }
 
   return (
     <div id="result" className="result success">
@@ -42,22 +33,14 @@ function ResultsDisplay({ results }) {
           <DailyResults
             key={payload.date}
             payload={payload}
-            onCopySummary={handleCopySummary}
           />
         ))}
       </main>
-
-      {createPortal(
-        <div id="copyToast" className={`copy-toast ${showToast ? 'show' : ''}`}>
-          Copied to clipboard
-        </div>,
-        document.body
-      )}
     </div>
   )
 }
 
-function DailyResults({ payload, onCopySummary }) {
+function DailyResults({ payload }) {
   const [livePayload] = useLocalStorage(
     `newsletters:scrapes:${payload.date}`,
     payload
@@ -98,7 +81,6 @@ function DailyResults({ payload, onCopySummary }) {
 
           <ArticleList
             articles={articles.filter((article) => article.category === issue.category)}
-            onCopySummary={onCopySummary}
           />
         </div>
       ))}
@@ -106,7 +88,6 @@ function DailyResults({ payload, onCopySummary }) {
       {articles.some((article) => !article.category) && (
         <ArticleList
           articles={articles.filter((article) => !article.category)}
-          onCopySummary={onCopySummary}
         />
       )}
     </div>

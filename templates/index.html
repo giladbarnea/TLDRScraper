@@ -493,7 +493,6 @@
             color: #b91c1c;
         }
 
-        /* Split button container for summarize + effort dropdown */
         .expand-btn-container {
             position: relative;
             display: flex;
@@ -629,7 +628,7 @@
            Button Style Architecture
            ========================================
            Base: .article-btn (32px icon button)
-           Modifiers: .expand-btn, .tldr-btn, .copy-summary-btn
+           Modifiers: .expand-btn, .tldr-btn
            States: .loaded, .expanded
            Container contexts: .expand-btn-container
            
@@ -661,31 +660,11 @@
             color: var(--text);
         }
 
-        .article-btn.copy-summary-btn {
-            display: none;
-            font-size: 16px;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-
-        .article-btn.copy-summary-btn.visible {
-            display: inline-flex;
-            background: #f3f4f6;
-            border-color: rgba(15, 23, 42, 0.08);
-            color: #1f2937;
-        }
-
-        .article-btn.copy-summary-btn.visible:hover {
-            background: #e5e7eb;
-            border-color: rgba(15, 23, 42, 0.12);
-            color: #111827;
-        }
-
         .article-btn svg {
             width: 18px;
             height: 18px;
         }
 
-        /* Expand/Summarize button (text button in split container) */
         .article-btn.expand-btn {
             width: auto;
             min-width: 7em;
@@ -839,19 +818,6 @@
             transform: translateX(-50%) translateY(0);
         }
 
-        /* Inline summary expansion - 75% old style, 25% new */
-        .inline-summary {
-            margin-top: 9px;
-            padding-top: 9px;
-            padding-left: 16px;
-            padding-right: 16px;
-            padding-bottom: 0;
-            border-top: 1px dashed var(--border);
-            font-size: 0.96em;
-            line-height: 1.675;
-            animation: slideDown 0.2s ease;
-        }
-
         .inline-tldr {
             margin-top: 9px;
             padding-top: 9px;
@@ -875,7 +841,7 @@
             }
         }
 
-        .inline-summary strong {
+        .inline-tldr strong {
             display: block;
             margin-bottom: 0.5em;
             color: var(--text);
