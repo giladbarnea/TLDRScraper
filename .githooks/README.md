@@ -35,6 +35,8 @@ The hook will attempt to auto-install `eza` on Ubuntu/Debian systems.
 
 These hooks ensure the local clone always has the `merge.ours` driver configured so Git respects the `PROJECT_STRUCTURE.md merge=ours` rule from `.gitattributes`.
 
+They also regenerate `PROJECT_STRUCTURE.md` using `eza` to ensure the file is always present and up-to-date in the local worktree (the file remains untracked/ignored in git).
+
 ## GitHub Actions
 
 The same functionality runs automatically in GitHub Actions in two modes:
