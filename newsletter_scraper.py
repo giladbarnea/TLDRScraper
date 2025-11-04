@@ -34,6 +34,36 @@ def _get_adapter_for_source(config):
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 
 
+def _normalize_article_payload(article: dict) -> dict:
+    """Normalize article dict into API payload format.
+
+    >>> article = {"url": "https://example.com", "title": "Test", "date": "2024-01-01", "category": "Tech", "removed": None}
+    >>> result = _normalize_article_payload(article)
+    >>> result["removed"]
+    False
+    """
+    payload = {
+        "url": article["url"],
+        "title": article["title"],
+        "date": article["date"],
+        "category": article["category"],
+        "removed": bool(article.get("removed", False)),
+    }
+
+    if article.get("source_id"):
+        payload["source_id"] = article["source_id"]
+    if article.get("section_title"):
+        payload["section_title"] = article["section_title"]
+    if article.get("section_emoji"):
+        payload["section_emoji"] = article["section_emoji"]
+    if article.get("section_order") is not None:
+        payload["section_order"] = article["section_order"]
+    if article.get("newsletter_type"):
+        payload["newsletter_type"] = article["newsletter_type"]
+
+    return payload
+
+
 def _build_scrape_response(
     start_date,
     end_date,
@@ -43,9 +73,6 @@ def _build_scrape_response(
     issue_metadata_by_key,
     network_fetches,
 ):
-    for article in all_articles:
-        article["removed"] = bool(article.get("removed", False))
-
     grouped_articles: dict[str, list[dict]] = {}
     for article in all_articles:
         date_value = article["date"]
@@ -60,27 +87,7 @@ def _build_scrape_response(
         start_date, end_date, grouped_articles, issue_metadata_by_key
     )
 
-    articles_data: list[dict] = []
-    for article in all_articles:
-        payload = {
-            "url": article["url"],
-            "title": article["title"],
-            "date": article["date"],
-            "category": article["category"],
-            "removed": bool(article.get("removed", False)),
-        }
-        # CRITICAL: Include source_id to prevent identity collisions
-        if article.get("source_id"):
-            payload["source_id"] = article["source_id"]
-        if article.get("section_title"):
-            payload["section_title"] = article["section_title"]
-        if article.get("section_emoji"):
-            payload["section_emoji"] = article["section_emoji"]
-        if article.get("section_order") is not None:
-            payload["section_order"] = article["section_order"]
-        if article.get("newsletter_type"):
-            payload["newsletter_type"] = article["newsletter_type"]
-        articles_data.append(payload)
+    articles_data = [_normalize_article_payload(article) for article in all_articles]
 
     def _issue_sort_key(issue: dict) -> tuple:
         date_text = issue.get("date", "") or ""
