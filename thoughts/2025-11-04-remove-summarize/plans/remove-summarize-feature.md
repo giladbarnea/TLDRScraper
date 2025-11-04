@@ -1,8 +1,7 @@
 ---
-last-updated: 2025-11-04 18:25, a09cad3
+last-updated: 2025-11-04 20:55, ef64294
 status: complete
 ---
-
 # Remove Summarize Feature Implementation Plan
 
 ## Overview
