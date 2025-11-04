@@ -1,8 +1,8 @@
 ---
+last-updated: 2025-11-04 16:33, ff9162f
 description: Document codebase as-is with thoughts directory for historical context
 model: sonnet
 ---
-
 # Research Codebase
 
 You are tasked with conducting comprehensive research across the codebase to answer user questions by spawning parallel sub-agents and synthesizing their findings.
