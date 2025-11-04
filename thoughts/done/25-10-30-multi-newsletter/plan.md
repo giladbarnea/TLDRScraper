@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-04 21:27, fb37e99
+last-updated: 2025-11-04 21:28, 9d2dd25
 status: completed
 ---
 # Multi-Newsletter Refactoring Plan
