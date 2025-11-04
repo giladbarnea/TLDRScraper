@@ -135,6 +135,7 @@ def _collect_newsletters_for_date_from_source(
     url_set,
     all_articles,
     issue_metadata_by_key,
+    excluded_urls,
 ):
     """Collect newsletters for a date using source adapter.
 
@@ -148,6 +149,7 @@ def _collect_newsletters_for_date_from_source(
         url_set: Set of URLs for deduplication
         all_articles: List to append articles to
         issue_metadata_by_key: Dict to store issue metadata
+        excluded_urls: List of canonical URLs to exclude
 
     Returns:
         Tuple of (updated_processed_count, network_articles_count)
@@ -165,7 +167,7 @@ def _collect_newsletters_for_date_from_source(
     try:
         # Get adapter and scrape
         adapter = _get_adapter_for_source(config)
-        result = adapter.scrape_date(date)
+        result = adapter.scrape_date(date, excluded_urls)
 
         # Process articles from response
         for article in result.get("articles", []):
@@ -202,13 +204,14 @@ def _collect_newsletters_for_date_from_source(
     return current_processed, network_articles
 
 
-def scrape_date_range(start_date, end_date, source_ids=None):
+def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None):
     """Scrape newsletters in date range using configured adapters.
 
     Args:
         start_date: Start date
         end_date: End date
         source_ids: Optional list of source IDs to scrape. If None, scrapes all configured sources.
+        excluded_urls: List of canonical URLs to exclude from results
 
     Returns:
         Response dictionary with articles and issues
@@ -218,6 +221,10 @@ def scrape_date_range(start_date, end_date, source_ids=None):
     # Default to all configured sources
     if source_ids is None:
         source_ids = list(NEWSLETTER_CONFIGS.keys())
+
+    # Default to empty list for excluded URLs
+    if excluded_urls is None:
+        excluded_urls = []
 
     all_articles: list[dict] = []
     url_set: set[str] = set()
@@ -250,6 +257,7 @@ def scrape_date_range(start_date, end_date, source_ids=None):
                 url_set,
                 all_articles,
                 issue_metadata_by_key,
+                excluded_urls,
             )
             network_fetches += network_increment
 
