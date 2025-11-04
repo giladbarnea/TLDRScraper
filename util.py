@@ -52,13 +52,38 @@ def format_date_for_url(date):
 
 
 def canonicalize_url(url) -> str:
-    """Canonicalize URL for better deduplication"""
+    """Canonicalize URL for better deduplication.
+
+    Normalizes:
+    - http -> https
+    - www.example.com -> example.com
+    - Removes query parameters
+    - Removes URL fragments
+    - Removes trailing slashes
+    - Lowercases domain
+    """
     import urllib.parse as urlparse
 
     parsed = urlparse.urlparse(url)
-    canonical = f"{parsed.scheme}://{parsed.netloc.lower()}{parsed.path}"
-    if canonical.endswith("/") and len(canonical) > 1:
+
+    # Normalize scheme: http -> https
+    scheme = parsed.scheme.lower()
+    if scheme == 'http':
+        scheme = 'https'
+
+    # Normalize netloc: lowercase and remove www. prefix
+    netloc = parsed.netloc.lower()
+    if netloc.startswith('www.'):
+        netloc = netloc[4:]
+
+    # Build canonical URL (strips query params and fragments)
+    path = parsed.path
+    canonical = f"{scheme}://{netloc}{path}"
+
+    # Remove trailing slash only for non-root paths
+    if path.endswith("/") and path != "/":
         canonical = canonical[:-1]
+
     return canonical
 
 
