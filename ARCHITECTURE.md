@@ -77,10 +77,10 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  newsletter_scraper.py │   │       summarizer.py                  │ │
 │  │                        │   │                                      │ │
 │  │  - scrape_date_range() │   │  - tldr_url()                       │ │
-│  │  - Adapter Factory     │   │  - tldr_url()                       │ │
-│  │                        │   │  - url_to_markdown()                │ │
-│  │  Uses:                 │   │  - scrape_url()                     │ │
-│  │  - TLDRAdapter         │   │  - _call_llm()                      │ │
+│  │  - Adapter Factory     │   │  - url_to_markdown()                │ │
+│  │                        │   │  - scrape_url()                     │ │
+│  │  Uses:                 │   │  - _call_llm()                      │ │
+│  │  - TLDRAdapter         │   │                                      │ │
 │  │  - HackerNewsAdapter   │   │                                      │ │
 │  └────────────────────────┘   └──────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -416,7 +416,7 @@ User clicks "Scrape Newsletters"
        │         │
        │         └─ Server receives request...
        │              │
-       │              ├─ serve.py:36 scrape_newsletters_in_date_range()
+       │              ├─ serve.py:32 scrape_newsletters_in_date_range()
        │              │    │
        │              │    ├─ Extract request.get_json()
        │              │    │    - start_date: "2024-01-01"
@@ -426,9 +426,9 @@ User clicks "Scrape Newsletters"
        │              │    │
        │              │    └─ tldr_app.py:9 scrape_newsletters(start_date, end_date, source_ids, excluded_urls)
        │              │         │
-       │              │         └─ tldr_service.py:45 scrape_newsletters_in_date_range()
+       │              │         └─ tldr_service.py:43 scrape_newsletters_in_date_range()
        │              │              │
-       │              │              ├─ tldr_service.py:19 _parse_date_range()
+       │              │              ├─ tldr_service.py:17 _parse_date_range()
        │              │              │    │
        │              │              │    ├─ Parse ISO dates
        │              │              │    ├─ Validate: start <= end
@@ -436,7 +436,7 @@ User clicks "Scrape Newsletters"
        │              │              │    │
        │              │              │    └─ Return (datetime, datetime)
        │              │              │
-       │              │              └─ newsletter_scraper.py:205 scrape_date_range(start_date, end_date, source_ids, excluded_urls)
+       │              │              └─ newsletter_scraper.py:251 scrape_date_range(start_date, end_date, source_ids, excluded_urls)
        │              │                   │
        │              │                   ├─ util.get_date_range(start, end)
        │              │                   │    │
@@ -454,7 +454,7 @@ User clicks "Scrape Newsletters"
        │              │                        │
        │              │                        └─ For each source_id in source_ids:
        │              │                             │
-       │              │                             ├─ newsletter_scraper.py:128 _collect_newsletters_for_date_from_source()
+       │              │                             ├─ newsletter_scraper.py:172 _collect_newsletters_for_date_from_source()
        │              │                             │    │
        │              │                             │    ├─ newsletter_scraper.py:16 _get_adapter_for_source(config)
        │              │                             │    │    │
@@ -496,7 +496,7 @@ User clicks "Scrape Newsletters"
        │              │                             │
        │              │                             └─ Sleep 0.2s (rate limiting)
        │              │
-       │              ├─ newsletter_scraper.py:37 _build_scrape_response()
+       │              ├─ newsletter_scraper.py:139 _build_scrape_response()
        │              │    │
        │              │    ├─ Group articles by date
        │              │    ├─ Build markdown output (newsletter_merger.py)
@@ -589,15 +589,15 @@ User clicks "TLDR" button
   │                        │
   │                        └─ Server receives request...
   │                             │
-  │                             ├─ serve.py:130 tldr_url()
+  │                             ├─ serve.py:68 tldr_url()
   │                             │    │
-  │                             │    └─ tldr_app.py:61 tldr_url(url, summary_effort)
+  │                             │    └─ tldr_app.py:32 tldr_url(url, summary_effort)
   │                             │         │
-  │                             │         └─ tldr_service.py:117 tldr_url_content(url, summary_effort)
+  │                             │         └─ tldr_service.py:79 tldr_url_content(url, summary_effort)
   │                             │              │
   │                             │              ├─ util.canonicalize_url(url)
   │                             │              │
-  │                             │              └─ summarizer.py:251 tldr_url(url, summary_effort)
+  │                             │              └─ summarizer.py:291 tldr_url(url, summary_effort)
   │                             │                   │
   │                             │                   ├─ url_to_markdown(url)
   │                             │                   │    [Same flow as summarize]
