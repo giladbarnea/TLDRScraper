@@ -1,3 +1,7 @@
+---
+last-updated: 2025-11-05 17:22, 72a7115
+---
+
 # Headless Browser Testing Tools
 
 This document summarizes the headless browser automation tools available for testing in this project.
