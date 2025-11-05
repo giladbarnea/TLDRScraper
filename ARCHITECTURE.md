@@ -29,16 +29,16 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                             User Browser                                 │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │                        Vue 3 Application                          │  │
+│  │                       React 19 Application                        │  │
 │  │  ┌────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │  │
-│  │  │  App.vue   │  │ Components   │  │    Composables           │  │  │
+│  │  │  App.jsx   │  │ Components   │  │    Hooks                 │  │  │
 │  │  │            │  │              │  │                          │  │  │
-│  │  │  - Root    │  │ - ScrapeForm │  │ - useScraper             │  │  │
+│  │  │  - Root    │  │ - ScrapeForm │  │ - useArticleState        │  │  │
 │  │  │  - Hydrate │  │ - CacheToggle│  │ - useSummary             │  │  │
-│  │  │  - Results │  │ - Results    │  │ - useArticleState        │  │  │
-│  │  │    Display │  │   Display    │  │ - useCacheSettings       │  │  │
-│  │  │            │  │ - ArticleList│  │ - useLocalStorage        │  │  │
-│  │  │            │  │ - ArticleCard│  │                          │  │  │
+│  │  │  - Results │  │ - Results    │  │ - useLocalStorage        │  │  │
+│  │  │    Display │  │   Display    │  │                          │  │  │
+│  │  │            │  │ - ArticleList│  │ Lib                      │  │  │
+│  │  │            │  │ - ArticleCard│  │ - scraper.js             │  │  │
 │  │  └────────────┘  └──────────────┘  └──────────────────────────┘  │  │
 │  │                                                                     │  │
 │  │  ┌──────────────────────────────────────────────────────────────┐ │  │
@@ -363,15 +363,15 @@ available
 ```
 User clicks "Scrape Newsletters"
   │
-  ├─ ScrapeForm.vue:51 handleSubmit()
+  ├─ ScrapeForm.jsx handleSubmit()
   │    │
-  │    ├─ Check validationError (computed)
+  │    ├─ Check validation
   │    │    │
   │    │    └─ If invalid: return early
   │    │
-  │    └─ Call useScraper.scrape(startDate, endDate)
+  │    └─ Call scraper.scrape(startDate, endDate)
   │
-  └─ useScraper.js:144 scrape(startDate, endDate)
+  └─ scraper.js scrape(startDate, endDate)
        │
        ├─ Reset state:
        │    - loading.value = true
@@ -380,25 +380,25 @@ User clicks "Scrape Newsletters"
        │
        ├─ Step 1: Check cache
        │    │
-       │    └─ useScraper.js:43 isRangeCached(startDate, endDate)
-       │         │
-       │         ├─ Compute date range: computeDateRange()
-       │         │    │
-       │         │    └─ Returns: ['2024-01-03', '2024-01-02', '2024-01-01']
-       │         │
-       │         └─ Check each date in localStorage:
-       │              │
-       │              └─ localStorage.getItem('newsletters:scrapes:2024-01-01')
-       │                   │
-       │                   ├─ If ALL dates cached AND cacheEnabled = true
-       │                   │    │
-       │                   │    └─ useScraper.js:56 loadFromCache()
-       │                   │         │
-       │                   │         ├─ Parse each cached payload
-       │                   │         ├─ Build stats: buildStatsFromPayloads()
-       │                   │         ├─ progress.value = 100
-       │                   │         │
-       │                   │         └─ Return cached results
+  │    └─ scraper.js isRangeCached(startDate, endDate)
+  │         │
+  │         ├─ Compute date range: computeDateRange()
+  │         │    │
+  │         │    └─ Returns: ['2024-01-03', '2024-01-02', '2024-01-01']
+  │         │
+  │         └─ Check each date in localStorage:
+  │              │
+  │              └─ localStorage.getItem('newsletters:scrapes:2024-01-01')
+  │                   │
+  │                   ├─ If ALL dates cached AND cacheEnabled = true
+  │                   │    │
+  │                   │    └─ scraper.js loadFromCache()
+  │                   │         │
+  │                   │         ├─ Parse each cached payload
+  │                   │         ├─ Build stats: buildStatsFromPayloads()
+  │                   │         ├─ Update progress state
+  │                   │         │
+  │                   │         └─ Return cached results
        │                   │
        │                   └─ If NOT fully cached OR cache disabled
        │                        │
@@ -514,57 +514,57 @@ User clicks "Scrape Newsletters"
        │
        ├─ Step 3: Process Response
        │    │
-       │    └─ useScraper.js:176 buildDailyPayloadsFromScrape(data)
-       │         │
-       │         ├─ Group articles by date
-       │         ├─ Group issues by date
-       │         │
-       │         └─ Build daily payloads: [{
-       │              date: "2024-01-01",
-       │              articles: [...],
-       │              issues: [...],
-       │              cachedAt: timestamp
-       │            }]
+  │    └─ scraper.js buildDailyPayloadsFromScrape(data)
+  │         │
+  │         ├─ Group articles by date
+  │         ├─ Group issues by date
+  │         │
+  │         └─ Build daily payloads: [{
+  │              date: "2024-01-01",
+  │              articles: [...],
+  │              issues: [...],
+  │              cachedAt: timestamp
+  │            }]
+  │
+  ├─ Step 4: Merge with Cache (if enabled)
+  │    │
+  │    └─ scraper.js mergeWithCache(payloads)
+  │         │
+  │         └─ For each payload:
+  │              │
+  │              ├─ useLocalStorage hook
+  │              │    │
+  │              │    ├─ If cached data exists:
+  │              │    │    │
+  │              │    │    └─ Merge articles (preserve summary, tldr, read, removed)
+  │              │    │
+  │              │    └─ Save merged payload to localStorage
+  │              │
+  │              └─ Return merged payload
+  │
+  ├─ Step 5: Update State
+  │    │
+  │    ├─ Update progress state
+  │    ├─ Set results state: { success, payloads, source, stats }
+  │    │
+  │    └─ Return results
+  │
+  └─ Step 6: Display Results
        │
-       ├─ Step 4: Merge with Cache (if enabled)
-       │    │
-       │    └─ useScraper.js:108 mergeWithCache(payloads)
-       │         │
-       │         └─ For each payload:
-       │              │
-       │              ├─ useLocalStorage('newsletters:scrapes:${date}')
-       │              │    │
-       │              │    ├─ If cached data exists:
-       │              │    │    │
-       │              │    │    └─ Merge articles (preserve summary, tldr, read, removed)
-       │              │    │
-       │              │    └─ Save merged payload to localStorage
-       │              │
-       │              └─ Return merged payload
-       │
-       ├─ Step 5: Update State
-       │    │
-       │    ├─ progress.value = 100
-       │    ├─ results.value = { success, payloads, source, stats }
-       │    │
-       │    └─ Return results
-       │
-       └─ Step 6: Display Results
+       └─ ScrapeForm.jsx passes results via callback
             │
-            └─ ScrapeForm.vue:56 emit('results', results)
+            └─ App.jsx handleResults(data)
                  │
-                 └─ App.vue:27 handleResults(data)
+                 ├─ Update results state
+                 │
+                 └─ ResultsDisplay.jsx renders:
                       │
-                      ├─ results.value = data
+                      ├─ Stats
+                      ├─ Debug logs
                       │
-                      └─ ResultsDisplay.vue renders:
+                      └─ ArticleList (grouped by date/issue)
                            │
-                           ├─ Stats
-                           ├─ Debug logs
-                           │
-                           └─ ArticleList (grouped by date/issue)
-                                │
-                                └─ ArticleCard (for each article)
+                           └─ ArticleCard (for each article)
 ```
 
 ---
@@ -574,15 +574,13 @@ User clicks "Scrape Newsletters"
 ```
 User clicks "TLDR" button
   │
-  ├─ ArticleCard.vue:151 @click="handleTldrClick()"
+  ├─ ArticleCard.jsx onClick={handleTldrClick}
   │    │
-  │    └─ ArticleCard.vue:75 tldr.toggle()
+  │    └─ useSummary hook toggle()
   │         │
-  │         └─ useSummary.js:109 toggle() [type='tldr']
-  │              │
-  │              ├─ Check if TLDR already available
-  │              │
-  │              └─ useSummary.js:55 fetch(summaryEffort)
+  │         ├─ Check if TLDR already available
+  │         │
+  │         └─ useSummary.js fetch(summaryEffort)
   │                   │
   │                   └─ window.fetch('/api/tldr-url', {
   │                        method: 'POST',
@@ -623,7 +621,7 @@ User clicks "TLDR" button
   │
   └─ Client receives response:
        │
-       ├─ Update article.value.tldr:
+       ├─ Update article state:
        │    {
        │      status: 'available',
        │      markdown: result.tldr_markdown,
@@ -632,7 +630,7 @@ User clicks "TLDR" button
        │      errorMessage: null
        │    }
        │
-       ├─ expanded.value = true
+       ├─ Set expanded state to true
        ├─ Mark article as read (if not already)
        │
        └─ Display inline TLDR
@@ -742,29 +740,24 @@ User clicks "TLDR" button
 ## Component Dependency Graph
 
 ```
-App.vue
+App.jsx
   │
-  ├── CacheToggle.vue
-  │     └── useCacheSettings()
-  │           └── useLocalStorage('cache:enabled')
+  ├── CacheToggle.jsx
+  │     └── useLocalStorage('cache:enabled')
   │
-  ├── ScrapeForm.vue
-  │     └── useScraper()
-  │           ├── useLocalStorage('newsletters:scrapes:{date}')
-  │           └── useCacheSettings()
+  ├── ScrapeForm.jsx
+  │     └── scraper.js functions
+  │           └── useLocalStorage('newsletters:scrapes:{date}')
   │
-  └── ResultsDisplay.vue
+  └── ResultsDisplay.jsx
         │
-        └── ArticleList.vue
+        └── ArticleList.jsx
               │
-              └── ArticleCard.vue
+              └── ArticleCard.jsx
                     ├── useArticleState(date, url)
                     │     └── useLocalStorage('newsletters:scrapes:{date}')
                     │
-                    ├── useSummary(date, url, 'summary')
-                    │     └── useArticleState(date, url)
-                    │
-                    └── useSummary(date, url, 'tldr')
+                    └── useSummary(date, url)
                           └── useArticleState(date, url)
 ```
 
@@ -826,7 +819,7 @@ sequenceDiagram
 
 ## Key Algorithms
 
-### 1. Article Sorting Algorithm (ArticleList.vue:22)
+### 1. Article Sorting Algorithm (ArticleList.jsx)
 
 ```javascript
 // Sort articles by state (unread → read → tldrHidden → removed), then by original order
@@ -844,7 +837,7 @@ function sortArticles(articles) {
 }
 ```
 
-### 2. Date Range Computation (useScraper.js:20)
+### 2. Date Range Computation (scraper.js)
 
 ```javascript
 // Compute all dates between start and end (inclusive, descending)
@@ -863,7 +856,7 @@ function computeDateRange(startDate, endDate) {
 }
 ```
 
-### 3. Cache Merge Algorithm (useScraper.js:108)
+### 3. Cache Merge Algorithm (scraper.js)
 
 ```javascript
 // Merge new scrape results with existing cached data
@@ -928,7 +921,7 @@ newsletters:scrapes:{date} → DailyPayload
 
 1. **Initial Scrape**: API response → Build payloads → Save to localStorage
 2. **Cache Hit**: Read from localStorage → Skip API call
-3. **User Interaction**: Modify article state → localStorage auto-updates (via Vue watcher) and dispatches 'local-storage-change' (same-tab reactivity)
+3. **User Interaction**: Modify article state → localStorage updates and dispatches 'local-storage-change' (same-tab reactivity)
 4. **Summary/TLDR**: Fetch from API → Update article → localStorage auto-updates
 
 ---
@@ -980,9 +973,9 @@ newsletters:scrapes:{date} → DailyPayload
    - Cached after first fetch
 
 4. **Component Optimization**
-   - Scoped CSS prevents style leakage
-   - Computed properties cache derived state
-   - v-if for conditional rendering (unmounts DOM)
+   - Scoped CSS modules prevent style leakage
+   - useMemo caches derived state
+   - Conditional rendering optimizes DOM updates
 
 ---
 
@@ -990,7 +983,7 @@ newsletters:scrapes:{date} → DailyPayload
 
 1. **XSS Prevention**
    - DOMPurify sanitizes all markdown → HTML conversions
-   - v-html only used with sanitized content
+   - dangerouslySetInnerHTML only used with sanitized content
 
 2. **CSRF Protection**
    - Same-origin policy (frontend served from same domain)
@@ -1010,7 +1003,7 @@ newsletters:scrapes:{date} → DailyPayload
 
 ### Unit Tests (Frontend)
 
-- `useScraper.js`: Date range computation, cache hit/miss logic
+- `scraper.js`: Date range computation, cache hit/miss logic
 - `useArticleState.js`: State mutations (read/unread/removed)
 - `useSummary.js`: Toggle expansion, fetch logic
 
@@ -1052,22 +1045,23 @@ newsletters:scrapes:{date} → DailyPayload
 
 ```
 TLDRScraper/
-├── client/                    # Vue 3 frontend
+├── client/                    # React 19 frontend
 │   ├── src/
-│   │   ├── App.vue           # Root component
-│   │   ├── main.js           # Entry point
+│   │   ├── App.jsx           # Root component
+│   │   ├── main.jsx          # Entry point
 │   │   ├── components/       # UI components
-│   │   │   ├── ArticleCard.vue
-│   │   │   ├── ArticleList.vue
-│   │   │   ├── CacheToggle.vue
-│   │   │   ├── ResultsDisplay.vue
-│   │   │   └── ScrapeForm.vue
-│   │   └── composables/      # Reusable logic
-│   │       ├── useArticleState.js
-│   │       ├── useCacheSettings.js
-│   │       ├── useLocalStorage.js
-│   │       ├── useScraper.js
-│   │       └── useSummary.js
+│   │   │   ├── ArticleCard.jsx
+│   │   │   ├── ArticleList.jsx
+│   │   │   ├── CacheToggle.jsx
+│   │   │   ├── ResultsDisplay.jsx
+│   │   │   └── ScrapeForm.jsx
+│   │   ├── hooks/            # Custom React hooks
+│   │   │   ├── useArticleState.js
+│   │   │   ├── useLocalStorage.js
+│   │   │   └── useSummary.js
+│   │   └── lib/              # Utilities & logic
+│   │       ├── scraper.js
+│   │       └── storageKeys.js
 │   ├── index.html
 │   ├── vite.config.js
 │   └── package.json
@@ -1094,7 +1088,7 @@ TLDRScraper/
 
 TLDRScraper is a full-stack newsletter aggregator with sophisticated client-side state management, intelligent caching, and AI-powered content summarization. The architecture separates concerns clearly:
 
-- **Vue composables** handle reactive state and API calls
+- **React hooks** handle reactive state and API calls
 - **Flask routes** provide clean REST endpoints
 - **Service/adapter layers** abstract data sources
 - **localStorage** provides persistence without a database
