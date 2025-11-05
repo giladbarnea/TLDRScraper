@@ -10,7 +10,7 @@ import os
 
 import util
 import tldr_app
-from summarizer import DEFAULT_MODEL
+from summarizer import DEFAULT_MODEL, DEFAULT_TLDR_REASONING_EFFORT
 
 # Configure Flask to serve React build output
 app = Flask(
@@ -76,7 +76,7 @@ def tldr_url(model: str = DEFAULT_MODEL):
         model_param = request.args.get("model", DEFAULT_MODEL)
         result = tldr_app.tldr_url(
             data.get("url", ""),
-            summary_effort=data.get("summary_effort", "low"),
+            summary_effort=data.get("summary_effort", DEFAULT_TLDR_REASONING_EFFORT),
             model=model_param,
         )
 
