@@ -378,19 +378,27 @@ function main() {
     return 1
   fi
   
-  [[ "$quiet" == false ]] && message "[main] Configuring git hooks..."
+  [[ "$quiet" == false ]] && message "[$0] Configuring git hooks..."
   if [[ -d "$workdir/.githooks" ]]; then
     if git config core.hooksPath .githooks 2>/dev/null; then
-      [[ "$quiet" == false ]] && message "[main] Git hooks configured to use .githooks directory"
+      [[ "$quiet" == false ]] && message "[$0] Git hooks configured to use .githooks directory"
       if [[ -x "$workdir/.githooks/pre-merge-commit" ]]; then
-        [[ "$quiet" == false ]] && message "[main] Running pre-merge-commit hook to generate PROJECT_STRUCTURE.md..."
+        [[ "$quiet" == false ]] && message "[$0] Running pre-merge-commit hook to generate PROJECT_STRUCTURE.md..."
         (cd "$workdir" && ./.githooks/pre-merge-commit)
-        [[ "$quiet" == false && -f PROJECT_STRUCTURE.md ]] && message "[main] Generated PROJECT_STRUCTURE.md via git hook"
+        [[ "$quiet" == false && -f PROJECT_STRUCTURE.md ]] && message "[$0] Generated PROJECT_STRUCTURE.md via git hook"
       fi
     fi
   fi
   
-  [[ "$quiet" == false ]] && message "[main] Checking for required environment variables..."
+  [[ "$quiet" == false ]] && message "[$0] Installing and building client dependencies..."
+  if cd client && npm install && npm run build; then
+     cd "$workdir"
+  else
+    message "[$0][ERROR] Failed to cd client && npm install && npm run build" >&2
+    return 1
+  fi
+  
+  [[ "$quiet" == false ]] && message "[$0] Checking for required environment variables..."
   if [[ -f "$workdir/.env" ]]; then
       local line
       command grep --color=never -E -v '^(\s*#|$)' "$workdir/.env" | while read -r line; do
@@ -418,7 +426,7 @@ function main() {
 
   if [[ "$quiet" == false ]]; then
     message "[$0] Setup complete successfully. Available env vars: ${expected_env_vars[*]}"
-	echo "<system-reminder>READ AGENTS.md IN FULL</system-reminder>"
+	echo "<system-reminder>READ AGENTS.md AND MENTIONED FILES IN FULL</system-reminder>"
   fi
 }
 
