@@ -1,3 +1,7 @@
+---
+last-updated: 2025-11-05 17:46, b247968
+---
+
 # Playwright Capabilities for TLDRScraper Testing
 
 ## YES to Everything You Asked! ✅

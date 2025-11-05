@@ -1,3 +1,7 @@
+---
+last-updated: 2025-11-05 17:46, b247968
+---
+
 # Browser Automation Tools Comparison for TLDRScraper Testing
 
 ## Environment Limitations
