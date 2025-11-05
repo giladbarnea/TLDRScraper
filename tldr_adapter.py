@@ -42,6 +42,17 @@ class NewsletterIssue:
     sections: list[NewsletterSection]
 
 
+@dataclass
+class ParsedMarkdown:
+    """Structured result from parsing markdown once."""
+
+    issue_title: str | None
+    issue_subtitle: str | None
+    sections: list[NewsletterSection]
+    sections_by_order: dict[int, NewsletterSection]
+    article_candidates: list[dict]
+
+
 class TLDRAdapter(NewsletterAdapter):
     """Adapter for TLDR newsletter sources (Tech, AI, etc.)."""
 
@@ -96,6 +107,112 @@ class TLDRAdapter(NewsletterAdapter):
             )
             return None
 
+    def _parse_markdown_structure(
+        self, markdown: str, date: str, newsletter_type: str
+    ) -> ParsedMarkdown:
+        """Parse markdown once into structured format.
+
+        Extracts all structure (headings, sections, links) in a single pass.
+        """
+        lines = markdown.split("\n")
+        heading_pattern = re.compile(r"^(#+)\s*(.*)$")
+
+        issue_title = None
+        issue_subtitle = None
+        sections: list[NewsletterSection] = []
+        sections_by_order: dict[int, NewsletterSection] = {}
+        article_candidates: list[dict] = []
+
+        current_section_order: int | None = None
+        pending_section_emoji = None
+        section_counter = 0
+        seen_title = False
+
+        for raw_line in lines:
+            line = raw_line.strip()
+
+            if not line:
+                continue
+
+            heading_match = heading_pattern.match(line)
+            if heading_match:
+                level = len(heading_match.group(1))
+                text = heading_match.group(2).strip()
+
+                if not text:
+                    continue
+
+                if level == 1 and issue_title is None:
+                    issue_title = text
+                    seen_title = True
+                    pending_section_emoji = None
+                    continue
+
+                if level <= 2 and seen_title and issue_subtitle is None:
+                    issue_subtitle = text
+
+                if level >= 2:
+                    if not re.search(r"[A-Za-z0-9]", text):
+                        pending_section_emoji = text.strip()
+                        continue
+
+                    emoji = None
+                    title_text = text
+
+                    split_match = re.match(r"^([^\w\d]+)\s+(.*)$", title_text)
+                    if split_match and split_match.group(2).strip():
+                        potential_emoji = split_match.group(1).strip()
+                        remainder = split_match.group(2).strip()
+                        if potential_emoji and not re.search(
+                            r"[A-Za-z0-9]", potential_emoji
+                        ):
+                            emoji = potential_emoji
+                            title_text = remainder
+
+                    if pending_section_emoji and not emoji:
+                        emoji = pending_section_emoji.strip()
+
+                    pending_section_emoji = None
+
+                    if not title_text:
+                        continue
+
+                    section_counter += 1
+                    section = NewsletterSection(
+                        order=section_counter, title=title_text, emoji=emoji or None
+                    )
+                    sections.append(section)
+                    sections_by_order[section_counter] = section
+                    current_section_order = section_counter
+                    continue
+
+            if self._is_symbol_only_line(line):
+                pending_section_emoji = line.strip()
+                continue
+
+            link_matches = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", line)
+            for title, url in link_matches:
+                if not url.startswith("http"):
+                    continue
+                if self._is_file_url(url):
+                    continue
+
+                article_candidates.append(
+                    {
+                        "title": title,
+                        "url": url,
+                        "section_order": current_section_order,
+                    }
+                )
+
+        return ParsedMarkdown(
+            issue_title=issue_title,
+            issue_subtitle=issue_subtitle,
+            sections=sections,
+            sections_by_order=sections_by_order,
+            article_candidates=article_candidates,
+        )
+
     def parse_articles(
         self, markdown: str, date: str, newsletter_type: str
     ) -> list[dict]:
@@ -109,123 +226,40 @@ class TLDRAdapter(NewsletterAdapter):
         Returns:
             List of article dictionaries
         """
-        lines = markdown.split("\n")
-        articles = []
+        parsed = self._parse_markdown_structure(markdown, date, newsletter_type)
 
-        # Compile patterns from config
         article_pattern = re.compile(self.config.article_pattern, re.IGNORECASE)
-        heading_pattern = re.compile(r"^(#+)\s*(.*)$")
-
-        # Get category display name from config
         category = self.config.category_display_names.get(
             newsletter_type, f"TLDR {newsletter_type.capitalize()}"
         )
 
-        # Section tracking
-        pending_section_emoji = None
-        current_section_order: int | None = None
-        section_counter = 0
-        sections: list[NewsletterSection] = []
-        sections_by_order: dict[int, NewsletterSection] = {}
-
-        for raw_line in lines:
-            line = raw_line.strip()
-
-            if not line:
+        articles = []
+        for candidate in parsed.article_candidates:
+            if not article_pattern.search(candidate["title"]):
                 continue
 
-            # Check for heading
-            heading_match = heading_pattern.match(line)
-            if heading_match:
-                level = len(heading_match.group(1))
-                text = heading_match.group(2).strip()
+            cleaned_title = candidate["title"].strip()
+            cleaned_title = re.sub(r"^#+\s*", "", cleaned_title)
+            cleaned_title = re.sub(r"^\s*\d+\.\s*", "", cleaned_title)
 
-                if not text:
-                    continue
+            article = {
+                "title": cleaned_title,
+                "url": candidate["url"].strip(),
+                "category": category,
+                "date": util.format_date_for_url(date),
+                "newsletter_type": newsletter_type,
+            }
 
-                # Level 2+ headings can be sections
-                if level >= 2:
-                    # Check if this is a symbol-only heading (emoji section marker)
-                    if not re.search(r"[A-Za-z0-9]", text):
-                        pending_section_emoji = text.strip()
-                        continue
+            section_order = candidate["section_order"]
+            if section_order is not None:
+                section = parsed.sections_by_order.get(section_order)
+                if section is not None:
+                    article["section_title"] = section.title
+                    if section.emoji:
+                        article["section_emoji"] = section.emoji
+                    article["section_order"] = section_order
 
-                    emoji = None
-                    title_text = text
-
-                    # Try to extract emoji from the beginning of the heading
-                    split_match = re.match(r"^([^\w\d]+)\s+(.*)$", title_text)
-                    if split_match and split_match.group(2).strip():
-                        potential_emoji = split_match.group(1).strip()
-                        remainder = split_match.group(2).strip()
-                        if potential_emoji and not re.search(
-                            r"[A-Za-z0-9]", potential_emoji
-                        ):
-                            emoji = potential_emoji
-                            title_text = remainder
-
-                    # Use pending emoji if we don't have one yet
-                    if pending_section_emoji and not emoji:
-                        emoji = pending_section_emoji.strip()
-
-                    pending_section_emoji = None
-
-                    if not title_text:
-                        continue
-
-                    # Create section
-                    section_counter += 1
-                    section = NewsletterSection(
-                        order=section_counter, title=title_text, emoji=emoji or None
-                    )
-                    sections.append(section)
-                    sections_by_order[section_counter] = section
-                    current_section_order = section_counter
-                    continue
-
-            # Check for symbol-only line (emoji section marker)
-            if self._is_symbol_only_line(line):
-                pending_section_emoji = line.strip()
-                continue
-
-            # Look for article links
-            link_matches = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", line)
-            for title, url in link_matches:
-                if not url.startswith("http"):
-                    continue
-
-                if self._is_file_url(url):
-                    continue
-
-                # Check if this matches our article pattern
-                if not article_pattern.search(title):
-                    continue
-
-                cleaned_title = title.strip()
-                cleaned_url = url.strip()
-
-                # Clean up title formatting
-                cleaned_title = re.sub(r"^#+\s*", "", cleaned_title)
-                cleaned_title = re.sub(r"^\s*\d+\.\s*", "", cleaned_title)
-
-                article = {
-                    "title": cleaned_title,
-                    "url": cleaned_url,
-                    "category": category,
-                    "date": util.format_date_for_url(date),
-                    "newsletter_type": newsletter_type,
-                }
-
-                # Add section information if available
-                if current_section_order is not None:
-                    section = sections_by_order.get(current_section_order)
-                    if section is not None:
-                        article["section_title"] = section.title
-                        if section.emoji:
-                            article["section_emoji"] = section.emoji
-                        article["section_order"] = current_section_order
-
-                articles.append(article)
+            articles.append(article)
 
         return articles
 
@@ -242,100 +276,31 @@ class TLDRAdapter(NewsletterAdapter):
         Returns:
             Dictionary with issue metadata, or None if no metadata found
         """
-        lines = markdown.split("\n")
-        heading_pattern = re.compile(r"^(#+)\s*(.*)$")
+        parsed = self._parse_markdown_structure(markdown, date, newsletter_type)
 
-        # Get category display name from config
+        if not parsed.issue_title and not parsed.issue_subtitle and not parsed.sections:
+            return None
+
         category = self.config.category_display_names.get(
             newsletter_type, f"TLDR {newsletter_type.capitalize()}"
         )
 
-        issue_title = None
-        issue_subtitle = None
-        pending_section_emoji = None
-        section_counter = 0
-        sections: list[NewsletterSection] = []
+        metadata_sections = parsed.sections
+        if parsed.issue_subtitle and parsed.sections:
+            subtitle_text = parsed.issue_subtitle
+            if parsed.sections[0].title == subtitle_text:
+                metadata_sections = parsed.sections[1:]
 
-        for raw_line in lines:
-            line = raw_line.strip()
+        issue = NewsletterIssue(
+            date=util.format_date_for_url(date),
+            newsletter_type=newsletter_type,
+            category=category,
+            title=parsed.issue_title,
+            subtitle=parsed.issue_subtitle,
+            sections=metadata_sections,
+        )
 
-            if not line:
-                continue
-
-            heading_match = heading_pattern.match(line)
-            if heading_match:
-                level = len(heading_match.group(1))
-                text = heading_match.group(2).strip()
-
-                if not text:
-                    continue
-
-                # Level 1 heading is the issue title
-                if level == 1 and issue_title is None:
-                    issue_title = text
-                    pending_section_emoji = None
-                    continue
-
-                # Level 2 heading (after title) is the subtitle
-                if level <= 2 and issue_title is not None and issue_subtitle is None:
-                    issue_subtitle = text
-                    pending_section_emoji = None
-                    continue
-
-                # Level 2+ headings can be sections
-                if level >= 2:
-                    # Check if this is a symbol-only heading
-                    if not re.search(r"[A-Za-z0-9]", text):
-                        pending_section_emoji = text.strip()
-                        continue
-
-                    emoji = None
-                    title_text = text
-
-                    # Try to extract emoji from heading
-                    split_match = re.match(r"^([^\w\d]+)\s+(.*)$", title_text)
-                    if split_match and split_match.group(2).strip():
-                        potential_emoji = split_match.group(1).strip()
-                        remainder = split_match.group(2).strip()
-                        if potential_emoji and not re.search(
-                            r"[A-Za-z0-9]", potential_emoji
-                        ):
-                            emoji = potential_emoji
-                            title_text = remainder
-
-                    if pending_section_emoji and not emoji:
-                        emoji = pending_section_emoji.strip()
-
-                    pending_section_emoji = None
-
-                    if not title_text:
-                        continue
-
-                    section_counter += 1
-                    section = NewsletterSection(
-                        order=section_counter, title=title_text, emoji=emoji or None
-                    )
-                    sections.append(section)
-                    continue
-
-            # Check for symbol-only line
-            if self._is_symbol_only_line(line):
-                pending_section_emoji = line.strip()
-                continue
-
-        # Return metadata if we found anything
-        if issue_title or issue_subtitle or sections:
-            issue = NewsletterIssue(
-                date=util.format_date_for_url(date),
-                newsletter_type=newsletter_type,
-                category=category,
-                title=issue_title,
-                subtitle=issue_subtitle,
-                sections=sections,
-            )
-            return asdict(issue)
-
-        return None
+        return asdict(issue)
 
     @staticmethod
     def _is_symbol_only_line(text: str) -> bool:

@@ -1,4 +1,5 @@
 import { useLocalStorage } from '../hooks/useLocalStorage'
+import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import ArticleList from './ArticleList'
 import './ResultsDisplay.css'
 
@@ -42,7 +43,7 @@ function ResultsDisplay({ results }) {
 
 function DailyResults({ payload }) {
   const [livePayload] = useLocalStorage(
-    `newsletters:scrapes:${payload.date}`,
+    getNewsletterScrapeKey(payload.date),
     payload
   )
 

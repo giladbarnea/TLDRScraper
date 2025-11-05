@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import ArticleCard from './ArticleCard'
+import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import './ArticleList.css'
 
 function ArticleList({ articles }) {
@@ -15,7 +16,7 @@ function ArticleList({ articles }) {
   }, [])
 
   const getArticleState = (article) => {
-    const storageKey = `newsletters:scrapes:${article.issueDate}`
+    const storageKey = getNewsletterScrapeKey(article.issueDate)
     try {
       const raw = localStorage.getItem(storageKey)
       if (raw) {

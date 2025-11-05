@@ -3,6 +3,8 @@
  * Extracted from composables/useScraper.js
  */
 
+import { getNewsletterScrapeKey } from './storageKeys'
+
 function computeDateRange(startDate, endDate) {
   const dates = []
   const start = new Date(startDate)
@@ -49,7 +51,7 @@ function isRangeCached(startDate, endDate, cacheEnabled) {
 
   const dates = computeDateRange(startDate, endDate)
   return dates.every(date => {
-    const key = `newsletters:scrapes:${date}`
+    const key = getNewsletterScrapeKey(date)
     return localStorage.getItem(key) !== null
   })
 }
@@ -123,7 +125,7 @@ function buildDailyPayloadsFromScrape(data) {
 
 function mergeWithCache(payloads) {
   return payloads.map(payload => {
-    const key = `newsletters:scrapes:${payload.date}`
+    const key = getNewsletterScrapeKey(payload.date)
     const raw = localStorage.getItem(key)
 
     if (raw) {
@@ -164,7 +166,7 @@ export function loadFromCache(startDate, endDate) {
   const payloads = []
 
   dates.forEach(date => {
-    const key = `newsletters:scrapes:${date}`
+    const key = getNewsletterScrapeKey(date)
     const raw = localStorage.getItem(key)
     if (raw) {
       try {
