@@ -385,7 +385,7 @@ function main() {
       if [[ -x "$workdir/.githooks/pre-merge-commit" ]]; then
         [[ "$quiet" == false ]] && message "[main] Running pre-merge-commit hook to generate PROJECT_STRUCTURE.md..."
         (cd "$workdir" && ./.githooks/pre-merge-commit)
-        [[ "$quiet" == false ]] && message "[main] Generated PROJECT_STRUCTURE.md via git hook"
+        [[ "$quiet" == false && -f PROJECT_STRUCTURE.md ]] && message "[main] Generated PROJECT_STRUCTURE.md via git hook"
       fi
     fi
   fi
