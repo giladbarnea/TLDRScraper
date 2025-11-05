@@ -17,19 +17,20 @@ md = MarkItDown()
 _TLDR_PROMPT_CACHE = None
 
 SUMMARY_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
+DEFAULT_TLDR_REASONING_EFFORT = "low"
 DEFAULT_MODEL = "gpt-5"
 
 
 def normalize_summary_effort(value: str) -> str:
     """Normalize summary effort value to a supported option."""
     if not isinstance(value, str):
-        return "low"
+        return DEFAULT_TLDR_REASONING_EFFORT
 
     normalized = value.strip().lower()
     if normalized in SUMMARY_EFFORT_OPTIONS:
         return normalized
 
-    return "low"
+    return DEFAULT_TLDR_REASONING_EFFORT
 
 
 def _is_github_repo_url(url: str) -> bool:
@@ -289,7 +290,7 @@ def url_to_markdown(url: str) -> str:
     return markdown
 
 
-def tldr_url(url: str, summary_effort: str = "low", model: str = DEFAULT_MODEL) -> str:
+def tldr_url(url: str, summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT, model: str = DEFAULT_MODEL) -> str:
     """Get markdown content from URL and create a TLDR with LLM.
 
     Args:
@@ -400,7 +401,7 @@ def _insert_markdown_into_template(template: str, markdown: str) -> str:
     return template[:open_idx] + markdown + template[close_idx + len(close_tag) :]
 
 
-def _call_llm(prompt: str, summary_effort: str = "low", model: str = DEFAULT_MODEL) -> str:
+def _call_llm(prompt: str, summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT, model: str = DEFAULT_MODEL) -> str:
     """Call OpenAI API with prompt."""
     api_key = util.resolve_env_var("OPENAI_API_KEY", "")
     if not api_key:
