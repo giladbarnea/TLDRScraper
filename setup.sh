@@ -382,10 +382,10 @@ function main() {
   if [[ -d "$workdir/.githooks" ]]; then
     if git config core.hooksPath .githooks 2>/dev/null; then
       [[ "$quiet" == false ]] && message "[main] Git hooks configured to use .githooks directory"
-      if command -v eza &> /dev/null; then
-        if eza --classify --icons --tree --git-ignore --all "$workdir" > "$workdir/PROJECT_STRUCTURE.md"; then
-          [[ "$quiet" == false ]] && message "[main] Generated PROJECT_STRUCTURE.md"
-        fi
+      if [[ -x "$workdir/.githooks/pre-merge-commit" ]]; then
+        [[ "$quiet" == false ]] && message "[main] Running pre-merge-commit hook to generate PROJECT_STRUCTURE.md..."
+        (cd "$workdir" && ./.githooks/pre-merge-commit)
+        [[ "$quiet" == false ]] && message "[main] Generated PROJECT_STRUCTURE.md via git hook"
       fi
     fi
   fi
