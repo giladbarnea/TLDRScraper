@@ -34,36 +34,34 @@ def _get_adapter_for_source(config):
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 
 
-def _normalize_article_fields(articles: list[dict]) -> list[dict]:
-    """Normalize article fields for API response.
+def _normalize_article_payload(article: dict) -> dict:
+    """Normalize article dict into API payload format.
 
-    >>> articles = [{"url": "https://example.com", "title": "Test", "date": "2024-01-01", "category": "Tech", "removed": None}]
-    >>> result = _normalize_article_fields(articles)
-    >>> result[0]["removed"]
+    >>> article = {"url": "https://example.com", "title": "Test", "date": "2024-01-01", "category": "Tech", "removed": None}
+    >>> result = _normalize_article_payload(article)
+    >>> result["removed"]
     False
     """
-    articles_data: list[dict] = []
-    for article in articles:
-        payload = {
-            "url": article["url"],
-            "title": article["title"],
-            "date": article["date"],
-            "category": article["category"],
-            "removed": bool(article.get("removed", False)),
-        }
-        if article.get("source_id"):
-            payload["source_id"] = article["source_id"]
-        if article.get("section_title"):
-            payload["section_title"] = article["section_title"]
-        if article.get("section_emoji"):
-            payload["section_emoji"] = article["section_emoji"]
-        if article.get("section_order") is not None:
-            payload["section_order"] = article["section_order"]
-        if article.get("newsletter_type"):
-            payload["newsletter_type"] = article["newsletter_type"]
-        articles_data.append(payload)
+    payload = {
+        "url": article["url"],
+        "title": article["title"],
+        "date": article["date"],
+        "category": article["category"],
+        "removed": bool(article.get("removed", False)),
+    }
 
-    return articles_data
+    if article.get("source_id"):
+        payload["source_id"] = article["source_id"]
+    if article.get("section_title"):
+        payload["section_title"] = article["section_title"]
+    if article.get("section_emoji"):
+        payload["section_emoji"] = article["section_emoji"]
+    if article.get("section_order") is not None:
+        payload["section_order"] = article["section_order"]
+    if article.get("newsletter_type"):
+        payload["newsletter_type"] = article["newsletter_type"]
+
+    return payload
 
 
 def _group_articles_by_date(articles: list[dict]) -> dict[str, list[dict]]:
@@ -148,7 +146,7 @@ def _build_scrape_response(
     network_fetches,
 ):
     """Orchestrate building the complete scrape response."""
-    articles_data = _normalize_article_fields(all_articles)
+    articles_data = [_normalize_article_payload(a) for a in all_articles]
     grouped_articles = _group_articles_by_date(all_articles)
     output = build_markdown_output(
         start_date, end_date, grouped_articles, issue_metadata_by_key
