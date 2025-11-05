@@ -6,6 +6,8 @@ import requests
 import util
 from newsletter_scraper import scrape_date_range
 from summarizer import (
+    DEFAULT_MODEL,
+    DEFAULT_TLDR_REASONING_EFFORT,
     _fetch_tldr_prompt,
     normalize_summary_effort,
     tldr_url,
@@ -79,7 +81,8 @@ def fetch_tldr_prompt_template() -> str:
 def tldr_url_content(
     url: str,
     *,
-    summary_effort: str = "low",
+    summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT,
+    model: str = DEFAULT_MODEL,
 ) -> dict:
     cleaned_url = (url or "").strip()
     if not cleaned_url:
@@ -92,6 +95,7 @@ def tldr_url_content(
         tldr_markdown = tldr_url(
             canonical_url,
             summary_effort=normalized_effort,
+            model=model,
         )
     except requests.RequestException as error:
         util.log(
