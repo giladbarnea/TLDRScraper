@@ -34,20 +34,46 @@ def _get_adapter_for_source(config):
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 
 
-def _build_scrape_response(
-    start_date,
-    end_date,
-    dates,
-    all_articles,
-    url_set,
-    issue_metadata_by_key,
-    network_fetches,
-):
-    for article in all_articles:
-        article["removed"] = bool(article.get("removed", False))
+def _normalize_article_payload(article: dict) -> dict:
+    """Normalize article dict into API payload format.
 
+    >>> article = {"url": "https://example.com", "title": "Test", "date": "2024-01-01", "category": "Tech", "removed": None}
+    >>> result = _normalize_article_payload(article)
+    >>> result["removed"]
+    False
+    """
+    payload = {
+        "url": article["url"],
+        "title": article["title"],
+        "date": article["date"],
+        "category": article["category"],
+        "removed": bool(article.get("removed", False)),
+    }
+
+    if article.get("source_id"):
+        payload["source_id"] = article["source_id"]
+    if article.get("section_title"):
+        payload["section_title"] = article["section_title"]
+    if article.get("section_emoji"):
+        payload["section_emoji"] = article["section_emoji"]
+    if article.get("section_order") is not None:
+        payload["section_order"] = article["section_order"]
+    if article.get("newsletter_type"):
+        payload["newsletter_type"] = article["newsletter_type"]
+
+    return payload
+
+
+def _group_articles_by_date(articles: list[dict]) -> dict[str, list[dict]]:
+    """Group articles by date string.
+
+    >>> articles = [{"date": "2024-01-01", "title": "Test"}]
+    >>> result = _group_articles_by_date(articles)
+    >>> "2024-01-01" in result
+    True
+    """
     grouped_articles: dict[str, list[dict]] = {}
-    for article in all_articles:
+    for article in articles:
         date_value = article["date"]
         if isinstance(date_value, str):
             article_date = date_value
@@ -56,32 +82,17 @@ def _build_scrape_response(
 
         grouped_articles.setdefault(article_date, []).append(article)
 
-    output = build_markdown_output(
-        start_date, end_date, grouped_articles, issue_metadata_by_key
-    )
+    return grouped_articles
 
-    articles_data: list[dict] = []
-    for article in all_articles:
-        payload = {
-            "url": article["url"],
-            "title": article["title"],
-            "date": article["date"],
-            "category": article["category"],
-            "removed": bool(article.get("removed", False)),
-        }
-        # CRITICAL: Include source_id to prevent identity collisions
-        if article.get("source_id"):
-            payload["source_id"] = article["source_id"]
-        if article.get("section_title"):
-            payload["section_title"] = article["section_title"]
-        if article.get("section_emoji"):
-            payload["section_emoji"] = article["section_emoji"]
-        if article.get("section_order") is not None:
-            payload["section_order"] = article["section_order"]
-        if article.get("newsletter_type"):
-            payload["newsletter_type"] = article["newsletter_type"]
-        articles_data.append(payload)
 
+def _sort_issues(issues: list[dict]) -> list[dict]:
+    """Sort issues by date DESC, source sort_order ASC, category ASC.
+
+    >>> issues = [{"date": "2024-01-01", "source_id": "tldr_tech", "category": "Tech"}]
+    >>> result = _sort_issues(issues)
+    >>> len(result) == 1
+    True
+    """
     def _issue_sort_key(issue: dict) -> tuple:
         date_text = issue.get("date", "") or ""
         try:
@@ -96,12 +107,53 @@ def _build_scrape_response(
             else 999
         )
 
-        # Sort by: date DESC (via negative ordinal), then source sort_order ASC, then category ASC
         return (-date_ordinal, sort_order, issue.get("category", ""))
 
-    issues_output = sorted(
-        issue_metadata_by_key.values(),
-        key=_issue_sort_key,
+    return sorted(issues, key=_issue_sort_key)
+
+
+def _compute_stats(
+    articles: list[dict],
+    url_set: set[str],
+    dates: list,
+    grouped_articles: dict[str, list[dict]],
+    network_fetches: int,
+) -> dict:
+    """Compute scrape statistics.
+
+    >>> stats = _compute_stats([], set(), [], {}, 0)
+    >>> stats["total_articles"]
+    0
+    """
+    return {
+        "total_articles": len(articles),
+        "unique_urls": len(url_set),
+        "dates_processed": len(dates),
+        "dates_with_content": len(grouped_articles),
+        "network_fetches": network_fetches,
+        "cache_mode": "read_write",
+        "debug_logs": list(util.LOGS),
+    }
+
+
+def _build_scrape_response(
+    start_date,
+    end_date,
+    dates,
+    all_articles,
+    url_set,
+    issue_metadata_by_key,
+    network_fetches,
+):
+    """Orchestrate building the complete scrape response."""
+    articles_data = [_normalize_article_payload(a) for a in all_articles]
+    grouped_articles = _group_articles_by_date(all_articles)
+    output = build_markdown_output(
+        start_date, end_date, grouped_articles, issue_metadata_by_key
+    )
+    issues_output = _sort_issues(list(issue_metadata_by_key.values()))
+    stats = _compute_stats(
+        all_articles, url_set, dates, grouped_articles, network_fetches
     )
 
     return {
@@ -109,15 +161,7 @@ def _build_scrape_response(
         "output": output,
         "articles": articles_data,
         "issues": issues_output,
-        "stats": {
-            "total_articles": len(all_articles),
-            "unique_urls": len(url_set),
-            "dates_processed": len(dates),
-            "dates_with_content": len(grouped_articles),
-            "network_fetches": network_fetches,
-            "cache_mode": "read_write",
-            "debug_logs": list(util.LOGS),
-        },
+        "stats": stats,
     }
 
 

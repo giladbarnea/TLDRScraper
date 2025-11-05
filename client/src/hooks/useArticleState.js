@@ -1,8 +1,9 @@
 import { useCallback, useMemo } from 'react'
 import { useLocalStorage } from './useLocalStorage'
+import { getNewsletterScrapeKey } from '../lib/storageKeys'
 
 export function useArticleState(date, url) {
-  const storageKey = `newsletters:scrapes:${date}`
+  const storageKey = getNewsletterScrapeKey(date)
   const [payload, setPayload] = useLocalStorage(storageKey, null)
 
   const article = useMemo(() => {
