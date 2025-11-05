@@ -1,11 +1,10 @@
 {
   "name": "tldrscraper",
   "type": "module",
-  "dependencies": {
-  },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
-    "esbuild": "^0.25.11"
+    "esbuild": "^0.25.11",
+    "puppeteer": "^24.29.0"
   },
   "scripts": {
     "test:e2e": "playwright test"
