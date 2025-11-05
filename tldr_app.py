@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 
 import tldr_service
+from summarizer import DEFAULT_MODEL
 
 logger = logging.getLogger("tldr_app")
 
@@ -33,10 +34,12 @@ def tldr_url(
     url: str,
     *,
     summary_effort: str = "low",
+    model: str = DEFAULT_MODEL,
 ) -> dict:
     result = tldr_service.tldr_url_content(
         url,
         summary_effort=summary_effort,
+        model=model,
     )
 
     payload: dict[str, Optional[str]] = {

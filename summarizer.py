@@ -17,6 +17,7 @@ md = MarkItDown()
 _TLDR_PROMPT_CACHE = None
 
 SUMMARY_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
+DEFAULT_MODEL = "gpt-5"
 
 
 def normalize_summary_effort(value: str) -> str:
@@ -288,12 +289,13 @@ def url_to_markdown(url: str) -> str:
     return markdown
 
 
-def tldr_url(url: str, summary_effort: str = "low") -> str:
+def tldr_url(url: str, summary_effort: str = "low", model: str = DEFAULT_MODEL) -> str:
     """Get markdown content from URL and create a TLDR with LLM.
 
     Args:
         url: The URL to TLDR
         summary_effort: OpenAI reasoning effort level
+        model: OpenAI model to use
 
     Returns:
         The TLDR markdown
@@ -303,7 +305,7 @@ def tldr_url(url: str, summary_effort: str = "low") -> str:
 
     template = _fetch_tldr_prompt()
     prompt = f"{template}\n\n<tldr this>\n{markdown}/n</tldr this>"
-    tldr = _call_llm(prompt, summary_effort=effort)
+    tldr = _call_llm(prompt, summary_effort=effort, model=model)
 
     return tldr
 
@@ -398,7 +400,7 @@ def _insert_markdown_into_template(template: str, markdown: str) -> str:
     return template[:open_idx] + markdown + template[close_idx + len(close_tag) :]
 
 
-def _call_llm(prompt: str, summary_effort: str = "low") -> str:
+def _call_llm(prompt: str, summary_effort: str = "low", model: str = DEFAULT_MODEL) -> str:
     """Call OpenAI API with prompt."""
     api_key = util.resolve_env_var("OPENAI_API_KEY", "")
     if not api_key:
@@ -409,7 +411,7 @@ def _call_llm(prompt: str, summary_effort: str = "low") -> str:
     url = "https://api.openai.com/v1/responses"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     body = {
-        "model": "gpt-5",
+        "model": model,
         "input": prompt,
         "reasoning": {"effort": normalize_summary_effort(summary_effort)},
         "stream": False,
