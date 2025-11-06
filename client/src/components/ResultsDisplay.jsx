@@ -1,5 +1,3 @@
-import { useLocalStorage } from '../hooks/useLocalStorage'
-import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import ArticleList from './ArticleList'
 import './ResultsDisplay.css'
 
@@ -42,17 +40,12 @@ function ResultsDisplay({ results }) {
 }
 
 function DailyResults({ payload }) {
-  const [livePayload] = useLocalStorage(
-    getNewsletterScrapeKey(payload.date),
-    payload
-  )
-
-  const date = livePayload?.date ?? payload.date
-  const articles = (livePayload?.articles ?? payload.articles).map((article, index) => ({
+  const date = payload.date
+  const articles = payload.articles.map((article, index) => ({
     ...article,
     originalOrder: index
   }))
-  const issues = livePayload?.issues ?? payload.issues ?? []
+  const issues = payload.issues ?? []
 
   return (
     <div className="date-group">
