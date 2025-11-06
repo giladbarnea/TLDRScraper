@@ -4,6 +4,18 @@
  * Tests the pure JavaScript logic extracted from React components.
  * No browser required - uses localStorage polyfill.
  *
+ * IMPORTANT LIMITATIONS:
+ * - Only tests the extracted merge logic in isolation
+ * - Does NOT test React component rendering
+ * - Does NOT test DOM manipulation or CSS class toggling
+ * - Does NOT test component mounting/reading from localStorage
+ * - Does NOT test full integration
+ *
+ * If these tests pass but your app still has bugs, the bug is likely in:
+ * - React component lifecycle (mount/unmount)
+ * - DOM updates not reflecting state changes
+ * - Components not reading from localStorage correctly on page load
+ *
  * Run with: node tests/client-state/state-management.test.js
  */
 
@@ -471,9 +483,11 @@ console.log(`✗ Failed: ${testsFailed}`)
 console.log(`Total: ${testsPassed + testsFailed}`)
 
 if (testsFailed === 0) {
-  console.log('\n🎉 ALL TESTS PASSED! State management logic is working correctly.')
+  console.log('\n✓ All tests passed. The extracted merge logic works in isolation.')
+  console.log('⚠️  NOTE: This does NOT guarantee the full app works correctly.')
+  console.log('   These tests do not cover React rendering, DOM updates, or component lifecycle.')
   process.exit(0)
 } else {
-  console.log(`\n❌ ${testsFailed} test(s) failed. State management has bugs.`)
+  console.log(`\n✗ ${testsFailed} test(s) failed. The extracted merge logic has bugs.`)
   process.exit(1)
 }

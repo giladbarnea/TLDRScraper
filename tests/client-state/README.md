@@ -2,7 +2,16 @@
 
 ## Overview
 
-These tests verify the **core state management logic** of the TLDRScraper client without requiring a browser or React environment. They test the pure JavaScript functions that handle localStorage operations and state persistence.
+These tests verify **some of the core state management logic** of the TLDRScraper client without requiring a browser or React environment. They test the pure JavaScript functions that handle localStorage operations and state persistence.
+
+**IMPORTANT LIMITATION:** These tests only verify the extracted logic in isolation. They cannot catch bugs in:
+- React component rendering
+- DOM manipulation and CSS class toggling
+- Component lifecycle (mount/unmount)
+- How React reads from localStorage on page load
+- Full integration between components
+
+If your app has a bug where removed articles appear after refresh, these tests passing does NOT mean the bug isn't real - the bug may be in the DOM/React layer that these tests don't cover.
 
 ## Why These Tests Exist
 
@@ -55,12 +64,19 @@ Extract and test the **actual state management code** - the logic where bugs are
 
 - React component rendering
 - User click handlers
-- DOM manipulation
+- **DOM manipulation and CSS class toggling** - If state changes should trigger visual changes (e.g., adding `.removed` class), these tests won't catch that
 - Visual appearance/layout
 - Network requests to Flask API
 - Full integration with browser
+- **Component mounting/reading from localStorage** - If components fail to read cached state on page load, these tests won't catch it
+- **React hooks behavior** - `useState`, `useEffect`, `useCallback` interactions
 
-**Note:** The uncovered areas are less likely to contain state persistence bugs. Most bugs in this domain stem from incorrect merge logic or localStorage operations, which these tests thoroughly cover.
+**⚠️ CRITICAL NOTE:** These uncovered areas CAN and DO contain state bugs. For example:
+- A component might correctly save state to localStorage but fail to read it on mount
+- State might be correct in localStorage but not reflected in the DOM due to a rendering bug
+- CSS classes might not update even though the state changed
+
+These tests passing means the **extracted merge logic works in isolation**. It does NOT guarantee the full app works correctly.
 
 ## Running the Tests
 
@@ -237,8 +253,9 @@ tests/
 
 ✅ All tests pass (`node tests/client-state/state-management.test.js`)
 ✅ Tests use actual production code (not mocks/simulations)
-✅ Tests cover critical state persistence scenarios
+✅ Tests cover **some** state persistence scenarios
 ✅ Tests run without browser/network/sudo requirements
+❌ Tests passing does NOT mean the app is bug-free
 
 ## See Also
 
