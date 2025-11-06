@@ -1,64 +1,126 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 
-export function useLocalStorage(key, defaultValue) {
-  const [value, setValue] = useState(() => {
-    try {
-      const item = localStorage.getItem(key)
-      return item ? JSON.parse(item) : defaultValue
-    } catch (error) {
-      console.error(`Failed to read from localStorage: ${error.message}`)
+const listenersByKey = new Map()
+const snapshotCache = new Map()
+
+function getListeners(key) {
+  let listeners = listenersByKey.get(key)
+  if (!listeners) {
+    listeners = new Set()
+    listenersByKey.set(key, listeners)
+  }
+  return listeners
+}
+
+function emitChange(key) {
+  const listeners = listenersByKey.get(key)
+  if (listeners) {
+    listeners.forEach(listener => {
+      try {
+        listener()
+      } catch (error) {
+        console.error(`localStorage listener failed: ${error.message}`)
+      }
+    })
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('local-storage-change', { detail: { key } }))
+  }
+}
+
+function readValue(key, defaultValue) {
+  if (typeof window === 'undefined') return defaultValue
+
+  try {
+    const raw = window.localStorage.getItem(key)
+
+    const cached = snapshotCache.get(key)
+    if (raw === null) {
+      if (cached && cached.raw === null) {
+        return cached.value
+      }
+      snapshotCache.set(key, { raw: null, value: defaultValue })
       return defaultValue
     }
+
+    if (cached && cached.raw === raw) {
+      return cached.value
+    }
+
+    const parsed = JSON.parse(raw)
+    snapshotCache.set(key, { raw, value: parsed })
+    return parsed
+  } catch (error) {
+    console.error(`Failed to read from localStorage: ${error.message}`)
+    snapshotCache.delete(key)
+    return defaultValue
+  }
+}
+
+function subscribe(key, listener) {
+  const listeners = getListeners(key)
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+    if (listeners.size === 0) {
+      listenersByKey.delete(key)
+    }
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (!event.key) return
+    snapshotCache.delete(event.key)
+    emitChange(event.key)
   })
+}
 
-  const valueRef = useRef(value)
+export function useLocalStorage(key, defaultValue) {
+  const getSnapshot = useCallback(() => readValue(key, defaultValue), [key, defaultValue])
 
-  useEffect(() => {
-    valueRef.current = value
-  }, [value])
+  const value = useSyncExternalStore(
+    useCallback((listener) => subscribe(key, listener), [key]),
+    getSnapshot,
+    getSnapshot
+  )
 
-  useEffect(() => {
+  const setValue = useCallback((nextValue) => {
+    if (typeof window === 'undefined') return
+
+    const previous = readValue(key, defaultValue)
+    const resolved = typeof nextValue === 'function' ? nextValue(previous) : nextValue
+
+    if (resolved === previous) {
+      return
+    }
+
     try {
-      const currentStored = localStorage.getItem(key)
-      const currentValue = currentStored ? JSON.parse(currentStored) : null
-      const newValueStr = JSON.stringify(value)
-      const currentValueStr = JSON.stringify(currentValue)
-
-      if (newValueStr !== currentValueStr) {
-        localStorage.setItem(key, newValueStr)
-        window.dispatchEvent(new CustomEvent('local-storage-change', { detail: { key } }))
+      if (resolved === undefined) {
+        window.localStorage.removeItem(key)
+        snapshotCache.delete(key)
+      } else {
+        const raw = JSON.stringify(resolved)
+        window.localStorage.setItem(key, raw)
+        snapshotCache.set(key, { raw, value: resolved })
       }
+      emitChange(key)
     } catch (error) {
       console.error(`Failed to persist to localStorage: ${error.message}`)
     }
-  }, [key, value])
-
-  useEffect(() => {
-    const handleStorageChange = (event) => {
-      if (event.detail?.key === key) {
-        try {
-          const item = localStorage.getItem(key)
-          const newValue = item ? JSON.parse(item) : defaultValue
-          const newValueStr = JSON.stringify(newValue)
-          const currentValueStr = JSON.stringify(valueRef.current)
-
-          if (newValueStr !== currentValueStr) {
-            setValue(newValue)
-          }
-        } catch (error) {
-          console.error(`Failed to sync from localStorage: ${error.message}`)
-        }
-      }
-    }
-
-    window.addEventListener('local-storage-change', handleStorageChange)
-    return () => window.removeEventListener('local-storage-change', handleStorageChange)
   }, [key, defaultValue])
 
   const remove = useCallback(() => {
-    localStorage.removeItem(key)
-    setValue(defaultValue)
-  }, [key, defaultValue])
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.removeItem(key)
+      snapshotCache.delete(key)
+      emitChange(key)
+    } catch (error) {
+      console.error(`Failed to remove from localStorage: ${error.message}`)
+    }
+  }, [key])
 
   return [value, setValue, remove]
 }
