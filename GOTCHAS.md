@@ -7,6 +7,16 @@ This document catalogs recurring pitfalls in various topics, including managing 
 
 ---
 
+#### 2025-11-06: useLocalStorage hook instances race to overwrite each other
+
+**Desired behavior that didn't work**: Removed articles should persist their removed state after page refresh.
+
+**What actually happened and falsified original thesis**: Article showed "Restore" button immediately after removal, but after refresh showed "Remove" button. We had wrongly assumed one useLocalStorage instance per key would prevent conflicts.
+
+**Cause & Fix**: Multiple useLocalStorage hook instances (one per ArticleCard) manage the same localStorage key. When one hook updates an article, its write can be overwritten by another hook with stale state. The fix was to make each hook listen for storage-change events and sync its internal state when other hooks update the same key, plus compare values before writing to prevent race conditions.
+
+---
+
 #### 2025-11-04 `102a8dcd`: HackerNews articles not displayed in UI because of surprising server response shape
 
 **Desired behavior that didn't work**: HackerNews articles fetched by backend should appear in the UI.
