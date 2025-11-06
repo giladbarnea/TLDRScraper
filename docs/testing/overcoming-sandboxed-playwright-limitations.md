@@ -1,3 +1,7 @@
+---
+last-updated: 2025-11-06 09:08, 285620a
+---
+
 # Overcoming Sandboxed Playwright Limitations
 
 ## Context
