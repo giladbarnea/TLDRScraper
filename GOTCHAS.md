@@ -13,7 +13,7 @@ This document catalogs recurring pitfalls in various topics, including managing 
 
 **What actually happened and falsified original thesis**: Article showed "Restore" button immediately after removal, but after refresh showed "Remove" button. We had wrongly assumed one useLocalStorage instance per key would prevent conflicts.
 
-**Cause & Fix**: Multiple useLocalStorage hook instances (one per ArticleCard) manage the same localStorage key. When one hook updates an article, its write can be overwritten by another hook with stale state. The fix was to make each hook listen for storage-change events and sync its internal state when other hooks update the same key, plus compare values before writing to prevent race conditions.
+**Cause & Fix**: Multiple useLocalStorage hook instances (one per ArticleCard) each owned their own copy of the payload. When one instance stored an update, other instances later wrote their stale copy back, erasing the change. Rewrote useLocalStorage to use useSyncExternalStore so every subscriber reads and writes through a single source of truth, dramatically simplifying the flow and eliminating the race.
 
 ---
 
