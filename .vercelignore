@@ -1,0 +1,59 @@
+# Testing
+tests/
+*.test.py
+*.test.js
+
+# Documentation
+docs/
+
+# Development
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node modules (should be built separately)
+node_modules/
+
+# Logs
+*.log
+nohup.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.githooks/
+
+# CI/CD
+.github/
+
+# Environment
+.env
+.env.local
+
+# Markdown docs (keep lightweight)
+ARCHITECTURE.md
+PROJECT_STRUCTURE.md
+GOTCHAS.md
+AGENTS.md
+CLAUDE.md
+README.md
+
+# Scripts
+setup.sh
+
+# Playwright browsers (huge!)
+.cache/
