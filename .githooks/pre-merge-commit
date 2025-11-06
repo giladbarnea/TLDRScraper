@@ -3,34 +3,53 @@
 # Pre-merge-commit hook that generates PROJECT_STRUCTURE.md
 # This runs before creating a merge commit
 
-# Install eza if not available (for GitHub Actions/Ubuntu)
-if ! command -v eza &> /dev/null; then
-  echo "eza not found, installing..."
-
-  # Detect OS and install accordingly
-  if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    # For Ubuntu/Debian (GitHub Actions default)
-    # Install using the official repository
-    sudo mkdir -p /etc/apt/keyrings
-    wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list
-    sudo chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list
-    sudo apt update
-    sudo apt install -y eza
-  elif [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS
-    brew install eza
+ensure_eza() {
+  if command -v eza &> /dev/null; then
+    return 0
   fi
+
+  echo "eza not found, attempting installation..."
+
+  if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    if command -v sudo &> /dev/null && sudo -n true 2>/dev/null; then
+      sudo mkdir -p /etc/apt/keyrings 2>/dev/null
+      if wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg 2>/dev/null; then
+        echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list >/dev/null 2>&1
+        sudo chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list 2>/dev/null
+        sudo apt update >/dev/null 2>&1 && sudo apt install -y eza >/dev/null 2>&1
+      fi
+    fi
+  elif [[ "$OSTYPE" == "darwin"* ]]; then
+    if command -v brew &> /dev/null; then
+      brew install eza >/dev/null 2>&1
+    fi
+  fi
+
+  if command -v eza &> /dev/null; then
+    echo "eza installed successfully"
+    return 0
+  fi
+
+  echo "Failed to install eza, falling back to tree or find" >&2
+  return 1
+}
+
+ensure_eza
+
+if command -v eza &> /dev/null; then
+  eza \
+    --classify \
+    --icons \
+    --tree \
+    --git-ignore \
+    --all \
+    . > PROJECT_STRUCTURE.md
+elif command -v tree &> /dev/null; then
+  echo "Using tree as fallback for project structure generation"
+  tree -a -I '.git|node_modules|__pycache__|*.pyc|.venv' . > PROJECT_STRUCTURE.md
+else
+  echo "Using find as fallback for project structure generation"
+  find . -not -path '*/\.git/*' -not -path '*/node_modules/*' -not -path '*/__pycache__/*' -not -name '*.pyc' -not -path '*/.venv/*' | sort > PROJECT_STRUCTURE.md
 fi
 
-# Generate project structure using eza
-eza \
-  --classify \
-  --icons \
-  --tree \
-  --git-ignore \
-  --all \
-  . > PROJECT_STRUCTURE.md
-
-# Exit with 0 to allow the merge to proceed even though the file is ignored
 exit 0
