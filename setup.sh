@@ -432,7 +432,7 @@ function main() {
 
 # region Watchdog
 
-# Watchdog process: watch the server process using given/resolved SERVER_CONTEXT_SERVER_PID_FILE.
+WATCHDOG_DOC="Watchdog process: watch the server process using given/resolved SERVER_CONTEXT_SERVER_PID_FILE."
 watchdog() {
   if ! resolve_server_context "$@"; then
     return 1
@@ -478,9 +478,7 @@ watchdog() {
 }
 # endregion Watchdog
 
-# start_server_and_watchdog
-# Start the server and watchdog processes in the background given specified/resolved environment variables.
-# Tees the server logs log file.
+START_SERVER_AND_WATCHDOG_DOC="Start the server and watchdog processes in the background given specified/resolved environment variables. Tees the server logs log file."
 function start_server_and_watchdog() {
   if ! resolve_server_context "$@"; then
     return 1
@@ -530,8 +528,7 @@ function start_server_and_watchdog() {
   message "[$0] Watchdog started with PID $(cat "$watchdog_pid_file")"
 }
 
-# kill_server_and_watchdog
-# Idempotent stop of the server and watchdog processes.
+KILL_SERVER_AND_WATCHDOG_DOC="Idempotent stop of the server and watchdog processes."
 function kill_server_and_watchdog() {
   if ! resolve_server_context "$@"; then
     return 1
@@ -557,8 +554,7 @@ function kill_server_and_watchdog() {
   fi
 }
 
-# print_server_and_watchdog_pids
-# Helper tool: print the server and watchdog PIDs.
+PRINT_SERVER_AND_WATCHDOG_PIDS_DOC="Helper tool: print the server and watchdog PIDs."
 function print_server_and_watchdog_pids() {
   if ! resolve_server_context "$@"; then
     return 1
@@ -595,4 +591,8 @@ _new_functions=($(xargs -n1 <<< ${_new_functions[@]} | grep -e server -e watchdo
 if [[ ${#_new_functions[@]} -gt 0 ]]; then
   _new_functions_formatted="$(echo ${_new_functions[@]} | tr ' ' ', ')"
   message "[DONE] New functions available for use after sourcing setup.sh: ${_new_functions_formatted}"
+  message "  - watchdog: ${WATCHDOG_DOC}"
+  message "  - start_server_and_watchdog: ${START_SERVER_AND_WATCHDOG_DOC}"
+  message "  - kill_server_and_watchdog: ${KILL_SERVER_AND_WATCHDOG_DOC}"
+  message "  - print_server_and_watchdog_pids: ${PRINT_SERVER_AND_WATCHDOG_PIDS_DOC}"
 fi
