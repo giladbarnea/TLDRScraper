@@ -233,6 +233,45 @@ function uv_sync(){
     fi
 }
 
+# ensure_gh [-q,-quiet]
+# Idempotent installation of gh (GitHub CLI).
+function ensure_gh(){
+    local quiet=false
+    if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=true" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=false" ]]; then
+        quiet=false
+    fi
+    if isdefined gh; then
+        local version_output
+        if version_output=$(gh --version 2>&1 | head -1); then
+            [[ "$quiet" == false ]] && message "[ensure_gh] gh is installed: $(decolor "$version_output")"
+            return 0
+        fi
+        message "[ensure_gh] ERROR: gh detected but failed to run 'gh --version'." >&2
+        return 1
+    fi
+    ensure_local_bin_path "$quiet"
+    message "[ensure_gh] gh is not installed, installing it with 'curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y'" >&2
+    if ! (curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y); then
+        message "[ensure_gh] ERROR: Failed to install gh." >&2
+        return 1
+    fi
+    if ! isdefined gh; then
+        message "[ensure_gh] ERROR: After installing gh, 'command -v gh' returned a non-zero exit code. gh is probably installed but not in PATH." >&2
+        return 1
+    fi
+    local version_output
+    if version_output=$(gh --version 2>&1 | head -1); then
+        [[ "$quiet" == false ]] && message "[ensure_gh] gh installed: $(decolor "$version_output")"
+        return 0
+    fi
+    message "[ensure_gh] ERROR: gh installed but 'gh --version' failed." >&2
+    return 1
+}
+
 # function ensure_claude_code(){
 #         local quiet=false
 #         if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
@@ -369,11 +408,12 @@ function main() {
 
 
   [[ "$quiet" == false ]] && message "[$0] Ensuring dependencies..."
-  local ensure_uv_success=true uv_sync_success=true
+  local ensure_uv_success=true uv_sync_success=true ensure_gh_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
+  ensure_gh --quiet="$quiet" || ensure_gh_success=false
 
-  if ! "$ensure_uv_success" || ! "$uv_sync_success"; then
+  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_gh_success"; then
     message "[$0][ERROR] Failed to install dependencies. Please check the output above." >&2
     return 1
   fi
@@ -584,6 +624,19 @@ if [[ "${SETUP_SH_SKIP_MAIN:-0}" != "1" ]]; then
   main "$@"
 fi
 
+if isdefined gh; then
+  _REAL_GH_PATH="$(command -v gh)"
+  gh() {
+    if [[ "$1" == "pr" && "$2" == "create" ]]; then
+      echo "" >&2
+      echo "<system-reminder>" >&2
+      echo "Has any significant architectural change has been made in the project? Does it merit an update to ARCHITECTURE.md?" >&2
+      echo "</system-reminder>" >&2
+      echo "" >&2
+    fi
+    "$_REAL_GH_PATH" "$@"
+  }
+fi
 
 _available_functions_after_setup_sh=($(declare -F | cut -d' ' -f 3))
 _new_functions=($(comm -23 <(echo "${_available_functions_after_setup_sh[@]}") <(echo "${_available_functions_before_setup_sh[@]}")))
