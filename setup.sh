@@ -253,9 +253,8 @@ function ensure_gh(){
         message "[ensure_gh] ERROR: gh detected but failed to run 'gh --version'." >&2
         return 1
     fi
-    ensure_local_bin_path "$quiet"
-    message "[ensure_gh] gh is not installed, installing it with 'curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y'" >&2
-    if ! (curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y); then
+    [[ "$quiet" == false ]] && message "[ensure_gh] gh is not installed, installing with 'apt install gh -y'" >&2
+    if ! apt install gh -y >/dev/null 2>&1; then
         message "[ensure_gh] ERROR: Failed to install gh." >&2
         return 1
     fi
@@ -270,6 +269,28 @@ function ensure_gh(){
     fi
     message "[ensure_gh] ERROR: gh installed but 'gh --version' failed." >&2
     return 1
+}
+
+# ensure_wrap_gh
+# Idempotent wrapping of gh to add ARCHITECTURE.md reminder on PR creation.
+function ensure_wrap_gh(){
+    if ! isdefined gh; then
+        return 0
+    fi
+    if declare -F gh >/dev/null 2>&1; then
+        return 0
+    fi
+    _REAL_GH_PATH="$(command -v gh)"
+    gh() {
+        if [[ "$1" == "pr" && "$2" == "create" ]]; then
+            echo "" >&2
+            echo "<system-reminder>" >&2
+            echo "Has any significant architectural change been made in the project? Does it merit an update to ARCHITECTURE.md?" >&2
+            echo "</system-reminder>" >&2
+            echo "" >&2
+        fi
+        "$_REAL_GH_PATH" "$@"
+    }
 }
 
 # function ensure_claude_code(){
@@ -412,6 +433,7 @@ function main() {
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
   ensure_gh --quiet="$quiet" || ensure_gh_success=false
+  ensure_wrap_gh
 
   if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_gh_success"; then
     message "[$0][ERROR] Failed to install dependencies. Please check the output above." >&2
@@ -624,19 +646,7 @@ if [[ "${SETUP_SH_SKIP_MAIN:-0}" != "1" ]]; then
   main "$@"
 fi
 
-if isdefined gh; then
-  _REAL_GH_PATH="$(command -v gh)"
-  gh() {
-    if [[ "$1" == "pr" && "$2" == "create" ]]; then
-      echo "" >&2
-      echo "<system-reminder>" >&2
-      echo "Has any significant architectural change been made in the project? Does it merit an update to ARCHITECTURE.md?" >&2
-      echo "</system-reminder>" >&2
-      echo "" >&2
-    fi
-    "$_REAL_GH_PATH" "$@"
-  }
-fi
+ensure_wrap_gh
 
 _available_functions_after_setup_sh=($(declare -F | cut -d' ' -f 3))
 _new_functions=($(comm -23 <(echo "${_available_functions_after_setup_sh[@]}") <(echo "${_available_functions_before_setup_sh[@]}")))
