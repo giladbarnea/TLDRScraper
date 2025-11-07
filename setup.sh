@@ -630,7 +630,7 @@ if isdefined gh; then
     if [[ "$1" == "pr" && "$2" == "create" ]]; then
       echo "" >&2
       echo "<system-reminder>" >&2
-      echo "Has any significant architectural change has been made in the project? Does it merit an update to ARCHITECTURE.md?" >&2
+      echo "Has any significant architectural change been made in the project? Does it merit an update to ARCHITECTURE.md?" >&2
       echo "</system-reminder>" >&2
       echo "" >&2
     fi
