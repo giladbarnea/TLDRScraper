@@ -432,8 +432,10 @@ function main() {
   local ensure_uv_success=true uv_sync_success=true ensure_gh_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
-  ensure_gh --quiet="$quiet" || ensure_gh_success=false
-  ensure_wrap_gh
+  if [[ ! "${GITHUB_ACTIONS:-}" ]]; then
+    ensure_gh --quiet="$quiet" || ensure_gh_success=false
+    ensure_wrap_gh
+  fi
 
   if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_gh_success"; then
     message "[$0][ERROR] Failed to install dependencies. Please check the output above." >&2
@@ -646,7 +648,9 @@ if [[ "${SETUP_SH_SKIP_MAIN:-0}" != "1" ]]; then
   main "$@"
 fi
 
-ensure_wrap_gh
+if [[ ! "${GITHUB_ACTIONS:-}" ]]; then
+  ensure_wrap_gh
+fi
 
 _available_functions_after_setup_sh=($(declare -F | cut -d' ' -f 3))
 _new_functions=($(comm -23 <(echo "${_available_functions_after_setup_sh[@]}") <(echo "${_available_functions_before_setup_sh[@]}")))
