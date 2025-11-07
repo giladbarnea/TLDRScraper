@@ -233,6 +233,66 @@ function uv_sync(){
     fi
 }
 
+# ensure_gh [-q,-quiet]
+# Idempotent installation of gh (GitHub CLI).
+function ensure_gh(){
+    local quiet=false
+    if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=true" ]]; then
+        quiet=true
+    elif [[ "$1" == "--quiet=false" ]]; then
+        quiet=false
+    fi
+    if isdefined gh; then
+        local version_output
+        if version_output=$(gh --version 2>&1 | head -1); then
+            [[ "$quiet" == false ]] && message "[ensure_gh] gh is installed: $(decolor "$version_output")"
+            return 0
+        fi
+        message "[ensure_gh] ERROR: gh detected but failed to run 'gh --version'." >&2
+        return 1
+    fi
+    [[ "$quiet" == false ]] && message "[ensure_gh] gh is not installed, installing with 'apt install gh -y'" >&2
+    if ! apt install gh -y >/dev/null 2>&1; then
+        message "[ensure_gh] ERROR: Failed to install gh." >&2
+        return 1
+    fi
+    if ! isdefined gh; then
+        message "[ensure_gh] ERROR: After installing gh, 'command -v gh' returned a non-zero exit code. gh is probably installed but not in PATH." >&2
+        return 1
+    fi
+    local version_output
+    if version_output=$(gh --version 2>&1 | head -1); then
+        [[ "$quiet" == false ]] && message "[ensure_gh] gh installed: $(decolor "$version_output")"
+        return 0
+    fi
+    message "[ensure_gh] ERROR: gh installed but 'gh --version' failed." >&2
+    return 1
+}
+
+# ensure_wrap_gh
+# Idempotent wrapping of gh to add ARCHITECTURE.md reminder on PR creation.
+function ensure_wrap_gh(){
+    if ! isdefined gh; then
+        return 0
+    fi
+    if declare -F gh >/dev/null 2>&1; then
+        return 0
+    fi
+    _REAL_GH_PATH="$(command -v gh)"
+    gh() {
+        if [[ "$1" == "pr" && "$2" == "create" ]]; then
+            echo "" >&2
+            echo "<system-reminder>" >&2
+            echo "Has any significant architectural change been made in the project? Does it merit an update to ARCHITECTURE.md?" >&2
+            echo "</system-reminder>" >&2
+            echo "" >&2
+        fi
+        "$_REAL_GH_PATH" "$@"
+    }
+}
+
 # function ensure_claude_code(){
 #         local quiet=false
 #         if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
@@ -369,11 +429,15 @@ function main() {
 
 
   [[ "$quiet" == false ]] && message "[$0] Ensuring dependencies..."
-  local ensure_uv_success=true uv_sync_success=true
+  local ensure_uv_success=true uv_sync_success=true ensure_gh_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
+  if [[ ! "${GITHUB_ACTIONS:-}" ]]; then
+    ensure_gh --quiet="$quiet" || ensure_gh_success=false
+    ensure_wrap_gh
+  fi
 
-  if ! "$ensure_uv_success" || ! "$uv_sync_success"; then
+  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_gh_success"; then
     message "[$0][ERROR] Failed to install dependencies. Please check the output above." >&2
     return 1
   fi
@@ -584,6 +648,9 @@ if [[ "${SETUP_SH_SKIP_MAIN:-0}" != "1" ]]; then
   main "$@"
 fi
 
+if [[ ! "${GITHUB_ACTIONS:-}" ]]; then
+  ensure_wrap_gh
+fi
 
 _available_functions_after_setup_sh=($(declare -F | cut -d' ' -f 3))
 _new_functions=($(comm -23 <(echo "${_available_functions_after_setup_sh[@]}") <(echo "${_available_functions_before_setup_sh[@]}")))
