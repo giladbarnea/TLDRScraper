@@ -1,3 +1,7 @@
+---
+last-updated: 2025-11-08 09:31, b7918c6
+---
+
 # Supabase Storage vs Database: Comprehensive Research for localStorage Migration
 
 ## Executive Summary: Critical Decision Point
