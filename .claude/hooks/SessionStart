@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# SessionStart hook for TLDRScraper project
+# This hook:
+# 1. Sources setup.sh to configure the environment
+# 2. Reads all markdown files in the root directory
+# 3. Provides them as additional context to Claude
+
+# Get the project root directory (parent of .claude)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$PROJECT_ROOT"
+
+# Source setup.sh
+source "$PROJECT_ROOT/setup.sh"
+
+# Build additional context from markdown files
+CONTEXT=""
+CONTEXT+="# TLDRScraper Project Documentation\n\n"
+CONTEXT+="This context is automatically loaded at session start.\n\n"
+CONTEXT+="---\n\n"
+
+# Read all markdown files in the root directory
+for md_file in "$PROJECT_ROOT"/*.md; do
+    if [ -f "$md_file" ]; then
+        filename=$(basename "$md_file")
+        CONTEXT+="<$filename>\n"
+        CONTEXT+="$(cat "$md_file")\n"
+        CONTEXT+="</$filename>\n\n"
+        CONTEXT+="---\n\n"
+    fi
+done
+
+# Output the hook result in the required JSON format
+# Using jq to properly escape the context string
+ESCAPED_CONTEXT=$(echo -e "$CONTEXT" | jq -Rs .)
+
+cat << EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": $ESCAPED_CONTEXT
+  }
+}
+EOF
+
+exit 0
