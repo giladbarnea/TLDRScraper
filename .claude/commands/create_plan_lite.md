@@ -1,6 +1,6 @@
 ---
 description: Create detailed implementation plans with thorough research and iteration
-model: sonnet
+model: opus
 ---
 
 # Implementation Plan
