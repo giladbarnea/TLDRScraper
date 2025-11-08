@@ -3,33 +3,10 @@
 # Pre-merge-commit hook that generates PROJECT_STRUCTURE.md
 # This runs before creating a merge commit
 
-ensure_eza() {
-  if command -v eza &> /dev/null; then
-    return 0
-  fi
-
-  echo "eza not found, attempting installation..."
-
-  if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    if command -v apt &> /dev/null; then
-      apt install -y eza >/dev/null 2>&1
-    fi
-  elif [[ "$OSTYPE" == "darwin"* ]]; then
-    if command -v brew &> /dev/null; then
-      brew install eza >/dev/null 2>&1
-    fi
-  fi
-
-  if command -v eza &> /dev/null; then
-    echo "eza installed successfully"
-    return 0
-  fi
-
-  echo "Failed to install eza, falling back to tree or find" >&2
-  return 1
+SETUP_SH_SKIP_MAIN=1 source ./setup.sh
+ensure_eza || {
+  echo "[$0] ERROR: Failed to install eza, falling back to tree or find" >&2
 }
-
-ensure_eza
 
 if command -v eza &> /dev/null; then
   eza \
@@ -40,11 +17,11 @@ if command -v eza &> /dev/null; then
     --all \
     . > PROJECT_STRUCTURE.md
 elif command -v tree &> /dev/null; then
-  echo "Using tree as fallback for project structure generation"
-  tree -a -I '.git|node_modules|__pycache__|*.pyc|.venv' . > PROJECT_STRUCTURE.md
+  echo "[$0] Using tree as fallback for project structure generation"
+  tree -a -I '.git|node_modules|__pycache__|*.pyc|.venv|static|experimental|thoughts/done|docs|.run' . > PROJECT_STRUCTURE.md
 else
-  echo "Using find as fallback for project structure generation"
-  find . -not -path '*/\.git/*' -not -path '*/node_modules/*' -not -path '*/__pycache__/*' -not -name '*.pyc' -not -path '*/.venv/*' | sort > PROJECT_STRUCTURE.md
+  echo "[$0] Using find as fallback for project structure generation"
+  find . -not -path '*/\.git*' -not -path '*/node_modules*' -not -path '*/__pycache__*' -not -name '*.pyc' -not -path '*/.venv*' -not -path '*/static*' -not -path '*/experimental*' -not -path '*/thoughts/done*' -not -path '*/docs*' -not -path '*/.run*' | sort > PROJECT_STRUCTURE.md
 fi
 
 exit 0
