@@ -1,1046 +1,252 @@
----
-last-updated: 2025-11-08 10:46, 8539791
----
-# Supabase Database Migration Research
+# Supabase Database Reference Guide
 
-Research for migrating TLDRScraper's localStorage-based state management to Supabase (PostgreSQL) backend.
+Reference guide for using Supabase Database to migrate TLDRScraper's localStorage-based cache to server-side storage.
 
-**Date:** 2025-11-08
-**Purpose:** Pre-implementation research for 1:1 localStorage → Supabase migration
+**Purpose:** Understanding Supabase capabilities, constraints, and decision points for planning the migration.
 
 ---
 
 ## Table of Contents
 
-1. [Supabase Platform Overview](#1-supabase-platform-overview)
-2. [Supabase Python API Setup](#2-supabase-python-api-setup)
-3. [Current localStorage Structure Analysis](#3-current-localstorage-structure-analysis)
-4. [Database Design Patterns](#4-database-design-patterns)
-5. [Migration Strategy](#5-migration-strategy)
-6. [Security Architecture](#6-security-architecture)
-7. [Real-time Synchronization](#7-real-time-synchronization)
-8. [Client-Side DOM State Management](#8-client-side-dom-state-management)
-9. [Performance Considerations](#9-performance-considerations)
-10. [Implementation Requirements](#10-implementation-requirements)
+1. [What is Supabase?](#what-is-supabase)
+2. [Free Tier Limits & Quotas](#free-tier-limits--quotas)
+3. [Python API Overview](#python-api-overview)
+4. [Setup Prerequisites](#setup-prerequisites)
+5. [Database Design Decision Points](#database-design-decision-points)
+6. [Common Gotchas & Pitfalls](#common-gotchas--pitfalls)
+7. [Security: RLS Configuration](#security-rls-configuration)
+8. [Migration Strategy Considerations](#migration-strategy-considerations)
+9. [Useful API Patterns](#useful-api-patterns)
 
 ---
 
-## 1. Supabase Platform Overview
+## What is Supabase?
 
-### What is Supabase?
+Supabase is an open-source Firebase alternative built on PostgreSQL. For this project, the relevant components are:
 
-Supabase is a comprehensive Postgres development platform that provides:
-- **Full PostgreSQL Database**: 30+ years of proven stability, open-source
-- **Auto-generated REST API**: PostgREST automatically exposes database as RESTful API
-- **Real-time Subscriptions**: Elixir-based realtime server for database change notifications via WebSockets
-- **Authentication**: GoTrue JWT-based auth API
-- **File Storage**: S3-compatible storage with Postgres-backed permissions
-- **Edge Functions**: Deno-based serverless functions
+### Core Stack
+- **PostgreSQL Database**: Full Postgres (30+ years stable, open-source)
+- **PostgREST**: Auto-generates REST API from your database schema
+- **Realtime**: WebSocket server for live database change notifications
+- **Row Level Security (RLS)**: Postgres-native per-row access control
 
-### Architecture Components
+### Key Advantages for This Migration
+1. **No API boilerplate needed**: PostgREST generates CRUD endpoints automatically
+2. **Postgres power**: JSONB, full-text search, materialized views, triggers, functions
+3. **Open source**: Can self-host, no vendor lock-in
+4. **Python client**: Official `supabase-py` library with similar API to JS client
 
-```
-┌─────────────────────────────────────────────────────┐
-│                 Supabase Stack                       │
-│                                                      │
-│  ┌──────────────┐  ┌──────────────┐                │
-│  │  PostgreSQL  │  │  PostgREST   │ ← Auto API     │
-│  │  (Database)  │  │  (REST API)  │                │
-│  └──────────────┘  └──────────────┘                │
-│                                                      │
-│  ┌──────────────┐  ┌──────────────┐                │
-│  │   Realtime   │  │    GoTrue    │                │
-│  │ (WebSockets) │  │    (Auth)    │                │
-│  └──────────────┘  └──────────────┘                │
-└─────────────────────────────────────────────────────┘
-                       ▲
-                       │ Python Client (supabase-py)
-                       ▼
-              ┌─────────────────┐
-              │  Flask Backend  │
-              └─────────────────┘
-```
-
-### Key Advantages for This Project
-
-1. **Automatic API Generation**: No need to manually create CRUD endpoints
-2. **Built-in Row Level Security (RLS)**: Granular per-row access control
-3. **Real-time Updates**: Built-in WebSocket support for live data synchronization
-4. **PostgreSQL Features**: JSONB, full-text search, indexes, materialized views
-5. **Open Source**: No vendor lock-in, can self-host if needed
+### What You Get
+When you create a Supabase project, you get:
+- A dedicated Postgres database
+- Auto-generated REST API at `https://[project-id].supabase.co/rest/v1/`
+- Auto-generated GraphQL API (optional)
+- Dashboard for managing tables, policies, functions
+- Connection pooler (PgBouncer)
 
 ---
 
-## 2. Supabase Python API Setup
+## Free Tier Limits & Quotas
+
+**Critical for Planning:** You're on the free tier. Here are the hard limits:
+
+### Database & Storage
+| Resource | Free Tier Limit | Notes |
+|----------|----------------|-------|
+| Database size | **500 MB** | Per project, all tables combined |
+| File storage | 1 GB | Separate from database |
+| Max file upload | 50 MB | Per file |
+
+**Planning Implication:** Estimate current localStorage size and project growth. 500 MB is generous for text/metadata but can fill up with large TLDR responses cached over time.
+
+### API & Performance Limits
+| Resource | Free Tier Limit | Notes |
+|----------|----------------|-------|
+| Bandwidth | **10 GB/month** | 5 GB cached + 5 GB uncached |
+| API requests | No hard limit | Rate-limited per second |
+| Database reads | ~1200/second | Sustained throughput |
+| Database writes | ~1000/second | Sustained throughput |
+| Monthly Active Users | 50,000 MAU | Authentication related |
+| Edge Functions | 500K invocations | Per month |
+
+**Planning Implication:** 10 GB bandwidth is ~10,000 pages of content or ~330 MB/day. Single-user app shouldn't hit this, but if you scrape heavily or cache large volumes, monitor usage.
+
+### Realtime Features
+| Resource | Free Tier Limit | Notes |
+|----------|----------------|-------|
+| Concurrent connections | 200 | WebSocket connections |
+| Realtime messages | 2 million/month | Per billing period |
+| Max message size | 250 KB | Per realtime message |
+
+**Planning Implication:** If you implement realtime sync between client and server, these limits are generous for a single-user application.
+
+### Project & Operations
+| Resource | Free Tier Limit | Notes |
+|----------|----------------|-------|
+| Active projects | 2 projects | Per organization |
+| Inactive project pause | 7 days | Projects auto-pause after inactivity |
+| Log retention | 1 day | API & Database logs |
+| Query timeout | 8 seconds default, 2 min max | Per statement |
+
+**Planning Implication:** 2 projects means you can have prod + dev/staging OR prod + experimental. Inactive pause means you need to access the project at least weekly to keep it active.
+
+### Monitoring Usage
+Check usage in dashboard: `Project Settings > Usage`
+
+Monitor specific metrics:
+- Database size: `Dashboard > Database > Usage`
+- Bandwidth: `Dashboard > Settings > Usage > Bandwidth`
+- API requests: `Dashboard > Settings > Usage > API Requests`
+
+**Pro Tip:** Set up alerts before hitting limits. Supabase will email warnings at 80% usage on paid tiers, but free tier just stops working.
+
+---
+
+## Python API Overview
 
 ### Installation
 
 ```bash
 pip install supabase
-# or with uv
+# Current version: Nov 6, 2025 release
+# Python requirement: >= 3.9
+```
+
+Or with uv (already used in this project):
+```bash
 uv add supabase
 ```
 
-**Current Version:** Released Nov 6, 2025
-**Python Requirement:** >= 3.9
+### Two Client Types: Sync vs Async
 
-### Basic Setup
+**Critical Decision Point:** Choose the right client for your use case.
 
+#### Sync Client (create_client)
 ```python
-import os
 from supabase import create_client, Client
 
-# Environment variables (already available in this project)
 url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_SERVICE_KEY")  # For backend
-
-# Initialize client
+key: str = os.environ.get("SUPABASE_SERVICE_KEY")
 supabase: Client = create_client(url, key)
+
+# Use anywhere in Flask without async/await
+articles = supabase.table('articles').select('*').execute()
 ```
 
-### Flask Integration
+**Use when:**
+- Flask backend operations (serve.py, tldr_service.py)
+- Any synchronous context
+- CRUD operations (no realtime subscriptions)
 
-#### Option 1: Direct Integration (Recommended for this project)
+**Cannot use:**
+- Realtime subscriptions (requires async)
 
+#### Async Client (acreate_client)
+```python
+from supabase import acreate_client
+
+async_supabase = await acreate_client(url, key)
+
+# Must use in async context
+articles = await async_supabase.table('articles').select('*').execute()
+```
+
+**Use when:**
+- Need realtime database subscriptions
+- Async web frameworks (FastAPI, aiohttp, etc.)
+
+**Cannot use:**
+- Regular Flask routes (Flask is sync by default)
+- Synchronous initialization (e.g., during app startup)
+
+**Trade-off:** Realtime is only available with async client, but Flask is sync. If you want realtime, you'll need to either:
+1. Run async client in a separate thread/process
+2. Switch to FastAPI
+3. Use polling instead of realtime subscriptions
+
+**Recommendation for This Project:** Use sync client. Realtime is nice-to-have, but adds complexity. Polling or manual refresh is simpler for single-user app.
+
+---
+
+## Setup Prerequisites
+
+**These steps must be completed IN ORDER before you can use the database programmatically.**
+
+### 1. Create Supabase Project
+- Go to `https://supabase.com/dashboard`
+- Click "New Project"
+- Choose organization, name, password, region
+- **Wait 2-3 minutes** for project provisioning
+
+**What you get:** Empty Postgres database, auto-generated API endpoints
+
+### 2. Obtain API Credentials
+
+Navigate to `Project Settings > API`:
+
+**Two keys are available:**
+1. **anon (public) key**: `SUPABASE_API_KEY`
+   - Safe to expose in client-side code
+   - Respects Row Level Security (RLS) policies
+   - Use for client-side operations (if you implement direct client access)
+
+2. **service_role key**: `SUPABASE_SERVICE_KEY`
+   - **NEVER expose to client**
+   - Bypasses ALL RLS policies
+   - Full admin access to database
+   - Use in Flask backend only
+
+**Also note:** Project URL is at `https://[project-id].supabase.co`
+
+**Environment Variables (Add to your .env):**
+```bash
+SUPABASE_URL=https://[project-id].supabase.co
+SUPABASE_SERVICE_KEY=eyJhbG...  # Service role key
+SUPABASE_API_KEY=eyJhbG...      # Anon key (optional)
+```
+
+**In Python:**
 ```python
 import util
-from supabase import create_client
-
-class SupabaseClient:
-    _instance = None
-
-    def __init__(self):
-        url = util.resolve_env_var("SUPABASE_URL")
-        key = util.resolve_env_var("SUPABASE_SERVICE_KEY")
-        self.client = create_client(url, key)
-
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance.client
-
-# Usage in service layer
-supabase = SupabaseClient.get_instance()
+url = util.resolve_env_var("SUPABASE_URL")
+key = util.resolve_env_var("SUPABASE_SERVICE_KEY")
 ```
 
-#### Option 2: Flask-Supabase Extension
-
-```bash
-pip install flask-supabase
-```
-
-```python
-from flask import Flask
-from flask_supabase import Supabase
-
-app = Flask(__name__)
-app.config['SUPABASE_URL'] = os.environ.get("SUPABASE_URL")
-app.config['SUPABASE_KEY'] = os.environ.get("SUPABASE_SERVICE_KEY")
-
-supabase = Supabase(app)
-```
-
-### Connection Pooling
-
-Supabase provides built-in connection pooling:
-
-- **Session Mode**: Connection assigned until client disconnects (default)
-- **Transaction Mode**: Connection assigned per transaction (ideal for serverless)
-
-For Flask (long-lived server), Session mode is appropriate. Supabase handles pooling automatically.
-
-**Best Practice:** Use application-side pooling for optimal performance:
-```python
-# Supabase client maintains connection pool internally
-# No additional configuration needed for basic use cases
-```
-
-### Async Support
-
-```python
-from supabase import acreate_client
-
-# Async client (required for realtime subscriptions)
-async_supabase = await acreate_client(url, key)
-```
-
-**Note:** Realtime subscriptions in Python **require** the async client.
-
----
-
-## 3. Current localStorage Structure Analysis
-
-### Storage Keys
-
-Based on `client/src/lib/storageKeys.js`:
-
-```javascript
-STORAGE_KEYS = {
-  CACHE_ENABLED: 'cache:enabled'
-}
-
-// Dynamic keys
-newsletters:scrapes:{date} → DailyPayload
-```
-
-### Data Structure: DailyPayload
-
-```typescript
-{
-  date: string,              // "2024-01-01"
-  cachedAt: string,          // ISO timestamp
-  articles: Article[],       // Array of articles for this date
-  issues: Issue[]            // Array of newsletter issues
-}
-```
-
-### Article Structure (Complete)
-
-From ARCHITECTURE.md and hooks analysis:
-
-```typescript
-{
-  // Core identifiers
-  url: string,               // Canonical URL (PRIMARY KEY)
-  title: string,
-  issueDate: string,         // "2024-01-01"
-
-  // Categorization
-  category: string,          // "TLDR Tech", "HackerNews"
-  sourceId: string,          // "tldr_tech", "hackernews"
-  section: string | null,
-  sectionEmoji: string | null,
-  sectionOrder: number | null,
-  newsletterType: string | null,
-
-  // User state (MUST PERSIST)
-  removed: boolean,          // User removed article
-  tldrHidden: boolean,       // User collapsed TLDR (deprioritized)
-  read: {
-    isRead: boolean,
-    markedAt: string | null  // ISO timestamp
-  },
-
-  // AI-generated content (MUST PERSIST)
-  tldr: {
-    status: 'unknown' | 'creating' | 'available' | 'error',
-    markdown: string,
-    effort: 'minimal' | 'low' | 'medium' | 'high',
-    checkedAt: string | null,
-    errorMessage: string | null
-  }
-}
-```
-
-### Issue Structure
-
-```typescript
-{
-  date: string,              // "2024-01-01"
-  source_id: string,         // "tldr_tech"
-  category: string,          // "TLDR Tech"
-  title: string | null,
-  subtitle: string | null
-}
-```
-
-### Client-Side State Management
-
-**Key Implementation Details:**
-
-1. **useSyncExternalStore Pattern**: `useLocalStorage` uses React's `useSyncExternalStore` for synchronization
-2. **Custom Events**: Dispatches `'local-storage-change'` events for cross-component reactivity
-3. **Snapshot Caching**: In-memory cache (`snapshotCache`) to avoid redundant parsing
-4. **Multi-Instance Safe**: All hook instances share the same listeners and cache
-
-**State Transitions (from ARCHITECTURE.md):**
-
-```
-Article States: unread(0) → read(1) → tldrHidden(2) → removed(3)
-
-Priority Order:
-  removed > tldrHidden > read > unread
-```
-
-**Critical for Migration:** Client-side sorting depends on these numeric state values. The server must return data that preserves this ordering.
-
----
-
-## 4. Database Design Patterns
-
-### Normalized vs. JSONB: Decision Matrix
-
-#### Performance Comparison
-
-**Research Finding:** PostgreSQL can be **~2000x slower** with JSONB for queries that would use indexed columns in normalized tables.
-
-**JSONB Disadvantages:**
-- No statistics tracking → poor query optimization
-- 2x+ storage overhead (keys duplicated per row)
-- Write-heavy workloads suffer
-- Cannot efficiently index nested fields without specific GIN indexes
-
-**JSONB Advantages:**
-- Flexible schema for optional/variable fields
-- Simpler for deeply nested data
-- Good for read-mostly, schema-less data
-
-**Recommendation for This Project:** **Hybrid Normalized + JSONB**
-
-```sql
--- Normalized core fields (frequently queried)
-CREATE TABLE articles (
-  url TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  issue_date DATE NOT NULL,
-  category TEXT NOT NULL,
-  source_id TEXT NOT NULL,
-
-  -- JSONB for optional/variable fields
-  metadata JSONB,
-
-  -- User state (normalized for query performance)
-  removed BOOLEAN DEFAULT FALSE,
-  tldr_hidden BOOLEAN DEFAULT FALSE,
-  is_read BOOLEAN DEFAULT FALSE,
-  read_marked_at TIMESTAMPTZ,
-
-  -- TLDR state (could be JSONB or separate table)
-  tldr_status TEXT DEFAULT 'unknown',
-  tldr_markdown TEXT,
-  tldr_effort TEXT,
-  tldr_checked_at TIMESTAMPTZ,
-  tldr_error_message TEXT,
-
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Indexes for common queries
-CREATE INDEX idx_articles_issue_date ON articles(issue_date);
-CREATE INDEX idx_articles_source_id ON articles(source_id);
-CREATE INDEX idx_articles_removed ON articles(removed) WHERE removed = TRUE;
-CREATE INDEX idx_articles_is_read ON articles(is_read);
-
--- GIN index for JSONB queries (if needed)
-CREATE INDEX idx_articles_metadata ON articles USING GIN (metadata);
-```
-
-### Schema Design Recommendation
-
-#### Tables
-
-**1. `articles` Table**
-```sql
-CREATE TABLE articles (
-  url TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  issue_date DATE NOT NULL,
-  category TEXT NOT NULL,
-  source_id TEXT NOT NULL,
-  section TEXT,
-  section_emoji TEXT,
-  section_order INTEGER,
-  newsletter_type TEXT,
-
-  -- User state
-  removed BOOLEAN DEFAULT FALSE,
-  tldr_hidden BOOLEAN DEFAULT FALSE,
-  is_read BOOLEAN DEFAULT FALSE,
-  read_marked_at TIMESTAMPTZ,
-
-  -- TLDR data
-  tldr_status TEXT DEFAULT 'unknown' CHECK (tldr_status IN ('unknown', 'creating', 'available', 'error')),
-  tldr_markdown TEXT,
-  tldr_effort TEXT CHECK (tldr_effort IN ('minimal', 'low', 'medium', 'high')),
-  tldr_checked_at TIMESTAMPTZ,
-  tldr_error_message TEXT,
-
-  -- Metadata
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-**2. `issues` Table**
-```sql
-CREATE TABLE issues (
-  id SERIAL PRIMARY KEY,
-  date DATE NOT NULL,
-  source_id TEXT NOT NULL,
-  category TEXT NOT NULL,
-  title TEXT,
-  subtitle TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-
-  UNIQUE(date, source_id)
-);
-```
-
-**3. `daily_cache` Table (Optional - for caching full payloads)**
-```sql
-CREATE TABLE daily_cache (
-  date DATE PRIMARY KEY,
-  cached_at TIMESTAMPTZ NOT NULL,
-  payload JSONB NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-**4. `user_preferences` Table**
-```sql
-CREATE TABLE user_preferences (
-  id SERIAL PRIMARY KEY,
-  key TEXT UNIQUE NOT NULL,
-  value JSONB NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- For cache:enabled setting
-INSERT INTO user_preferences (key, value)
-VALUES ('cache:enabled', 'true'::jsonb);
-```
-
-#### Database Functions
-
-**Auto-update timestamp:**
-```sql
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_articles_updated_at
-  BEFORE UPDATE ON articles
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-```
-
----
-
-## 5. Migration Strategy
-
-### Phased Approach
-
-#### Phase 1: Backend Setup (No Client Changes)
-
-1. **Set up Supabase database**
-   - Create tables with schema above
-   - Apply migrations using Supabase CLI
-   - Configure RLS policies (initially permissive)
-
-2. **Create data access layer**
-   - New module: `supabase_client.py`
-   - Service functions matching existing cache operations
-   - Maintain backwards compatibility with localStorage flow
-
-3. **Add write-through caching**
-   - Backend writes to Supabase after scraping
-   - Responses still include full payload (client continues using localStorage)
-   - Build up database in background
-
-#### Phase 2: Hybrid Read (Fallback to localStorage)
-
-1. **New API endpoints**
-   - `GET /api/user-state/{date}` - Fetch DailyPayload from database
-   - `POST /api/user-state/article` - Update article state
-   - `GET /api/preferences` - Get user preferences
-
-2. **Client changes**
-   - Check database first, fall back to localStorage
-   - Write to both database and localStorage
-   - Gradual migration of stored data
-
-#### Phase 3: Database as Primary Source
-
-1. **Remove localStorage writes** (reads remain for backwards compat)
-2. **All state mutations go through API**
-3. **Client subscribes to realtime updates** (optional)
-
-#### Phase 4: Remove localStorage Dependencies
-
-1. **Client uses database exclusively**
-2. **Remove localStorage hooks** from state management
-3. **localStorage only for transient UI state** (e.g., expanded panels)
-
-### Data Migration Script
-
-```python
-import json
-from pathlib import Path
-from supabase import create_client
-
-def migrate_localstorage_export_to_supabase(export_file: Path):
-    """
-    Migrate exported localStorage data to Supabase.
-
-    Export format (from browser console):
-    {
-      "newsletters:scrapes:2024-01-01": { ...DailyPayload... },
-      "newsletters:scrapes:2024-01-02": { ...DailyPayload... },
-      "cache:enabled": true
-    }
-    """
-    supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-
-    with open(export_file) as f:
-        data = json.load(f)
-
-    for key, value in data.items():
-        if key.startswith('newsletters:scrapes:'):
-            date = key.split(':')[-1]
-            payload = value
-
-            # Insert articles
-            for article in payload['articles']:
-                supabase.table('articles').upsert({
-                    'url': article['url'],
-                    'title': article['title'],
-                    'issue_date': date,
-                    'category': article['category'],
-                    'source_id': article['sourceId'],
-                    'section': article.get('section'),
-                    'section_emoji': article.get('sectionEmoji'),
-                    'section_order': article.get('sectionOrder'),
-                    'newsletter_type': article.get('newsletterType'),
-                    'removed': article.get('removed', False),
-                    'tldr_hidden': article.get('tldrHidden', False),
-                    'is_read': article.get('read', {}).get('isRead', False),
-                    'read_marked_at': article.get('read', {}).get('markedAt'),
-                    'tldr_status': article.get('tldr', {}).get('status', 'unknown'),
-                    'tldr_markdown': article.get('tldr', {}).get('markdown'),
-                    'tldr_effort': article.get('tldr', {}).get('effort'),
-                    'tldr_checked_at': article.get('tldr', {}).get('checkedAt'),
-                    'tldr_error_message': article.get('tldr', {}).get('errorMessage')
-                }).execute()
-
-            # Insert issues
-            for issue in payload['issues']:
-                supabase.table('issues').upsert({
-                    'date': date,
-                    'source_id': issue['source_id'],
-                    'category': issue['category'],
-                    'title': issue.get('title'),
-                    'subtitle': issue.get('subtitle')
-                }).execute()
-
-        elif key == 'cache:enabled':
-            supabase.table('user_preferences').upsert({
-                'key': 'cache:enabled',
-                'value': value
-            }).execute()
-```
-
----
-
-## 6. Security Architecture
-
-### Row Level Security (RLS)
-
-**Critical Finding:** RLS is **mandatory** for secure Supabase access. Without RLS, all data is publicly accessible via the anon key.
-
-#### Service Role Key vs. Anon Key
-
-**Service Role Key** (`SUPABASE_SERVICE_KEY`):
-- **Bypasses all RLS policies**
-- **NEVER expose to client**
-- Use in Flask backend only
-- Appropriate for server-side operations
-
-**Anon Key** (`SUPABASE_API_KEY`):
-- Respects RLS policies
-- Safe to expose in client (if implementing client-side access)
-- Limited access based on policies
-
-#### RLS Policies for This Project
-
-**Current State:** Single-user application (no authentication)
-
-**Option 1: Permissive (Current Model)**
-```sql
--- Allow all operations (matches localStorage behavior)
-ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow all operations" ON articles
-  FOR ALL
-  USING (true)
-  WITH CHECK (true);
-```
-
-**Option 2: API-Only Access (Recommended)**
-```sql
--- No direct client access; all operations through Flask backend using service_role key
-ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
-
--- No policies needed; service_role bypasses RLS
--- Client cannot access database directly
-```
-
-**Option 3: Future Multi-User Support**
-```sql
--- If adding authentication later
-CREATE POLICY "Users see their own data" ON articles
-  FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users update their own data" ON articles
-  FOR UPDATE
-  USING (auth.uid() = user_id);
-```
-
-**Recommendation:** Start with Option 2 (API-only). Client never accesses Supabase directly; all operations through Flask backend with service_role key.
-
-### Environment Variables
-
-**Backend (Flask):**
-```bash
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbG...  # Service role (bypasses RLS)
-```
-
-**Client (Future, if needed):**
-```bash
-VITE_SUPABASE_URL=https://xxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbG...  # Anon key (respects RLS)
-```
-
-**Critical:** Use `util.resolve_env_var()` to access all environment variables in Python code.
-
----
-
-## 7. Real-time Synchronization
-
-### Supabase Realtime Architecture
-
-**How It Works:**
-1. PostgreSQL replication captures database changes
-2. Realtime server (Elixir) converts changes to JSON
-3. Changes broadcast via WebSockets to subscribed clients
-
-### Setup Requirements
-
-**1. Enable Replication for Tables**
-```sql
--- Enable realtime for articles table
-ALTER PUBLICATION supabase_realtime ADD TABLE articles;
-
--- Optional: Include "previous" data in updates/deletes
-ALTER TABLE articles REPLICA IDENTITY FULL;
-```
-
-**2. Python Backend (Async)**
-```python
-from supabase import acreate_client
-
-# Async client required for realtime
-async_supabase = await acreate_client(url, key)
-
-# Subscribe to changes
-channel = async_supabase.channel("db-changes")
-channel.on_postgres_changes(
-    "UPDATE",
-    schema="public",
-    table="articles",
-    callback=lambda payload: print("Article updated:", payload)
-)
-await channel.subscribe()
-```
-
-**3. Client-Side (JavaScript)**
-```javascript
-// If implementing client-side realtime subscriptions
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-supabase
-  .channel('articles-changes')
-  .on('postgres_changes',
-    { event: 'UPDATE', schema: 'public', table: 'articles' },
-    (payload) => {
-      console.log('Change received!', payload)
-      // Update React state
-    }
-  )
-  .subscribe()
-```
-
-### Realtime Use Cases for This Project
-
-**Current localStorage Model:**
-- Client-side mutations → Instant UI update → localStorage write
-- No network latency
-- Changes persist in browser only
-
-**With Realtime Subscriptions:**
-- Client mutation → API call → Database update → Realtime notification → UI update
-- Adds network latency
-- Changes persist server-side
-
-**Recommendation:**
-
-1. **Optimistic Updates**: Update UI immediately on user action
-2. **Background Sync**: Send API request to persist change
-3. **Realtime Reconciliation**: Subscribe to realtime events to sync changes from other sources (future multi-device support)
-
-```javascript
-// Optimistic update pattern
-function markAsRead(article) {
-  // 1. Update UI immediately (optimistic)
-  setLocalState({ ...article, isRead: true })
-
-  // 2. Persist to backend
-  fetch('/api/user-state/article', {
-    method: 'POST',
-    body: JSON.stringify({ url: article.url, isRead: true })
-  })
-  .catch(error => {
-    // 3. Rollback on failure
-    setLocalState({ ...article, isRead: false })
-    showError('Failed to save')
-  })
-}
-```
-
-**Performance Note:** Realtime adds minimal overhead (~1-2ms) but requires WebSocket connection. Disable if not needed.
-
----
-
-## 8. Client-Side DOM State Management
-
-### Current Challenge: CSS States and Persistence
-
-From the user's requirements:
-> "The most important thing is to think about all the client-DOM (css) states. Including through a session and after page refresh (Cmd+R)."
-
-**Current localStorage Flow:**
-1. User clicks article → `markAsRead()` called
-2. `useArticleState` updates payload in localStorage
-3. Custom event `'local-storage-change'` dispatched
-4. All `ArticleCard` components re-render
-5. CSS classes applied based on state (`isRead`, `isRemoved`, etc.)
-6. On page refresh → localStorage loads → Same CSS state restored
-
-**CSS State Dependencies (from codebase):**
-
-```javascript
-// ArticleCard.jsx (inferred from architecture)
-const cssClass = computed(() => {
-  if (article.removed) return 'article-removed'  // strikethrough, dashed border
-  if (article.tldrHidden) return 'article-tldr-hidden'  // deprioritized
-  if (article.read?.isRead) return 'article-read'  // muted text
-  return 'article-unread'  // bold text
-})
-```
-
-**Sorting State:**
-```javascript
-// ArticleList.jsx (from ARCHITECTURE.md)
-function sortArticles(articles) {
-  return articles.sort((a, b) => {
-    const stateA = a.removed ? 3 : a.tldrHidden ? 2 : a.read?.isRead ? 1 : 0
-    const stateB = b.removed ? 3 : b.tldrHidden ? 2 : b.read?.isRead ? 1 : 0
-
-    if (stateA !== stateB) return stateA - stateB
-    return (a.originalOrder ?? 0) - (b.originalOrder ?? 0)
-  })
-}
-```
-
-### Migration Strategy for DOM States
-
-**Goal:** Preserve exact same visual behavior and state transitions.
-
-**Approach 1: Server-Side State, Client-Side Rendering (Recommended)**
-
-```
-User Action
-    ↓
-Update React State (optimistic)
-    ↓
-Apply CSS Classes (immediate)
-    ↓
-API Call to Backend (async)
-    ↓
-Database Write
-    ↓
-Response Confirmation
-    ↓
-(On Error: Rollback React State)
-```
-
-**Approach 2: Server-Side Rendering with State**
-
-```
-User Action
-    ↓
-API Call to Backend
-    ↓
-Database Write
-    ↓
-Server Renders Updated HTML
-    ↓
-Send HTML to Client
-    ↓
-Client Replaces DOM
-```
-
-**Problem:** Server-side rendering breaks CSS transitions (research finding: "completely re-creates the DOM elements").
-
-**Recommendation:** Use Approach 1 (Client-Side Rendering) to preserve CSS transitions.
-
-### Implementation Pattern
-
-**1. Maintain Client-Side State Management**
-
-```javascript
-// Keep current hooks structure
-const { article, markAsRead, setRemoved } = useArticleState(date, url)
-
-// But change storage backend
-function useArticleState(date, url) {
-  // Instead of localStorage
-  const [article, setArticle] = useState(null)
-
-  // Fetch from server on mount
-  useEffect(() => {
-    fetch(`/api/articles/${date}/${encodeURIComponent(url)}`)
-      .then(res => res.json())
-      .then(setArticle)
-  }, [date, url])
-
-  // Update functions send API requests
-  const markAsRead = useCallback(() => {
-    // Optimistic update
-    setArticle(prev => ({ ...prev, isRead: true, readMarkedAt: new Date().toISOString() }))
-
-    // Persist to backend
-    fetch(`/api/articles/${encodeURIComponent(url)}/read`, { method: 'POST' })
-      .catch(error => {
-        // Rollback on error
-        setArticle(prev => ({ ...prev, isRead: false, readMarkedAt: null }))
-      })
-  }, [url])
-
-  return { article, markAsRead }
-}
-```
-
-**2. Preserve CSS Class Application**
-
-No changes needed. CSS classes are derived from React state, which remains client-side.
-
-**3. Handle Page Refresh**
-
-```javascript
-// On component mount
-useEffect(() => {
-  // Fetch all articles for date range
-  fetch(`/api/articles?start_date=${startDate}&end_date=${endDate}`)
-    .then(res => res.json())
-    .then(data => {
-      // Populate React state
-      setArticles(data.articles)
-      setIssues(data.issues)
-    })
-}, [startDate, endDate])
-```
-
-**4. Maintain Sorting Logic**
-
-No changes. Sorting happens client-side on React state.
-
-### Performance Optimization
-
-**Current localStorage:**
-- Read: ~0.01ms (synchronous)
-- Write: ~0.1ms (synchronous)
-
-**With Database:**
-- Read: ~50-200ms (network + query)
-- Write: ~50-200ms (network + insert)
-
-**Mitigation:**
-
-1. **Aggressive Caching:**
-   ```javascript
-   // Cache API responses in React state
-   const [cache, setCache] = useState(new Map())
-   ```
-
-2. **Batch Updates:**
-   ```javascript
-   // Debounce rapid state changes
-   const debouncedSync = useDebouncedCallback(syncToBackend, 500)
-   ```
-
-3. **Optimistic UI:**
-   Always update UI first, sync to backend in background.
-
-4. **Prefetching:**
-   ```javascript
-   // Fetch next/prev dates on idle
-   useIdleCallback(() => prefetchAdjacentDates())
-   ```
-
----
-
-## 9. Performance Considerations
-
-### Caching Strategy
-
-**PostgreSQL Built-in Caching:**
-- `shared_buffers`: In-memory cache for frequently accessed data
-- Monitor cache hit ratio: `SELECT * FROM pg_stat_database;`
-- Target: >99% cache hit ratio
-
-**Application-Level Caching:**
-
-```python
-# In-memory cache for frequently accessed data
-from functools import lru_cache
-from datetime import datetime, timedelta
-
-@lru_cache(maxsize=128)
-def get_articles_for_date(date: str):
-    return supabase.table('articles') \
-        .select('*') \
-        .eq('issue_date', date) \
-        .execute()
-
-# Invalidate cache on writes
-def update_article(url: str, updates: dict):
-    result = supabase.table('articles').update(updates).eq('url', url).execute()
-    get_articles_for_date.cache_clear()
-    return result
-```
-
-**Materialized Views for Aggregations:**
-
-```sql
--- Pre-computed daily summaries
-CREATE MATERIALIZED VIEW daily_article_stats AS
-SELECT
-  issue_date,
-  COUNT(*) as total_articles,
-  COUNT(*) FILTER (WHERE is_read) as read_count,
-  COUNT(*) FILTER (WHERE removed) as removed_count
-FROM articles
-GROUP BY issue_date;
-
--- Refresh periodically
-REFRESH MATERIALIZED VIEW daily_article_stats;
-```
-
-### Index Strategy
-
-**Primary Indexes:**
-```sql
-CREATE INDEX idx_articles_issue_date ON articles(issue_date);
-CREATE INDEX idx_articles_source_id ON articles(source_id);
-CREATE INDEX idx_articles_category ON articles(category);
-```
-
-**Partial Indexes (for filtered queries):**
-```sql
--- Only index removed articles (typically small set)
-CREATE INDEX idx_articles_removed ON articles(issue_date)
-WHERE removed = TRUE;
-
--- Index articles with TLDRs
-CREATE INDEX idx_articles_has_tldr ON articles(url)
-WHERE tldr_status = 'available';
-```
-
-**Composite Indexes (for common query patterns):**
-```sql
--- For fetching date range with filters
-CREATE INDEX idx_articles_date_source ON articles(issue_date, source_id);
-```
-
-### Query Optimization
-
-**Current API Pattern:**
-```python
-# Fetch all articles for date range
-articles = supabase.table('articles') \
-    .select('*') \
-    .gte('issue_date', start_date) \
-    .lte('issue_date', end_date) \
-    .execute()
-```
-
-**Optimized Pattern:**
-```python
-# Only fetch needed fields
-articles = supabase.table('articles') \
-    .select('url, title, issue_date, category, source_id, removed, is_read, tldr_status') \
-    .gte('issue_date', start_date) \
-    .lte('issue_date', end_date) \
-    .order('issue_date', desc=True) \
-    .execute()
-```
-
-**Pagination for Large Result Sets:**
-```python
-# Paginate if >1000 articles
-PAGE_SIZE = 100
-articles = supabase.table('articles') \
-    .select('*') \
-    .gte('issue_date', start_date) \
-    .lte('issue_date', end_date) \
-    .range(0, PAGE_SIZE - 1) \
-    .execute()
-```
-
-### UNLOGGED Tables for Transient Data
-
-Research finding: UNLOGGED tables provide huge performance gains for cache-like data.
-
-```sql
--- For temporary scrape results (before user confirmation)
-CREATE UNLOGGED TABLE scrape_cache (
-  id SERIAL PRIMARY KEY,
-  date DATE NOT NULL,
-  payload JSONB NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-**Trade-off:** UNLOGGED tables are not crash-safe. Acceptable for transient data.
-
----
-
-## 10. Implementation Requirements
-
-### Database Setup
-
-**1. Create Supabase Project**
-- Sign up at supabase.com or use existing project
-- Note URL and service_role key
-
-**2. Set Environment Variables**
-
-Add to `.env` (already exists in project):
-```bash
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbG...
-SUPABASE_API_KEY=eyJhbG...  # anon key (optional)
-```
-
-Verify with:
-```bash
-source ./setup.sh
-env | grep SUPABASE
-```
-
-**3. Initialize Supabase CLI**
-
+### 3. Create Database Schema
+
+**Two Options:**
+
+#### Option A: Dashboard (GUI)
+- Go to `Database > Tables`
+- Click "Create a new table"
+- Define columns, types, constraints
+- Click "Save"
+
+**Pros:**
+- Visual, beginner-friendly
+- See changes immediately
+- No SQL knowledge needed
+
+**Cons:**
+- Not version controlled
+- Hard to replicate across environments
+- Tables owned by `supabase_admin` role (can cause permission issues later)
+
+#### Option B: SQL Editor
+- Go to `SQL Editor`
+- Write `CREATE TABLE` statements
+- Run query
+
+**Pros:**
+- Version controlled (save SQL files)
+- Reproducible
+- Tables owned by `postgres` role (better for migrations)
+
+**Cons:**
+- Requires SQL knowledge
+- No immediate visual feedback
+
+#### Option C: Migrations (CLI) - **Recommended for Production**
 ```bash
 # Install Supabase CLI
 npm install -g supabase
@@ -1049,398 +255,1438 @@ npm install -g supabase
 supabase login
 
 # Link to project
-supabase link --project-ref xxx
+supabase link --project-ref [project-id]
 
-# Initialize migrations directory
-supabase init
-```
-
-**4. Create Initial Migration**
-
-```bash
-# Generate migration file
+# Create migration
 supabase migration new initial_schema
 
-# Edit supabase/migrations/xxx_initial_schema.sql
-# Add schema from Section 4
-```
+# Edit supabase/migrations/[timestamp]_initial_schema.sql
+# Add your CREATE TABLE statements
 
-**5. Apply Migration**
-
-```bash
-# Test locally
+# Apply locally (if running local Supabase)
 supabase db reset
 
 # Apply to remote
 supabase db push
 ```
 
-### Python Backend Changes
+**Pros:**
+- Version controlled
+- Reproducible across environments
+- Can diff changes: `supabase db diff`
+- Professional workflow
 
-**1. Create Supabase Client Module**
+**Cons:**
+- Requires CLI setup
+- Steeper learning curve
 
-```python
-# supabase_client.py
-import util
-from supabase import create_client
+**Recommendation:** Start with Dashboard (Option A) for prototyping, then export to migrations (Option C) once schema is stable.
 
-class SupabaseClient:
-    _instance = None
+**Critical Gotcha:** If you create tables via Dashboard, they're owned by `supabase_admin`. If you later create migrations via CLI, they're owned by `postgres`. This can cause permission errors. Be consistent within a project.
 
-    def __init__(self):
-        url = util.resolve_env_var("SUPABASE_URL")
-        key = util.resolve_env_var("SUPABASE_SERVICE_KEY")
-        self.client = create_client(url, key)
+### 4. Enable Row Level Security (RLS)
 
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance.client
+**THIS IS MANDATORY BEFORE ANY DATA ACCESS WORKS.**
 
-supabase = SupabaseClient.get_instance()
-```
+Even on free tier, Supabase enforces security through RLS. Here's what happens:
 
-**2. Create Data Access Layer**
+**Without RLS:**
+- Anyone with your `anon` key can read/write all data
+- Terrible security, but works for testing
 
-```python
-# db_service.py
-from supabase_client import supabase
+**With RLS enabled but no policies:**
+- **ALL ACCESS IS BLOCKED** (including your own API calls)
+- You'll get empty results or `403 Forbidden` errors
 
-def get_articles_for_date_range(start_date: str, end_date: str):
-    """
-    Fetch all articles for date range.
-    Returns same structure as localStorage DailyPayload.
-    """
-    result = supabase.table('articles') \
-        .select('*') \
-        .gte('issue_date', start_date) \
-        .lte('issue_date', end_date) \
-        .order('issue_date', desc=True) \
-        .execute()
+**With RLS enabled + policies:**
+- Access controlled per row based on policies
+- Secure, production-ready
 
-    return result.data
+**How to enable RLS:**
 
-def update_article_state(url: str, updates: dict):
-    """Update article user state (read, removed, tldrHidden)."""
-    result = supabase.table('articles') \
-        .update(updates) \
-        .eq('url', url) \
-        .execute()
+Via Dashboard:
+1. Go to `Database > Tables`
+2. Click on table name
+3. Click "Enable RLS" in top right
 
-    return result.data
-
-def upsert_article(article: dict):
-    """Insert or update article."""
-    result = supabase.table('articles') \
-        .upsert(article) \
-        .execute()
-
-    return result.data
-```
-
-**3. Add API Endpoints**
-
-```python
-# serve.py
-from db_service import get_articles_for_date_range, update_article_state
-
-@app.route("/api/articles", methods=["GET"])
-def get_articles():
-    """Fetch articles for date range."""
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-
-    articles = get_articles_for_date_range(start_date, end_date)
-
-    # Group by date (matching localStorage DailyPayload structure)
-    payloads = build_daily_payloads_from_articles(articles)
-
-    return jsonify({
-        "success": True,
-        "payloads": payloads
-    })
-
-@app.route("/api/articles/<path:url>/state", methods=["POST"])
-def update_article_state_endpoint(url):
-    """Update article user state."""
-    data = request.get_json()
-
-    # Validate allowed fields
-    allowed_updates = {'removed', 'tldr_hidden', 'is_read', 'read_marked_at'}
-    updates = {k: v for k, v in data.items() if k in allowed_updates}
-
-    result = update_article_state(url, updates)
-
-    return jsonify({
-        "success": True,
-        "article": result
-    })
-```
-
-### Client-Side Changes
-
-**1. Create API Client**
-
-```javascript
-// client/src/lib/api.js
-export async function fetchArticlesForDateRange(startDate, endDate) {
-  const response = await fetch(`/api/articles?start_date=${startDate}&end_date=${endDate}`)
-  const data = await response.json()
-
-  if (!data.success) {
-    throw new Error('Failed to fetch articles')
-  }
-
-  return data.payloads
-}
-
-export async function updateArticleState(url, updates) {
-  const response = await fetch(`/api/articles/${encodeURIComponent(url)}/state`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(updates)
-  })
-
-  const data = await response.json()
-
-  if (!data.success) {
-    throw new Error('Failed to update article')
-  }
-
-  return data.article
-}
-```
-
-**2. Update `useArticleState` Hook**
-
-```javascript
-// client/src/hooks/useArticleState.js
-import { useState, useCallback, useEffect } from 'react'
-import { updateArticleState as apiUpdateArticleState } from '../lib/api'
-
-export function useArticleState(date, url) {
-  const [article, setArticle] = useState(null)
-  const [loading, setLoading] = useState(false)
-
-  // Fetch from parent context (ArticleList provides articles)
-  // Or fetch individually if needed
-
-  const updateArticle = useCallback(async (updates) => {
-    // Optimistic update
-    setArticle(prev => ({ ...prev, ...updates }))
-
-    try {
-      // Persist to backend
-      await apiUpdateArticleState(url, updates)
-    } catch (error) {
-      // Rollback on error
-      setArticle(prev => ({ ...prev }))  // Revert
-      console.error('Failed to update article:', error)
-      throw error
-    }
-  }, [url])
-
-  const markAsRead = useCallback(() => {
-    return updateArticle({
-      is_read: true,
-      read_marked_at: new Date().toISOString()
-    })
-  }, [updateArticle])
-
-  // ... other methods
-
-  return {
-    article,
-    loading,
-    markAsRead,
-    // ... other methods
-  }
-}
-```
-
-### Testing Strategy
-
-**1. Backend Unit Tests**
-
-```python
-# test_db_service.py
-import pytest
-from db_service import get_articles_for_date_range, update_article_state
-
-def test_get_articles_for_date_range():
-    articles = get_articles_for_date_range('2024-01-01', '2024-01-03')
-    assert len(articles) > 0
-    assert all('url' in a for a in articles)
-
-def test_update_article_state():
-    result = update_article_state(
-        'https://example.com/article',
-        {'is_read': True}
-    )
-    assert result['is_read'] == True
-```
-
-**2. Integration Tests**
-
-```python
-# test_api_endpoints.py
-def test_get_articles_endpoint(client):
-    response = client.get('/api/articles?start_date=2024-01-01&end_date=2024-01-03')
-    assert response.status_code == 200
-    data = response.get_json()
-    assert data['success'] == True
-```
-
-**3. E2E Tests (Playwright/Cypress)**
-
-```javascript
-test('mark article as read persists after refresh', async ({ page }) => {
-  await page.goto('/')
-
-  // Scrape newsletters
-  await page.fill('[name=startDate]', '2024-01-01')
-  await page.fill('[name=endDate]', '2024-01-01')
-  await page.click('button:text("Scrape")')
-
-  // Wait for results
-  await page.waitForSelector('.article-card')
-
-  // Click first article
-  await page.click('.article-card:first-child .article-title')
-
-  // Verify marked as read
-  await expect(page.locator('.article-card:first-child')).toHaveClass(/article-read/)
-
-  // Refresh page
-  await page.reload()
-
-  // Verify still marked as read
-  await expect(page.locator('.article-card:first-child')).toHaveClass(/article-read/)
-})
-```
-
-### Rollout Plan
-
-**Week 1: Backend Setup**
-- [ ] Create Supabase project
-- [ ] Set up migrations
-- [ ] Create initial schema
-- [ ] Implement `supabase_client.py`
-- [ ] Implement `db_service.py`
-- [ ] Write unit tests
-
-**Week 2: API Layer**
-- [ ] Add API endpoints
-- [ ] Implement write-through caching (write to DB during scrapes)
-- [ ] Test with existing frontend (no changes)
-- [ ] Verify data accumulating in database
-
-**Week 3: Client Migration (Read Path)**
-- [ ] Implement API client (`api.js`)
-- [ ] Update `useArticleState` to read from API
-- [ ] Keep localStorage as fallback
-- [ ] Deploy and monitor
-
-**Week 4: Client Migration (Write Path)**
-- [ ] Update state mutations to call API
-- [ ] Implement optimistic updates
-- [ ] Add error handling and rollback
-- [ ] Deploy and monitor
-
-**Week 5: Polish & Optimization**
-- [ ] Add realtime subscriptions (optional)
-- [ ] Implement caching strategies
-- [ ] Performance testing
-- [ ] Remove localStorage dependencies (optional)
-
-### Monitoring & Observability
-
-**Database Metrics:**
+Via SQL:
 ```sql
--- Monitor query performance
-SELECT * FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 10;
-
--- Monitor cache hit ratio
-SELECT
-  sum(heap_blks_read) as heap_read,
-  sum(heap_blks_hit) as heap_hit,
-  sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) as ratio
-FROM pg_statio_user_tables;
-
--- Monitor table sizes
-SELECT
-  relname as table_name,
-  pg_size_pretty(pg_total_relation_size(relid)) as total_size
-FROM pg_catalog.pg_statio_user_tables
-ORDER BY pg_total_relation_size(relid) DESC;
+ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
 ```
 
-**Application Metrics:**
+**Then create policies** (see [Security: RLS Configuration](#security-rls-configuration) section below).
+
+### 5. Verify Setup
+
+Test connection with Python:
+
 ```python
-# Add timing to API endpoints
-import time
-from functools import wraps
+from supabase import create_client
+import os
 
-def timed(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        start = time.time()
-        result = f(*args, **kwargs)
-        duration = time.time() - start
-        util.log(f"{f.__name__} took {duration:.3f}s")
-        return result
-    return wrapper
+url = os.environ.get("SUPABASE_URL")
+key = os.environ.get("SUPABASE_SERVICE_KEY")
+supabase = create_client(url, key)
 
-@timed
-def get_articles_for_date_range(start_date, end_date):
+# Test query (replace 'test_table' with your table name)
+try:
+    result = supabase.table('test_table').select('*').limit(1).execute()
+    print("✓ Connection successful:", result.data)
+except Exception as e:
+    print("✗ Connection failed:", e)
+```
+
+**Common errors:**
+- `"relation \"test_table\" does not exist"`: Table not created yet
+- `"Failed to fetch"`: Wrong SUPABASE_URL
+- `"Invalid API key"`: Wrong SUPABASE_SERVICE_KEY
+- Empty results but no error: RLS enabled with no policies (using anon key)
+
+---
+
+## Database Design Decision Points
+
+### Decision 1: JSONB vs Normalized Tables
+
+**The Question:** Should I store the article data as JSONB blobs or as normalized columns?
+
+**JSONB Approach:**
+```sql
+CREATE TABLE daily_cache (
+  date DATE PRIMARY KEY,
+  payload JSONB  -- Store entire DailyPayload as JSON
+);
+```
+
+**Normalized Approach:**
+```sql
+CREATE TABLE articles (
+  url TEXT PRIMARY KEY,
+  title TEXT,
+  issue_date DATE,
+  category TEXT,
+  -- ... individual columns
+);
+```
+
+#### When to Use JSONB
+
+**Use JSONB when:**
+- Schema is highly variable or unknown upfront
+- Data is write-once, read-rarely
+- You need to store entire objects without modification
+- Fields won't be used in WHERE clauses or JOINs
+
+**Examples:**
+- API webhook payloads
+- User preferences with dynamic keys
+- Audit logs
+- Configuration blobs
+
+**For this project:**
+- Caching entire scrape responses temporarily
+- Storing optional metadata that varies by source
+
+#### When to Use Normalized Tables
+
+**Use normalized tables when:**
+- Fields will be queried/filtered frequently
+- Data integrity matters (foreign keys, constraints)
+- You need efficient indexes on specific fields
+- Schema is known and stable
+
+**Examples:**
+- Article URL, title, date (queried for filtering)
+- User state fields (read, removed, tldrHidden) - used in WHERE clauses
+- TLDR status (filtered to find articles needing TLDRs)
+
+**For this project:**
+- Core article fields: url, title, issue_date, category
+- User state: removed, is_read, tldr_hidden
+- TLDR data: status, markdown
+
+#### Performance Comparison
+
+**Research Finding:** PostgreSQL can be **~2000x slower** with JSONB for filtered queries vs indexed columns.
+
+**Why JSONB is slower:**
+- No query planner statistics → bad query plans
+- GIN indexes less efficient than B-tree for single values
+- Must extract JSON values at query time
+- Storage overhead (keys duplicated per row, ~2x space)
+
+**Why JSONB can be faster:**
+- Avoiding JOINs for complex objects
+- Read entire object in one query
+- Good for document-style access patterns
+
+#### The Hybrid Approach (Recommended)
+
+**Best Practice:** Use normalized columns for queryable fields + JSONB for truly dynamic data.
+
+```sql
+CREATE TABLE articles (
+  -- Normalized: frequently queried
+  url TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  issue_date DATE NOT NULL,
+  category TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+
+  -- User state (for filtering/sorting)
+  removed BOOLEAN DEFAULT FALSE,
+  is_read BOOLEAN DEFAULT FALSE,
+  tldr_hidden BOOLEAN DEFAULT FALSE,
+
+  -- JSONB: optional/variable metadata
+  metadata JSONB
+);
+```
+
+**Trade-off Summary:**
+
+| Criterion | JSONB | Normalized | Winner |
+|-----------|-------|------------|--------|
+| Query performance (filtered) | Slow | Fast | Normalized |
+| Schema flexibility | High | Low | JSONB |
+| Storage efficiency | Low (2x) | High | Normalized |
+| Data integrity | None | Strong (FK, constraints) | Normalized |
+| Write performance | Moderate | High | Normalized |
+| Read full object | Fast | Slow (JOINs) | JSONB |
+
+**Decision Guide:**
+- Will you query/filter by this field? → **Normalized column**
+- Is field optional/dynamic? → **JSONB**
+- Will field change frequently? → **Normalized** (JSONB rewrites entire value)
+- Do you need data integrity? → **Normalized**
+
+### Decision 2: Table Structure for State Management
+
+**The Question:** How should I model the article + user state + TLDR data relationship?
+
+**Option 1: Single Wide Table**
+```sql
+CREATE TABLE articles (
+  url TEXT PRIMARY KEY,
+  -- Article fields
+  title TEXT,
+  issue_date DATE,
+
+  -- User state
+  removed BOOLEAN,
+  is_read BOOLEAN,
+  read_marked_at TIMESTAMPTZ,
+
+  -- TLDR state
+  tldr_status TEXT,
+  tldr_markdown TEXT,
+  tldr_effort TEXT
+);
+```
+
+**Pros:**
+- Simple: one query to get everything
+- Matches localStorage structure
+- Fast reads (no JOINs)
+
+**Cons:**
+- Violates normalization (repeating article data across user states)
+- Harder to add multi-user support later
+- NULL-heavy if many optional fields
+
+**Use when:**
+- Single-user application (this project)
+- Performance critical
+- Schema unlikely to change
+
+**Option 2: Separate Tables (Normalized)**
+```sql
+CREATE TABLE articles (
+  url TEXT PRIMARY KEY,
+  title TEXT,
+  issue_date DATE
+);
+
+CREATE TABLE user_article_state (
+  user_id UUID,
+  article_url TEXT REFERENCES articles(url),
+  removed BOOLEAN,
+  is_read BOOLEAN,
+  PRIMARY KEY (user_id, article_url)
+);
+
+CREATE TABLE article_tldrs (
+  article_url TEXT PRIMARY KEY REFERENCES articles(url),
+  status TEXT,
+  markdown TEXT
+);
+```
+
+**Pros:**
+- Proper normalization
+- Easy to add multi-user support
+- Clear separation of concerns
+
+**Cons:**
+- Requires JOINs on every query
+- More complex queries
+- Slower for simple reads
+
+**Use when:**
+- Multi-user support planned
+- Clear domain boundaries
+- Data integrity critical
+
+**Option 3: Hybrid (Recommended)**
+```sql
+CREATE TABLE articles (
+  url TEXT PRIMARY KEY,
+  title TEXT,
+  issue_date DATE,
+
+  -- Frequently accessed state (denormalized for speed)
+  removed BOOLEAN DEFAULT FALSE,
+  is_read BOOLEAN DEFAULT FALSE,
+  tldr_status TEXT DEFAULT 'unknown',
+
+  -- Large/optional data in separate tables
+  -- (Add later if needed)
+);
+
+CREATE TABLE article_tldrs (
+  article_url TEXT PRIMARY KEY REFERENCES articles(url),
+  markdown TEXT,  -- Can be large
+  effort TEXT,
+  checked_at TIMESTAMPTZ
+);
+```
+
+**Pros:**
+- Fast for common queries (article + state in one table)
+- Separates large data (TLDR markdown)
+- Balances performance and structure
+
+**Cons:**
+- Some denormalization
+- Harder to add multi-user later (requires migration)
+
+**Decision Guide:**
+- Current: Single-user app → **Option 1 or 3**
+- Future: Multi-user planned → **Option 2**
+- Performance critical → **Option 1**
+- Large text fields (>1KB) → **Option 3** (separate table)
+
+### Decision 3: Caching Strategy
+
+**The Question:** Should I cache entire DailyPayload objects or store articles individually?
+
+**Option A: Cache Full Payloads**
+```sql
+CREATE TABLE daily_cache (
+  date DATE PRIMARY KEY,
+  cached_at TIMESTAMPTZ,
+  payload JSONB  -- Entire DailyPayload
+);
+```
+
+**Pros:**
+- Exact 1:1 match with localStorage structure
+- Fast writes (one upsert per day)
+- Fast reads for full day
+- Easy migration path
+
+**Cons:**
+- Can't query individual articles
+- Must load entire day to update one article
+- Denormalized
+
+**Use when:**
+- You always fetch by date (not by article URL)
+- Payload size reasonable (<100KB per day)
+- Cache invalidation is all-or-nothing per day
+
+**Option B: Individual Article Rows**
+```sql
+CREATE TABLE articles (
+  url TEXT PRIMARY KEY,
+  issue_date DATE,
+  -- ... individual fields
+);
+```
+
+**Pros:**
+- Query by URL, date, category, etc.
+- Update individual articles
+- Normalized
+
+**Cons:**
+- Must reconstruct DailyPayload from rows
+- More complex queries
+- Slower for "get all articles for date"
+
+**Use when:**
+- Need to query/update individual articles
+- Article-level cache invalidation
+- Want to leverage SQL filtering
+
+**Option C: Hybrid (Recommended)**
+```sql
+-- Normalized storage
+CREATE TABLE articles (...);
+
+-- Materialized view for fast daily reads
+CREATE MATERIALIZED VIEW daily_payloads AS
+SELECT
+  issue_date as date,
+  json_agg(row_to_json(articles.*)) as articles
+FROM articles
+GROUP BY issue_date;
+
+-- Refresh when needed
+REFRESH MATERIALIZED VIEW daily_payloads;
+```
+
+**Pros:**
+- Normalized storage (Option B)
+- Fast daily reads (Option A)
+- Best of both worlds
+
+**Cons:**
+- Must refresh materialized view after writes
+- Adds complexity
+
+**Decision Guide:**
+- Migrate existing localStorage as-is → **Option A**
+- Need flexible querying → **Option B**
+- High read volume, batch updates → **Option C**
+
+---
+
+## Common Gotchas & Pitfalls
+
+### 1. Async/Sync Confusion
+
+**Problem:** Realtime subscriptions ONLY work with async client, but Flask is synchronous.
+
+**Manifestation:**
+```python
+# This doesn't work in Flask route
+supabase = create_client(url, key)  # Sync client
+supabase.channel('articles').subscribe()  # Error: no subscribe method
+```
+
+**Solution:**
+- Use sync client for CRUD in Flask routes
+- If you need realtime, run async client in separate thread or process
+- Or: Use polling instead of realtime subscriptions
+
+**Pro Tip:** For single-user app, polling every N seconds is simpler than realtime. Save realtime for when you need <1s latency.
+
+### 2. RLS Blocks Everything by Default
+
+**Problem:** You enable RLS but forget to create policies → all queries return empty results.
+
+**Manifestation:**
+```python
+# Returns empty list even though data exists
+result = supabase.table('articles').select('*').execute()
+print(result.data)  # []
+```
+
+**Solution:**
+1. Check if RLS is enabled: Dashboard → Database → Tables → [table] → "RLS enabled"
+2. Check if policies exist: Dashboard → Authentication → Policies
+3. If using `service_role` key, RLS is bypassed (make sure you're using correct key)
+
+**Pro Tip:** During development, use `service_role` key in backend to bypass RLS. Add proper policies before deploying to production.
+
+### 3. Dashboard vs CLI Table Ownership
+
+**Problem:** Tables created in Dashboard are owned by `supabase_admin`, tables created via migrations are owned by `postgres`. This causes permission errors when mixing approaches.
+
+**Manifestation:**
+```sql
+-- Migration fails:
+ERROR: must be owner of table articles
+```
+
+**Solution:**
+Pick one approach and stick with it:
+- **Dashboard only**: Fine for small projects
+- **Migrations only**: Professional workflow, recommended
+- **Mixed**: Transfer ownership: `ALTER TABLE articles OWNER TO postgres;`
+
+**Pro Tip:** Use Dashboard for prototyping, then export schema to migration before committing:
+```bash
+supabase db diff --schema public > initial_schema.sql
+```
+
+### 4. Connection Pooling Conflicts (PgBouncer + asyncpg)
+
+**Problem:** Supabase's pooled connection (port 6543) uses PgBouncer in transaction mode, which breaks asyncpg's prepared statements.
+
+**Manifestation:**
+```python
+# Using asyncpg directly (not supabase-py)
+# With connection string: postgresql://...supabase.co:6543/postgres
+# Error: prepared statement "..." does not exist
+```
+
+**Solution:**
+- Use direct connection (port 5432) for asyncpg: `postgresql://...supabase.co:5432/postgres`
+- Or use supabase-py client (handles this automatically)
+
+**This only affects:** Direct asyncpg usage. If you use `supabase-py`, you're fine.
+
+### 5. Free Tier Project Pausing
+
+**Problem:** Free tier projects auto-pause after 7 days of inactivity.
+
+**Manifestation:**
+- API calls timeout
+- Dashboard shows "Project paused"
+
+**Solution:**
+- Access project at least once per week (via Dashboard or API)
+- Or: Upgrade to paid tier ($25/month Pro plan, no auto-pause)
+
+**Pro Tip:** Set up a cron job to ping your API weekly to keep project active:
+```bash
+# Cron: Every Monday at 9am
+0 9 * * 1 curl https://[project-id].supabase.co/rest/v1/articles?limit=1
+```
+
+### 6. JSONB Query Performance
+
+**Problem:** Filtering on JSONB fields is slow without proper indexes.
+
+**Manifestation:**
+```python
+# Slow query (seq scan)
+articles = supabase.table('articles') \
+    .select('*') \
+    .contains('metadata', {'tag': 'important'}) \
+    .execute()
+```
+
+**Solution:**
+Create GIN index:
+```sql
+CREATE INDEX idx_articles_metadata ON articles USING GIN (metadata);
+```
+
+**Pro Tip:** Monitor slow queries in Dashboard → Database → Query Performance. Any query >100ms should be investigated.
+
+### 7. Upsert Requires Primary Key
+
+**Problem:** Calling `upsert()` without including the primary key in data.
+
+**Manifestation:**
+```python
+# Missing 'url' (primary key)
+supabase.table('articles').upsert({
+    'title': 'New Article',
+    'issue_date': '2024-01-01'
+}).execute()
+# Result: Creates new row every time (no conflict detection)
+```
+
+**Solution:**
+Always include primary key in upsert data:
+```python
+supabase.table('articles').upsert({
+    'url': 'https://example.com/article',  # Primary key
+    'title': 'New Article',
+    'issue_date': '2024-01-01'
+}).execute()
+```
+
+**Pro Tip:** If you have composite primary keys or unique constraints, use `on_conflict` parameter:
+```python
+.upsert(data, on_conflict='date,source_id')
+```
+
+### 8. Realtime Requires Table Publication
+
+**Problem:** Realtime subscriptions don't receive events even though table exists and RLS policies are set.
+
+**Manifestation:**
+```python
+# Subscription never fires callback
+channel.on_postgres_changes('UPDATE', schema='public', table='articles', callback=handler)
+# Nothing happens when articles are updated
+```
+
+**Solution:**
+Enable realtime replication for table:
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE articles;
+```
+
+Do this in Dashboard: Database → Replication → Manage → Enable for table
+
+**Pro Tip:** Realtime is disabled by default for performance/security. Only enable for tables that need live updates.
+
+---
+
+## Security: RLS Configuration
+
+### Understanding RLS Flow
+
+**Key Concept:** RLS (Row Level Security) is Postgres-native security. It works like this:
+
+1. User makes query with API key (anon or service_role)
+2. Postgres checks: Is RLS enabled on this table?
+3. If yes → Apply policies to filter rows
+4. If no → Return all rows (insecure!)
+
+**Critical Understanding:** `service_role` key **bypasses ALL RLS policies**. It's like `sudo` for your database.
+
+### Two Key Types
+
+| Key Type | RLS Behavior | Use Case |
+|----------|--------------|----------|
+| `anon` key | **Respects RLS** | Client-side code, public access |
+| `service_role` key | **Bypasses RLS** | Backend server, admin operations |
+
+**For this project:** Flask backend should use `service_role` key. Client (if direct access) uses `anon` key.
+
+### Enable RLS: Step-by-Step
+
+**Step 1: Enable RLS on Table**
+
+Dashboard: Database → Tables → [table] → Enable RLS toggle
+
+SQL:
+```sql
+ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
+```
+
+**Step 2: Create Policies**
+
+Without policies, **ALL access is blocked** (even with valid keys).
+
+**Policy Anatomy:**
+```sql
+CREATE POLICY "policy_name" ON table_name
+  FOR operation              -- SELECT, INSERT, UPDATE, DELETE, ALL
+  TO role                    -- public, authenticated, service_role
+  USING (condition)          -- Boolean expression (for SELECT/UPDATE/DELETE)
+  WITH CHECK (condition);    -- Boolean expression (for INSERT/UPDATE)
+```
+
+**USING vs WITH CHECK:**
+- `USING`: Filters which rows are visible
+- `WITH CHECK`: Validates new/modified rows
+
+### Common Policy Patterns
+
+#### Pattern 1: Permissive (Development)
+
+Allow all operations (equivalent to no RLS):
+
+```sql
+CREATE POLICY "allow_all" ON articles
+  FOR ALL
+  USING (true)
+  WITH CHECK (true);
+```
+
+**Use when:**
+- Single-user app
+- Development/testing
+- Backend uses `service_role` key
+
+**Security:** Low (anyone with anon key has full access)
+
+#### Pattern 2: API-Only Access (Recommended)
+
+Enable RLS but don't create policies. All access goes through backend with `service_role` key:
+
+```sql
+-- Just enable RLS, no policies needed
+ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
+```
+
+Backend:
+```python
+# service_role key bypasses RLS
+supabase = create_client(url, SUPABASE_SERVICE_KEY)
+```
+
+**Use when:**
+- Client never accesses database directly
+- All operations through Flask API
+- Single source of truth (backend)
+
+**Security:** High (database inaccessible except through your API)
+
+#### Pattern 3: User-Owned Data (Multi-User)
+
+Each user can only see/edit their own data:
+
+```sql
+-- Assumes articles have user_id column
+CREATE POLICY "users_own_data" ON articles
+  FOR ALL
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
+
+**Use when:**
+- Multi-user application
+- Client accesses database directly with `anon` key
+- User authentication via Supabase Auth
+
+**Security:** High (per-user data isolation)
+
+### Helper Functions in Policies
+
+Supabase provides helper functions for policies:
+
+| Function | Returns | Use Case |
+|----------|---------|----------|
+| `auth.uid()` | UUID | Current user ID (from JWT) |
+| `auth.jwt()` | JSONB | Full JWT payload |
+| `auth.email()` | TEXT | User's email |
+
+**Example:**
+```sql
+-- Only allow users with admin role
+CREATE POLICY "admin_only" ON articles
+  FOR ALL
+  TO authenticated
+  USING (auth.jwt()->>'role' = 'admin');
+```
+
+### Policy Debugging
+
+**Problem:** Policy blocks your queries but you don't know why.
+
+**Solution:** Check policy logic in Dashboard → SQL Editor:
+
+```sql
+-- Test policy USING clause manually
+SELECT * FROM articles
+WHERE auth.uid() = user_id;  -- Paste your USING condition
+
+-- Check what auth.uid() returns
+SELECT auth.uid();
+
+-- Check JWT payload
+SELECT auth.jwt();
+```
+
+**Pro Tip:** Policies are just SQL conditions. Test them as regular WHERE clauses to debug.
+
+### RLS Performance Considerations
+
+**Important:** Complex policies can slow down queries.
+
+**Bad policy (slow):**
+```sql
+-- Multiple JOINs in policy
+USING (
+  EXISTS (
+    SELECT 1 FROM teams
+    JOIN team_members ON teams.id = team_members.team_id
+    WHERE team_members.user_id = auth.uid()
+      AND teams.id = articles.team_id
+  )
+)
+```
+
+**Better policy:**
+```sql
+-- Materialized permissions table
+CREATE TABLE user_permissions (
+  user_id UUID,
+  article_url TEXT,
+  can_access BOOLEAN
+);
+
+USING (
+  EXISTS (
+    SELECT 1 FROM user_permissions
+    WHERE user_id = auth.uid()
+      AND article_url = articles.url
+      AND can_access = true
+  )
+)
+```
+
+**Pro Tip:** Wrap policy functions in `SECURITY DEFINER` functions to cache results per statement:
+
+```sql
+CREATE FUNCTION current_user_id() RETURNS UUID AS $$
+  SELECT auth.uid()
+$$ LANGUAGE SQL SECURITY DEFINER;
+
+-- Policy uses cached function
+USING (current_user_id() = user_id)
+```
+
+### RLS Checklist for Production
+
+Before deploying:
+
+- [ ] RLS enabled on all tables with user data
+- [ ] Policies created for all operations (SELECT, INSERT, UPDATE, DELETE)
+- [ ] Policies tested with both `anon` and `authenticated` roles
+- [ ] No tables with sensitive data have `USING (true)` policies
+- [ ] Backend uses `service_role` key, client uses `anon` key
+- [ ] Policy performance tested (check query plans)
+
+---
+
+## Migration Strategy Considerations
+
+### Current State: localStorage Architecture
+
+**What's in localStorage now:**
+- Key pattern: `newsletters:scrapes:{date}` → `DailyPayload`
+- Structure: `{ date, cachedAt, articles[], issues[] }`
+- Article structure: URL as ID, nested read/removed/tldr state
+- Total size: Unknown (check browser DevTools → Application → Local Storage)
+
+**Key characteristics:**
+- Synchronous read/write
+- Zero latency
+- Device-specific (not synced)
+- Persistent until cleared
+
+### Migration Decision Points
+
+#### Decision: Direct Client Access or API-Only?
+
+**Option A: API-Only (Client → Flask → Supabase)**
+
+```
+[React Client]
+    ↓ HTTP
+[Flask Backend] (service_role key)
+    ↓
+[Supabase DB]
+```
+
+**Pros:**
+- Single source of truth (backend)
+- Backend can validate/transform data
+- RLS not needed (service_role bypasses)
+- Existing Flask API just needs new endpoints
+
+**Cons:**
+- Extra hop (latency)
+- Backend must be always available
+- More server load
+
+**Use when:**
+- You want backend control/validation
+- Already have Flask backend (you do)
+- Single-user or simple auth
+
+**Option B: Direct Client Access (Client → Supabase)**
+
+```
+[React Client] (anon key)
+    ↓
+[Supabase DB]
+```
+
+**Pros:**
+- No backend hop (faster)
+- Offline-capable (with local cache)
+- Backend only needed for scraping
+
+**Cons:**
+- Must configure RLS policies
+- Client has database access (security considerations)
+- Harder to add business logic
+
+**Use when:**
+- Low latency critical
+- Want offline support
+- Multi-user with proper auth
+
+**Recommendation for This Project:** **Option A (API-Only)**. You already have Flask backend, and single-user app doesn't benefit from direct access complexity.
+
+#### Decision: Full Migration or Hybrid?
+
+**Option A: Full Migration (Remove localStorage)**
+
+- Client reads from API on page load
+- All state changes go through API
+- localStorage removed entirely
+
+**Pros:**
+- Single source of truth
+- No sync issues
+- Simpler client code
+
+**Cons:**
+- Requires network for all operations
+- Slower (network latency)
+- Must handle offline gracefully
+
+**Option B: Hybrid (localStorage + Supabase)**
+
+- Supabase is source of truth
+- localStorage is local cache
+- Sync on page load, periodically, or on change
+
+**Pros:**
+- Fast reads (localStorage)
+- Works offline
+- Graceful degradation
+
+**Cons:**
+- Sync complexity
+- Potential conflicts
+- More client code
+
+**Option C: Phased Migration**
+
+Week 1: Backend writes to both localStorage and Supabase
+Week 2: Client reads from Supabase, falls back to localStorage
+Week 3: Client writes to Supabase
+Week 4: Remove localStorage
+
+**Pros:**
+- Low risk
+- Easy rollback
+- Learn as you go
+
+**Cons:**
+- Takes longer
+- Maintains both systems temporarily
+
+**Decision Guide:**
+- Need offline support? → **Option B**
+- Want simplicity? → **Option A**
+- Risk-averse? → **Option C**
+
+#### Decision: Data Shape in Database
+
+**Question:** Should database schema match localStorage structure exactly?
+
+**Option A: 1:1 Match (Store as JSONB)**
+
+```sql
+CREATE TABLE daily_cache (
+  date DATE PRIMARY KEY,
+  payload JSONB  -- Exact DailyPayload from localStorage
+);
+```
+
+**Pros:**
+- Trivial migration (just copy JSON)
+- No schema changes needed
+- Easy to revert
+
+**Cons:**
+- Can't query articles individually
+- No data integrity
+- Poor performance for filters
+
+**Option B: Normalized Schema**
+
+```sql
+CREATE TABLE articles (...);
+CREATE TABLE issues (...);
+-- Reconstruct DailyPayload on read
+```
+
+**Pros:**
+- Proper database design
+- Queryable
+- Better performance
+
+**Cons:**
+- Must transform data on read/write
+- More complex queries
+- Harder to match localStorage exactly
+
+**Recommendation:** Start with Option A for rapid migration, refactor to Option B once working.
+
+### Preserving Client-Side DOM States
+
+**Critical Requirement:** CSS classes and sorting depend on article state (read/removed/tldrHidden).
+
+**Current flow:**
+1. User clicks article
+2. `useArticleState` updates localStorage
+3. Custom event `'local-storage-change'` fires
+4. Components re-render with new CSS classes
+5. On refresh: localStorage → React state → CSS classes
+
+**With Supabase:**
+1. User clicks article
+2. Optimistic update: React state changes (instant CSS)
+3. API call to persist
+4. On success: do nothing
+5. On failure: rollback React state
+6. On refresh: API call → React state → CSS classes
+
+**Key insight:** React state is still source of truth for DOM. Supabase is just persistence layer.
+
+**Implementation pattern:**
+```javascript
+const [article, setArticle] = useState(null)
+
+function markAsRead() {
+  // 1. Optimistic update (instant CSS)
+  setArticle(prev => ({ ...prev, isRead: true }))
+
+  // 2. Persist to backend
+  fetch('/api/articles/.../mark-read', { method: 'POST' })
+    .catch(error => {
+      // 3. Rollback on error
+      setArticle(prev => ({ ...prev, isRead: false }))
+      showErrorToast('Failed to save')
+    })
+}
+```
+
+**This preserves:**
+- Zero perceived latency (like localStorage)
+- CSS transitions (no DOM replacement)
+- State on refresh (via API fetch on mount)
+
+---
+
+## Useful API Patterns
+
+### Pattern 1: Insert vs Upsert vs Update
+
+**When to use each:**
+
+#### Insert
+```python
+supabase.table('articles').insert({
+    'url': 'https://example.com/article',
+    'title': 'Article Title'
+}).execute()
+```
+
+**Use when:**
+- Record definitely doesn't exist
+- Want error if duplicate found
+- Bulk inserting new data
+
+**Fails if:** Primary key or unique constraint violated
+
+#### Upsert
+```python
+supabase.table('articles').upsert({
+    'url': 'https://example.com/article',  # Primary key required
+    'title': 'Updated Title'
+}).execute()
+```
+
+**Use when:**
+- Record might exist (idempotent operation)
+- Want to create-or-update in one call
+- Don't care if new or existing
+
+**Behavior:** If URL exists, updates. Otherwise, inserts.
+
+**Critical:** Primary key (or unique constraint field) MUST be in data.
+
+#### Update
+```python
+supabase.table('articles') \
+    .update({'title': 'New Title'}) \
+    .eq('url', 'https://example.com/article') \
+    .execute()
+```
+
+**Use when:**
+- Record definitely exists
+- Only updating subset of fields
+- Need to filter which rows to update
+
+**Requires:** Filter (`.eq()`, `.in_()`, etc.)
+
+**Decision Guide:**
+- New scrape data → **Insert** (URLs are unique per scrape)
+- User state changes → **Upsert** (might not have state row yet)
+- Specific field update → **Update** (e.g., tldr_status)
+
+### Pattern 2: Querying with Filters
+
+**Basic query:**
+```python
+# Get all articles
+result = supabase.table('articles').select('*').execute()
+articles = result.data
+```
+
+**With filters:**
+```python
+# Get articles for specific date
+result = supabase.table('articles') \
+    .select('*') \
+    .eq('issue_date', '2024-01-01') \
+    .execute()
+
+# Get articles in date range
+result = supabase.table('articles') \
+    .select('*') \
+    .gte('issue_date', '2024-01-01') \
+    .lte('issue_date', '2024-01-31') \
+    .execute()
+
+# Multiple conditions (AND)
+result = supabase.table('articles') \
+    .select('*') \
+    .eq('issue_date', '2024-01-01') \
+    .eq('removed', False) \
+    .execute()
+
+# OR conditions
+result = supabase.table('articles') \
+    .select('*') \
+    .or_('removed.eq.true,is_read.eq.true') \
+    .execute()
+```
+
+**Common filters:**
+| Filter | SQL Equivalent | Example |
+|--------|----------------|---------|
+| `.eq(col, val)` | `=` | `.eq('status', 'available')` |
+| `.neq(col, val)` | `!=` | `.neq('removed', true)` |
+| `.gt(col, val)` | `>` | `.gt('issue_date', '2024-01-01')` |
+| `.gte(col, val)` | `>=` | `.gte('issue_date', '2024-01-01')` |
+| `.lt(col, val)` | `<` | `.lt('issue_date', '2024-02-01')` |
+| `.lte(col, val)` | `<=` | `.lte('issue_date', '2024-02-01')` |
+| `.in_(col, list)` | `IN` | `.in_('category', ['Tech', 'AI'])` |
+| `.is_(col, val)` | `IS` | `.is_('removed', null)` |
+
+### Pattern 3: Ordering and Limiting
+
+```python
+# Order by date descending
+result = supabase.table('articles') \
+    .select('*') \
+    .order('issue_date', desc=True) \
+    .execute()
+
+# Limit results
+result = supabase.table('articles') \
+    .select('*') \
+    .limit(100) \
+    .execute()
+
+# Pagination
+PAGE_SIZE = 20
+result = supabase.table('articles') \
+    .select('*') \
+    .range(0, PAGE_SIZE - 1) \
+    .execute()
+```
+
+### Pattern 4: Batch Operations
+
+**Insert multiple:**
+```python
+articles = [
+    {'url': 'https://example.com/1', 'title': 'Article 1'},
+    {'url': 'https://example.com/2', 'title': 'Article 2'},
     # ...
+]
+result = supabase.table('articles').insert(articles).execute()
+```
+
+**Upsert multiple:**
+```python
+result = supabase.table('articles').upsert(articles).execute()
+```
+
+**Best Practice:** Batch size 100-1000 rows for optimal performance. Free tier handles ~1000 inserts/second.
+
+### Pattern 5: Error Handling
+
+```python
+try:
+    result = supabase.table('articles') \
+        .insert(article) \
+        .execute()
+
+    if result.data:
+        print("Success:", result.data)
+    else:
+        print("No data returned")
+
+except Exception as e:
+    print("Error:", str(e))
+    # Check error type
+    if "duplicate key" in str(e):
+        # Handle duplicate
+        pass
+    elif "violates foreign key" in str(e):
+        # Handle FK violation
+        pass
+```
+
+**Common errors:**
+- `"duplicate key value violates unique constraint"`: Primary key or unique constraint violated
+- `"violates foreign key constraint"`: Referenced row doesn't exist
+- `"violates check constraint"`: Check constraint failed (e.g., invalid enum value)
+- `"column \"xyz\" does not exist"`: Typo in column name
+- `"permission denied for table xyz"`: RLS blocking access
+
+### Pattern 6: Counting Rows
+
+```python
+# Count all articles
+result = supabase.table('articles') \
+    .select('*', count='exact') \
+    .execute()
+total = result.count
+
+# Count with filter
+result = supabase.table('articles') \
+    .select('*', count='exact') \
+    .eq('removed', False) \
+    .execute()
+non_removed_count = result.count
+```
+
+**Pro Tip:** For large tables, `count='exact'` can be slow. Use `count='estimated'` for approximate count (much faster).
+
+### Pattern 7: Aggregations
+
+**Sum, avg, min, max:**
+```python
+# Raw SQL for aggregations (PostgREST doesn't support aggregate functions directly)
+result = supabase.rpc('get_article_stats', {}).execute()
+
+# Where get_article_stats is a database function:
+# CREATE FUNCTION get_article_stats()
+# RETURNS TABLE(total bigint, read_count bigint, removed_count bigint) AS $$
+#   SELECT
+#     COUNT(*),
+#     COUNT(*) FILTER (WHERE is_read),
+#     COUNT(*) FILTER (WHERE removed)
+#   FROM articles;
+# $$ LANGUAGE SQL;
+```
+
+**Pro Tip:** For complex aggregations, create database functions and call them via `.rpc()`.
+
+---
+
+## Pro Tips for This Migration
+
+### 1. Start with Write-Through Caching
+
+**Strategy:** Backend writes to both localStorage (via API response) and Supabase. Client continues using localStorage.
+
+**Why:** De-risks migration. Supabase accumulates data in background while localStorage continues working.
+
+**Implementation:**
+```python
+# In tldr_service.py after scraping
+articles = scrape_newsletters(...)
+
+# NEW: Write to Supabase
+for article in articles:
+    supabase.table('articles').upsert(article).execute()
+
+# EXISTING: Return to client (who writes to localStorage)
+return articles
+```
+
+**Benefit:** Supabase starts accumulating data immediately. Test queries, schema, performance with real data before touching client.
+
+### 2. Use Database Functions for Complex Logic
+
+**Instead of:**
+```python
+# Complex logic in Python
+articles = supabase.table('articles').select('*').eq('issue_date', date).execute()
+# ... process in Python ...
+```
+
+**Use database function:**
+```sql
+CREATE FUNCTION get_daily_payload(p_date DATE)
+RETURNS JSONB AS $$
+  SELECT json_build_object(
+    'date', p_date,
+    'articles', json_agg(row_to_json(articles.*)),
+    'cachedAt', NOW()
+  )
+  FROM articles
+  WHERE issue_date = p_date;
+$$ LANGUAGE SQL;
+```
+
+```python
+result = supabase.rpc('get_daily_payload', {'p_date': date}).execute()
+payload = result.data
+```
+
+**Benefits:**
+- Less data transferred over network
+- Postgres does heavy lifting
+- Consistent format (defined in SQL)
+
+### 3. Monitor Query Performance Early
+
+Dashboard → Database → Query Performance shows slow queries.
+
+**Watch for:**
+- Queries >100ms
+- Full table scans (seq scan)
+- Missing indexes
+
+**Fix:** Add indexes to frequently filtered columns:
+```sql
+CREATE INDEX idx_articles_issue_date ON articles(issue_date);
+```
+
+### 4. Test with Production-Scale Data
+
+**Don't:**
+- Test with 10 articles
+- Assume performance scales
+
+**Do:**
+- Insert realistic data volume (e.g., 10,000 articles)
+- Test queries at scale
+- Measure response times
+
+**How:**
+```python
+# Generate test data
+import random
+from datetime import datetime, timedelta
+
+articles = []
+for i in range(10000):
+    date = datetime.now() - timedelta(days=random.randint(0, 365))
+    articles.append({
+        'url': f'https://example.com/article-{i}',
+        'title': f'Article {i}',
+        'issue_date': date.strftime('%Y-%m-%d'),
+        'category': random.choice(['Tech', 'AI', 'News']),
+        'source_id': random.choice(['tldr_tech', 'tldr_ai', 'hackernews'])
+    })
+
+# Batch insert
+for i in range(0, len(articles), 100):
+    batch = articles[i:i+100]
+    supabase.table('articles').insert(batch).execute()
+```
+
+### 5. Use Transactions for Multi-Table Inserts
+
+**Problem:** Inserting into multiple tables (articles + issues) can partially fail.
+
+**Solution:** Use Postgres transactions via database function:
+
+```sql
+CREATE FUNCTION insert_daily_data(
+  p_articles JSONB,
+  p_issues JSONB
+) RETURNS void AS $$
+BEGIN
+  -- Insert articles
+  INSERT INTO articles (url, title, issue_date, ...)
+  SELECT * FROM jsonb_to_recordset(p_articles) AS x(...);
+
+  -- Insert issues
+  INSERT INTO issues (date, source_id, category, ...)
+  SELECT * FROM jsonb_to_recordset(p_issues) AS y(...);
+END;
+$$ LANGUAGE plpgsql;
+```
+
+```python
+result = supabase.rpc('insert_daily_data', {
+    'p_articles': articles_json,
+    'p_issues': issues_json
+}).execute()
+```
+
+**Benefit:** All-or-nothing. No partial state.
+
+### 6. Set Up Monitoring Before Migration
+
+**What to monitor:**
+- Database size: Dashboard → Database → Usage
+- Bandwidth: Dashboard → Settings → Usage
+- Query performance: Dashboard → Database → Query Performance
+- API response times: Backend logging
+
+**Set alerts:**
+- Database size approaching 400 MB (80% of 500 MB free tier limit)
+- Bandwidth approaching 8 GB (80% of 10 GB)
+- Query response time >500ms
+
+**Log query times:**
+```python
+import time
+
+def timed_query(table, operation):
+    start = time.time()
+    result = operation(supabase.table(table))
+    duration = time.time() - start
+
+    if duration > 0.1:  # >100ms
+        util.log(f"Slow query on {table}: {duration:.2f}s")
+
+    return result
+
+# Usage
+result = timed_query('articles', lambda t: t.select('*').eq('issue_date', date).execute())
 ```
 
 ---
 
-## Summary & Key Decisions
+## Summary: Key Takeaways
 
-### Architecture Decisions
+### Critical Requirements
+1. **Free tier limits:** 500 MB database, 10 GB bandwidth/month
+2. **RLS must be configured:** Enable RLS + create policies OR use service_role key in backend
+3. **Async client for realtime:** Regular client doesn't support subscriptions
+4. **Upsert needs primary key:** Always include PK in upsert data
 
-1. **Hybrid Schema:** Normalized core fields + JSONB for optional metadata
-2. **Service Role Backend:** All database access through Flask using service_role key
-3. **Client-Side Rendering:** Preserve CSS transitions and instant UI updates
-4. **Optimistic Updates:** Update UI first, sync to backend asynchronously
-5. **Gradual Migration:** Phased rollout with localStorage fallback
+### Recommended Decisions for This Project
+1. **Use sync client** in Flask backend (no realtime needed)
+2. **API-only architecture** (Client → Flask → Supabase with service_role key)
+3. **Start with hybrid schema:** Normalized core fields + JSONB for metadata
+4. **Phased migration:** Write-through → Hybrid → Full
+5. **Use migrations** for schema (via CLI, not Dashboard)
 
-### Critical Implementation Points
+### Must-Do Before Starting
+- [ ] Create Supabase project
+- [ ] Save SUPABASE_URL and SUPABASE_SERVICE_KEY to .env
+- [ ] Verify `util.resolve_env_var()` can read them
+- [ ] Test connection with simple query
+- [ ] Decide: JSONB vs normalized for article data
+- [ ] Enable RLS + create policies OR plan to use service_role only
 
-1. **Preserve State Transitions:** Maintain exact same state machine (0→1→2→3)
-2. **CSS Class Application:** Derived from React state, no changes needed
-3. **Page Refresh Behavior:** Fetch from API on mount, populate React state
-4. **Error Handling:** Rollback optimistic updates on API failure
-5. **Performance:** Aggressive caching, batching, prefetching
-
-### Next Steps for Implementation Phase
-
-1. Read `ARCHITECTURE.md` thoroughly to understand current state machine
-2. Map each localStorage operation to corresponding database operation
-3. Design API endpoints matching current hook interfaces
-4. Implement optimistic update pattern for all state mutations
-5. Write comprehensive tests for state persistence
-6. Plan CSS state validation after migration
-
-### Open Questions for Planning Session
-
-1. **Authentication:** Add user accounts in future? (affects RLS design)
-2. **Multi-Device Sync:** Use realtime subscriptions or polling?
-3. **Offline Support:** Continue using localStorage for offline mode?
-4. **Data Retention:** How long to keep articles in database?
-5. **Migration Path:** Provide export/import tool for existing localStorage data?
+### Gotchas to Avoid
+- Don't mix Dashboard table creation with migrations
+- Don't enable RLS without creating policies (blocks all access)
+- Don't use pooled connection (port 6543) with asyncpg directly
+- Don't forget to include PK in upsert operations
+- Don't ignore free tier limits (monitor usage)
 
 ---
 
-## References
+## Additional Resources
 
-- Supabase Docs: https://supabase.com/docs
-- Supabase Python API: https://supabase.com/docs/reference/python/introduction
-- PostgreSQL Documentation: https://www.postgresql.org/docs/
-- React useSyncExternalStore: https://react.dev/reference/react/useSyncExternalStore
-- Project ARCHITECTURE.md (see codebase)
-- Project GOTCHAS.md (see codebase)
+- **Supabase Docs:** https://supabase.com/docs
+- **Python API Reference:** https://supabase.com/docs/reference/python/introduction
+- **PostgreSQL Docs:** https://www.postgresql.org/docs/current/
+- **Free Tier Limits:** https://supabase.com/pricing (scroll to Free tier)
+- **RLS Guide:** https://supabase.com/docs/guides/database/postgres/row-level-security
+- **Migration Guide:** https://supabase.com/docs/guides/deployment/database-migrations
+
+**Community:**
+- Supabase Discord: https://discord.supabase.com
+- GitHub Discussions: https://github.com/orgs/supabase/discussions
