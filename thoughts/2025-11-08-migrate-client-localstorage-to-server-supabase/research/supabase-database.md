@@ -1,7 +1,6 @@
 ---
-last-updated: 2025-11-08 17:44, c7b1fd3
+last-updated: 2025-11-08 17:46, 289da49
 ---
-
 # Supabase Database Reference Guide
 
 Reference guide for using Supabase Database to migrate TLDRScraper's localStorage-based cache to server-side storage.
