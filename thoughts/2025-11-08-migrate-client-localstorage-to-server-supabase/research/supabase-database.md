@@ -667,24 +667,6 @@ REFRESH MATERIALIZED VIEW daily_payloads;
 
 ## Common Gotchas & Pitfalls
 
-### 1. Async/Sync Confusion
-
-**Problem:** Realtime subscriptions ONLY work with async client, but Flask is synchronous.
-
-**Manifestation:**
-```python
-# This doesn't work in Flask route
-supabase = create_client(url, key)  # Sync client
-supabase.channel('articles').subscribe()  # Error: no subscribe method
-```
-
-**Solution:**
-- Use sync client for CRUD in Flask routes
-- If you need realtime, run async client in separate thread or process
-- Or: Use polling instead of realtime subscriptions
-
-**Pro Tip:** For single-user app, polling every N seconds is simpler than realtime. Save realtime for when you need <1s latency.
-
 ### 2. RLS Blocks Everything by Default
 
 **Problem:** You enable RLS but forget to create policies → all queries return empty results.
@@ -722,41 +704,6 @@ Pick one approach and stick with it:
 **Pro Tip:** Use Dashboard for prototyping, then export schema to migration before committing:
 ```bash
 supabase db diff --schema public > initial_schema.sql
-```
-
-### 4. Connection Pooling Conflicts (PgBouncer + asyncpg)
-
-**Problem:** Supabase's pooled connection (port 6543) uses PgBouncer in transaction mode, which breaks asyncpg's prepared statements.
-
-**Manifestation:**
-```python
-# Using asyncpg directly (not supabase-py)
-# With connection string: postgresql://...supabase.co:6543/postgres
-# Error: prepared statement "..." does not exist
-```
-
-**Solution:**
-- Use direct connection (port 5432) for asyncpg: `postgresql://...supabase.co:5432/postgres`
-- Or use supabase-py client (handles this automatically)
-
-**This only affects:** Direct asyncpg usage. If you use `supabase-py`, you're fine.
-
-### 5. Free Tier Project Pausing
-
-**Problem:** Free tier projects auto-pause after 7 days of inactivity.
-
-**Manifestation:**
-- API calls timeout
-- Dashboard shows "Project paused"
-
-**Solution:**
-- Access project at least once per week (via Dashboard or API)
-- Or: Upgrade to paid tier ($25/month Pro plan, no auto-pause)
-
-**Pro Tip:** Set up a cron job to ping your API weekly to keep project active:
-```bash
-# Cron: Every Monday at 9am
-0 9 * * 1 curl https://[project-id].supabase.co/rest/v1/articles?limit=1
 ```
 
 ### 6. JSONB Query Performance
@@ -808,27 +755,6 @@ supabase.table('articles').upsert({
 ```python
 .upsert(data, on_conflict='date,source_id')
 ```
-
-### 8. Realtime Requires Table Publication
-
-**Problem:** Realtime subscriptions don't receive events even though table exists and RLS policies are set.
-
-**Manifestation:**
-```python
-# Subscription never fires callback
-channel.on_postgres_changes('UPDATE', schema='public', table='articles', callback=handler)
-# Nothing happens when articles are updated
-```
-
-**Solution:**
-Enable realtime replication for table:
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE articles;
-```
-
-Do this in Dashboard: Database → Replication → Manage → Enable for table
-
-**Pro Tip:** Realtime is disabled by default for performance/security. Only enable for tables that need live updates.
 
 ---
 
