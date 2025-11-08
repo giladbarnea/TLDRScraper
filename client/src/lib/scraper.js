@@ -186,33 +186,6 @@ export function loadFromCache(startDate, endDate) {
   } : null
 }
 
-function collectExcludedUrls() {
-  const excluded = new Set()
-
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i)
-    if (key && key.startsWith('newsletters:scrapes:')) {
-      const raw = localStorage.getItem(key)
-      if (raw) {
-        try {
-          const payload = JSON.parse(raw)
-          if (payload.articles) {
-            for (const article of payload.articles) {
-              if (article.removed || article.read?.isRead) {
-                excluded.add(article.url)
-              }
-            }
-          }
-        } catch (err) {
-          console.error(`Failed to parse cached data for ${key}:`, err)
-        }
-      }
-    }
-  }
-
-  return Array.from(excluded)
-}
-
 export async function scrapeNewsletters(startDate, endDate, cacheEnabled = true) {
   if (isRangeCached(startDate, endDate, cacheEnabled)) {
     const cached = loadFromCache(startDate, endDate)
@@ -221,15 +194,12 @@ export async function scrapeNewsletters(startDate, endDate, cacheEnabled = true)
     }
   }
 
-  const excludedUrls = collectExcludedUrls()
-
   const response = await window.fetch('/api/scrape', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       start_date: startDate,
-      end_date: endDate,
-      excluded_urls: excludedUrls
+      end_date: endDate
     })
   })
 
