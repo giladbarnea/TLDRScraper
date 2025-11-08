@@ -1,7 +1,6 @@
 ---
-last-updated: 2025-11-08 10:45, 78fa5fa
+last-updated: 2025-11-08 10:46, 8539791
 ---
-
 # Supabase Database Migration Research
 
 Research for migrating TLDRScraper's localStorage-based state management to Supabase (PostgreSQL) backend.
