@@ -11,13 +11,8 @@ ensure_eza() {
   echo "eza not found, attempting installation..."
 
   if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    if command -v sudo &> /dev/null && sudo -n true 2>/dev/null; then
-      sudo mkdir -p /etc/apt/keyrings 2>/dev/null
-      if wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg 2>/dev/null; then
-        echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list >/dev/null 2>&1
-        sudo chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list 2>/dev/null
-        sudo apt update >/dev/null 2>&1 && sudo apt install -y eza >/dev/null 2>&1
-      fi
+    if command -v apt &> /dev/null; then
+      apt install -y eza >/dev/null 2>&1
     fi
   elif [[ "$OSTYPE" == "darwin"* ]]; then
     if command -v brew &> /dev/null; then
