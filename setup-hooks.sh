@@ -14,5 +14,3 @@ echo ""
 echo "The following hooks are now active:"
 ls -1 .githooks/
 echo ""
-echo "Note: Make sure 'eza' is installed on your system."
-echo "Install with: sudo apt install eza (Ubuntu/Debian) or brew install eza (macOS)"
