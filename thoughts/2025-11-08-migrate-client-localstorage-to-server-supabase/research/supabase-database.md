@@ -76,8 +76,6 @@ Supabase is a comprehensive Postgres development platform that provides:
 ### Installation
 
 ```bash
-pip install supabase
-# or with uv
 uv add supabase
 ```
 
@@ -98,48 +96,6 @@ key: str = os.environ.get("SUPABASE_SERVICE_KEY")  # For backend
 supabase: Client = create_client(url, key)
 ```
 
-### Flask Integration
-
-#### Option 1: Direct Integration (Recommended for this project)
-
-```python
-import util
-from supabase import create_client
-
-class SupabaseClient:
-    _instance = None
-
-    def __init__(self):
-        url = util.resolve_env_var("SUPABASE_URL")
-        key = util.resolve_env_var("SUPABASE_SERVICE_KEY")
-        self.client = create_client(url, key)
-
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance.client
-
-# Usage in service layer
-supabase = SupabaseClient.get_instance()
-```
-
-#### Option 2: Flask-Supabase Extension
-
-```bash
-pip install flask-supabase
-```
-
-```python
-from flask import Flask
-from flask_supabase import Supabase
-
-app = Flask(__name__)
-app.config['SUPABASE_URL'] = os.environ.get("SUPABASE_URL")
-app.config['SUPABASE_KEY'] = os.environ.get("SUPABASE_SERVICE_KEY")
-
-supabase = Supabase(app)
-```
 
 ### Connection Pooling
 
@@ -155,115 +111,6 @@ For Flask (long-lived server), Session mode is appropriate. Supabase handles poo
 # Supabase client maintains connection pool internally
 # No additional configuration needed for basic use cases
 ```
-
-### Async Support
-
-```python
-from supabase import acreate_client
-
-# Async client (required for realtime subscriptions)
-async_supabase = await acreate_client(url, key)
-```
-
-**Note:** Realtime subscriptions in Python **require** the async client.
-
----
-
-## 3. Current localStorage Structure Analysis
-
-### Storage Keys
-
-Based on `client/src/lib/storageKeys.js`:
-
-```javascript
-STORAGE_KEYS = {
-  CACHE_ENABLED: 'cache:enabled'
-}
-
-// Dynamic keys
-newsletters:scrapes:{date} → DailyPayload
-```
-
-### Data Structure: DailyPayload
-
-```typescript
-{
-  date: string,              // "2024-01-01"
-  cachedAt: string,          // ISO timestamp
-  articles: Article[],       // Array of articles for this date
-  issues: Issue[]            // Array of newsletter issues
-}
-```
-
-### Article Structure (Complete)
-
-From ARCHITECTURE.md and hooks analysis:
-
-```typescript
-{
-  // Core identifiers
-  url: string,               // Canonical URL (PRIMARY KEY)
-  title: string,
-  issueDate: string,         // "2024-01-01"
-
-  // Categorization
-  category: string,          // "TLDR Tech", "HackerNews"
-  sourceId: string,          // "tldr_tech", "hackernews"
-  section: string | null,
-  sectionEmoji: string | null,
-  sectionOrder: number | null,
-  newsletterType: string | null,
-
-  // User state (MUST PERSIST)
-  removed: boolean,          // User removed article
-  tldrHidden: boolean,       // User collapsed TLDR (deprioritized)
-  read: {
-    isRead: boolean,
-    markedAt: string | null  // ISO timestamp
-  },
-
-  // AI-generated content (MUST PERSIST)
-  tldr: {
-    status: 'unknown' | 'creating' | 'available' | 'error',
-    markdown: string,
-    effort: 'minimal' | 'low' | 'medium' | 'high',
-    checkedAt: string | null,
-    errorMessage: string | null
-  }
-}
-```
-
-### Issue Structure
-
-```typescript
-{
-  date: string,              // "2024-01-01"
-  source_id: string,         // "tldr_tech"
-  category: string,          // "TLDR Tech"
-  title: string | null,
-  subtitle: string | null
-}
-```
-
-### Client-Side State Management
-
-**Key Implementation Details:**
-
-1. **useSyncExternalStore Pattern**: `useLocalStorage` uses React's `useSyncExternalStore` for synchronization
-2. **Custom Events**: Dispatches `'local-storage-change'` events for cross-component reactivity
-3. **Snapshot Caching**: In-memory cache (`snapshotCache`) to avoid redundant parsing
-4. **Multi-Instance Safe**: All hook instances share the same listeners and cache
-
-**State Transitions (from ARCHITECTURE.md):**
-
-```
-Article States: unread(0) → read(1) → tldrHidden(2) → removed(3)
-
-Priority Order:
-  removed > tldrHidden > read > unread
-```
-
-**Critical for Migration:** Client-side sorting depends on these numeric state values. The server must return data that preserves this ordering.
 
 ---
 
