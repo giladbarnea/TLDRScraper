@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# SessionStart hook for TLDRScraper project
+# This hook:
+# 1. Sources setup.sh to configure the environment
+# 2. Persists environment variables to CLAUDE_ENV_FILE
+# 3. Reads all markdown files in the root directory
+# 4. Provides them as additional context to Claude
+
+# Get the project root directory (parent of .claude)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$PROJECT_ROOT"
+
+# Capture environment before sourcing setup.sh
+ENV_BEFORE=$(export -p | sort)
+
+# Source setup.sh to configure environment
+if [ -f "$PROJECT_ROOT/setup.sh" ]; then
+    # Disable set -e temporarily to allow setup.sh to handle its own errors
+    set +e
+    source "$PROJECT_ROOT/setup.sh" >/dev/null 2>&1
+    SETUP_EXIT_CODE=$?
+    set -e
+
+    # Only persist environment changes if CLAUDE_ENV_FILE is available
+    if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+        ENV_AFTER=$(export -p | sort)
+        # Write the diff to CLAUDE_ENV_FILE
+        comm -13 <(echo "$ENV_BEFORE") <(echo "$ENV_AFTER") >> "$CLAUDE_ENV_FILE"
+    fi
+fi
+
+# Build additional context from markdown files
+CONTEXT=""
+CONTEXT+="# TLDRScraper Project Documentation\n\n"
+CONTEXT+="This context is automatically loaded at session start.\n\n"
+
+if [ $SETUP_EXIT_CODE -eq 0 ]; then
+    CONTEXT+="✓ Environment setup completed successfully (setup.sh sourced)\n\n"
+else
+    CONTEXT+="⚠ Note: setup.sh encountered issues (exit code: $SETUP_EXIT_CODE)\n\n"
+fi
+
+CONTEXT+="---\n\n"
+
+# Read all markdown files in the root directory
+for md_file in "$PROJECT_ROOT"/*.md; do
+    if [ -f "$md_file" ]; then
+        filename=$(basename "$md_file")
+        CONTEXT+="## $filename\n\n"
+        CONTEXT+="\`\`\`markdown\n"
+        CONTEXT+="$(cat "$md_file")\n"
+        CONTEXT+="\`\`\`\n\n"
+        CONTEXT+="---\n\n"
+    fi
+done
+
+# Output the hook result in the required JSON format
+# Using jq to properly escape the context string
+ESCAPED_CONTEXT=$(echo -e "$CONTEXT" | jq -Rs .)
+
+cat << EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": $ESCAPED_CONTEXT
+  }
+}
+EOF
+
+exit 0
