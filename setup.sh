@@ -183,30 +183,61 @@ function ensure_local_bin_path(){
     [[ "$quiet" == false ]] && message "[$0] Added \$HOME/.local/bin to PATH"
 }
 
+# :ensure_tool [-q,-quiet] <TOOL> <INSTALL_EXPRESSION>
+# Private function: idempotent installation of TOOL.
+function :ensure_tool(){
+  local quiet=false
+  local tool=""
+  local install_expression=""
+  
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --quiet)
+        if [[ "$2" != false && "$2" != true ]]; then
+          quiet=true
+        else
+          quiet="$2"
+          shift
+        fi
+        ;;
+      --quiet=false)
+        quiet=false
+        ;;
+        --quiet=true)
+        quiet=true
+        ;;
+      -q)
+        quiet=true
+        ;;
+      *)
+        tool="$1"
+        install_expression="$2"
+        shift
+    esac
+    shift
+  done
+  local _self_name="ensure_$tool"
+  if isdefined "$tool"; then
+    [[ "$quiet" == false ]] && message "[$_self_name] $tool is installed and in PATH"
+    return 0
+  fi
+  [[ "$quiet" == false ]] && message "[$_self_name] $tool is not installed, installing with '$install_expression'" >&2
+  if ! eval "$install_expression" >/dev/null 2>&1; then
+      message "[$_self_name] ERROR: Failed to install $tool." >&2
+      return 1
+  fi
+  if ! isdefined "$tool"; then
+      message "[$_self_name] ERROR: After installing $tool, 'command -v $tool' returned a non-zero exit code. $tool is probably installed but not in PATH." >&2
+      return 1
+  fi
+  [[ "$quiet" == false ]] && message "[$_self_name] $tool installed and in the PATH"
+  return 0
+}
+
 # ensure_uv [-q,-quiet]
 # Idempotent installation of uv.
 function ensure_uv(){
-    local quiet=false
-    if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
-            quiet=true
-    elif [[ "$1" == "--quiet=true" ]]; then
-        quiet=true
-    elif [[ "$1" == "--quiet=false" ]]; then
-        quiet=false
-	fi
-    if isdefined uv; then
-        message "[$0] uv is installed and in PATH"
-        return 0
-    fi
-    ensure_local_bin_path "$quiet"
-    message "[$0] uv is not installed, installing it with 'curl -LsSf https://astral.sh/uv/install.sh | sh'" >&2
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    if ! isdefined uv; then
-        message "[$0] [ERROR] After installing uv, 'command -v uv' returned a non-zero exit code. uv is probably installed but not in PATH." >&2
-        return 1
-    fi
-    [[ "$quiet" == false ]] && message "[$0] uv installed and in the PATH"
-	return 0
+  :ensure_tool uv "curl -LsSf https://astral.sh/uv/install.sh | sh" "$@"
 }
 
 # uv_sync [-q,-quiet]
@@ -220,7 +251,7 @@ function uv_sync(){
     elif [[ "$1" == "--quiet=false" ]]; then
         quiet=false
     fi
-    ensure_uv --quiet="$quiet" || return 1
+    ensure_uv --quiet || return 1
     [[ "$quiet" == false ]] && message "[$0] Running naive silent 'uv sync'"
     local uv_sync_output
     if uv_sync_output=$(uv sync -p 3.11 2>&1); then
@@ -236,39 +267,7 @@ function uv_sync(){
 # ensure_gh [-q,-quiet]
 # Idempotent installation of gh (GitHub CLI).
 function ensure_gh(){
-    local quiet=false
-    if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
-        quiet=true
-    elif [[ "$1" == "--quiet=true" ]]; then
-        quiet=true
-    elif [[ "$1" == "--quiet=false" ]]; then
-        quiet=false
-    fi
-    if isdefined gh; then
-        local version_output
-        if version_output=$(gh --version 2>&1 | head -1); then
-            [[ "$quiet" == false ]] && message "[$0] gh is installed: $(decolor "$version_output")"
-            return 0
-        fi
-        message "[$0] ERROR: gh detected but failed to run 'gh --version'." >&2
-        return 1
-    fi
-    [[ "$quiet" == false ]] && message "[$0] gh is not installed, installing with 'apt install gh -y'" >&2
-    if ! apt install gh -y >/dev/null 2>&1; then
-        message "[$0] ERROR: Failed to install gh." >&2
-        return 1
-    fi
-    if ! isdefined gh; then
-        message "[$0] ERROR: After installing gh, 'command -v gh' returned a non-zero exit code. gh is probably installed but not in PATH." >&2
-        return 1
-    fi
-    local version_output
-    if version_output=$(gh --version 2>&1 | head -1); then
-        [[ "$quiet" == false ]] && message "[$0] gh installed: $(decolor "$version_output")"
-        return 0
-    fi
-    message "[$0] ERROR: gh installed but 'gh --version' failed." >&2
-    return 1
+    :ensure_tool gh "apt install gh -y" "$@"
 }
 
 # ensure_wrap_gh
@@ -293,35 +292,9 @@ function ensure_wrap_gh(){
     }
 }
 
+# # ensure_eza [-q,--quiet]
 function ensure_eza(){
-  local quiet=false
-  if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
-      quiet=true
-  elif [[ "$1" == "--quiet=true" ]]; then
-      quiet=true
-  elif [[ "$1" == "--quiet=false" ]]; then
-      quiet=false
-  fi
-  if isdefined eza; then
-    [[ "$quiet" == false ]] && message "[$0] eza is installed and in PATH"
-    return 0
-  fi
-  if isdefined apt; then
-    [[ "$quiet" == false ]] && message "[$0] eza is not installed, installing it with 'apt install -y eza'"
-    if ! apt install -y eza >/dev/null 2>&1; then
-      message "[$0] ERROR: Failed to install eza." >&2
-      return 1
-    fi
-  else
-    message "[$0] ERROR: apt is not installed. $OSTYPE is not supported." >&2
-    return 1
-  fi
-  if isdefined eza; then
-    [[ "$quiet" == false ]] && message "[$0] eza installed and in the PATH"
-    return 0
-  fi
-  message "[$0] ERROR: eza is not installed and not in PATH." >&2
-  return 1
+  :ensure_tool 'eza' 'apt install -y eza' "$@"
 }
 # function ensure_claude_settings(){
 #     local quiet=false
@@ -382,6 +355,15 @@ function ensure_eza(){
 #     return 0
 # }
 
+function build_client(){
+  if { builtin cd client && npm install && npm run build; } then
+    message "[$0] Successfully built client"
+    return 0
+  else
+    message "[$0][ERROR] Failed to 'cd client && npm install && npm run build'" >&2
+    return 1
+  fi
+}
 
 # main [-q,-quiet]
 # Idempotent environment and dependencies setup, installation, and verification.
@@ -448,10 +430,8 @@ function main() {
   fi
   
   [[ "$quiet" == false ]] && message "[$0] Installing and building client dependencies..."
-  if builtin cd client && npm install && npm run build; then
-     builtin cd "$workdir"
-  else
-    message "[$0][ERROR] Failed to cd client && npm install && npm run build" >&2
+  if ! build_client 1>/dev/null 2>&1; then
+    message "[$0][ERROR] Failed to build client" >&2
     return 1
   fi
   
