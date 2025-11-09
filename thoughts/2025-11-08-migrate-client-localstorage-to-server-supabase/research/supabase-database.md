@@ -648,33 +648,6 @@ supabase.table('articles').upsert({
 
 **For this project:** Flask backend should use `service_role` key. Client (if direct access) uses `anon` key.
 
-### Enable RLS: Step-by-Step
-
-**Step 1: Enable RLS on Table**
-
-Dashboard: Database → Tables → [table] → Enable RLS toggle
-
-SQL:
-```sql
-ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
-```
-
-**Step 2: Create Policies**
-
-Without policies, **ALL access is blocked** (even with valid keys).
-
-**Policy Anatomy:**
-```sql
-CREATE POLICY "policy_name" ON table_name
-  FOR operation              -- SELECT, INSERT, UPDATE, DELETE, ALL
-  TO role                    -- public, authenticated, service_role
-  USING (condition)          -- Boolean expression (for SELECT/UPDATE/DELETE)
-  WITH CHECK (condition);    -- Boolean expression (for INSERT/UPDATE)
-```
-
-**USING vs WITH CHECK:**
-- `USING`: Filters which rows are visible
-- `WITH CHECK`: Validates new/modified rows
 
 ### Common Policy Patterns
 
