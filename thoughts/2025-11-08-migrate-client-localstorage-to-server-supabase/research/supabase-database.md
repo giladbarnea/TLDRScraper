@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-08 20:49, e9738de
+last-updated: 2025-11-08 17:46, 289da49
 ---
 # Supabase Database Reference Guide
 
@@ -606,7 +606,7 @@ CREATE TABLE daily_cache (
 **Use when:**
 - You always fetch by date (not by article URL)
 - Payload size reasonable (<100KB per day)
-- Cache invalidation is all-or-nothing per day
+- Cache invalidation is all-or-nothing per day (error-prone)
 
 **Option B: Individual Article Rows**
 ```sql
