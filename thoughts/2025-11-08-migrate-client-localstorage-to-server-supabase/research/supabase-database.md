@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-09 05:00, 2d1c354
+last-updated: 2025-11-09 04:53, e37eedb
 ---
 # Supabase Database Reference Guide
 
@@ -799,9 +799,9 @@ USING (current_user_id() = user_id)
 
 ### Migration Decision Points
 
-#### Decision: Direct Client Access or API-Only?
+#### Decision: API-Only
 
-**Option A: API-Only (Client → Flask → Supabase) — Recommended**
+**API-Only (Client → Flask → Supabase) — Recommended**
 
 ```
 [React Client]
@@ -828,9 +828,9 @@ USING (current_user_id() = user_id)
 - Single-user or simple auth
 
 
-#### Decision: Full Migration or Hybrid?
+#### Decision: Full Migration
 
-**Option A: Full Migration (Remove localStorage)**
+**Full Migration (Remove localStorage)**
 
 - Client reads from API on page load
 - All state changes go through API
@@ -842,46 +842,7 @@ USING (current_user_id() = user_id)
 - Simpler client code
 
 **Cons:**
-- Requires network for all operations
 - Slower (network latency)
-- Must handle offline gracefully
-
-**Option B: Hybrid (localStorage + Supabase)**
-
-- Supabase is source of truth
-- localStorage is local cache
-- Sync on page load, periodically, or on change
-
-**Pros:**
-- Fast reads (localStorage)
-- Works offline
-- Graceful degradation
-
-**Cons:**
-- Sync complexity
-- Potential conflicts
-- More client code
-
-**Option C: Phased Migration**
-
-Week 1: Backend writes to both localStorage and Supabase
-Week 2: Client reads from Supabase, falls back to localStorage
-Week 3: Client writes to Supabase
-Week 4: Remove localStorage
-
-**Pros:**
-- Low risk
-- Easy rollback
-- Learn as you go
-
-**Cons:**
-- Takes longer
-- Maintains both systems temporarily
-
-**Decision Guide:**
-- Need offline support? → **Option B**
-- Want simplicity? → **Option A**
-- Risk-averse? → **Option C**
 
 #### Decision: Data Shape in Database
 
@@ -1196,27 +1157,6 @@ result = supabase.rpc('get_article_stats', {}).execute()
 
 ## Pro Tips for This Migration
 
-### 1. Start with Write-Through Caching
-
-**Strategy:** Backend writes to both localStorage (via API response) and Supabase. Client continues using localStorage.
-
-**Why:** De-risks migration. Supabase accumulates data in background while localStorage continues working.
-
-**Implementation:**
-```python
-# In tldr_service.py after scraping
-articles = scrape_newsletters(...)
-
-# NEW: Write to Supabase
-for article in articles:
-    supabase.table('articles').upsert(article).execute()
-
-# EXISTING: Return to client (who writes to localStorage)
-return articles
-```
-
-**Benefit:** Supabase starts accumulating data immediately. Test queries, schema, performance with real data before touching client.
-
 ### 2. Use Database Functions for Complex Logic
 
 **Instead of:**
@@ -1250,148 +1190,21 @@ payload = result.data
 - Postgres does heavy lifting
 - Consistent format (defined in SQL)
 
-### 3. Monitor Query Performance Early
-
-Dashboard → Database → Query Performance shows slow queries.
-
-**Watch for:**
-- Queries >100ms
-- Full table scans (seq scan)
-- Missing indexes
-
-**Fix:** Add indexes to frequently filtered columns:
-```sql
-CREATE INDEX idx_articles_issue_date ON articles(issue_date);
-```
-
-### 4. Test with Production-Scale Data
-
-**Don't:**
-- Test with 10 articles
-- Assume performance scales
-
-**Do:**
-- Insert realistic data volume (e.g., 10,000 articles)
-- Test queries at scale
-- Measure response times
-
-**How:**
-```python
-# Generate test data
-import random
-from datetime import datetime, timedelta
-
-articles = []
-for i in range(10000):
-    date = datetime.now() - timedelta(days=random.randint(0, 365))
-    articles.append({
-        'url': f'https://example.com/article-{i}',
-        'title': f'Article {i}',
-        'issue_date': date.strftime('%Y-%m-%d'),
-        'category': random.choice(['Tech', 'AI', 'News']),
-        'source_id': random.choice(['tldr_tech', 'tldr_ai', 'hackernews'])
-    })
-
-# Batch insert
-for i in range(0, len(articles), 100):
-    batch = articles[i:i+100]
-    supabase.table('articles').insert(batch).execute()
-```
-
-### 5. Use Transactions for Multi-Table Inserts
-
-**Problem:** Inserting into multiple tables (articles + issues) can partially fail.
-
-**Solution:** Use Postgres transactions via database function:
-
-```sql
-CREATE FUNCTION insert_daily_data(
-  p_articles JSONB,
-  p_issues JSONB
-) RETURNS void AS $$
-BEGIN
-  -- Insert articles
-  INSERT INTO articles (url, title, issue_date, ...)
-  SELECT * FROM jsonb_to_recordset(p_articles) AS x(...);
-
-  -- Insert issues
-  INSERT INTO issues (date, source_id, category, ...)
-  SELECT * FROM jsonb_to_recordset(p_issues) AS y(...);
-END;
-$$ LANGUAGE plpgsql;
-```
-
-```python
-result = supabase.rpc('insert_daily_data', {
-    'p_articles': articles_json,
-    'p_issues': issues_json
-}).execute()
-```
-
-**Benefit:** All-or-nothing. No partial state.
-
-### 6. Set Up Monitoring Before Migration
-
-**What to monitor:**
-- Database size: Dashboard → Database → Usage
-- Bandwidth: Dashboard → Settings → Usage
-- Query performance: Dashboard → Database → Query Performance
-- API response times: Backend logging
-
-**Set alerts:**
-- Database size approaching 400 MB (80% of 500 MB free tier limit)
-- Bandwidth approaching 8 GB (80% of 10 GB)
-- Query response time >500ms
-
-**Log query times:**
-```python
-import time
-
-def timed_query(table, operation):
-    start = time.time()
-    result = operation(supabase.table(table))
-    duration = time.time() - start
-
-    if duration > 0.1:  # >100ms
-        util.log(f"Slow query on {table}: {duration:.2f}s")
-
-    return result
-
-# Usage
-result = timed_query('articles', lambda t: t.select('*').eq('issue_date', date).execute())
-```
 
 ---
 
 ## Summary: Key Takeaways
 
-### Critical Requirements
-1. **Free tier limits:** 500 MB database, 10 GB bandwidth/month
-2. **RLS must be configured:** Enable RLS + create policies OR use service_role key in backend
-3. **Async client for realtime:** Regular client doesn't support subscriptions
-4. **Upsert needs primary key:** Always include PK in upsert data
-
 ### Recommended Decisions for This Project
 1. **Use sync client** in Flask backend (no realtime needed)
 2. **API-only architecture** (Client → Flask → Supabase with service_role key)
 3. **Start with hybrid schema:** Normalized core fields + JSONB for metadata
-4. **Phased migration:** Write-through → Hybrid → Full
-5. **Use migrations** for schema (via CLI, not Dashboard)
 
 ### Must-Do Before Starting
-- [ ] Create Supabase project
-- [ ] Save SUPABASE_URL and SUPABASE_SERVICE_KEY to .env
-- [ ] Verify `util.resolve_env_var()` can read them
+- [x] Create Supabase project
+- [x] Save SUPABASE_URL and SUPABASE_SERVICE_KEY to .env
+- [x] Verify `util.resolve_env_var()` can read them
 - [ ] Test connection with simple query
-- [ ] Decide: JSONB vs normalized for article data
-- [ ] Enable RLS + create policies OR plan to use service_role only
-
-### Gotchas to Avoid
-- Don't mix Dashboard table creation with migrations
-- Don't enable RLS without creating policies (blocks all access)
-- Don't use pooled connection (port 6543) with asyncpg directly
-- Don't forget to include PK in upsert operations
-- Don't ignore free tier limits (monitor usage)
 
 ---
 
