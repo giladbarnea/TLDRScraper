@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-09 04:18, b6c0897
+last-updated: 2025-11-08 17:46, 289da49
 ---
 # Supabase Database Reference Guide
 
@@ -46,62 +46,6 @@ When you create a Supabase project, you get:
 - Auto-generated GraphQL API (optional)
 - Dashboard for managing tables, policies, functions
 - Connection pooler (PgBouncer)
-
----
-
-## Free Tier Limits & Quotas
-
-**Critical for Planning:** You're on the free tier. Here are the hard limits:
-
-### Database & Storage
-| Resource | Free Tier Limit | Notes |
-|----------|----------------|-------|
-| Database size | **500 MB** | Per project, all tables combined |
-| File storage | 1 GB | Separate from database |
-| Max file upload | 50 MB | Per file |
-
-**Planning Implication:** Estimate current localStorage size and project growth. 500 MB is generous for text/metadata but can fill up with large TLDR responses cached over time.
-
-### API & Performance Limits
-| Resource | Free Tier Limit | Notes |
-|----------|----------------|-------|
-| Bandwidth | **10 GB/month** | 5 GB cached + 5 GB uncached |
-| API requests | No hard limit | Rate-limited per second |
-| Database reads | ~1200/second | Sustained throughput |
-| Database writes | ~1000/second | Sustained throughput |
-| Monthly Active Users | 50,000 MAU | Authentication related |
-| Edge Functions | 500K invocations | Per month |
-
-**Planning Implication:** 10 GB bandwidth is ~10,000 pages of content or ~330 MB/day. Single-user app shouldn't hit this, but if you scrape heavily or cache large volumes, monitor usage.
-
-### Realtime Features
-| Resource | Free Tier Limit | Notes |
-|----------|----------------|-------|
-| Concurrent connections | 200 | WebSocket connections |
-| Realtime messages | 2 million/month | Per billing period |
-| Max message size | 250 KB | Per realtime message |
-
-**Planning Implication:** If you implement realtime sync between client and server, these limits are generous for a single-user application.
-
-### Project & Operations
-| Resource | Free Tier Limit | Notes |
-|----------|----------------|-------|
-| Active projects | 2 projects | Per organization |
-| Inactive project pause | 7 days | Projects auto-pause after inactivity |
-| Log retention | 1 day | API & Database logs |
-| Query timeout | 8 seconds default, 2 min max | Per statement |
-
-**Planning Implication:** 2 projects means you can have prod + dev/staging OR prod + experimental. Inactive pause means you need to access the project at least weekly to keep it active.
-
-### Monitoring Usage
-Check usage in dashboard: `Project Settings > Usage`
-
-Monitor specific metrics:
-- Database size: `Dashboard > Database > Usage`
-- Bandwidth: `Dashboard > Settings > Usage > Bandwidth`
-- API requests: `Dashboard > Settings > Usage > API Requests`
-
-**Pro Tip:** Set up alerts before hitting limits. Supabase will email warnings at 80% usage on paid tiers, but free tier just stops working.
 
 ---
 
