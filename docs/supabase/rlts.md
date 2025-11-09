@@ -1,3 +1,7 @@
+---
+last-updated: 2025-11-09 04:39, 8708e19
+---
+
 ### 4. Enable Row Level Security (RLS)
 
 **THIS IS MANDATORY BEFORE ANY DATA ACCESS WORKS.**
