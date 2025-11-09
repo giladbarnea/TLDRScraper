@@ -691,25 +691,6 @@ supabase = create_client(url, SUPABASE_SERVICE_KEY)
 
 **Security:** High (database inaccessible except through your API)
 
-#### Pattern 3: User-Owned Data (Multi-User)
-
-Each user can only see/edit their own data:
-
-```sql
--- Assumes articles have user_id column
-CREATE POLICY "users_own_data" ON articles
-  FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-```
-
-**Use when:**
-- Multi-user application
-- Client accesses database directly with `anon` key
-- User authentication via Supabase Auth
-
-**Security:** High (per-user data isolation)
 
 ### Helper Functions in Policies
 
