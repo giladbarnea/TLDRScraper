@@ -2,7 +2,7 @@
 last-updated: 2025-11-09 04:39, 8708e19
 ---
 
-### 4. Enable Row Level Security (RLS)
+### How To Enable Row Level Security (RLS)
 
 **THIS IS MANDATORY BEFORE ANY DATA ACCESS WORKS.**
 
@@ -59,3 +59,22 @@ except Exception as e:
 - `"Failed to fetch"`: Wrong SUPABASE_URL
 - `"Invalid API key"`: Wrong SUPABASE_SERVICE_KEY
 - Empty results but no error: RLS enabled with no policies (using anon key)
+
+
+### Note: RLS Blocks Everything by Default
+
+**Problem:** You enable RLS but forget to create policies → all queries return empty results.
+
+**Manifestation:**
+```python
+# Returns empty list even though data exists
+result = supabase.table('articles').select('*').execute()
+print(result.data)  # []
+```
+
+**Solution:**
+1. Check if RLS is enabled: Dashboard → Database → Tables → [table] → "RLS enabled"
+2. Check if policies exist: Dashboard → Authentication → Policies
+3. If using `service_role` key, RLS is bypassed (make sure you're using correct key)
+
+**Pro Tip:** During development, use `service_role` key in backend to bypass RLS. Add proper policies before deploying to production.
