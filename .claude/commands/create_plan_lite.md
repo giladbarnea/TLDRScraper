@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-08 14:48, 8652377
+last-updated: 2025-11-09 22:21, 5c80f5d
 description: Create detailed implementation plans with thorough research and iteration
 model: opus
 ---
