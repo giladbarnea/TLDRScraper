@@ -246,10 +246,6 @@ After structure approval:
 2. [Another verification step]
 3. [Edge case to test manually]
 
-## Migration Notes
-
-[If applicable, how to handle existing data/systems]
-
 ## References
 
 - Original ticket: `thoughts/yy-mm-dd-ENG-XXXX/ticket.md`
@@ -325,9 +321,7 @@ After structure approval:
 
 1. **Automated Verification** (can be run by execution agents):
    - Commands that can be run: test commands, lint commands, etc.
-   - Specific files that should exist
    - Rule out hard errors: syntax, reference, name errors, unbound local variables or import errors, etc.
-   - Automated test suites
 
 2. **Manual Verification** (requires human testing):
    - UI/UX functionality
@@ -339,7 +333,7 @@ After structure approval:
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] All unit tests pass: [test command]
+- [ ] Tests pass: [test command]
 - [ ] Hard errors checked: [appropriate verification command(s)]
 - [ ] API endpoint returns expected response: [curl command or test]
 
@@ -368,7 +362,6 @@ After structure approval:
 ### For Refactoring:
 - Document current behavior
 - Plan incremental changes
-- Maintain backwards compatibility
 - Include migration strategy
 
 ## Sub-task Spawning Best Practices
