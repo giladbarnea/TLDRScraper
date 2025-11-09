@@ -553,24 +553,6 @@ REFRESH MATERIALIZED VIEW daily_payloads;
 
 ## Common Gotchas & Pitfalls
 
-### 2. RLS Blocks Everything by Default
-
-**Problem:** You enable RLS but forget to create policies → all queries return empty results.
-
-**Manifestation:**
-```python
-# Returns empty list even though data exists
-result = supabase.table('articles').select('*').execute()
-print(result.data)  # []
-```
-
-**Solution:**
-1. Check if RLS is enabled: Dashboard → Database → Tables → [table] → "RLS enabled"
-2. Check if policies exist: Dashboard → Authentication → Policies
-3. If using `service_role` key, RLS is bypassed (make sure you're using correct key)
-
-**Pro Tip:** During development, use `service_role` key in backend to bypass RLS. Add proper policies before deploying to production.
-
 ### 3. Dashboard vs CLI Table Ownership
 
 **Problem:** Tables created in Dashboard are owned by `supabase_admin`, tables created via migrations are owned by `postgres`. This causes permission errors when mixing approaches.
