@@ -15,6 +15,7 @@ if command -v eza &> /dev/null; then
     --tree \
     --git-ignore \
     --all \
+    --ignore-glob 'static|*.vscode|experimental|thoughts/done|docs|.run' \
     . > PROJECT_STRUCTURE.md
 elif command -v tree &> /dev/null; then
   echo "[$0] Using tree as fallback for project structure generation"

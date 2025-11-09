@@ -358,9 +358,11 @@ function ensure_eza(){
 function build_client(){
   if { builtin cd client && npm install && npm run build; } then
     message "[$0] Successfully built client"
+    builtin cd "$SERVER_CONTEXT_WORKDIR"
     return 0
   else
     message "[$0][ERROR] Failed to 'cd client && npm install && npm run build'" >&2
+    builtin cd "$SERVER_CONTEXT_WORKDIR"
     return 1
   fi
 }
