@@ -778,16 +778,6 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 USING (current_user_id() = user_id)
 ```
 
-### RLS Checklist for Production
-
-Before deploying:
-
-- [ ] RLS enabled on all tables with user data
-- [ ] Policies created for all operations (SELECT, INSERT, UPDATE, DELETE)
-- [ ] Policies tested with both `anon` and `authenticated` roles
-- [ ] No tables with sensitive data have `USING (true)` policies
-- [ ] Backend uses `service_role` key, client uses `anon` key
-- [ ] Policy performance tested (check query plans)
 
 ---
 
@@ -811,7 +801,7 @@ Before deploying:
 
 #### Decision: Direct Client Access or API-Only?
 
-**Option A: API-Only (Client → Flask → Supabase)**
+**Option A: API-Only (Client → Flask → Supabase) — Recommended**
 
 ```
 [React Client]
@@ -837,30 +827,6 @@ Before deploying:
 - Already have Flask backend (you do)
 - Single-user or simple auth
 
-**Option B: Direct Client Access (Client → Supabase)**
-
-```
-[React Client] (anon key)
-    ↓
-[Supabase DB]
-```
-
-**Pros:**
-- No backend hop (faster)
-- Offline-capable (with local cache)
-- Backend only needed for scraping
-
-**Cons:**
-- Must configure RLS policies
-- Client has database access (security considerations)
-- Harder to add business logic
-
-**Use when:**
-- Low latency critical
-- Want offline support
-- Multi-user with proper auth
-
-**Recommendation for This Project:** **Option A (API-Only)**. You already have Flask backend, and single-user app doesn't benefit from direct access complexity.
 
 #### Decision: Full Migration or Hybrid?
 
