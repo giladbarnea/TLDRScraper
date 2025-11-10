@@ -1,7 +1,6 @@
 ---
-last-updated: 2025-11-10 20:14, 110a622
+last-updated: 2025-11-10 21:29, 661b345
 description: Mock an agent for testing
 name: mock_agent
-model: haiku
 ---
 Follow given instructions

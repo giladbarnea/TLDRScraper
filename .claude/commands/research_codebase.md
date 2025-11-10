@@ -1,7 +1,6 @@
 ---
-last-updated: 2025-11-04 16:33, ff9162f
+last-updated: 2025-11-10 21:29, 661b345
 description: Document codebase as-is with thoughts directory for historical context
-model: sonnet
 ---
 # Research Codebase
 
