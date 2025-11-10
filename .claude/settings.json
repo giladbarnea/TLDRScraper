@@ -1,13 +1,20 @@
 {
   "env": {
-    "DISABLE_TELEMETRY": "1",
-    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1"
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "SLASH_COMMAND_TOOL_CHAR_BUDGET": "10000000"
   },
   "permissions": {
     "allow": [
       "*"
-    ]
+    ],
+    "defaultMode": "bypassPermissions"
   },
+  "sandbox": {
+    "excludedCommands": [],
+    "enabled": false
+  },
+  "skipWebFetchPreflight": true,
   "hooks": {
     "SessionStart": [
       {
