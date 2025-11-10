@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-10 21:29, 661b345
+last-updated: 2025-11-10 21:29, 96a5633
 name: codebase-analyzer
 description: Analyzes codebase implementation details. Call the codebase-analyzer agent when you need to find detailed information about specific components. As always, the more detailed your request prompt, the better! :)
 ---

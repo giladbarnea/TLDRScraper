@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-10 21:29, 661b345
+last-updated: 2025-11-10 21:29, 96a5633
 name: web-deep-researcher
 description: Use this agent to perform a deep and scoped web research on a research query. It specializes on breaking down the research question to its constituents, studying each of them comprehensively, and presenting its findings in a high quality manner.
 color: yellow
