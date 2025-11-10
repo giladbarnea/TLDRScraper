@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-10 10:31, 94239b9
+last-updated: 2025-11-10 10:40, 48c8242
 ---
 # localStorage to Supabase Database Migration Plan
 
@@ -55,14 +55,14 @@ CREATE TABLE daily_cache (
   cached_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Table 2: User settings
+-- Table 2: Application settings
 CREATE TABLE settings (
   key TEXT PRIMARY KEY,
   value JSONB NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable RLS (but no policies - service_role key bypasses)
+-- Enable RLS (service_role key bypasses RLS)
 ALTER TABLE daily_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 ```
@@ -147,7 +147,7 @@ After migration is complete:
 - ❌ Optimistic updates (synchronous only for simplicity)
 - ❌ Normalized schema (JSONB blobs for 1:1 mapping)
 - ❌ Multi-user support
-- ❌ Row-level security policies (service_role bypasses RLS)
+- ❌ Row-level security policies
 - ❌ Realtime subscriptions (polling/manual refresh only)
 - ❌ Database-side sorting (browser sorting unchanged)
 - ❌ Performance optimization (focus on correctness first)
@@ -208,16 +208,12 @@ CREATE TABLE daily_cache (
   cached_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- User settings (stores cache:enabled, etc.)
+-- Application settings (stores cache:enabled, etc.)
 CREATE TABLE settings (
   key TEXT PRIMARY KEY,
   value JSONB NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
--- Enable RLS (service_role key bypasses, so no policies needed)
-ALTER TABLE daily_cache ENABLE ROW LEVEL SECURITY;
-ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
 -- Indexes for common queries
 CREATE INDEX idx_daily_cache_date ON daily_cache(date DESC);
@@ -257,7 +253,7 @@ def get_supabase_client():
     return _supabase_client
 ```
 
-**Why**: Singleton pattern prevents multiple client instances. Service role key bypasses RLS.
+**Why**: Singleton pattern prevents multiple client instances. Service role key provides full database access.
 
 #### 3. Storage Service Layer
 
@@ -1698,6 +1694,6 @@ npm run dev
 - **Simple schema**: Two tables, minimal complexity
 - **Cache-first**: Same behavior as current localStorage implementation
 - **Browser sorting**: No changes to sorting logic
-- **Service role key**: Bypasses RLS, no policies needed
+- **Service role key**: Provides full database access for backend operations
 - **Single-user**: No multi-user considerations
 - **Free tier**: No scale concerns, simple implementation prioritized
