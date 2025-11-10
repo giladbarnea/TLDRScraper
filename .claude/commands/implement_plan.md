@@ -1,7 +1,6 @@
 ---
 last-updated: 2025-11-10 16:10, b3728ad
 description: Implement technical plans from thoughts/{date-ticket}/plans/ with verification
-model: opus
 ---
 # Implement Plan
 
