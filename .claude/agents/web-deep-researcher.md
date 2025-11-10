@@ -1,7 +1,6 @@
 ---
 name: web-deep-researcher
 description: Use this agent to perform a deep and scoped web research on a research query. It specializes on breaking down the research question to its constituents, studying each of them comprehensively, and presenting its findings in a high quality manner.
-tools: WebSearch, WebFetch
 color: yellow
 model: sonnet
 ---
