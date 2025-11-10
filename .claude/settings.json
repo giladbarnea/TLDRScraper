@@ -1,4 +1,13 @@
 {
+  "env": {
+    "DISABLE_TELEMETRY": "1",
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1"
+  },
+  "permissions": {
+    "allow": [
+      "*",
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {

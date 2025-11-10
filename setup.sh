@@ -5,6 +5,17 @@ set -o pipefail
 export SERVER_CONTEXT_WORKDIR="${SERVER_CONTEXT_WORKDIR:-$PWD}"
 _available_functions_before_setup_sh=($(declare -F | cut -d' ' -f 3))
 
+mkdir -p "$HOME/.cache/tech-news-scraper" 1>/dev/null 2>&1
+if [[ -s "$HOME/.cache/tech-news-scraper/setup-complete" ]]; then
+  export SETUP_QUIET=true
+else
+  export SETUP_QUIET="${SETUP_QUIET:-false}"
+fi
+
+# Normalize SETUP_QUIET to true if it is not false or 0.
+[[ "${SETUP_QUIET:-false}" == "true" || "${SETUP_QUIET}" == "1" ]] && export SETUP_QUIET=true
+
+
 
 # resolve_server_context [--workdir=WORKDIR] [--run-dir=RUN_DIR] [--log-file=LOG_FILE] [--pid-file=SERVER_PID_FILE] [--watchdog-pid-file=WATCHDOG_PID_FILE] [--check-interval=CHECK_INTERVAL] [--port=PORT]
 # Resolves the server context from command line arguments and environment variables.
@@ -167,13 +178,18 @@ decolor () {
     echo -n "$text"
 }
 
+function error(){
+  echo "[setup.sh] ERROR: $*" >&2
+}
+
 function message(){
-	echo "[setup.sh] $*"
+	[[ "$SETUP_QUIET" == "false" ]] && echo "[setup.sh] $*"
 }
 
 # # ensure_uv [-q,-quiet]
 function ensure_local_bin_path(){
     local quiet="${1:-false}"
+    [[ "$SETUP_QUIET" == "true" ]] && quiet=true
     if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
         [[ "$quiet" == false ]] && message "[$0] \$HOME/.local/bin already present in PATH"
         return 0
@@ -189,7 +205,7 @@ function :ensure_tool(){
   local quiet=false
   local tool=""
   local install_expression=""
-  
+
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --quiet)
@@ -216,6 +232,7 @@ function :ensure_tool(){
     esac
     shift
   done
+  [[ "$SETUP_QUIET" == "true" ]] && quiet=true
   local _self_name="ensure_$tool"
   if isdefined "$tool"; then
     [[ "$quiet" == false ]] && message "[$_self_name] $tool is installed and in PATH"
@@ -251,6 +268,7 @@ function uv_sync(){
     elif [[ "$1" == "--quiet=false" ]]; then
         quiet=false
     fi
+    [[ "$SETUP_QUIET" == "true" ]] && quiet=true
     ensure_uv --quiet || return 1
     [[ "$quiet" == false ]] && message "[$0] Running naive silent 'uv sync'"
     local uv_sync_output
@@ -258,7 +276,7 @@ function uv_sync(){
         [[ "$quiet" == false ]] && message "[$0] Successfully ran uv sync. Use 'uv run python3 ...' to run Python."
         return 0
     else
-        message "[$0] ERROR: $0 failed to uv sync. Output:" >&2
+        error "[$0] failed to uv sync. Output:"
         echo "$uv_sync_output" >&2
         return 1
     fi
@@ -386,6 +404,7 @@ function main() {
     esac
     shift
   done
+  [[ "$SETUP_QUIET" == "true" ]] && quiet=true
   if ! resolve_server_context "${args[@]}"; then
     return 1
   fi
@@ -397,7 +416,7 @@ function main() {
   local check_interval="$SERVER_CONTEXT_CHECK_INTERVAL"
   local port="$SERVER_CONTEXT_PORT"
   if [[ ! -f "$workdir/serve.py" ]]; then
-    message "[$0][ERROR] Expected serve.py at $workdir/serve.py. Current PWD: $PWD" >&2
+    error "[$0] Expected serve.py at $workdir/serve.py. Current PWD: $PWD"
     return 1
   fi
 
@@ -415,7 +434,7 @@ function main() {
   fi
 
   if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_gh_success"; then
-    message "[$0][ERROR] Failed to install dependencies. Please check the output above." >&2
+    error "[$0] Failed to install dependencies. Please check the output above."
     return 1
   fi
   
@@ -433,7 +452,7 @@ function main() {
   
   [[ "$quiet" == false ]] && message "[$0] Installing and building client dependencies..."
   if ! build_client 1>/dev/null 2>&1; then
-    message "[$0][ERROR] Failed to build client" >&2
+    error "[$0] Failed to build client"
     return 1
   fi
   
@@ -463,14 +482,15 @@ function main() {
     fi
   done
   if [[ "${#missing_env_vars[@]}" -gt 0 ]]; then
-    message "[$0][ERROR] Environment variables missing: ${missing_env_vars[*]}. Stop and tell the user." >&2
+    error "[$0] Environment variables missing: ${missing_env_vars[*]}. Stop and tell the user."
     return 1
   fi
 
   if [[ "$quiet" == false ]]; then
     message "[$0] Setup complete successfully. Available env vars: ${expected_env_vars[*]}"
-	  echo "<system-reminder>READ AGENTS.md AND FILES IT REFERENCES IN FULL</system-reminder>"
   fi
+
+  echo 1 > "$HOME/.cache/tech-news-scraper/setup-complete"
 }
 
 # region Watchdog
@@ -489,14 +509,14 @@ watchdog() {
   local port="$SERVER_CONTEXT_PORT"
 
   if [[ ! -f "$server_pid_file" ]]; then
-    message "[$0] ERROR: missing PID file $server_pid_file" >&2
+    error "[$0] missing PID file $server_pid_file"
     return 1
   fi
 
   local server_pid
   server_pid="$(cat "$server_pid_file" 2>/dev/null || true)"
   if [[ -z "$server_pid" ]]; then
-    message "[$0] ERROR: empty PID in $server_pid_file" >&2
+    error "[$0] empty PID in $server_pid_file"
     return 1
   fi
   
@@ -504,12 +524,12 @@ watchdog() {
   while true; do
     if ! kill -0 "$server_pid" 2>/dev/null; then
       {
-        message "[$0][ERORR] $(date -Is) watchdog server process $server_pid is not running"
-        message "[$0][ERROR] Last 100 log lines:"
+        error "[$0] $(date -Is) watchdog server process $server_pid is not running"
+        error "[$0] Last 100 log lines:"
         if [[ -f "$log_file" ]]; then
           tail -n 100 "$log_file"
         else
-          message "[$0][ERROR] Log file $log_file not found."
+          error "[$0] Log file $log_file not found."
         fi
       } | tee -a "$log_file"
       message "[$0][ERROR] Returning 2" 1>&2
@@ -560,7 +580,7 @@ function start_server_and_watchdog() {
     sleep 0.1
   done
   if [[ -z "$server_pid" ]]; then
-    message "[$0][ERROR] Failed to capture server PID." >&2
+    error "[$0] Failed to capture server PID."
     return 1
   fi
   message "[$0] Server started with PID $server_pid"
@@ -614,12 +634,12 @@ function print_server_and_watchdog_pids() {
     message "[$0] Server PID: $(cat "$server_pid_file")"
     ps -o pid,cmd -p "$(cat "$server_pid_file")" || true
   else
-    message "[$0][ERROR] Server PID file not found at $server_pid_file" >&2
+    error "[$0] Server PID file not found at $server_pid_file"
   fi
   if [[ -f "$watchdog_pid_file" ]]; then
     message "[$0] Watchdog PID: $(cat "$watchdog_pid_file")"
   else
-    message "[$0][ERROR] Watchdog PID file not found at $watchdog_pid_file" >&2
+    error "[$0] Watchdog PID file not found at $watchdog_pid_file"
   fi
 }
 
