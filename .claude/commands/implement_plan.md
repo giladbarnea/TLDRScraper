@@ -1,7 +1,7 @@
 ---
 last-updated: 2025-11-04 16:33, ff9162f
 description: Implement technical plans from thoughts/{date-ticket}/plans/ with verification
-model: sonnet
+model: opus
 ---
 # Implement Plan
 
