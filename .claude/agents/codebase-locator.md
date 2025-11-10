@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-10 18:53, 72fcb6f
+last-updated: 2025-11-10 18:54, 415b33e
 name: codebase-locator
 description: Locates files, directories, and components relevant to a feature or task. Call `codebase-locator` with human language prompt describing what you're looking for. Basically a "Super Grep/Glob/LS tool" — Use it if you find yourself desiring to use one of these tools more than once.
 model: sonnet
