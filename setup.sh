@@ -184,6 +184,7 @@ function error(){
 
 function message(){
 	[[ "$SETUP_QUIET" == "false" ]] && echo "[setup.sh] $*"
+	return 0
 }
 
 # # ensure_uv [-q,-quiet]
@@ -650,7 +651,7 @@ fi
 
 _available_functions_after_setup_sh=($(declare -F | cut -d' ' -f 3))
 _new_functions=($(comm -23 <(echo "${_available_functions_after_setup_sh[@]}") <(echo "${_available_functions_before_setup_sh[@]}")))
-_new_functions=($(xargs -n1 <<< ${_new_functions[@]} | grep -e server -e watchdog))
+_new_functions=($(xargs -n1 <<< ${_new_functions[@]} | grep -e server -e watchdog || true))
 if [[ ${#_new_functions[@]} -gt 0 ]]; then
   _new_functions_formatted="$(echo ${_new_functions[@]} | tr ' ' ', ')"
   message "[DONE] New functions available for use after sourcing setup.sh: ${_new_functions_formatted}"
