@@ -33,7 +33,7 @@ last-updated: 2025-11-11 09:55, 3da9da7
    - Go to Supabase Dashboard > **SQL Editor**  
    - Run the following Structured Query Language (SQL) to create the tables and indexes:
 
-\`\`\`sql
+```sql
 -- Daily newsletter cache (stores DailyPayload JSONB)
 CREATE TABLE daily_cache (
   date DATE PRIMARY KEY,
@@ -51,12 +51,12 @@ CREATE TABLE settings (
 -- Indexes for common queries
 CREATE INDEX idx_daily_cache_date ON daily_cache(date DESC);
 CREATE INDEX idx_settings_key ON settings(key);
-\`\`\`
+```
 
 3. **Test the tables were created**  
    - In the SQL Editor, run the following test queries:
 
-\`\`\`sql
+```sql
 -- Test insert
 INSERT INTO settings (key, value) VALUES ('cache:enabled', 'true');
 INSERT INTO daily_cache (date, payload) VALUES
@@ -65,4 +65,4 @@ INSERT INTO daily_cache (date, payload) VALUES
 -- Test read
 SELECT * FROM settings WHERE key = 'cache:enabled';
 SELECT * FROM daily_cache WHERE date = '2025-11-09';
-\`\`\`
+```
