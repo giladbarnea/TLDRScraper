@@ -12,7 +12,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # Source setup.sh
-source "$PROJECT_ROOT/setup.sh"
+# source "$PROJECT_ROOT/setup.sh"
 
 # Build additional context from markdown files
 CONTEXT=""
