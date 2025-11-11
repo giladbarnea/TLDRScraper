@@ -3,7 +3,7 @@
 # Pre-merge-commit hook that generates PROJECT_STRUCTURE.md
 # This runs before creating a merge commit
 
-SETUP_SH_SKIP_MAIN=1 source ./setup.sh
+SETUP_QUIET=true SETUP_SH_SKIP_MAIN=1 source ./setup.sh
 ensure_eza || {
   echo "[$0] ERROR: Failed to install eza, falling back to tree or find" >&2
 }
