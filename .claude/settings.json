@@ -14,17 +14,5 @@
     "excludedCommands": [],
     "enabled": false
   },
-  "skipWebFetchPreflight": true,
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/SessionStart"
-          }
-        ]
-      }
-    ]
-  }
+  "skipWebFetchPreflight": true
 }
