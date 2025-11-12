@@ -1,10 +1,10 @@
 import { useCallback, useMemo } from 'react'
-import { useLocalStorage } from './useLocalStorage'
+import { useSupabaseStorage } from './useSupabaseStorage'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
 
 export function useArticleState(date, url) {
   const storageKey = getNewsletterScrapeKey(date)
-  const [payload, setPayload] = useLocalStorage(storageKey, null)
+  const [payload, setPayload, , { loading, error }] = useSupabaseStorage(storageKey, null)
 
   const article = useMemo(() => {
     return payload?.articles?.find(a => a.url === url) || null
@@ -78,6 +78,8 @@ export function useArticleState(date, url) {
     isRemoved,
     isTldrHidden,
     state,
+    loading,
+    error,
     markAsRead,
     markAsUnread,
     toggleRead,
