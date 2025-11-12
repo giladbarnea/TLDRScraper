@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-12
+last-updated: 2025-11-12 17:25, 379bbed
 ---
 # Manual Browser Testing Guide
 
