@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 2 Browser Test - useSupabaseStorage</title>
+    <style>
+        body { font-family: monospace; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test h3 { margin-top: 0; }
+        .pass { color: green; }
+        .fail { color: red; }
+        .loading { color: orange; }
+        button { margin: 5px; padding: 8px 15px; cursor: pointer; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Phase 2 Browser Test - Client Storage Abstraction</h1>
+    <p>Testing <code>useSupabaseStorage</code> hook and <code>storageApi</code> in browser environment</p>
+
+    <div class="test">
+        <h3>Test 1: storageApi Functions</h3>
+        <button onclick="testStorageApi()">Run Test</button>
+        <pre id="test1-result">Not run yet</pre>
+    </div>
+
+    <div class="test">
+        <h3>Test 2: Key Pattern Routing</h3>
+        <button onclick="testKeyPatterns()">Run Test</button>
+        <pre id="test2-result">Not run yet</pre>
+    </div>
+
+    <div class="test">
+        <h3>Test 3: Error Handling</h3>
+        <button onclick="testErrorHandling()">Run Test</button>
+        <pre id="test3-result">Not run yet</pre>
+    </div>
+
+    <div class="test">
+        <h3>Run All Tests</h3>
+        <button onclick="runAllTests()">Run All Tests</button>
+    </div>
+
+    <script type="module">
+        // Import storageApi (would be bundled in real app)
+        window.storageApiTest = async function() {
+            const tests = [];
+
+            // Test isDateCached
+            try {
+                const response = await fetch('/api/storage/is-cached/2025-11-12');
+                const data = await response.json();
+                tests.push(`✅ isDateCached: ${data.is_cached}`);
+            } catch (err) {
+                tests.push(`❌ isDateCached failed: ${err.message}`);
+            }
+
+            // Test getDailyPayload
+            try {
+                const response = await fetch('/api/storage/daily/2025-11-12');
+                const data = await response.json();
+                if (data.success) {
+                    tests.push(`✅ getDailyPayload: Found ${data.payload.articles?.length || 0} articles`);
+                } else {
+                    tests.push(`⚠️ getDailyPayload: Not found (expected)`);
+                }
+            } catch (err) {
+                tests.push(`❌ getDailyPayload failed: ${err.message}`);
+            }
+
+            // Test setDailyPayload
+            try {
+                const testPayload = {
+                    date: '2025-11-13',
+                    cachedAt: new Date().toISOString(),
+                    articles: [{
+                        url: 'https://example.com/test',
+                        title: 'Browser Test Article',
+                        issueDate: '2025-11-13',
+                        category: 'Test',
+                        removed: false,
+                        tldrHidden: false,
+                        read: { isRead: false, markedAt: null },
+                        tldr: { status: 'unknown', markdown: '' }
+                    }],
+                    issues: []
+                };
+
+                const response = await fetch('/api/storage/daily/2025-11-13', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ payload: testPayload })
+                });
+                const data = await response.json();
+                tests.push(data.success ? '✅ setDailyPayload: Success' : '❌ setDailyPayload: Failed');
+            } catch (err) {
+                tests.push(`❌ setDailyPayload failed: ${err.message}`);
+            }
+
+            // Test getDailyPayloadsRange
+            try {
+                const response = await fetch('/api/storage/daily-range', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ start_date: '2025-11-10', end_date: '2025-11-13' })
+                });
+                const data = await response.json();
+                tests.push(`✅ getDailyPayloadsRange: Found ${data.payloads?.length || 0} payloads`);
+            } catch (err) {
+                tests.push(`❌ getDailyPayloadsRange failed: ${err.message}`);
+            }
+
+            return tests.join('\n');
+        };
+
+        window.testKeyPatternsImpl = async function() {
+            const tests = [];
+
+            // Test cache:enabled pattern
+            try {
+                // Write
+                let response = await fetch('/api/storage/setting/cache:enabled', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value: true })
+                });
+                let data = await response.json();
+                tests.push(data.success ? '✅ Write cache:enabled = true' : '❌ Write failed');
+
+                // Read back
+                response = await fetch('/api/storage/setting/cache:enabled');
+                data = await response.json();
+                tests.push(data.value === true ? '✅ Read cache:enabled = true' : '❌ Read mismatch');
+            } catch (err) {
+                tests.push(`❌ cache:enabled pattern failed: ${err.message}`);
+            }
+
+            // Test newsletters:scrapes:{date} pattern
+            try {
+                const date = '2025-11-14';
+                const payload = {
+                    date: date,
+                    cachedAt: new Date().toISOString(),
+                    articles: [{ url: 'https://test.com', title: 'Pattern Test' }],
+                    issues: []
+                };
+
+                // Write
+                let response = await fetch(`/api/storage/daily/${date}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ payload })
+                });
+                let data = await response.json();
+                tests.push(data.success ? `✅ Write newsletters:scrapes:${date}` : '❌ Write failed');
+
+                // Read back
+                response = await fetch(`/api/storage/daily/${date}`);
+                data = await response.json();
+                tests.push(data.payload?.date === date ? `✅ Read newsletters:scrapes:${date}` : '❌ Read mismatch');
+            } catch (err) {
+                tests.push(`❌ newsletters:scrapes pattern failed: ${err.message}`);
+            }
+
+            return tests.join('\n');
+        };
+
+        window.testErrorHandlingImpl = async function() {
+            const tests = [];
+
+            // Test 404 for missing setting
+            try {
+                const response = await fetch('/api/storage/setting/nonexistent:test');
+                tests.push(response.status === 404 ? '✅ Missing setting returns 404' : `❌ Expected 404, got ${response.status}`);
+            } catch (err) {
+                tests.push(`❌ Error handling test failed: ${err.message}`);
+            }
+
+            // Test 404 for missing date
+            try {
+                const response = await fetch('/api/storage/daily/2099-12-31');
+                tests.push(response.status === 404 ? '✅ Missing date returns 404' : `❌ Expected 404, got ${response.status}`);
+            } catch (err) {
+                tests.push(`❌ Error handling test failed: ${err.message}`);
+            }
+
+            return tests.join('\n');
+        };
+    </script>
+
+    <script>
+        async function testStorageApi() {
+            const result = document.getElementById('test1-result');
+            result.textContent = 'Running...';
+            result.className = 'loading';
+            try {
+                const output = await window.storageApiTest();
+                result.textContent = output;
+                result.className = output.includes('❌') ? 'fail' : 'pass';
+            } catch (err) {
+                result.textContent = `❌ Test failed: ${err.message}`;
+                result.className = 'fail';
+            }
+        }
+
+        async function testKeyPatterns() {
+            const result = document.getElementById('test2-result');
+            result.textContent = 'Running...';
+            result.className = 'loading';
+            try {
+                const output = await window.testKeyPatternsImpl();
+                result.textContent = output;
+                result.className = output.includes('❌') ? 'fail' : 'pass';
+            } catch (err) {
+                result.textContent = `❌ Test failed: ${err.message}`;
+                result.className = 'fail';
+            }
+        }
+
+        async function testErrorHandling() {
+            const result = document.getElementById('test3-result');
+            result.textContent = 'Running...';
+            result.className = 'loading';
+            try {
+                const output = await window.testErrorHandlingImpl();
+                result.textContent = output;
+                result.className = output.includes('❌') ? 'fail' : 'pass';
+            } catch (err) {
+                result.textContent = `❌ Test failed: ${err.message}`;
+                result.className = 'fail';
+            }
+        }
+
+        async function runAllTests() {
+            await testStorageApi();
+            await testKeyPatterns();
+            await testErrorHandling();
+        }
+
+        // Run all tests on load
+        window.addEventListener('load', () => {
+            console.log('Phase 2 Browser Test Page Loaded');
+            console.log('Click "Run All Tests" to verify client abstraction layer');
+        });
+    </script>
+</body>
+</html>
