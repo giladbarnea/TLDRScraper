@@ -4,6 +4,7 @@
  */
 
 import { getNewsletterScrapeKey } from './storageKeys'
+import * as storageApi from './storageApi'
 
 function computeDateRange(startDate, endDate) {
   const dates = []
@@ -46,14 +47,19 @@ function buildStatsFromPayloads(payloads) {
   }
 }
 
-function isRangeCached(startDate, endDate, cacheEnabled) {
+async function isRangeCached(startDate, endDate, cacheEnabled) {
   if (!cacheEnabled) return false
 
   const dates = computeDateRange(startDate, endDate)
-  return dates.every(date => {
-    const key = getNewsletterScrapeKey(date)
-    return localStorage.getItem(key) !== null
-  })
+
+  for (const date of dates) {
+    const isCached = await storageApi.isDateCached(date)
+    if (!isCached) {
+      return false
+    }
+  }
+
+  return true
 }
 
 function normalizeIsoDate(value) {
@@ -123,72 +129,59 @@ function buildDailyPayloadsFromScrape(data) {
   return payloads.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
 }
 
-function mergeWithCache(payloads) {
-  return payloads.map(payload => {
-    const key = getNewsletterScrapeKey(payload.date)
-    const raw = localStorage.getItem(key)
+async function mergeWithCache(payloads) {
+  const merged = []
 
-    if (raw) {
-      try {
-        const existing = JSON.parse(raw)
-        const merged = {
-          ...payload,
-          articles: payload.articles.map(article => {
-            const existingArticle = existing.articles?.find(a => a.url === article.url)
-            if (existingArticle) {
-              return {
-                ...article,
-                tldr: existingArticle.tldr || article.tldr,
-                read: existingArticle.read || article.read,
-                removed: existingArticle.removed ?? article.removed,
-                tldrHidden: existingArticle.tldrHidden ?? article.tldrHidden
-              }
+  for (const payload of payloads) {
+    const existing = await storageApi.getDailyPayload(payload.date)
+
+    if (existing) {
+      const mergedPayload = {
+        ...payload,
+        articles: payload.articles.map(article => {
+          const existingArticle = existing.articles?.find(a => a.url === article.url)
+          if (existingArticle) {
+            return {
+              ...article,
+              tldr: existingArticle.tldr || article.tldr,
+              read: existingArticle.read || article.read,
+              removed: existingArticle.removed ?? article.removed,
+              tldrHidden: existingArticle.tldrHidden ?? article.tldrHidden
             }
-            return article
-          })
-        }
-        localStorage.setItem(key, JSON.stringify(merged))
-        return merged
-      } catch (err) {
-        console.error(`Failed to merge with cache for ${payload.date}:`, err)
-        localStorage.setItem(key, JSON.stringify(payload))
-        return payload
+          }
+          return article
+        })
       }
+
+      await storageApi.setDailyPayload(payload.date, mergedPayload)
+      merged.push(mergedPayload)
     } else {
-      localStorage.setItem(key, JSON.stringify(payload))
-      return payload
+      await storageApi.setDailyPayload(payload.date, payload)
+      merged.push(payload)
     }
-  })
+  }
+
+  return merged
 }
 
-export function loadFromCache(startDate, endDate) {
-  const dates = computeDateRange(startDate, endDate)
-  const payloads = []
+export async function loadFromCache(startDate, endDate) {
+  const payloads = await storageApi.getDailyPayloadsRange(startDate, endDate)
 
-  dates.forEach(date => {
-    const key = getNewsletterScrapeKey(date)
-    const raw = localStorage.getItem(key)
-    if (raw) {
-      try {
-        const payload = JSON.parse(raw)
-        payloads.push(payload)
-      } catch (err) {
-        console.error(`Failed to parse cached data for ${date}:`, err)
-      }
-    }
-  })
+  if (!payloads || payloads.length === 0) {
+    return null
+  }
 
-  return payloads.length > 0 ? {
+  return {
     success: true,
     payloads,
     source: 'local cache',
     stats: buildStatsFromPayloads(payloads)
-  } : null
+  }
 }
 
 export async function scrapeNewsletters(startDate, endDate, cacheEnabled = true) {
-  if (isRangeCached(startDate, endDate, cacheEnabled)) {
-    const cached = loadFromCache(startDate, endDate)
+  if (await isRangeCached(startDate, endDate, cacheEnabled)) {
+    const cached = await loadFromCache(startDate, endDate)
     if (cached) {
       return cached
     }
@@ -207,7 +200,7 @@ export async function scrapeNewsletters(startDate, endDate, cacheEnabled = true)
 
   if (data.success) {
     const payloads = buildDailyPayloadsFromScrape(data)
-    const mergedPayloads = cacheEnabled ? mergeWithCache(payloads) : payloads
+    const mergedPayloads = cacheEnabled ? await mergeWithCache(payloads) : payloads
 
     return {
       success: true,
