@@ -51,48 +51,23 @@ All client components now use `useSupabaseStorage` instead of `useLocalStorage` 
 **Build:**
 - Vite build succeeded in 1.16s
 - No TypeScript/ESLint errors
-- Bundle sizes:
-  - index.html: 0.84 kB
-  - CSS: 10.11 kB
-  - vendor.js: 74.04 kB
-  - index.js: 199.13 kB
+- Bundle: index.js (199.13 kB), vendor.js (74.04 kB), CSS (10.11 kB)
 
 **Server:**
 - Flask backend running on port 5001
-- Storage API endpoints responding correctly:
-  - GET/POST `/api/storage/setting/cache:enabled` - working
-  - Settings read/write operations verified
+- Storage API endpoints responding correctly
+- Settings read/write operations verified
 
-**Key Behavior Changes:**
-- All storage operations now async (buttons show disabled state during saves)
-- Article sorting now uses pre-fetched states (async-safe)
-- Storage change events use new event name: `'supabase-storage-change'`
-- Loading indicators show during async operations
+**Behavior Changes:**
+- All storage operations now async with loading states
+- Article sorting uses pre-fetched states from async storage
+- Storage change events use `'supabase-storage-change'` event name
+- Buttons disabled during async operations
 
-**Migration Complete:**
-All components now use Supabase storage instead of localStorage. The architecture flow is:
-
-```
-User Action → Component → Hook (useArticleState/useSummary)
-  → useSupabaseStorage → Flask API → Supabase Database
-```
+**Architecture:**
+- User Action → Component → Hook → useSupabaseStorage → Flask API → Supabase Database
+- No localStorage usage for newsletter data
 
 ## Ready for Phase 6
 
-All components migrated. Ready for comprehensive end-to-end testing per Phase 6 test plan.
-
-**Manual Testing Checklist:**
-- Cache toggle works (checkbox enables/disables)
-- Newsletter scraping (cache hit/miss scenarios)
-- Mark article as read (visual changes + sorting)
-- Remove/restore articles (visual changes + sorting)
-- Generate TLDR (loading state + inline display)
-- Hide/show TLDR (visual changes + sorting)
-- Article sorting (4 states: unread → read → tldrHidden → removed)
-- Page refresh (all states persist)
-- Error handling (network failures)
-
-**Known Limitations:**
-- Automated browser testing blocked by environment constraints (documented in MANUAL_BROWSER_TESTING.md)
-- Manual testing required for UI/UX verification
-- Loading states may cause brief flickers during storage operations (acceptable tradeoff for correctness)
+Components migrated to Supabase storage. Manual testing required for full user flow verification.
