@@ -1,4 +1,4 @@
-import { useLocalStorage } from '../hooks/useLocalStorage'
+import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import ArticleList from './ArticleList'
 import './ResultsDisplay.css'
@@ -42,7 +42,7 @@ function ResultsDisplay({ results }) {
 }
 
 function DailyResults({ payload }) {
-  const [livePayload] = useLocalStorage(
+  const [livePayload, , , { loading }] = useSupabaseStorage(
     getNewsletterScrapeKey(payload.date),
     payload
   )
@@ -58,6 +58,7 @@ function DailyResults({ payload }) {
     <div className="date-group">
       <div className="date-header-container" data-date={date}>
         <h2>{date}</h2>
+        {loading && <span className="loading-indicator"> (loading...)</span>}
       </div>
 
       {issues.map((issue) => (

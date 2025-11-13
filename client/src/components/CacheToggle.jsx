@@ -1,8 +1,8 @@
-import { useLocalStorage } from '../hooks/useLocalStorage'
+import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 import './CacheToggle.css'
 
 function CacheToggle() {
-  const [enabled, setEnabled] = useLocalStorage('cache:enabled', true)
+  const [enabled, setEnabled, , { loading }] = useSupabaseStorage('cache:enabled', true)
 
   return (
     <div className="cache-toggle-container" data-testid="cache-toggle-container">
@@ -14,6 +14,7 @@ function CacheToggle() {
           data-testid="cache-toggle-input"
           aria-label="Enable cache"
           checked={enabled}
+          disabled={loading}
           onChange={(e) => setEnabled(e.target.checked)}
         />
         <span className="cache-toggle-checkbox" data-testid="cache-toggle-switch" />
