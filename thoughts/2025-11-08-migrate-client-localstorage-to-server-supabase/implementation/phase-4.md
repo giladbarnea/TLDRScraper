@@ -9,11 +9,13 @@ last-updated: 2025-11-13 05:17, 68effb7
 - Updated `client/src/lib/scraper.js` to replace all localStorage calls with storageApi
 - Made `isRangeCached`, `loadFromCache`, and `mergeWithCache` async
 - Added await to storage calls in `scrapeNewsletters`
+- Updated `client/src/App.jsx` to handle async `loadFromCache` call
 
 **Changes:**
 - `isRangeCached()`: Uses `storageApi.isDateCached()` instead of `localStorage.getItem()`
 - `loadFromCache()`: Uses `storageApi.getDailyPayloadsRange()` instead of iterating dates
 - `mergeWithCache()`: Uses `storageApi.getDailyPayload()` and `setDailyPayload()` instead of localStorage
+- `App.jsx`: Changed to await async `loadFromCache()` with `.then()/.catch()`
 - User state (read, removed, tldrHidden, tldr) preserved during merge operations
 
 ## Verification Results
