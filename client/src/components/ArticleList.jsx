@@ -1,55 +1,64 @@
 import { useMemo, useState, useEffect } from 'react'
 import ArticleCard from './ArticleCard'
-import { getNewsletterScrapeKey } from '../lib/storageKeys'
+import * as storageApi from '../lib/storageApi'
 import './ArticleList.css'
 
 function ArticleList({ articles }) {
   const [storageVersion, setStorageVersion] = useState(0)
+  const [articleStates, setArticleStates] = useState({})
 
   useEffect(() => {
     const handleStorageChange = () => {
       setStorageVersion(v => v + 1)
     }
 
-    window.addEventListener('local-storage-change', handleStorageChange)
-    return () => window.removeEventListener('local-storage-change', handleStorageChange)
+    window.addEventListener('supabase-storage-change', handleStorageChange)
+    return () => window.removeEventListener('supabase-storage-change', handleStorageChange)
   }, [])
 
-  const getArticleState = (article) => {
-    const storageKey = getNewsletterScrapeKey(article.issueDate)
-    try {
-      const raw = localStorage.getItem(storageKey)
-      if (raw) {
-        const payload = JSON.parse(raw)
-        const liveArticle = payload.articles?.find(a => a.url === article.url)
-        if (liveArticle) {
-          if (liveArticle.removed) return 3
-          if (liveArticle.tldrHidden) return 2
-          if (liveArticle.read?.isRead) return 1
-          return 0
+  useEffect(() => {
+    async function loadStates() {
+      const states = {}
+
+      for (const article of articles) {
+        const payload = await storageApi.getDailyPayload(article.issueDate)
+        if (payload) {
+          const liveArticle = payload.articles?.find(a => a.url === article.url)
+          if (liveArticle) {
+            if (liveArticle.removed) states[article.url] = 3
+            else if (liveArticle.tldrHidden) states[article.url] = 2
+            else if (liveArticle.read?.isRead) states[article.url] = 1
+            else states[article.url] = 0
+          } else {
+            if (article.removed) states[article.url] = 3
+            else if (article.tldrHidden) states[article.url] = 2
+            else if (article.read?.isRead) states[article.url] = 1
+            else states[article.url] = 0
+          }
+        } else {
+          if (article.removed) states[article.url] = 3
+          else if (article.tldrHidden) states[article.url] = 2
+          else if (article.read?.isRead) states[article.url] = 1
+          else states[article.url] = 0
         }
       }
-    } catch (err) {
-      console.error('Failed to read from localStorage:', err)
+
+      setArticleStates(states)
     }
 
-    if (article.removed) return 3
-    if (article.tldrHidden) return 2
-    if (article.read?.isRead) return 1
-    return 0
-  }
+    loadStates()
+  }, [articles, storageVersion])
 
   const sortedArticles = useMemo(() => {
-    storageVersion
     return [...articles].sort((a, b) => {
-      const stateDiff = getArticleState(a) - getArticleState(b)
-      if (stateDiff !== 0) return stateDiff
+      const stateA = articleStates[a.url] ?? 0
+      const stateB = articleStates[b.url] ?? 0
 
-      const orderA = a.originalOrder ?? 0
-      const orderB = b.originalOrder ?? 0
-      return orderA - orderB
+      if (stateA !== stateB) return stateA - stateB
+
+      return (a.originalOrder ?? 0) - (b.originalOrder ?? 0)
     })
-  }, [articles, storageVersion])
+  }, [articles, articleStates])
 
   const sectionsWithArticles = useMemo(() => {
     const sections = []

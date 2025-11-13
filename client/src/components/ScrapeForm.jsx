@@ -1,12 +1,12 @@
 import { useActionState, useState, useEffect } from 'react'
 import { scrapeNewsletters } from '../lib/scraper'
-import { useLocalStorage } from '../hooks/useLocalStorage'
+import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 import './ScrapeForm.css'
 
 function ScrapeForm({ onResults }) {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [cacheEnabled] = useLocalStorage('cache:enabled', true)
+  const [cacheEnabled] = useSupabaseStorage('cache:enabled', true)
   const [progress, setProgress] = useState(0)
 
   useEffect(() => {
