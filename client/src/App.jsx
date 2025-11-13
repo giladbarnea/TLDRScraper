@@ -16,10 +16,15 @@ function App() {
     const endDate = today.toISOString().split('T')[0]
     const startDate = threeDaysAgo.toISOString().split('T')[0]
 
-    const cached = loadFromCache(startDate, endDate)
-    if (cached) {
-      setResults(cached)
-    }
+    loadFromCache(startDate, endDate)
+      .then(cached => {
+        if (cached) {
+          setResults(cached)
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load cached results:', err)
+      })
   }, [])
 
   return (
