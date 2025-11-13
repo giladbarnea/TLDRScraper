@@ -107,6 +107,11 @@
   text-decoration: underline;
 }
 
+.article-link.loading {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .article-favicon {
   width: 1em;
   height: 1em;

@@ -4,7 +4,7 @@ import { useSummary } from '../hooks/useSummary'
 import './ArticleCard.css'
 
 function ArticleCard({ article, index }) {
-  const { isRead, isRemoved, isTldrHidden, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden } = useArticleState(
+  const { isRead, isRemoved, isTldrHidden, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
   )
@@ -70,7 +70,7 @@ function ArticleCard({ article, index }) {
         <div className="article-content">
           <a
             href={fullUrl}
-            className="article-link"
+            className={`article-link ${stateLoading ? 'loading' : ''}`}
             target="_blank"
             rel="noopener noreferrer"
             data-url={fullUrl}
@@ -93,7 +93,7 @@ function ArticleCard({ article, index }) {
         <div className="article-actions">
           <button
             className={`article-btn tldr-btn ${tldr.isAvailable ? 'loaded' : ''} ${tldr.expanded ? 'expanded' : ''}`}
-            disabled={tldr.loading}
+            disabled={stateLoading || tldr.loading}
             type="button"
             title={tldr.isAvailable ? 'TLDR cached - click to show' : 'Show TLDR'}
             onClick={handleTldrClick}
@@ -105,6 +105,7 @@ function ArticleCard({ article, index }) {
             className="article-btn remove-article-btn"
             type="button"
             title={isRemoved ? 'Restore this article to the list' : 'Remove this article from the list'}
+            disabled={stateLoading}
             onClick={toggleRemove}
           >
             {isRemoved ? 'Restore' : 'Remove'}
