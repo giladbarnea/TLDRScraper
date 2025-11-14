@@ -3,6 +3,11 @@ last-updated: 2025-10-31 18:58, c08559f
 ---
 # Bugs Encountered
 
+## Configuration
+
+### `section_emoji_enabled` field not wired up
+- `newsletter_config.py:NewsletterSourceConfig.section_emoji_enabled` exists but is never accessed. Emoji parsing in `tldr_adapter.py:_parse_markdown_structure()` runs unconditionally regardless of config value.
+
 ## Scraping
 
 ### Failed fetching content
