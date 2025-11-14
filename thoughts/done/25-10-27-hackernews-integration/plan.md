@@ -1,6 +1,6 @@
 ---
-last-updated: 2025-11-04 21:28, 9d2dd25
 status: completed
+last_updated: 2025-11-04 21:28, 9d2dd25
 ---
 # HackerNews Integration Implementation Plan
 

@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-10-31 21:01, 10a0fad
+last_updated: 2025-10-31 21:01, 10a0fad
 ---
 Title: React Compiler v1.0 – React
 
