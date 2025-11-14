@@ -4,7 +4,7 @@
 # This runs before creating a merge commit
 
 SETUP_QUIET=true SETUP_SH_SKIP_MAIN=1 source ./setup.sh
-ensure_eza || {
+ensure_eza --quiet || {
   echo "[$0] ERROR: Failed to install eza, falling back to tree or find" >&2
 }
 
