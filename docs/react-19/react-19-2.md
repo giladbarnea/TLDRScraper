@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-10-31 11:03, 2fad697
+last_updated: 2025-11-14 16:24, 722a1a0
 ---
 Title: React 19.2 – React
 

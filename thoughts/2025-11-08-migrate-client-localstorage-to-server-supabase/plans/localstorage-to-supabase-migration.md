@@ -1,6 +1,6 @@
 ---
 model: opus
-last_updated: 2025-11-11 08:05, 5c4e6be
+last_updated: 2025-11-14 16:24, 722a1a0
 ---
 # localStorage to Supabase Database Migration Plan
 
