@@ -103,6 +103,86 @@ npm run dev
 
 This runs Vite dev server on port 3000 with API proxy to localhost:5001.
 
+#### Testing Client With Playwright
+
+Use Playwright for E2E browser testing of the client. Follow these patterns from `tests/browser-automation/`:
+
+1. **Use this browser configuration:**
+```python
+from playwright.sync_api import sync_playwright
+
+launch_options = {
+    'headless': True,
+    'args': [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--disable-blink-features=AutomationControlled',
+    ]
+}
+
+browser = p.chromium.launch(**launch_options)
+context = browser.new_context(
+    viewport={"width": 1920, "height": 1080},
+    ignore_https_errors=True,
+    bypass_csp=True,
+)
+page = context.new_page()
+```
+
+2. **Take, download and view screenshots yourself to assess visuals.** Save screenshots at every critical point:
+```python
+page.screenshot(path="/tmp/test_before.png")
+# ... perform action ...
+page.screenshot(path="/tmp/test_after.png")
+```
+
+3. **Utilize event monitoring** to capture console logs, errors, and network requests:
+```python
+console_logs = []
+errors = []
+api_requests = []
+
+page.on("console", lambda msg: console_logs.append(f"[{msg.type}] {msg.text}"))
+page.on("pageerror", lambda exc: errors.append(str(exc)))
+page.on("request", lambda req: api_requests.append({
+    "url": req.url,
+    "method": req.method
+}) if "/api/" in req.url else None)
+```
+
+4. **Test real user flows**, not isolated components. Simulate complete journeys:
+```
+Load → Configure settings → Scrape → Interact with articles → Refresh → Verify persistence
+```
+
+5. **Wait intelligently** with appropriate strategies:
+```python
+page.goto(url, wait_until="domcontentloaded")  # Initial load
+page.wait_for_selector(".article-card", timeout=90000)  # Async operations
+page.wait_for_timeout(2000)  # UI stabilization
+```
+
+6. **Leverage CSS classes and data-testid attributes** for state verification:
+```python
+initial_classes = page.locator(".article-card").first.get_attribute("class")
+page.click(".remove-article-btn")
+updated_classes = page.locator(".article-card").first.get_attribute("class")
+
+if "removed" in updated_classes and "removed" not in initial_classes:
+    print("✅ State changed correctly")
+
+# Use data-testid for stable selectors
+cache_enabled = page.is_checked('[data-testid="cache-toggle-input"]')
+```
+
 
 ### `uv` installation and usage
 
