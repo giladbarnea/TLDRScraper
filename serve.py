@@ -3,7 +3,7 @@
 TLDR Newsletter Scraper backend with a proxy.
 """
 
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory
 import logging
 import requests
 import os
