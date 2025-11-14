@@ -7,35 +7,17 @@ last-updated: 2025-11-14 07:42, f8cd215
 
 **End-to-End Testing and Verification:**
 - Created comprehensive automated test suite covering all 12 user flow scenarios
-- Created curl-based API verification script for quick endpoint testing
+- Created Playwright browser automation tests for full-stack UI verification
 - Verified all storage operations work correctly end-to-end
 - Verified frontend builds successfully with no errors
 
 **Test Files Created:**
-1. `tests/test_phase6_e2e.py` - Comprehensive Python integration tests (12 scenarios)
-2. `tests/test_phase6_curl.sh` - Bash script for quick API endpoint verification
-3. `tests/browser-automation/test_phase6_supabase.py` - Phase 6 Playwright browser automation test
+1. `tests/test_phase6_e2e.py` - Comprehensive Python backend API integration tests (12 scenarios)
+2. `tests/browser-automation/test_phase6_supabase.py` - Phase 6 Playwright full-stack browser automation test
 
 ## Verification Results
 
-### Automated Tests (curl)
-
-**API Endpoint Tests:**
-All storage API endpoints verified working:
-- ✅ Settings API: Read/write operations with upsert behavior
-- ✅ Daily Cache API: JSONB payload storage and retrieval
-- ✅ Cache Check API: Existence queries return accurate results
-- ✅ Range Query API: Multiple payloads retrieved in descending date order
-- ✅ Error Handling: Non-existent resources return proper 404 errors
-
-**Command:**
-```bash
-./tests/test_phase6_curl.sh
-```
-
-**Result:** All curl tests passed ✓
-
-### Automated Tests (Python E2E)
+### Backend API Tests (Python E2E)
 
 **All 12 User Flow Scenarios Tested:**
 
