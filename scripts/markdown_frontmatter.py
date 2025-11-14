@@ -8,7 +8,11 @@ import re
 import sys
 from pathlib import Path
 
-import util
+try:
+    import util
+except ModuleNotFoundError:
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    import util
 
 
 def _read_frontmatter(file_path: Path) -> tuple[dict[str, str], str]:
