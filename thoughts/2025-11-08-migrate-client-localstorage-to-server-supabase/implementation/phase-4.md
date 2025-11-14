@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-13 06:02, eac06c6
+last_updated: 2025-11-13 06:02, eac06c6
 ---
 # Phase 4 Complete
 

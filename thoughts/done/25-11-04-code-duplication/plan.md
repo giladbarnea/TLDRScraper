@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-04 21:45, 86afc1c
+last_updated: 2025-11-04 21:45, 86afc1c
 ---
 # Code Duplication Refactoring Plan
 

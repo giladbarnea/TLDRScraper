@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-05 06:23, e90f892
+last_updated: 2025-11-05 06:23, e90f892
 ---
 # Mixed Concerns Refactoring Plan
 
