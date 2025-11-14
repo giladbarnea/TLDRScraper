@@ -26,10 +26,6 @@ def scrape_newsletters(
     )
 
 
-def get_tldr_prompt_template() -> str:
-    return tldr_service.fetch_tldr_prompt_template()
-
-
 def tldr_url(
     url: str,
     *,

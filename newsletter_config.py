@@ -21,12 +21,10 @@ class NewsletterSourceConfig:
 
     # Parsing rules
     article_pattern: str  # Regex to identify articles
-    section_emoji_enabled: bool  # Does this source use emoji sections?
 
     # Display preferences
     category_display_names: dict[str, str]  # {"tech": "TLDR Tech"}
     sort_order: int  # For multi-source ordering (lower = higher priority)
-    color_theme: str | None = None  # UI theming (future enhancement)
 
 
 # Registered newsletter sources
@@ -39,7 +37,6 @@ NEWSLETTER_CONFIGS = {
         types=["tech"],
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern=r"\((\d+)\s+minute\s+read\)|\(GitHub\s+Repo\)",
-        section_emoji_enabled=True,
         category_display_names={"tech": "TLDR Tech"},
         sort_order=2,
     ),
@@ -51,7 +48,6 @@ NEWSLETTER_CONFIGS = {
         types=["ai"],
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern=r"\((\d+)\s+minute\s+read\)|\(GitHub\s+Repo\)",
-        section_emoji_enabled=True,
         category_display_names={"ai": "TLDR AI"},
         sort_order=1,  # AI comes before Tech
     ),
@@ -63,7 +59,6 @@ NEWSLETTER_CONFIGS = {
         types=["top", "ask", "show"],  # Combined in single query via Algolia
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",  # Not used for API-based sources
-        section_emoji_enabled=False,  # HackerNews doesn't have sections
         category_display_names={
             "top": "HN Top",
             "ask": "HN Ask",

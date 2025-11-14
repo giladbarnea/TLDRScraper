@@ -12,38 +12,6 @@ from newsletter_config import NEWSLETTER_CONFIGS
 import util
 
 
-def merge_responses(responses: list[dict]) -> dict:
-    """Merge multiple source responses into single normalized response.
-
-    This function is completely agnostic to source types - it just combines lists
-    and sorts by configured sort_order.
-
-    Args:
-        responses: List of response dictionaries from different adapters
-
-    Returns:
-        Merged response with combined articles and issues
-    """
-    all_articles = []
-    all_issues = []
-
-    for response in responses:
-        all_articles.extend(response.get("articles", []))
-        all_issues.extend(response.get("issues", []))
-
-    # Sort issues by source sort_order (from config)
-    all_issues.sort(
-        key=lambda i: NEWSLETTER_CONFIGS[i["source_id"]].sort_order
-        if i.get("source_id") in NEWSLETTER_CONFIGS
-        else 999
-    )
-
-    return {
-        "articles": all_articles,
-        "issues": all_issues,
-    }
-
-
 def build_markdown_output(
     start_date, end_date, grouped_articles: dict[str, list[dict]], issues_by_key: dict
 ) -> str:
@@ -198,26 +166,3 @@ def build_markdown_output(
                 output += build_article_lines(category_articles)
 
     return output
-
-
-def calculate_stats(articles: list[dict], issues: list[dict]) -> dict:
-    """Calculate statistics from articles and issues.
-
-    Args:
-        articles: List of all articles
-        issues: List of all issues
-
-    Returns:
-        Dictionary with statistics
-    """
-    unique_urls = set(article["url"] for article in articles)
-    dates = set(article["date"] for article in articles)
-
-    return {
-        "total_articles": len(articles),
-        "unique_urls": len(unique_urls),
-        "dates_processed": len(dates),
-        "sources_processed": len(
-            set(issue.get("source_id") for issue in issues if issue.get("source_id"))
-        ),
-    }

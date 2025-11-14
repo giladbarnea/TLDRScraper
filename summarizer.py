@@ -2,7 +2,7 @@ import logging
 import json
 import re
 from requests.models import Response
-from typing import Callable, Optional
+from typing import Optional
 
 import requests
 from curl_cffi import requests as curl_requests
@@ -378,27 +378,6 @@ def _fetch_tldr_prompt(
         ref=ref,
         cache_attr="_TLDR_PROMPT_CACHE",
     )
-
-
-def _insert_markdown_into_template(template: str, markdown: str) -> str:
-    """Insert markdown between <summarize this> tags."""
-    if not template:
-        return f"<summarize this>\n{markdown}\n</summarize this>"
-
-    open_tag = "<summarize this>"
-    close_tag = "</summarize this>"
-
-    open_idx = template.find(open_tag)
-    if open_idx == -1:
-        util.log(
-            "[summarizer] No <summarize this> tag found, appending markdown",
-            level=logging.WARNING,
-            logger=logger,
-        )
-        return f"{template.rstrip()}\n\n{open_tag}\n{markdown}\n{close_tag}\n"
-
-    close_idx = template.find(close_tag, open_idx)
-    return template[:open_idx] + markdown + template[close_idx + len(close_tag) :]
 
 
 def _call_llm(prompt: str, summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT, model: str = DEFAULT_MODEL) -> str:
