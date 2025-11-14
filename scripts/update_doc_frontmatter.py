@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-Update markdown documentation frontmatter with last-updated timestamp and commit hash.
+Update markdown documentation frontmatter with last_updated timestamp and commit hash.
 Runs as part of GitHub Actions workflow on merge operations.
 """
 
-import re
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
+
+import markdown_frontmatter
 
 SKIP_FILES = {
     'PROJECT_STRUCTURE.md',
@@ -63,57 +64,12 @@ def update_frontmatter(file_path: Path, timestamp: str, commit_hash: str) -> boo
     Update the frontmatter of a markdown file.
     Returns True if the file was modified, False otherwise.
     """
-    try:
-        content = file_path.read_text(encoding='utf-8')
-    except Exception as e:
-        print(f"Error reading {file_path}: {e}", file=sys.stderr)
-        return False
+    old_frontmatter = markdown_frontmatter.read(file_path)
+    last_updated_value = f"{timestamp}, {commit_hash}"
 
-    last_updated = f"last-updated: {timestamp}, {commit_hash}"
+    new_frontmatter = markdown_frontmatter.update(file_path, {'last_updated': last_updated_value})
 
-    # Pattern to match existing frontmatter
-    frontmatter_pattern = r'^---\s*\n(.*?)\n---\s*\n'
-
-    match = re.match(frontmatter_pattern, content, re.DOTALL)
-
-    if match:
-        # File has existing frontmatter
-        existing_frontmatter = match.group(1)
-
-        # Check if last-updated field exists
-        if re.search(r'last-updated:', existing_frontmatter):
-            # Update existing last-updated field
-            new_frontmatter = re.sub(
-                r'last-updated:.*',
-                last_updated,
-                existing_frontmatter
-            )
-        else:
-            # Add last-updated field to existing frontmatter
-            new_frontmatter = f"{last_updated}\n{existing_frontmatter}"
-
-        # Replace frontmatter
-        new_content = re.sub(
-            frontmatter_pattern,
-            f"---\n{new_frontmatter}\n---\n",
-            content,
-            count=1,
-            flags=re.DOTALL
-        )
-    else:
-        # No frontmatter exists, create new one
-        new_content = f"---\n{last_updated}\n---\n\n{content}"
-
-    # Only write if content changed
-    if new_content != content:
-        try:
-            file_path.write_text(new_content, encoding='utf-8')
-            return True
-        except Exception as e:
-            print(f"Error writing {file_path}: {e}", file=sys.stderr)
-            return False
-
-    return False
+    return new_frontmatter.get('last_updated') != old_frontmatter.get('last_updated')
 
 
 def main():

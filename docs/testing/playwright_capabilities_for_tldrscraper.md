@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-05 17:47, 8ed924b
+last_updated: 2025-11-05 17:47, 8ed924b
 ---
 # Playwright Capabilities for TLDRScraper Testing
 

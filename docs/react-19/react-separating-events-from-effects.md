@@ -1,7 +1,6 @@
 ---
-last-updated: 2025-10-31 11:03, 2fad697
+last_updated: 2025-10-31 11:03, 2fad697
 ---
-
 Title: Separating Events from Effects – React
 
 URL Source: https://react.dev/learn/separating-events-from-effects
