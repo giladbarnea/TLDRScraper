@@ -386,6 +386,43 @@ function build_client(){
   fi
 }
 
+# read_root_markdown_files [-q,--quiet]
+# Reads all markdown files in the root directory.
+# Adapted from .claude/hooks/SessionStart
+function read_root_markdown_files(){
+  local quiet=false
+  if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+    quiet=true
+  elif [[ "$1" == "--quiet=true" ]]; then
+    quiet=true
+  elif [[ "$1" == "--quiet=false" ]]; then
+    quiet=false
+  fi
+  [[ "$SETUP_QUIET" == "true" ]] && quiet=true
+
+  local workdir="${SERVER_CONTEXT_WORKDIR}"
+  if [[ -z "$workdir" ]]; then
+    error "read_root_markdown_files: SERVER_CONTEXT_WORKDIR not set"
+    return 1
+  fi
+
+  local -a md_files=()
+  local md_file
+  for md_file in "$workdir"/*.md; do
+    if [[ -f "$md_file" ]]; then
+      md_files+=("$(basename "$md_file")")
+    fi
+  done
+
+  if [[ ${#md_files[@]} -eq 0 ]]; then
+    [[ "$quiet" == false ]] && message "[$0] No markdown files found in $workdir"
+    return 0
+  fi
+
+  [[ "$quiet" == false ]] && message "[$0] Found ${#md_files[@]} markdown files in root: ${md_files[*]}"
+  return 0
+}
+
 # main [-q,-quiet]
 # Idempotent environment and dependencies setup, installation, and verification.
 function main() {
@@ -422,6 +459,7 @@ function main() {
   fi
 
   message "[$0] Working directory: $workdir"
+  read_root_markdown_files --quiet="$quiet"
   mkdir -p "$run_dir"
 
 
