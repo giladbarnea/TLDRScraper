@@ -25,7 +25,7 @@ The single source of truth for what is available locally is the output of:
 env | grep -E -o '^[A-Z_]+' | grep -e TLDR -e TOKEN -e API -e KEY | sort -u  # Should print the names of all environment variables without values on a need-to-know basis.
 ```
 
-**Run `source ./setup.sh` first thing up load and verify your environment.**
+**Run `source ./setup.sh` first thing to load and verify your environment.**
 
 ### Expected Environment Variables for AI Agents **besides Cursor Background Agents** (for Claude, Codex, etc.)
 
@@ -86,13 +86,12 @@ kill_server_and_watchdog
 
 ## Client setup
 
+Builds client:
 ```bash
-cd client
-npm install
-npm run build
+source setup.sh
 ```
 
-### Frontend development mode
+### Frontend development
 
 For frontend development with hot reload:
 
@@ -102,6 +101,41 @@ npm run dev
 ```
 
 This runs Vite dev server on port 3000 with API proxy to localhost:5001.
+
+#### Testing Client With Playwright
+
+1. Use this browser configuration:
+```python
+launch_options = {
+    'headless': True,
+    'args': [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--disable-blink-features=AutomationControlled',
+    ]
+}
+browser = p.chromium.launch(**launch_options)
+context = browser.new_context(
+    viewport={"width": 1920, "height": 1080},
+    ignore_https_errors=True,
+    bypass_csp=True,
+)
+page = context.new_page()
+```
+
+2. Take, download and view screenshots yourself to assess visuals
+3. Utilize event monitoring (on console, request, pageerror, ...)
+4. Lean on testing real user flows
+5. Wait intelligently
+6. Leverage CSS classes as distinguishers
 
 
 ### `uv` installation and usage
@@ -128,20 +162,11 @@ dep1.do(os.environ["MY_API_KEY"])
 PY
 ```
 
-## YOU MUST **FULLY** READ **ALL MARKDOWN FILES IN THE ROOT DIRECTORY** BEFORE DOING ANYTHING ELSE.
-
-The markdown docs at the project's root contain crucial information. Read them fully. Studying and internalizing them is essential for you to complete a task successfully and efficiently.
-
-This includes, but is not limited to:
-1. PROJECT_STRUCTURE.md
-2. ARCHITECTURE.md
-3. GOTCHAS.md
-
 ## Practical guidance
 
 - Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables. 
 - **Run `source ./setup.sh` to verify the environment and dependencies are set up correctly. After sourcing it, use `start_server_and_watchdog` and `print_server_and_watchdog_pids` to confirm the local server is running. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/tldr-url`) throughout the development process to catch regressions early. Use `kill_server_and_watchdog` for cleanup.**
-- Verify every new behavior, fix or modification you make by utilizing your shell. If possible, execute the modified flow to ensure nothing is broken.
+- Verify every new behavior, fix or modification you make by utilizing your shell and Playwright. If possible, execute the modified flow to ensure nothing is broken.
 
 
 ## Development Conventions
