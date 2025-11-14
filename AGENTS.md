@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-04 18:25, a09cad3
+last-updated: 2025-11-14 08:46, d08f6f0
 ---
 # Agents Guide
 
