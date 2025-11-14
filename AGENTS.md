@@ -10,10 +10,10 @@ Newsletter aggregator that scrapes tech newsletters from multiple sources, displ
 - Stack:
    * Python: Flask backend, serverless on Vercel
    * React 19 + Vite (frontend) (in `client/`)
-   * Client-side localStorage for all caching
+   * Supabase PostgreSQL for all data persistence
    * OpenAI GPT-5 for TLDRs
-- Storage: Project uses browser localStorage for all caching (newsletters, URL content, LLM TLDRs, scrape results). All data persistence happens in the browser.
-- Cache mechanism: localStorage keys follow deterministic patterns based on content and dates. 
+- Storage: Project uses Supabase Database (PostgreSQL) for all data persistence (newsletters, article states, settings, scrape results). Data is stored server-side with client hooks managing async operations.
+- Cache mechanism: Server-side storage with cache-first scraping behavior. Daily payloads stored as JSONB in PostgreSQL. 
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
 
