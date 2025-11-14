@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-11-06 09:08, 285620a
+last_updated: 2025-11-14 16:24, 722a1a0
 ---
 # Overcoming Sandboxed Playwright Limitations
 
