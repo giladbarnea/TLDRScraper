@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-14 08:06, 2b1dea7
+last_updated: 2025-11-14 08:06, 2b1dea7
 ---
 # Phase 6 Complete
 

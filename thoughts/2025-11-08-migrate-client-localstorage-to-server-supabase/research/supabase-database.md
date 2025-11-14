@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-09 05:22, db510db
+last_updated: 2025-11-09 05:22, db510db
 ---
 # Supabase Database Reference Guide
 

@@ -1,7 +1,6 @@
 ---
-last-updated: 2025-10-25 11:39, 07fa74e
+last_updated: 2025-10-25 11:39, 07fa74e
 ---
-
 # Ralph
 
 **Article by Geoffrey Huntley**
