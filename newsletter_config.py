@@ -26,7 +26,6 @@ class NewsletterSourceConfig:
     # Display preferences
     category_display_names: dict[str, str]  # {"tech": "TLDR Tech"}
     sort_order: int  # For multi-source ordering (lower = higher priority)
-    color_theme: str | None = None  # UI theming (future enhancement)
 
 
 # Registered newsletter sources

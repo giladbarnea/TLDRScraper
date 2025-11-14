@@ -3,6 +3,10 @@ last-updated: 2025-10-31 18:58, c08559f
 ---
 # Bugs Encountered
 
+## Configuration
+
+- [ ] `section_emoji_enabled` config field never checked. Emoji parsing always active in tldr_adapter.py:_parse_markdown_structure()
+
 ## Scraping
 
 ### Failed fetching content
