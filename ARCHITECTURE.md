@@ -489,6 +489,7 @@ User clicks "Scrape Newsletters"
        │              │                             │         │    ├─ Build URL: f"https://tldr.tech/{newsletter_type}/archives/{date}"
        │              │                             │         │    ├─ HTTP GET request
        │              │                             │         │    ├─ Parse HTML for articles
+       │              │                             │         │    ├─ Extract metadata from titles: "(N minute read)" or "(GitHub Repo)" → article_meta field
        │              │                             │         │    ├─ Filter out excluded URLs
        │              │                             │         │    │
        │              │                             │         │    └─ Return { articles: [...], issues: [...] }
@@ -500,6 +501,7 @@ User clicks "Scrape Newsletters"
        │              │                             │              ├─ Calculate leading scores: (2 × upvotes) + comments
        │              │                             │              ├─ Sort by leading score descending
        │              │                             │              ├─ Convert top stories to articles
+       │              │                             │              ├─ Extract metadata: "N upvotes, K comments" → article_meta field
        │              │                             │              │
        │              │                             │              └─ Return { articles: [...], issues: [] }
        │              │                             │
@@ -673,6 +675,7 @@ User clicks "TLDR" button
 {
   url: string,               // Canonical URL (unique identifier)
   title: string,
+  articleMeta: string,       // Metadata extracted from source (e.g., "158 upvotes, 57 comments" or "5 minute read")
   issueDate: string,         // "2024-01-01"
   category: string,          // "TLDR Tech", "HackerNews", etc.
   sourceId: string,          // "tldr_tech", "hackernews"
