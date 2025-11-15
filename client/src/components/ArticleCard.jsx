@@ -86,7 +86,9 @@ function ArticleCard({ article, index }) {
                 onError={(e) => e.target.style.display = 'none'}
               />
             )}
-            <span className="article-link-text">{article.title}</span>
+            <span className="article-link-text">
+              {article.title}{article.articleMeta ? ` (${article.articleMeta})` : ''}
+            </span>
           </a>
         </div>
 
