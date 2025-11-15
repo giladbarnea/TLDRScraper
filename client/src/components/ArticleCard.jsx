@@ -36,6 +36,18 @@ function ArticleCard({ article, index }) {
     }
   }, [fullUrl])
 
+  const displayTitle = useMemo(() => {
+    if (!isRemoved) return article.title
+    const openParenIndex = article.title.indexOf('(')
+    return openParenIndex !== -1 ? article.title.slice(0, openParenIndex).trim() : article.title
+  }, [article.title, isRemoved])
+
+  const handleCardClick = () => {
+    if (isRemoved) {
+      toggleRemove()
+    }
+  }
+
   const handleLinkClick = (e) => {
     if (isRemoved) return
     if (e.ctrlKey || e.metaKey) return
@@ -63,7 +75,7 @@ function ArticleCard({ article, index }) {
   }
 
   return (
-    <div className={cardClasses} data-original-order={index}>
+    <div className={cardClasses} data-original-order={index} onClick={handleCardClick}>
       <div className="article-header">
         <div className="article-number">{index + 1}</div>
 
@@ -86,31 +98,33 @@ function ArticleCard({ article, index }) {
                 onError={(e) => e.target.style.display = 'none'}
               />
             )}
-            <span className="article-link-text">{article.title}</span>
+            <span className="article-link-text">{displayTitle}</span>
           </a>
         </div>
 
-        <div className="article-actions">
-          <button
-            className={`article-btn tldr-btn ${tldr.isAvailable ? 'loaded' : ''} ${tldr.expanded ? 'expanded' : ''}`}
-            disabled={stateLoading || tldr.loading}
-            type="button"
-            title={tldr.isAvailable ? 'TLDR cached - click to show' : 'Show TLDR'}
-            onClick={handleTldrClick}
-          >
-            {tldr.buttonLabel}
-          </button>
+        {!isRemoved && (
+          <div className="article-actions">
+            <button
+              className={`article-btn tldr-btn ${tldr.isAvailable ? 'loaded' : ''} ${tldr.expanded ? 'expanded' : ''}`}
+              disabled={stateLoading || tldr.loading}
+              type="button"
+              title={tldr.isAvailable ? 'TLDR cached - click to show' : 'Show TLDR'}
+              onClick={handleTldrClick}
+            >
+              {tldr.buttonLabel}
+            </button>
 
-          <button
-            className="article-btn remove-article-btn"
-            type="button"
-            title={isRemoved ? 'Restore this article to the list' : 'Remove this article from the list'}
-            disabled={stateLoading}
-            onClick={toggleRemove}
-          >
-            {isRemoved ? 'Restore' : 'Remove'}
-          </button>
-        </div>
+            <button
+              className="article-btn remove-article-btn"
+              type="button"
+              title="Remove this article from the list"
+              disabled={stateLoading}
+              onClick={toggleRemove}
+            >
+              Remove
+            </button>
+          </div>
+        )}
       </div>
 
       {tldr.expanded && tldr.html && (
