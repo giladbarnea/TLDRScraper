@@ -47,13 +47,6 @@ export function useSummary(date, url, type = 'tldr') {
     setLoading(true)
     setEffort(summaryEffort)
 
-    updateArticle((current) => ({
-      [type]: {
-        ...(current[type] || {}),
-        status: 'creating'
-      }
-    }))
-
     const endpoint = '/api/tldr-url'
 
     try {
