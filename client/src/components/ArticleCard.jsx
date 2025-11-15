@@ -63,7 +63,7 @@ function ArticleCard({ article, index }) {
   }
 
   return (
-    <div className={cardClasses} data-original-order={index}>
+    <div className={cardClasses} data-original-order={index} onClick={isRemoved ? toggleRemove : undefined}>
       <div className="article-header">
         <div className="article-number">{index + 1}</div>
 
@@ -87,7 +87,7 @@ function ArticleCard({ article, index }) {
               />
             )}
             <span className="article-link-text">
-              {article.title}{article.articleMeta ? ` (${article.articleMeta})` : ''}
+              {article.title}{!isRemoved && article.articleMeta ? ` (${article.articleMeta})` : ''}
             </span>
           </a>
         </div>
