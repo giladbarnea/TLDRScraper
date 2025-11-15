@@ -275,7 +275,7 @@ function uv_sync(){
     local uv_sync_output
     if uv_sync_output=$(uv sync -p 3.11 2>&1); then
         [[ "$quiet" == false ]] && message "[$0] Successfully ran uv sync. Use 'uv run python3 ...' to run Python."
-        uv run --with=playwright playwright install chromium # Install browser
+        uv run --with=playwright playwright install chromium 1>/dev/null # Install browser
         return $?
     else
         error "[$0] failed to uv sync. Output:"
