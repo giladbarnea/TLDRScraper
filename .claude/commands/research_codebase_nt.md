@@ -2,6 +2,7 @@
 last-updated: 2025-11-10 21:29, 96a5633
 description: Document codebase as-is without evaluation or recommendations
 model: sonnet
+last_updated: 2025-11-15 21:12, b3538e1
 ---
 # Research Codebase
 
