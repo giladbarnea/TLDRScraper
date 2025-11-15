@@ -25,7 +25,7 @@ The single source of truth for what is available locally is the output of:
 env | grep -E -o '^[A-Z_]+' | grep -e TLDR -e TOKEN -e API -e KEY | sort -u  # Should print the names of all environment variables without values on a need-to-know basis.
 ```
 
-**Run `source ./setup.sh` first thing to load and verify your environment.**
+**Run `source ./setup.sh` first thing to install all server and client dependencies and tooling, build the client, verify your environment and provide you with convenience functions and crucial context for the project.**
 
 ### Expected Environment Variables for AI Agents **besides Cursor Background Agents** (for Claude, Codex, etc.)
 
@@ -38,28 +38,6 @@ env | grep -E -o '^[A-Z_]+' | grep -e TLDR -e TOKEN -e API -e KEY | sort -u  # S
 - SUPABASE_URL
 
 This is true both for local and production environments.
-
-### Expected Environment Variables for AI Agents **only for Cursor Background Agents** (for Cursor)
-
-- **Local:** All environment variables are prefixed with `TLDR_SCRAPER_`. To be explicit:
-
-- TLDR_SCRAPER_FIRECRAWL_API_KEY
-- TLDR_SCRAPER_GITHUB_API_TOKEN
-- TLDR_SCRAPER_OPENAI_API_KEY
-- TLDR_SCRAPER_SUPABASE_API_KEY
-- TLDR_SCRAPER_SUPABASE_DATABASE_PASSWORD
-- TLDR_SCRAPER_SUPABASE_SERVICE_KEY
-- TLDR_SCRAPER_SUPABASE_URL
-
-- **Production:** All environment variables are unprefixed. To be explicit:
-- FIRECRAWL_API_KEY
-- GITHUB_API_TOKEN
-- OPENAI_API_KEY
-- SUPABASE_API_KEY
-- SUPABASE_DATABASE_PASSWORD
-- SUPABASE_SERVICE_KEY
-- SUPABASE_URL
-
 
 ## Development & Setup
 
@@ -165,7 +143,7 @@ PY
 ## Practical guidance
 
 - Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables. 
-- **Run `source ./setup.sh` to verify the environment and dependencies are set up correctly. After sourcing it, use `start_server_and_watchdog` and `print_server_and_watchdog_pids` to confirm the local server is running. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/tldr-url`) throughout the development process to catch regressions early. Use `kill_server_and_watchdog` for cleanup.**
+- Run `source ./setup.sh` to verify the environment and dependencies are set up correctly. After sourcing it, use `start_server_and_watchdog` and `print_server_and_watchdog_pids` to confirm the local server is running. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/tldr-url`) throughout the development process to catch regressions early. Use `kill_server_and_watchdog` for cleanup.
 - Verify every new behavior, fix or modification you make by utilizing your shell and Playwright. If possible, execute the modified flow to ensure nothing is broken.
 
 
