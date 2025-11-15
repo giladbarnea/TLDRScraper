@@ -95,6 +95,7 @@ function buildDailyPayloadsFromScrape(data) {
       const articleData = {
         url: article.url,
         title: article.title || article.url,
+        articleMeta: article.article_meta || "",
         issueDate: date,
         category: article.category || 'Newsletter',
         sourceId: article.source_id || null,
