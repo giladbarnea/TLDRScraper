@@ -471,34 +471,26 @@ function main() {
   fi
 
   message "[$0] Working directory: $workdir"
-  [[ "$quiet" == false ]] && read_root_markdown_files --quiet="$quiet"
-  mkdir -p "$run_dir"
 
+
+  #region ----[ Install & Build Dependencies ]----
+  
+  mkdir -p "$run_dir"
 
   [[ "$quiet" == false ]] && message "[$0] Ensuring dependencies..."
   local ensure_uv_success=true uv_sync_success=true ensure_gh_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
-  if [[ ! "${GITHUB_ACTIONS:-}" ]]; then
-    ensure_gh --quiet="$quiet" || ensure_gh_success=false
-    ensure_wrap_gh
-  fi
+  uv run --with=playwright playwright install chromium 1>/dev/null # Install browser
+  
+  # if [[ ! "${GITHUB_ACTIONS:-}" ]]; then
+  #   ensure_gh --quiet="$quiet" || ensure_gh_success=false
+  #   ensure_wrap_gh
+  # fi
 
   if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_gh_success"; then
     error "[$0] Failed to install dependencies. Please check the output above."
     return 1
-  fi
-  
-  [[ "$quiet" == false ]] && message "[$0] Configuring git hooks..."
-  if [[ -d "$workdir/.githooks" ]]; then
-    if git config core.hooksPath .githooks; then
-      [[ "$quiet" == false ]] && message "[$0] Git hooks configured to use .githooks directory"
-      if [[ -x "$workdir/.githooks/pre-merge-commit" ]]; then
-        [[ "$quiet" == false ]] && message "[$0] Running pre-merge-commit hook to generate PROJECT_STRUCTURE.md..."
-        (builtin cd "$workdir" && ./.githooks/pre-merge-commit)
-        [[ "$quiet" == false && -f PROJECT_STRUCTURE.md ]] && message "[$0] Generated PROJECT_STRUCTURE.md via git hook"
-      fi
-    fi
   fi
   
   [[ "$quiet" == false ]] && message "[$0] Installing and building client dependencies..."
@@ -507,6 +499,27 @@ function main() {
     return 1
   fi
   
+  #region ----[ Prepare & Print Docs ]----
+  
+  [[ "$quiet" == false ]] && message "[$0] Configuring git hooks..."
+  if [[ -d "$workdir/.githooks" ]]; then
+    if git config core.hooksPath .githooks; then
+      [[ "$quiet" == false ]] && message "[$0] Git hooks configured to use .githooks directory"
+      
+      
+      if [[ -x "$workdir/.githooks/pre-merge-commit" ]]; then
+        [[ "$quiet" == false ]] && message "[$0] Running pre-merge-commit hook to generate PROJECT_STRUCTURE.md..."
+        (builtin cd "$workdir" && ./.githooks/pre-merge-commit)
+        [[ "$quiet" == false && -f PROJECT_STRUCTURE.md ]] && message "[$0] Generated PROJECT_STRUCTURE.md via git hook"
+      fi
+    fi
+  fi
+  
+  [[ "$quiet" == false ]] && read_root_markdown_files --quiet="$quiet"
+  
+  
+  #region ----[ Env Vars Validation ]----
+    
   [[ "$quiet" == false ]] && message "[$0] Checking for required environment variables..."
   if [[ -f "$workdir/.env" ]]; then
       local line
