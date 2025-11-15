@@ -1,10 +1,12 @@
 ---
 last-updated: 2025-11-10 21:29, 96a5633
-description: Implement technical plans from thoughts/{date-ticket}/plans/ with verification
+description: Implement technical plans from ${arg1} with verification
+model: sonnet
+argument-hint: plan_file_path
 ---
 # Implement Plan
 
-You are tasked with implementing an approved technical plan from `thoughts/{date-ticket}/plans/`. These plans contain phases with specific changes and success criteria.
+You are tasked with implementing an approved technical plan from $1. These plans contain phases with specific changes and success criteria.
 
 ## Getting Started
 
@@ -43,7 +45,7 @@ If you encounter a mismatch:
 ## Verification Approach
 
 After implementing a phase:
-- Run the success criteria checks (usually `make check test` covers everything)
+- Run the success criteria checks if they are provided
 - Fix any issues before proceeding
 - Update your progress in both the plan and your todos
 - Check off completed items in the plan file itself using Edit

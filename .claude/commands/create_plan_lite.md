@@ -1,6 +1,8 @@
 ---
 last-updated: 2025-11-10 21:29, 96a5633
 description: Create detailed implementation plans with thorough research and iteration
+model: sonnet
+argument-hint: [optional_requirements_file_path_and_additional_instructions]
 ---
 # Implementation Plan
 
