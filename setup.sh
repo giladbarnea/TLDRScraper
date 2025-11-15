@@ -399,7 +399,6 @@ function read_root_markdown_files(){
     quiet=false
   fi
   [[ "$SETUP_QUIET" == "true" ]] && quiet=true
-  [[ "$quiet" == true ]] && return 0
 
   local workdir="${SERVER_CONTEXT_WORKDIR}"
   if [[ -z "$workdir" ]]; then
@@ -416,11 +415,22 @@ function read_root_markdown_files(){
   done
 
   if [[ ${#md_files[@]} -eq 0 ]]; then
-    message "[$0] No markdown files found in $workdir"
+    [[ "$quiet" == false ]] && message "[$0] No markdown files found in $workdir"
     return 0
   fi
 
-  message "[$0] Found ${#md_files[@]} markdown files in root: ${md_files[*]}"
+  if [[ "$quiet" == false ]]; then
+    message "[$0] Found ${#md_files[@]} markdown files in root:"
+    for md_file in "$workdir"/*.md; do
+      if [[ -f "$md_file" ]]; then
+        local filename=$(basename "$md_file")
+        echo "<$filename>"
+        cat "$md_file"
+        echo "</$filename>"
+        echo
+      fi
+    done
+  fi
   return 0
 }
 
