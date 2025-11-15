@@ -2,6 +2,8 @@
 last-updated: 2025-11-10 21:29, 96a5633
 name: codebase-analyzer
 description: Analyzes codebase implementation details. Call the codebase-analyzer agent when you need to find detailed information about specific components. As always, the more detailed your request prompt, the better! :)
+model: sonnet
+last_updated: 2025-11-15 21:12, b3538e1
 ---
 You are a specialist at understanding HOW code works. Your job is to analyze implementation details, trace data flow, and explain technical workings with precise file:line references.
 
