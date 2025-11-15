@@ -274,7 +274,7 @@ function uv_sync(){
     [[ "$quiet" == false ]] && message "[$0] Running naive silent 'uv sync'"
     local uv_sync_output
     if uv_sync_output=$(uv sync -p 3.11 2>&1); then
-        [[ "$quiet" == false ]] && message "[$0] Successfully ran uv sync. Use 'uv run python3 ...' to run Python."
+        [[ "$quiet" == false ]] && message "[$0] Successfully ran uv sync. Use 'uv run --env-file=.env python3 ...' to run Python."
         return 0
     else
         error "[$0] failed to uv sync. Output:"
@@ -474,6 +474,8 @@ function main() {
   mkdir -p "$run_dir"
 
 
+  ensure_local_bin_path --quiet="$quiet"
+  
   [[ "$quiet" == false ]] && message "[$0] Ensuring dependencies..."
   local ensure_uv_success=true uv_sync_success=true ensure_gh_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
@@ -611,7 +613,7 @@ function start_server_and_watchdog() {
   # Start the server in the background and write the PID to $server_pid_file.
   (
     builtin cd "$workdir"
-    PORT="$port" uv run python3.11 "$workdir/serve.py" >> "$log_file" 2>&1 &
+    PORT="$port" uv run --env-file=.env python3.11 "$workdir/serve.py" >> "$log_file" 2>&1 &
     echo $! > "$server_pid_file"
     wait
   ) &
@@ -636,7 +638,7 @@ function start_server_and_watchdog() {
   message "[$0] Server started with PID $server_pid"
   sleep 1
   local watchdog_command="builtin cd \"$workdir\" && SETUP_SH_SKIP_MAIN=1 source \"$workdir/setup.sh\" && watchdog --workdir=\"$workdir\" --run-dir=\"$run_dir\" --log-file=\"$log_file\" --pid-file=\"$server_pid_file\" --watchdog-pid-file=\"$watchdog_pid_file\" --check-interval=\"$check_interval\" --port=\"$port\""
-  nohup bash -lc "$watchdog_command" >> "$log_file" 2>&1 &
+  nohup "$SHELL" -ic "$watchdog_command" >> "$log_file" 2>&1 &
   echo $! > "$watchdog_pid_file"
   message "[$0] Watchdog started with PID $(cat "$watchdog_pid_file")"
 }
@@ -682,7 +684,7 @@ function print_server_and_watchdog_pids() {
   main --quiet "$@"
   if [[ -f "$server_pid_file" ]]; then
     message "[$0] Server PID: $(cat "$server_pid_file")"
-    ps -o pid,cmd -p "$(cat "$server_pid_file")" || true
+    ps -o pid,command -p "$(cat "$server_pid_file")" || true
   else
     error "[$0] Server PID file not found at $server_pid_file"
   fi
