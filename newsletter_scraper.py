@@ -44,6 +44,7 @@ def _normalize_article_payload(article: dict) -> dict:
     payload = {
         "url": article["url"],
         "title": article["title"],
+        "article_meta": article.get("article_meta", ""),
         "date": article["date"],
         "category": article["category"],
         "removed": bool(article.get("removed", False)),
