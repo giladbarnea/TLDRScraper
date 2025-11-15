@@ -242,8 +242,16 @@ class TLDRAdapter(NewsletterAdapter):
             cleaned_title = re.sub(r"^#+\s*", "", cleaned_title)
             cleaned_title = re.sub(r"^\s*\d+\.\s*", "", cleaned_title)
 
+            meta_match = re.search(r"\s*\((\d+)\s+minutes?\s+read\)|\s*\(GitHub\s+Repo\)", cleaned_title, re.IGNORECASE)
+            if meta_match:
+                article_meta = meta_match.group(0).strip()
+                cleaned_title = cleaned_title[:meta_match.start()].strip()
+            else:
+                article_meta = ""
+
             article = {
                 "title": cleaned_title,
+                "article_meta": article_meta,
                 "url": candidate["url"].strip(),
                 "category": category,
                 "date": util.format_date_for_url(date),

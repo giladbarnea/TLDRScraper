@@ -229,14 +229,14 @@ class HackerNewsAdapter(NewsletterAdapter):
         if story_type and story_type in self.config.category_display_names:
             category = self.config.category_display_names[story_type]
 
-        # Format title with upvote and comment counts
         base_title = story.get('title', f"HN Story {story.get('objectID', '')}")
         points = story.get('points', 0)
         comments = story.get('num_comments', 0)
-        formatted_title = f"{base_title} ({points} upvotes, {comments} comments)"
+        article_meta = f"{points} upvotes, {comments} comments"
 
         return {
-            "title": formatted_title,
+            "title": base_title,
+            "article_meta": article_meta,
             "url": story['url'],
             "category": category,
             "date": util.format_date_for_url(date),
