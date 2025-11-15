@@ -110,20 +110,25 @@ page = context.new_page()
 ```
 
 2. Take, download and view screenshots yourself to assess visuals
-3. Utilize event monitoring (on console, request, pageerror, ...)
+3. Utilize event monitoring (on "console", "request", "pageerror", ...)
 4. Lean on testing real user flows
 5. Wait intelligently
+    - `wait_until="domcontentloaded"`, not "networkidle"
+    - `page.wait_for_selector('body', state="visible")`
+    - time.sleep(2~3) for React hydration
 6. Leverage CSS classes as distinguishers
 
 
 ### `uv` installation and usage
 
-- Install `uv` and use Python via `uv`:
+- Install `uv`:
 ```bash
 source setup.sh
-ensure_uv
-uv --version
 ```
+
+Never run Python directly. Always use `uv` to run Python.
+Do: `uv run python3 ...`. Do not: `python3 ...`.
+Do: `uv run --with=dep1 python3 ...`. Do not: `pip install ...`.
 
 - Use Python via `uv` for quick testing:
 ```bash
