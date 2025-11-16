@@ -1,9 +1,19 @@
 ---
-last_updated: 2025-11-14 16:24, 722a1a0
+last_updated: 2025-11-16 05:28, c2b5db7
 ---
 # Gotchas
 
 This document catalogs recurring pitfalls in various topics, including managing client-side state persistence and reactivity, surprising design decisions, and so on.
+
+---
+
+#### 2025-11-15 `750f83e`: Concurrent TLDR updates race to overwrite each other
+
+**Desired behavior that didn't work**: When two articles' TLDR buttons are clicked simultaneously, both TLDRs should be fetched and stored independently.
+
+**What actually happened and falsified original thesis**: One article showed "Available" state but with no content, then clicking "Available" triggered a new TLDR request instead of displaying the cached result. We had wrongly assumed React's state would handle concurrent setValueAsync calls correctly.
+
+**Cause & Fix**: Classic read-modify-write race condition. Both updates captured the same stale `value` from the closure, so the second write overwrote the first, losing one article's TLDR data. The fix was to use a ref (valueRef) to track the latest state, ensuring each concurrent update operates on current data instead of stale closure captures.
 
 ---
 
