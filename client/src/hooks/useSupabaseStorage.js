@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 
 const changeListenersByKey = new Map()
 
@@ -121,6 +121,7 @@ export function useSupabaseStorage(key, defaultValue) {
   const [value, setValue] = useState(defaultValue)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const valueRef = useRef(defaultValue)
 
   useEffect(() => {
     let cancelled = false
@@ -128,6 +129,7 @@ export function useSupabaseStorage(key, defaultValue) {
     readValue(key, defaultValue).then(loadedValue => {
       if (!cancelled) {
         setValue(loadedValue)
+        valueRef.current = loadedValue
         setLoading(false)
       }
     }).catch(err => {
@@ -135,6 +137,7 @@ export function useSupabaseStorage(key, defaultValue) {
         console.error(`Failed to load storage value for ${key}:`, err)
         setError(err)
         setValue(defaultValue)
+        valueRef.current = defaultValue
         setLoading(false)
       }
     })
@@ -148,6 +151,7 @@ export function useSupabaseStorage(key, defaultValue) {
     const handleChange = () => {
       readValue(key, defaultValue).then(newValue => {
         setValue(newValue)
+        valueRef.current = newValue
       }).catch(err => {
         console.error(`Failed to reload storage value for ${key}:`, err)
       })
@@ -163,7 +167,7 @@ export function useSupabaseStorage(key, defaultValue) {
     setError(null)
 
     try {
-      const previous = value
+      const previous = valueRef.current
       const resolved = typeof nextValue === 'function' ? nextValue(previous) : nextValue
 
       if (resolved === previous) {
@@ -171,6 +175,7 @@ export function useSupabaseStorage(key, defaultValue) {
         return
       }
 
+      valueRef.current = resolved
       await writeValue(key, resolved)
       setValue(resolved)
       setLoading(false)
@@ -181,7 +186,7 @@ export function useSupabaseStorage(key, defaultValue) {
       setLoading(false)
       throw err
     }
-  }, [key, value])
+  }, [key])
 
   const remove = useCallback(async () => {
     await setValueAsync(undefined)
