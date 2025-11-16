@@ -3,6 +3,9 @@ last_updated: 2025-11-15 10:39, cb43008
 ---
 # Bugs Encountered
 
+## Third Party
+
+- [ ] Supabase error: `SSL: CERTIFICATE_VERIFY_FAILED`. See [this GitHub comment](https://github.com/supabase/supabase/discussions/29935#discussioncomment-12050763) for potential solution.
 ## Scraping
 
 ### Failed fetching content
