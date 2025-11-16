@@ -171,7 +171,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 2. **validating** - Validating date range input
 3. **checking_cache** - Checking if range is fully cached
 4. **fetching_api** - Calling backend API
-5. **merging_cache** - Merging API results with localStorage
+5. **merging_cache** - Merging API results with Supabase cache
 6. **complete** - Results displayed
 7. **error** - Error occurred
 
@@ -343,7 +343,7 @@ unknown
        │    ├─ tldr.expanded = true
        │    ├─ Mark article as read
        │    │
-       │    └─ localStorage updated
+       │    └─ POST /api/storage/daily/{date} → Supabase upsert
        │
        └─ Failure
             ↓
@@ -352,7 +352,7 @@ unknown
             ├─ tldr.status = 'error'
             ├─ tldr.errorMessage = error text
             │
-            └─ localStorage updated
+            └─ POST /api/storage/daily/{date} → Supabase upsert
 
 available
   │
@@ -424,11 +424,10 @@ User clicks "Scrape Newsletters"
        ├─ Step 2: API Call
        │    │
        │    ├─ progress.value = 50
-       │    ├─ Collect excluded URLs from localStorage (removed + read articles)
        │    │
        │    └─ window.fetch('/api/scrape', {
        │         method: 'POST',
-       │         body: JSON.stringify({ start_date, end_date, excluded_urls })
+       │         body: JSON.stringify({ start_date, end_date })
        │       })
        │         │
        │         └─ Server receives request...
@@ -439,9 +438,8 @@ User clicks "Scrape Newsletters"
        │              │    │    - start_date: "2024-01-01"
        │              │    │    - end_date: "2024-01-03"
        │              │    │    - sources: null (optional)
-       │              │    │    - excluded_urls: ["https://example.com/...", ...]
        │              │    │
-       │              │    └─ tldr_app.py:9 scrape_newsletters(start_date, end_date, source_ids, excluded_urls)
+       │              │    └─ tldr_app.py:9 scrape_newsletters(start_date, end_date, source_ids, excluded_urls=[])
        │              │         │
        │              │         └─ tldr_service.py:43 scrape_newsletters_in_date_range()
        │              │              │
@@ -659,7 +657,7 @@ User clicks "TLDR" button
 
 ## Data Structures
 
-### DailyPayload (localStorage: `newsletters:scrapes:{date}`)
+### DailyPayload (Supabase: `daily_cache` table, keyed by date)
 
 ```typescript
 {
@@ -730,8 +728,7 @@ User clicks "TLDR" button
 {
   start_date: string,        // "2024-01-01"
   end_date: string,          // "2024-01-03"
-  sources?: string[],        // ["tldr_tech", "hackernews"] (optional)
-  excluded_urls: string[]    // Canonical URLs to exclude (removed + read articles)
+  sources?: string[]         // ["tldr_tech", "hackernews"] (optional)
 }
 ```
 
@@ -792,7 +789,7 @@ sequenceDiagram
     participant User
     participant ScrapeForm
     participant useScraper
-    participant localStorage
+    participant Supabase
     participant Flask
     participant NewsletterScraper
     participant TLDRAdapter
@@ -802,10 +799,10 @@ sequenceDiagram
     ScrapeForm->>useScraper: scrape(startDate, endDate)
 
     alt Cache enabled & fully cached
-        useScraper->>localStorage: Check all dates cached?
-        localStorage-->>useScraper: Yes
-        useScraper->>localStorage: Load cached payloads
-        localStorage-->>useScraper: Return payloads
+        useScraper->>Supabase: GET /api/storage/is-cached/{date} (for each date)
+        Supabase-->>useScraper: All dates cached
+        useScraper->>Supabase: POST /api/storage/daily-range
+        Supabase-->>useScraper: Return cached payloads
         useScraper-->>ScrapeForm: Return cached results
     else Not fully cached
         useScraper->>Flask: POST /api/scrape {start_date, end_date}
@@ -827,8 +824,8 @@ sequenceDiagram
         useScraper->>useScraper: buildDailyPayloadsFromScrape()
 
         alt Cache enabled
-            useScraper->>localStorage: Merge with existing cache
-            useScraper->>localStorage: Save merged payloads
+            useScraper->>Supabase: GET /api/storage/daily/{date} (merge)
+            useScraper->>Supabase: POST /api/storage/daily/{date} (save)
         end
 
         useScraper-->>ScrapeForm: Return results
@@ -881,27 +878,34 @@ function computeDateRange(startDate, endDate) {
 ### 3. Cache Merge Algorithm (scraper.js)
 
 ```javascript
-// Merge new scrape results with existing cached data
-function mergeWithCache(payloads) {
-  return payloads.map(payload => {
-    const cached = localStorage.getItem(`newsletters:scrapes:${payload.date}`)
+// Merge new scrape results with existing cached data from Supabase
+async function mergeWithCache(payloads) {
+  const merged = []
 
-    if (cached) {
+  for (const payload of payloads) {
+    const existing = await storageApi.getDailyPayload(payload.date)
+
+    if (existing) {
       // Merge: preserve user state (read, removed, tldrHidden) and AI content (tldr)
-      return {
+      const mergedPayload = {
         ...payload,
         articles: payload.articles.map(article => {
-          const existing = cached.articles.find(a => a.url === article.url)
-          return existing
-            ? { ...article, tldr: existing.tldr,
-                read: existing.read, removed: existing.removed, tldrHidden: existing.tldrHidden }
+          const existingArticle = existing.articles?.find(a => a.url === article.url)
+          return existingArticle
+            ? { ...article, tldr: existingArticle.tldr,
+                read: existingArticle.read, removed: existingArticle.removed, tldrHidden: existingArticle.tldrHidden }
             : article
         })
       }
+      await storageApi.setDailyPayload(payload.date, mergedPayload)
+      merged.push(mergedPayload)
+    } else {
+      await storageApi.setDailyPayload(payload.date, payload)
+      merged.push(payload)
     }
+  }
 
-    return payload
-  })
+  return merged
 }
 ```
 
