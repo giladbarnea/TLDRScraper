@@ -1,3 +1,6 @@
+---
+last_updated: 2025-11-17 11:31, 497ec6f
+---
 # Syncing Upstream Architecture Commands
 
 ## Git Subtree for Selective Sync
