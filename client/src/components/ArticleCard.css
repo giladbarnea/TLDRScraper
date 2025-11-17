@@ -227,7 +227,7 @@
   }
 }
 
-.inline-tldr strong {
+.inline-tldr > strong {
   display: block;
   margin-bottom: 0.5em;
   color: var(--text, #0f172a);
