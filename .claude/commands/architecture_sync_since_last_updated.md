@@ -1,6 +1,6 @@
 ---
 name: "ARCHITECTURE.md: Sync since last updated"
-last_updated: 2025-11-17 06:34, 551cd02
+last_updated: 2025-11-17 11:34, 1ff58bd
 ---
 `ARCHITECTURE.md` was written at some point in time. It was a very good representation of the project at that time. Since then, the project has evolved, therefore `ARCHITECTURE.md` is outdated in some aspects. Your task is to make it as good a representation of the project in it's current state. For context:
 
