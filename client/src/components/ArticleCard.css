@@ -233,6 +233,11 @@
   color: var(--text, #0f172a);
 }
 
+.inline-tldr ul {
+  padding-left: 1.2em;  /* Just enough room for bullets */
+  margin: 0.5em 0;
+}
+
 @media (max-width: 768px) {
   .article-actions {
     opacity: 1;
