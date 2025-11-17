@@ -68,6 +68,10 @@
   display: none;
 }
 
+.article-card.removed .inline-tldr {
+  display: none;
+}
+
 .article-header {
   display: flex;
   align-items: center;
