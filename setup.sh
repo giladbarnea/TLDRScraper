@@ -7,13 +7,13 @@ _available_functions_before_setup_sh=($(declare -F | cut -d' ' -f 3))
 
 mkdir -p "$HOME/.cache/tech-news-scraper" 1>/dev/null 2>&1
 if [[ -s "$HOME/.cache/tech-news-scraper/setup-complete" ]]; then
-  export SETUP_QUIET=true
+  SETUP_QUIET=true
 else
-  export SETUP_QUIET="${SETUP_QUIET:-false}"
+  SETUP_QUIET="${SETUP_QUIET:-false}"
 fi
 
 # Normalize SETUP_QUIET to true if it is not false or 0.
-[[ "${SETUP_QUIET:-false}" == "true" || "${SETUP_QUIET}" == "1" ]] && export SETUP_QUIET=true
+[[ "${SETUP_QUIET:-false}" == "true" || "${SETUP_QUIET}" == "1" ]] && SETUP_QUIET=true
 
 
 
@@ -271,7 +271,7 @@ function uv_sync(){
     fi
     [[ "$SETUP_QUIET" == "true" ]] && quiet=true
     ensure_uv --quiet || return 1
-    [[ "$quiet" == false ]] && message "[$0] Running naive silent 'uv sync'"
+    [[ "$quiet" == false ]] && message "[$0] Running 'uv sync'..."
     local uv_sync_output
     if uv_sync_output=$(uv sync -p 3.11 2>&1); then
         [[ "$quiet" == false ]] && message "[$0] Successfully ran uv sync. Use 'uv run python3 ...' to run Python."
@@ -387,53 +387,6 @@ function build_client(){
   fi
 }
 
-# read_root_markdown_files [-q,--quiet]
-# Reads all markdown files in the root directory.
-# Adapted from .claude/hooks/SessionStart
-function read_root_markdown_files(){
-  local quiet=false
-  if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
-    quiet=true
-  elif [[ "$1" == "--quiet=true" ]]; then
-    quiet=true
-  elif [[ "$1" == "--quiet=false" ]]; then
-    quiet=false
-  fi
-  [[ "$SETUP_QUIET" == "true" ]] && quiet=true
-
-  local workdir="${SERVER_CONTEXT_WORKDIR}"
-  if [[ -z "$workdir" ]]; then
-    error "read_root_markdown_files: SERVER_CONTEXT_WORKDIR not set"
-    return 1
-  fi
-
-  local -a md_files=()
-  local md_file
-  for md_file in "$workdir"/*.md; do
-    if [[ -f "$md_file" ]]; then
-      md_files+=("$(basename "$md_file")")
-    fi
-  done
-
-  if [[ ${#md_files[@]} -eq 0 ]]; then
-    [[ "$quiet" == false ]] && message "[$0] No markdown files found in $workdir"
-    return 0
-  fi
-
-  if [[ "$quiet" == false ]]; then
-    message "[$0] Found ${#md_files[@]} markdown files in root:"
-    for md_file in "$workdir"/*.md; do
-      if [[ -f "$md_file" ]]; then
-        local filename=$(basename "$md_file")
-        echo "<$filename>"
-        cat "$md_file"
-        echo "</$filename>"
-        echo
-      fi
-    done
-  fi
-  return 0
-}
 
 # main [-q,-quiet]
 # Idempotent environment and dependencies setup, installation, and verification.
@@ -514,9 +467,6 @@ function main() {
       fi
     fi
   fi
-  
-  [[ "$quiet" == false ]] && read_root_markdown_files --quiet="$quiet"
-  
   
   #region ----[ Env Vars Validation ]----
     
@@ -605,7 +555,7 @@ watchdog() {
 }
 # endregion Watchdog
 
-START_SERVER_AND_WATCHDOG_DOC="Start the server and watchdog processes in the background given specified/resolved environment variables. Tees the server logs log file."
+START_SERVER_AND_WATCHDOG_DOC="Start the server and watchdog processes in the background given specified/resolved environment variables. Tees the server logs log file. Usage: source setup.sh && start_server_and_watchdog"
 function start_server_and_watchdog() {
   if ! resolve_server_context "$@"; then
     return 1
@@ -655,7 +605,7 @@ function start_server_and_watchdog() {
   message "[$0] Watchdog started with PID $(cat "$watchdog_pid_file")"
 }
 
-KILL_SERVER_AND_WATCHDOG_DOC="Idempotent stop of the server and watchdog processes."
+KILL_SERVER_AND_WATCHDOG_DOC="Idempotent stop of the server and watchdog processes. Usage: source setup.sh && kill_server_and_watchdog"
 function kill_server_and_watchdog() {
   if ! resolve_server_context "$@"; then
     return 1
@@ -681,7 +631,7 @@ function kill_server_and_watchdog() {
   fi
 }
 
-PRINT_SERVER_AND_WATCHDOG_PIDS_DOC="Helper tool: print the server and watchdog PIDs."
+PRINT_SERVER_AND_WATCHDOG_PIDS_DOC="Helper tool: print the server and watchdog PIDs. Usage: source setup.sh && print_server_and_watchdog_pids"
 function print_server_and_watchdog_pids() {
   if ! resolve_server_context "$@"; then
     return 1
