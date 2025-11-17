@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 
 const changeListenersByKey = new Map()
+const readCache = new Map()
+const inflightReads = new Map()
 
 function emitChange(key) {
   const listeners = changeListenersByKey.get(key)
@@ -39,37 +41,48 @@ function subscribe(key, listener) {
 async function readValue(key, defaultValue) {
   if (typeof window === 'undefined') return defaultValue
 
-  try {
-    if (key.startsWith('cache:')) {
-      const response = await window.fetch(`/api/storage/setting/${key}`)
-      const data = await response.json()
-
-      if (data.success) {
-        return data.value
-      }
-
-      return defaultValue
-    }
-
-    if (key.startsWith('newsletters:scrapes:')) {
-      const date = key.split(':')[2]
-      const response = await window.fetch(`/api/storage/daily/${date}`)
-      const data = await response.json()
-
-      if (data.success) {
-        return data.payload
-      }
-
-      return defaultValue
-    }
-
-    console.warn(`Unknown storage key pattern: ${key}`)
-    return defaultValue
-
-  } catch (error) {
-    console.error(`Failed to read from storage: ${error.message}`)
-    return defaultValue
+  if (readCache.has(key)) {
+    return readCache.get(key)
   }
+
+  if (inflightReads.has(key)) {
+    return inflightReads.get(key)
+  }
+
+  const readPromise = (async () => {
+    try {
+      let value = defaultValue
+
+      if (key.startsWith('cache:')) {
+        const response = await window.fetch(`/api/storage/setting/${key}`)
+        const data = await response.json()
+        if (data.success) {
+          value = data.value
+        }
+      } else if (key.startsWith('newsletters:scrapes:')) {
+        const date = key.split(':')[2]
+        const response = await window.fetch(`/api/storage/daily/${date}`)
+        const data = await response.json()
+        if (data.success) {
+          value = data.payload
+        }
+      } else {
+        console.warn(`Unknown storage key pattern: ${key}`)
+      }
+
+      readCache.set(key, value)
+      return value
+
+    } catch (error) {
+      console.error(`Failed to read from storage: ${error.message}`)
+      return defaultValue
+    } finally {
+      inflightReads.delete(key)
+    }
+  })()
+
+  inflightReads.set(key, readPromise)
+  return readPromise
 }
 
 async function writeValue(key, value) {
@@ -88,6 +101,7 @@ async function writeValue(key, value) {
         throw new Error(data.error || 'Failed to write setting')
       }
 
+      readCache.set(key, value)
       emitChange(key)
       return
     }
@@ -105,6 +119,7 @@ async function writeValue(key, value) {
         throw new Error(data.error || 'Failed to write daily cache')
       }
 
+      readCache.set(key, value)
       emitChange(key)
       return
     }
@@ -145,7 +160,7 @@ export function useSupabaseStorage(key, defaultValue) {
     return () => {
       cancelled = true
     }
-  }, [key, defaultValue])
+  }, [key])
 
   useEffect(() => {
     const handleChange = () => {
@@ -158,7 +173,7 @@ export function useSupabaseStorage(key, defaultValue) {
     }
 
     return subscribe(key, handleChange)
-  }, [key, defaultValue])
+  }, [key])
 
   const setValueAsync = useCallback(async (nextValue) => {
     if (typeof window === 'undefined') return
