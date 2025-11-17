@@ -62,8 +62,15 @@ function ArticleCard({ article, index }) {
     }
   }
 
+  const handleRemoveClick = () => {
+    if (!isRemoved && tldr.expanded) {
+      tldr.collapse()
+    }
+    toggleRemove()
+  }
+
   return (
-    <div className={cardClasses} data-original-order={index} onClick={isRemoved ? toggleRemove : undefined}>
+    <div className={cardClasses} data-original-order={index} onClick={isRemoved ? handleRemoveClick : undefined}>
       <div className="article-header">
         <div className="article-number">{index + 1}</div>
 
@@ -108,7 +115,7 @@ function ArticleCard({ article, index }) {
             type="button"
             title={isRemoved ? 'Restore this article to the list' : 'Remove this article from the list'}
             disabled={stateLoading}
-            onClick={toggleRemove}
+            onClick={handleRemoveClick}
           >
             {isRemoved ? 'Restore' : 'Remove'}
           </button>
