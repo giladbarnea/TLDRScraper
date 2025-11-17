@@ -769,15 +769,20 @@ App.jsx
   │
   └── ResultsDisplay.jsx
         │
-        └── ArticleList.jsx
+        └── DailyResults (per date)
               │
-              └── ArticleCard.jsx
-                    ├── useArticleState(date, url)
-                    │     └── useSupabaseStorage('newsletters:scrapes:{date}')
-                    │           └── GET/POST /api/storage/daily/{date}
+              ├── useSupabaseStorage('newsletters:scrapes:{date}')
+              │     └── GET/POST /api/storage/daily/{date}
+              │
+              └── ArticleList.jsx
                     │
-                    └── useSummary(date, url)
-                          └── useArticleState(date, url)
+                    └── ArticleCard.jsx
+                          ├── useArticleState(date, url)
+                          │     └── useSupabaseStorage('newsletters:scrapes:{date}')
+                          │           └── GET/POST /api/storage/daily/{date}
+                          │
+                          └── useSummary(date, url)
+                                └── useArticleState(date, url)
 ```
 
 ---
