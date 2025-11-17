@@ -12,24 +12,14 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # Source setup.sh
-source "$PROJECT_ROOT/setup.sh"
+source "$PROJECT_ROOT/setup.sh" 1>/tmp/setup_sh_output.log 2>&1
 
 # Build additional context from markdown files
 CONTEXT=""
-CONTEXT+="# TLDRScraper Project Documentation\n\n"
-CONTEXT+="This context is automatically loaded at session start.\n\n"
+CONTEXT+="# Project Documentation\n\n"
 CONTEXT+="---\n\n"
+CONTEXT+="$(</tmp/setup_sh_output.log)"
 
-# Read all markdown files in the root directory
-for md_file in "$PROJECT_ROOT"/*.md; do
-    if [ -f "$md_file" ]; then
-        filename=$(basename "$md_file")
-        CONTEXT+="<$filename>\n"
-        CONTEXT+="$(cat "$md_file")\n"
-        CONTEXT+="</$filename>\n\n"
-        CONTEXT+="---\n\n"
-    fi
-done
 
 # Output the hook result in the required JSON format
 # Using jq to properly escape the context string
