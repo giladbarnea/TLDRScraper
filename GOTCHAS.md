@@ -1,9 +1,21 @@
 ---
-last_updated: 2025-11-16 20:40, 002e558
+last_updated: 2025-11-17 20:19, dc604f1
 ---
 # Gotchas
 
 This document catalogs recurring pitfalls in various topics, including managing client-side state persistence and reactivity, surprising design decisions, and so on.
+
+---
+
+#### 2025-11-17: Child component bypassing state management layer causes infinite API hammering
+
+session-id: 892fa714-0087-4c5a-9930-cffdfc5f5359
+
+**Desired behavior that didn't work**: Just browsing the app should load data once per date, then remain quiet until user interaction.
+
+**What actually happened and falsified original thesis**: Continuous machine-gun API requests to GET /api/storage/daily/{date} for the same dates, hammering the server non-stop. <turned-out-to-be-wrong>We initially assumed it was a React re-render loop from unstable useEffect dependencies (e.g., `defaultValue` object creating new references). Then we thought it was multiple `useSupabaseStorage` hook instances all mounting simultaneously (20+ ArticleCards per date). We added global read deduplication to prevent concurrent requests, which helped but didn't stop the hammering. We had wrongly assumed the hooks were the problem.</turned-out-to-be-wrong>
+
+**Cause & Fix**: `ArticleList.jsx` had a useEffect that directly called `storageApi.getDailyPayload(article.issueDate)` for every article (20+ API calls per date), completely bypassing the `useSupabaseStorage` hook abstraction. This useEffect ran whenever the `articles` prop changed. The parent component recreated the `articles` array on every render (via `.map()`), creating a new reference and triggering the useEffect again. Result: infinite loop of 20+ API calls per render. The entire useEffect was redundant - article states were already being synced via `useSupabaseStorage` in parent components. The fix was to delete the broken useEffect entirely and let ArticleList simply sort the articles it receives from props. **Key lesson**: When you build a proper data management layer (custom hooks), don't bypass it by directly calling storage APIs in child components. Child components should consume data from props, not fetch it themselves. Breaking this rule creates duplicate data fetching, races, and infinite loops.
 
 ---
 
