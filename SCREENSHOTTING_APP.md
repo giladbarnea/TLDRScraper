@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-11-18 09:01, 58a7c9d
+last_updated: 2025-11-18 10:33, 8d5a654
 ---
 # How to Get Screenshots of the App from Remote
 
