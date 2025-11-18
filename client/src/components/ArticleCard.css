@@ -227,10 +227,15 @@
   }
 }
 
-.inline-tldr strong {
+.inline-tldr > strong {
   display: block;
   margin-bottom: 0.5em;
   color: var(--text, #0f172a);
+}
+
+.inline-tldr ul {
+  padding-left: 1.2em;  /* Just enough room for bullets */
+  margin: 0.5em 0;
 }
 
 @media (max-width: 768px) {

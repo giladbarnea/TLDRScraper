@@ -1,6 +1,6 @@
 ---
 last-updated: 2025-11-14 14:33, e0594d7
-last_updated: 2025-11-16 20:40, 002e558
+last_updated: 2025-11-17 20:44, 66b04a4
 ---
 # TLDRScraper Architecture Documentation
 
@@ -769,15 +769,20 @@ App.jsx
   │
   └── ResultsDisplay.jsx
         │
-        └── ArticleList.jsx
+        └── DailyResults (per date)
               │
-              └── ArticleCard.jsx
-                    ├── useArticleState(date, url)
-                    │     └── useSupabaseStorage('newsletters:scrapes:{date}')
-                    │           └── GET/POST /api/storage/daily/{date}
+              ├── useSupabaseStorage('newsletters:scrapes:{date}')
+              │     └── GET/POST /api/storage/daily/{date}
+              │
+              └── ArticleList.jsx
                     │
-                    └── useSummary(date, url)
-                          └── useArticleState(date, url)
+                    └── ArticleCard.jsx
+                          ├── useArticleState(date, url)
+                          │     └── useSupabaseStorage('newsletters:scrapes:{date}')
+                          │           └── GET/POST /api/storage/daily/{date}
+                          │
+                          └── useSummary(date, url)
+                                └── useArticleState(date, url)
 ```
 
 ---
