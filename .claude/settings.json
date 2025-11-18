@@ -14,5 +14,27 @@
     "excludedCommands": [],
     "enabled": false
   },
-  "skipWebFetchPreflight": true
+  "skipWebFetchPreflight": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cd \"$CLAUDE_PROJECT_DIR\" && source setup.sh 2>&1 && scripts/print_root_markdown_files.sh --quiet=false'"
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cd \"$CLAUDE_PROJECT_DIR\" && source setup.sh 2>&1 && scripts/print_root_markdown_files.sh --quiet=false'"
+          }
+        ]
+      }
+    ]
+  }
 }
