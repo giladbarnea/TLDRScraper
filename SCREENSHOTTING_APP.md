@@ -1,3 +1,6 @@
+---
+last_updated: 2025-11-18 09:01, 58a7c9d
+---
 # How to Get Screenshots of the App from Remote
 
 **Setup:** User has ngrok endpoint at `https://josue-ungreedy-unphysically.ngrok-free.dev/`
