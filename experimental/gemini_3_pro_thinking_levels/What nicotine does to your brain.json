@@ -1,0 +1,28 @@
+{
+  "article": {
+    "url": "https://economist.com/science-and-technology/2025/09/12/what-nicotine-does-to-your-brain",
+    "title": "What nicotine does to your brain"
+  },
+  "experiments": [
+    {
+      "success": false,
+      "thinking_level": "high",
+      "url": "https://economist.com/science-and-technology/2025/09/12/what-nicotine-does-to-your-brain",
+      "title": "What nicotine does to your brain",
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Read timed out. (read timeout=180)",
+      "elapsed_seconds": 180.01,
+      "timestamp": "2025-11-19T21:03:44.841556"
+    },
+    {
+      "success": true,
+      "thinking_level": "low",
+      "url": "https://economist.com/science-and-technology/2025/09/12/what-nicotine-does-to-your-brain",
+      "canonical_url": "economist.com/science-and-technology/2025/09/12/what-nicotine-does-to-your-brain",
+      "title": "What nicotine does to your brain",
+      "elapsed_seconds": 175.76,
+      "tldr_markdown": "Bottom line: Nicotine is framed as powerfully addictive yet capable of boosting mental performance; full analysis is paywalled behind The Economist\u2019s subscription/trial.\n\n# TL;DR\n\n- **Core claim:** > \u201cThe drug is hugely addictive but it does boost mental performance.\u201d\n- **Access:** Full article requires a [subscription](https://www.economist.com/api/auth/subscribe), [free trial](https://subscribenow.economist.com/trial), or [account](https://www.economist.com/api/auth/register?redirect=%252Fscience-and-technology%252F2025%252F09%252F12%252Fwhat-nicotine-does-to-your-brain).\n- **Context:** Published under [Science & technology](https://www.economist.com/science-and-technology), \u201cWell informed,\u201d Sep 12, 2025; 3-minute read; headline emphasizes a trade-off between addiction risk and cognitive benefits.\n- **Related reads (same section):**\n  - [Geothermal\u2019s time has finally come](https://www.economist.com/interactive/science-and-technology/2025/11/18/geothermal-time-has-finally-come) \u2014 Geothermal could surpass nuclear.\n  - [Do women need testosterone supplements?](https://www.economist.com/science-and-technology/2025/11/14/do-women-need-testosterone-supplements) \u2014 Useful in select cases, not anti-aging panacea.\n  - [Sperm whales communicate with vowels](https://www.economist.com/science-and-technology/2025/11/12/sperm-whales-communicate-with-vowels) \u2014 Clicks share properties with human language.\n  - [Millions are turning to AI for therapy](https://www.economist.com/science-and-technology/2025/11/11/the-promise-and-the-perils-of-using-ai-for-therapy) \u2014 Promise vs readiness.\n  - [A new project aims to predict how quickly AI will progress](https://www.economist.com/science-and-technology/2025/11/10/a-new-project-aims-to-predict-how-quickly-ai-will-progress) \u2014 Superforecasters weigh in.\n  - [Can peptides give you superpowers?](https://www.economist.com/science-and-technology/2025/11/07/can-peptides-give-you-superpowers) \u2014 Hype vs evidence on recovery \u201cstacks.\u201d",
+      "tldr_length": 1985,
+      "timestamp": "2025-11-19T21:03:40.587723"
+    }
+  ]
+}
