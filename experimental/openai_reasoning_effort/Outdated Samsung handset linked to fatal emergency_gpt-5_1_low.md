@@ -1,3 +1,6 @@
+---
+last_updated: 2025-11-19 21:30, cc55a25
+---
 # Outdated Samsung handset linked to fatal emergency call failure in Australia
 
 **URL:** https://theregister.com/2025/11/18/samsung_emergency_call_failure

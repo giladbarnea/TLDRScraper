@@ -1,3 +1,6 @@
+---
+last_updated: 2025-11-19 21:30, cc55a25
+---
 # Gemini 3 Pro Thinking Level Experiment - Comparison Report
 
 ## Experiment Overview

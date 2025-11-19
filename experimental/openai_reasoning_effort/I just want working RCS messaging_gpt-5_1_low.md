@@ -1,3 +1,6 @@
+---
+last_updated: 2025-11-19 21:30, cc55a25
+---
 # I just want working RCS messaging
 
 **URL:** https://wt.gd/i-just-want-my-rcs-messaging-to-work
