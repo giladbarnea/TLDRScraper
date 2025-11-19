@@ -2,14 +2,15 @@
 """Generate context files for different parts of the codebase.
 
 Usage:
-    python scripts/generate_context.py server [--no-body]
-    python scripts/generate_context.py client
-    python scripts/generate_context.py docs
+    python scripts/generate_context.py server [--no-body] > codebase.txt
+    python scripts/generate_context.py client > client.txt
+    python scripts/generate_context.py docs > docs.txt
 """
 
 import argparse
 import ast
 import pathlib
+import sys
 from typing import List, Set
 
 
@@ -105,11 +106,11 @@ def generate_server_context(root_dir: pathlib.Path, no_body: bool) -> str:
     python_files = find_files(root_dir, '*.py', excludes)
     markdown_files = find_files(root_dir, '*.md', excludes)
 
-    output = ['<documents>']
+    output = ['<files>']
 
     for py_file in python_files:
         rel_path = py_file.relative_to(root_dir)
-        output.append(f'<document path="{rel_path}">')
+        output.append(f'<file path="{rel_path}">')
 
         if no_body:
             content = get_python_definitions(py_file)
@@ -118,16 +119,16 @@ def generate_server_context(root_dir: pathlib.Path, no_body: bool) -> str:
                 content = f.read()
 
         output.append(content)
-        output.append('</document>')
+        output.append('</file>')
 
     for md_file in markdown_files:
         rel_path = md_file.relative_to(root_dir)
-        output.append(f'<document path="{rel_path}">')
+        output.append(f'<file path="{rel_path}">')
         with open(md_file, encoding='utf-8') as f:
             output.append(f.read())
-        output.append('</document>')
+        output.append('</file>')
 
-    output.append('</documents>')
+    output.append('</files>')
     return '\n'.join(output)
 
 
@@ -135,7 +136,7 @@ def generate_client_context(root_dir: pathlib.Path) -> str:
     """Generate client context with all client files."""
     client_dir = root_dir / 'client'
     if not client_dir.exists():
-        return '<documents>\n</documents>'
+        return '<files>\n</files>'
 
     excludes = {'node_modules', '__pycache__', 'dist', 'build', '.venv', 'venv', 'env'}
     extensions = {'.css', '.html', '.jsx', '.js', '.md'}
@@ -147,16 +148,16 @@ def generate_client_context(root_dir: pathlib.Path) -> str:
             if not should_exclude(rel_to_root, excludes):
                 files.append(path)
 
-    output = ['<documents>']
+    output = ['<files>']
 
     for file_path in sorted(files):
         rel_path = file_path.relative_to(root_dir)
-        output.append(f'<document path="{rel_path}">')
+        output.append(f'<file path="{rel_path}">')
         with open(file_path, encoding='utf-8', errors='ignore') as f:
             output.append(f.read())
-        output.append('</document>')
+        output.append('</file>')
 
-    output.append('</documents>')
+    output.append('</files>')
     return '\n'.join(output)
 
 
@@ -169,16 +170,16 @@ def generate_docs_context(root_dir: pathlib.Path) -> str:
 
     md_files = find_files_recursive(root_dir, {'.md'}, excludes)
 
-    output = ['<documents>']
+    output = ['<files>']
 
     for md_file in md_files:
         rel_path = md_file.relative_to(root_dir)
-        output.append(f'<document path="{rel_path}">')
+        output.append(f'<file path="{rel_path}">')
         with open(md_file, encoding='utf-8') as f:
             output.append(f.read())
-        output.append('</document>')
+        output.append('</file>')
 
-    output.append('</documents>')
+    output.append('</files>')
     return '\n'.join(output)
 
 
@@ -194,29 +195,22 @@ def main():
     root_dir = pathlib.Path(__file__).parent.parent
 
     if args.context_type == 'server':
-        output_file = root_dir / 'codebase.txt'
         content = generate_server_context(root_dir, args.no_body)
-        file_count = content.count('<document path=')
-        print(f"Generated {output_file}")
-        print(f"Processed Python files ({'definitions only' if args.no_body else 'full content'})")
-        print(f"Total: {file_count} files")
+        file_count = content.count('<file path=')
+        print(f"Processed Python files ({'definitions only' if args.no_body else 'full content'})", file=sys.stderr)
+        print(f"Total: {file_count} files", file=sys.stderr)
 
     elif args.context_type == 'client':
-        output_file = root_dir / 'client.txt'
         content = generate_client_context(root_dir)
-        file_count = content.count('<document path=')
-        print(f"Generated {output_file}")
-        print(f"Total: {file_count} client files")
+        file_count = content.count('<file path=')
+        print(f"Total: {file_count} client files", file=sys.stderr)
 
     elif args.context_type == 'docs':
-        output_file = root_dir / 'docs.txt'
         content = generate_docs_context(root_dir)
-        file_count = content.count('<document path=')
-        print(f"Generated {output_file}")
-        print(f"Total: {file_count} markdown files")
+        file_count = content.count('<file path=')
+        print(f"Total: {file_count} markdown files", file=sys.stderr)
 
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(content)
+    print(content)
 
 
 if __name__ == '__main__':
