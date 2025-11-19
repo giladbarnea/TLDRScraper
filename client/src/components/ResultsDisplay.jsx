@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react'
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import ArticleList from './ArticleList'
@@ -72,7 +73,7 @@ function DailyResults({ payload }) {
         <div className="bg-slate-900/90 backdrop-blur-md text-white pl-5 pr-5 py-2 rounded-full shadow-soft-hover pointer-events-auto ring-1 ring-white/20">
           <h2 className="text-sm font-bold font-display tracking-wide flex items-center gap-2">
             {formattedDate}
-            {loading && <i data-lucide="loader-2" className="w-3 h-3 animate-spin opacity-70"></i>}
+            {loading && <Loader2 className="w-3 h-3 animate-spin opacity-70" />}
           </h2>
         </div>
       </div>

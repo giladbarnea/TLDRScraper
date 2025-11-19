@@ -6,25 +6,13 @@
   <meta name="color-scheme" content="light" />
   <title>TLDR Smart Reader</title>
 
-  <!-- Fonts: Outfit for Display, Inter for Body -->
+  <!-- Fonts: Using system font stack with custom fonts as enhancement -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-  <!-- Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
-  <script>
-    // Initialize Lucide icons after render and mutations
-    const initIcons = () => {
-      if (window.lucide) window.lucide.createIcons();
-    };
-    window.addEventListener('load', initIcons);
-    const observer = new MutationObserver(initIcons);
-    observer.observe(document.body, { childList: true, subtree: true });
-  </script>
 </body>
 </html>

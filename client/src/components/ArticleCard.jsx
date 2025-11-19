@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Loader2, Minimize2, Sparkles, Trash2, Bot } from 'lucide-react'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
 
@@ -100,11 +101,11 @@ function ArticleCard({ article, index }) {
             `}
           >
             {tldr.loading ? (
-              <span className="flex items-center gap-1.5"><i data-lucide="loader-2" className="w-3.5 h-3.5 animate-spin"></i> Generating...</span>
+              <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating...</span>
             ) : tldr.expanded ? (
-              <span className="flex items-center gap-1.5"><i data-lucide="minimize-2" className="w-3.5 h-3.5"></i> Minimize</span>
+              <span className="flex items-center gap-1.5"><Minimize2 className="w-3.5 h-3.5" /> Minimize</span>
             ) : (
-              <span className="flex items-center gap-1.5"><i data-lucide="sparkles" className="w-3.5 h-3.5"></i> TLDR</span>
+              <span className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> TLDR</span>
             )}
           </button>
 
@@ -121,7 +122,7 @@ function ArticleCard({ article, index }) {
             {isRemoved ? (
               <span className="flex items-center gap-1">Restore</span>
             ) : (
-              <i data-lucide="trash-2" className="w-4 h-4"></i>
+              <Trash2 className="w-4 h-4" />
             )}
           </button>
         </div>
@@ -131,7 +132,7 @@ function ArticleCard({ article, index }) {
           <div className="animate-slide-up mt-5 pt-5 border-t border-slate-100/80">
              <div className="flex items-center gap-2 mb-3">
                 <div className="bg-brand-100 p-1 rounded-md">
-                   <i data-lucide="bot" className="w-3.5 h-3.5 text-brand-600"></i>
+                   <Bot className="w-3.5 h-3.5 text-brand-600" />
                 </div>
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Quick Summary</span>
              </div>

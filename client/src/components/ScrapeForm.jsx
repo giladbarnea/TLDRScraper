@@ -1,4 +1,5 @@
 import { useActionState, useState, useEffect } from 'react'
+import { CalendarRange, Loader2, Search, AlertCircle } from 'lucide-react'
 import { scrapeNewsletters } from '../lib/scraper'
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 
@@ -51,7 +52,7 @@ function ScrapeForm({ onResults }) {
     <div className="w-full">
       <h2 className="text-lg font-display font-bold text-slate-800 mb-5 flex items-center gap-2">
         <div className="bg-brand-50 p-1.5 rounded-lg">
-          <i data-lucide="calendar-range" className="w-4 h-4 text-brand-600"></i>
+          <CalendarRange className="w-4 h-4 text-brand-600" />
         </div>
         Select Range
       </h2>
@@ -93,12 +94,12 @@ function ScrapeForm({ onResults }) {
         >
           {isPending ? (
             <>
-              <i data-lucide="loader-2" className="w-4 h-4 animate-spin"></i>
+              <Loader2 className="w-4 h-4 animate-spin" />
               <span>Scraping...</span>
             </>
           ) : (
             <>
-              <i data-lucide="search" className="w-4 h-4"></i>
+              <Search className="w-4 h-4" />
               <span>Fetch Articles</span>
             </>
           )}
@@ -119,7 +120,7 @@ function ScrapeForm({ onResults }) {
 
       {state.error && (
         <div className="mt-5 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl flex items-start gap-3 animate-fade-in">
-          <i data-lucide="alert-circle" className="w-5 h-5 mt-0.5 flex-shrink-0"></i>
+          <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
           <span className="font-medium">{state.error}</span>
         </div>
       )}
