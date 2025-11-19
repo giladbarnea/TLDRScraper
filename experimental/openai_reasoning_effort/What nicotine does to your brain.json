@@ -1,0 +1,48 @@
+{
+  "article": {
+    "url": "https://economist.com/science-and-technology/2025/09/12/what-nicotine-does-to-your-brain",
+    "title": "What nicotine does to your brain"
+  },
+  "experiments": [
+    {
+      "success": false,
+      "model": "gpt-5",
+      "reasoning_effort": "low",
+      "url": "https://economist.com/science-and-technology/2025/09/12/what-nicotine-does-to-your-brain",
+      "title": "What nicotine does to your brain",
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Read timed out. (read timeout=300)",
+      "elapsed_seconds": 300.01,
+      "timestamp": "2025-11-19T21:15:18.884818"
+    },
+    {
+      "success": false,
+      "model": "gpt-5",
+      "reasoning_effort": "medium",
+      "url": "https://economist.com/science-and-technology/2025/09/12/what-nicotine-does-to-your-brain",
+      "title": "What nicotine does to your brain",
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Read timed out. (read timeout=300)",
+      "elapsed_seconds": 300.01,
+      "timestamp": "2025-11-19T21:15:18.884896"
+    },
+    {
+      "success": false,
+      "model": "gpt-5.1",
+      "reasoning_effort": "low",
+      "url": "https://economist.com/science-and-technology/2025/09/12/what-nicotine-does-to-your-brain",
+      "title": "What nicotine does to your brain",
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Read timed out. (read timeout=300)",
+      "elapsed_seconds": 300.01,
+      "timestamp": "2025-11-19T21:15:18.884913"
+    },
+    {
+      "success": false,
+      "model": "gpt-5.1",
+      "reasoning_effort": "medium",
+      "url": "https://economist.com/science-and-technology/2025/09/12/what-nicotine-does-to-your-brain",
+      "title": "What nicotine does to your brain",
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Read timed out. (read timeout=300)",
+      "elapsed_seconds": 300.0,
+      "timestamp": "2025-11-19T21:15:18.884866"
+    }
+  ]
+}
