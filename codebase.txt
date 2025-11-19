@@ -1,5 +1,5 @@
-<documents>
-<document path="hackernews_adapter.py">
+<files>
+<file path="hackernews_adapter.py">
 class HackerNewsAdapter(NewsletterAdapter):
     """Adapter for HackerNews using Algolia HN Search API."""
     ...
@@ -60,8 +60,8 @@ class HackerNewsAdapter(NewsletterAdapter):
             Article dictionary or None if story should be skipped
         """
     ...
-</document>
-<document path="newsletter_adapter.py">
+</file>
+<file path="newsletter_adapter.py">
 class NewsletterAdapter:
     """Base adapter for newsletter sources.
 
@@ -177,13 +177,13 @@ class NewsletterAdapter:
             Normalized response with source_id added to all items
         """
     ...
-</document>
-<document path="newsletter_config.py">
+</file>
+<file path="newsletter_config.py">
 class NewsletterSourceConfig:
     """Configuration for a newsletter source."""
     ...
-</document>
-<document path="newsletter_merger.py">
+</file>
+<file path="newsletter_merger.py">
 def build_markdown_output(
     start_date, end_date, grouped_articles: dict[str, list[dict]], issues_by_key: dict
 ) -> str:
@@ -205,8 +205,8 @@ def build_markdown_output(
 
         def get_category_sort_key(category):
     ...
-</document>
-<document path="newsletter_scraper.py">
+</file>
+<file path="newsletter_scraper.py">
 def _get_adapter_for_source(config):
     """Factory pattern - returns appropriate adapter for source.
 
@@ -325,8 +325,8 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
 
     def _issue_sort_key(issue: dict) -> tuple:
     ...
-</document>
-<document path="serve.py">
+</file>
+<file path="serve.py">
 def index():
     """Serve the React app"""
     ...
@@ -365,8 +365,8 @@ def get_storage_daily_range():
 def check_storage_is_cached(date):
     """Check if a specific date exists in cache."""
     ...
-</document>
-<document path="storage_service.py">
+</file>
+<file path="storage_service.py">
 def get_setting(key):
     """
     Get setting value by key.
@@ -420,8 +420,8 @@ def is_date_cached(date):
     True
     """
     ...
-</document>
-<document path="summarizer.py">
+</file>
+<file path="summarizer.py">
 def normalize_summary_effort(value: str) -> str:
     """Normalize summary effort value to a supported option."""
     ...
@@ -491,15 +491,15 @@ def _call_llm(prompt: str, summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT, 
 
     def response_iter_content_stub(self, *args, **kwargs):
     ...
-</document>
-<document path="supabase_client.py">
+</file>
+<file path="supabase_client.py">
 def _create_unverified_context(*args, **kwargs):
     ...
 
 def get_supabase_client():
     ...
-</document>
-<document path="tldr_adapter.py">
+</file>
+<file path="tldr_adapter.py">
 class NewsletterSection:
     """Represents a section within a newsletter issue."""
     ...
@@ -588,8 +588,8 @@ class TLDRAdapter(NewsletterAdapter):
             True if URL appears to be a file
         """
     ...
-</document>
-<document path="tldr_app.py">
+</file>
+<file path="tldr_app.py">
 def scrape_newsletters(
     start_date_text: str, end_date_text: str, source_ids: list[str] | None = None, excluded_urls: list[str] | None = None
 ) -> dict:
@@ -608,8 +608,8 @@ def scrape_newsletters(
 
 def tldr_url(
     ...
-</document>
-<document path="tldr_service.py">
+</file>
+<file path="tldr_service.py">
 def _parse_date_range(
     start_date_text: str, end_date_text: str
 ) -> tuple[datetime, datetime]:
@@ -641,8 +641,8 @@ def fetch_tldr_prompt_template() -> str:
 
 def tldr_url_content(
     ...
-</document>
-<document path="util.py">
+</file>
+<file path="util.py">
 def log(msg, *args, **kwargs):
     ...
 
@@ -684,8 +684,8 @@ def canonicalize_url(url) -> str:
 def get_domain_name(url) -> str:
     """Extract a friendly domain name from a URL"""
     ...
-</document>
-<document path="AGENTS.md">
+</file>
+<file path="AGENTS.md">
 ---
 last_updated: 2025-11-18 10:35, af7d9f0
 ---
@@ -933,8 +933,8 @@ The following points are close to my heart:
 1. YAML frontmatter is automatically updated in CI. Do not manually update it.
 2. CLAUDE.md is a read-only exact copy of AGENTS.md. It is generated automatically in CI. It is read-only for you. Any updates should be made in AGENTS.md and not CLAUDE.md.
 
-</document>
-<document path="ARCHITECTURE.md">
+</file>
+<file path="ARCHITECTURE.md">
 ---
 last-updated: 2025-11-14 14:33, e0594d7
 last_updated: 2025-11-18 10:35, af7d9f0
@@ -2088,8 +2088,8 @@ TLDRScraper is a full-stack newsletter aggregator with sophisticated client-side
 
 The system is designed for extensibility (new newsletter sources via adapters), performance (database caching with cache-first scraping), and user experience (reactive UI with async loading states).
 
-</document>
-<document path="BUGS.md">
+</file>
+<file path="BUGS.md">
 ---
 last_updated: 2025-11-18 10:35, af7d9f0
 ---
@@ -2104,8 +2104,8 @@ last_updated: 2025-11-18 10:35, af7d9f0
 - [ ] https://olmocr.allen.ai/blog. Content was returned with no error but empty-ish. Needs JS enabled (25-10-26 7:45AM IST)
 - [ ] https://www.gatesnotes.com/home/home-page-topic/reader/three-tough-truths-about-climate Empty content
 - [ ] https://x.com/satyanadella/status/1989755076353921404: Enable JavaScript or use a supported browser; disable privacy extensions; then try again. (25-11-17)
-</document>
-<document path="GOTCHAS.md">
+</file>
+<file path="GOTCHAS.md">
 ---
 last_updated: 2025-11-18 10:35, af7d9f0
 ---
@@ -2177,8 +2177,8 @@ session-id: 892fa714-0087-4c5a-9930-cffdfc5f5359
 
 ---
 
-</document>
-<document path="PROJECT_STRUCTURE.md">
+</file>
+<file path="PROJECT_STRUCTURE.md">
 .
 ├── .claude
 │  ├── agents
@@ -2323,8 +2323,8 @@ session-id: 892fa714-0087-4c5a-9930-cffdfc5f5359
 ├── uv.lock
 └── vercel.json
 
-</document>
-<document path="README.md">
+</file>
+<file path="README.md">
 ---
 last_updated: 2025-11-14 16:24, 722a1a0
 ---
@@ -2495,8 +2495,8 @@ Flask is configured to:
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Map of the project structure
 - [GOTCHAS.md](GOTCHAS.md) - Documented solved tricky past bugs
 - [BUGS.md](BUGS.md) - Known issues
-</document>
-<document path="SCREENSHOTTING_APP.md">
+</file>
+<file path="SCREENSHOTTING_APP.md">
 ---
 last_updated: 2025-11-18 10:35, af7d9f0
 ---
@@ -2578,5 +2578,5 @@ rm /tmp/tldr_screenshot.png /tmp/screenshot_script.js
 * **File upload services:** `file.io` and `transfer.sh` timeout with ngrok (ERR_NGROK_3004) - likely a bug in the remoteshell server handling long-running commands
 * **Git method:** Most reliable for this setup despite extra steps
 
-</document>
-</documents>
+</file>
+</files>

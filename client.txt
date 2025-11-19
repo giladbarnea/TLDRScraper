@@ -1,5 +1,5 @@
-<documents>
-<document path="client/README.md">
+<files>
+<file path="client/README.md">
 ---
 last_updated: 2025-11-14 16:24, 722a1a0
 ---
@@ -9,8 +9,8 @@ This template should help get you started developing with Vue 3 in Vite. The tem
 
 Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
 
-</document>
-<document path="client/index.html">
+</file>
+<file path="client/index.html">
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -30,8 +30,8 @@ Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://
   </body>
 </html>
 
-</document>
-<document path="client/src/App.css">
+</file>
+<file path="client/src/App.css">
 /* CSS Variables */
 :root {
   --bg: #f6f7f9;
@@ -186,8 +186,8 @@ input:focus-visible {
   }
 }
 
-</document>
-<document path="client/src/App.jsx">
+</file>
+<file path="client/src/App.jsx">
 import { useState, useEffect } from 'react'
 import CacheToggle from './components/CacheToggle'
 import ScrapeForm from './components/ScrapeForm'
@@ -232,8 +232,8 @@ function App() {
 
 export default App
 
-</document>
-<document path="client/src/components/ArticleCard.css">
+</file>
+<file path="client/src/components/ArticleCard.css">
 .article-card {
   display: flex;
   flex-direction: column;
@@ -489,8 +489,8 @@ export default App
 
 }
 
-</document>
-<document path="client/src/components/ArticleCard.jsx">
+</file>
+<file path="client/src/components/ArticleCard.jsx">
 import { useMemo } from 'react'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
@@ -627,8 +627,8 @@ function ArticleCard({ article, index }) {
 
 export default ArticleCard
 
-</document>
-<document path="client/src/components/ArticleList.css">
+</file>
+<file path="client/src/components/ArticleList.css">
 .article-list {
   display: flex;
   flex-direction: column;
@@ -653,8 +653,8 @@ export default ArticleCard
   margin-top: 12px;
 }
 
-</document>
-<document path="client/src/components/ArticleList.jsx">
+</file>
+<file path="client/src/components/ArticleList.jsx">
 import { useMemo } from 'react'
 import ArticleCard from './ArticleCard'
 import './ArticleList.css'
@@ -729,8 +729,8 @@ function ArticleList({ articles }) {
 
 export default ArticleList
 
-</document>
-<document path="client/src/components/CacheToggle.css">
+</file>
+<file path="client/src/components/CacheToggle.css">
 .cache-toggle-container {
   display: flex;
   align-items: center;
@@ -806,8 +806,8 @@ export default ArticleList
   margin-left: 4px;
 }
 
-</document>
-<document path="client/src/components/CacheToggle.jsx">
+</file>
+<file path="client/src/components/CacheToggle.jsx">
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 import './CacheToggle.css'
 
@@ -839,8 +839,8 @@ function CacheToggle() {
 
 export default CacheToggle
 
-</document>
-<document path="client/src/components/ResultsDisplay.css">
+</file>
+<file path="client/src/components/ResultsDisplay.css">
 .result {
   margin-top: 20px;
   padding: 0;
@@ -956,8 +956,8 @@ export default CacheToggle
   transform: translateX(-50%) translateY(0);
 }
 
-</document>
-<document path="client/src/components/ResultsDisplay.jsx">
+</file>
+<file path="client/src/components/ResultsDisplay.jsx">
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import ArticleList from './ArticleList'
@@ -1058,8 +1058,8 @@ function DailyResults({ payload }) {
 
 export default ResultsDisplay
 
-</document>
-<document path="client/src/components/ScrapeForm.css">
+</file>
+<file path="client/src/components/ScrapeForm.css">
 .form-group {
   margin-bottom: 20px;
   display: inline-block;
@@ -1152,8 +1152,8 @@ button:disabled {
   }
 }
 
-</document>
-<document path="client/src/components/ScrapeForm.jsx">
+</file>
+<file path="client/src/components/ScrapeForm.jsx">
 import { useActionState, useState, useEffect } from 'react'
 import { scrapeNewsletters } from '../lib/scraper'
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
@@ -1288,8 +1288,8 @@ function ScrapeForm({ onResults }) {
 
 export default ScrapeForm
 
-</document>
-<document path="client/src/hooks/useArticleState.js">
+</file>
+<file path="client/src/hooks/useArticleState.js">
 import { useCallback, useMemo } from 'react'
 import { useSupabaseStorage } from './useSupabaseStorage'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
@@ -1384,8 +1384,8 @@ export function useArticleState(date, url) {
   }
 }
 
-</document>
-<document path="client/src/hooks/useSummary.js">
+</file>
+<file path="client/src/hooks/useSummary.js">
 import { useState, useMemo, useCallback } from 'react'
 import { useArticleState } from './useArticleState'
 import { marked } from 'marked'
@@ -1518,8 +1518,8 @@ export function useSummary(date, url, type = 'tldr') {
   }
 }
 
-</document>
-<document path="client/src/hooks/useSupabaseStorage.js">
+</file>
+<file path="client/src/hooks/useSupabaseStorage.js">
 import { useState, useCallback, useEffect, useRef } from 'react'
 
 const changeListenersByKey = new Map()
@@ -1732,8 +1732,8 @@ export function useSupabaseStorage(key, defaultValue) {
   return [value, setValueAsync, remove, { loading, error }]
 }
 
-</document>
-<document path="client/src/lib/scraper.js">
+</file>
+<file path="client/src/lib/scraper.js">
 /**
  * Plain JS scraper utilities for React components
  * Extracted from composables/useScraper.js
@@ -1951,8 +1951,8 @@ export async function scrapeNewsletters(startDate, endDate, cacheEnabled = true)
   }
 }
 
-</document>
-<document path="client/src/lib/storageApi.js">
+</file>
+<file path="client/src/lib/storageApi.js">
 export async function isDateCached(date) {
   const response = await window.fetch(`/api/storage/is-cached/${date}`)
   const data = await response.json()
@@ -2007,8 +2007,8 @@ export async function getDailyPayloadsRange(startDate, endDate) {
   throw new Error(data.error || 'Failed to load payloads')
 }
 
-</document>
-<document path="client/src/lib/storageKeys.js">
+</file>
+<file path="client/src/lib/storageKeys.js">
 export const STORAGE_KEYS = {
   CACHE_ENABLED: 'cache:enabled'
 }
@@ -2022,8 +2022,8 @@ export function getNewsletterScrapeKey(date) {
   return `newsletters:scrapes:${date}`
 }
 
-</document>
-<document path="client/src/main.jsx">
+</file>
+<file path="client/src/main.jsx">
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
@@ -2034,5 +2034,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>
 )
 
-</document>
-</documents>
+</file>
+</files>
