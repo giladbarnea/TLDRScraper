@@ -1,7 +1,6 @@
 import { useActionState, useState, useEffect } from 'react'
 import { scrapeNewsletters } from '../lib/scraper'
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
-import './ScrapeForm.css'
 
 function ScrapeForm({ onResults }) {
   const [startDate, setStartDate] = useState('')
@@ -48,82 +47,80 @@ function ScrapeForm({ onResults }) {
     { success: false }
   )
 
-  const validationError = (() => {
-    if (!startDate || !endDate) return null
-
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
-
-    if (start > end) {
-      return 'Start date must be before or equal to end date.'
-    }
-    if (daysDiff >= 31) {
-      return 'Date range cannot exceed 31 days. Please select a smaller range.'
-    }
-    return null
-  })()
-
   return (
-    <div>
-      <form id="scrapeForm" action={formAction}>
-        <div className="form-group">
-          <label htmlFor="start_date">Start Date:</label>
-          <input
-            id="start_date"
-            name="start_date"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            required
-          />
+    <div className="w-full">
+      <h2 className="text-lg font-display font-bold text-slate-800 mb-5 flex items-center gap-2">
+        <div className="bg-brand-50 p-1.5 rounded-lg">
+          <i data-lucide="calendar-range" className="w-4 h-4 text-brand-600"></i>
         </div>
+        Select Range
+      </h2>
 
-        <div className="form-group">
-          <label htmlFor="end_date">End Date:</label>
-          <input
-            id="end_date"
-            name="end_date"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            required
-          />
+      <form id="scrapeForm" action={formAction} className="space-y-5">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label htmlFor="start_date" className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">From</label>
+            <input
+              id="start_date"
+              name="start_date"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
+              className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/10 focus:border-brand-500 transition-all"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="end_date" className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">To</label>
+            <input
+              id="end_date"
+              name="end_date"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              required
+              className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/10 focus:border-brand-500 transition-all"
+            />
+          </div>
         </div>
 
         <button
           id="scrapeBtn"
           type="submit"
-          disabled={isPending || !!validationError}
-          data-testid="scrape-btn"
+          disabled={isPending}
+          className="w-full mt-2 px-6 py-3.5 rounded-xl bg-slate-900 text-white font-bold tracking-wide hover:bg-brand-600 hover:shadow-lg hover:shadow-brand-500/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2.5"
         >
-          {isPending ? 'Scraping...' : 'Scrape Newsletters'}
+          {isPending ? (
+            <>
+              <i data-lucide="loader-2" className="w-4 h-4 animate-spin"></i>
+              <span>Scraping...</span>
+            </>
+          ) : (
+            <>
+              <i data-lucide="search" className="w-4 h-4"></i>
+              <span>Fetch Articles</span>
+            </>
+          )}
         </button>
       </form>
 
       {isPending && (
-        <div className="progress">
-          <div id="progress-text">
-            Scraping newsletters... This may take several minutes.
-          </div>
-          <div className="progress-bar">
+        <div className="mt-5">
+          <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
             <div
-              className="progress-fill"
+              className="h-full bg-brand-500 transition-all duration-700 ease-out rounded-full"
               style={{ width: `${progress}%` }}
             />
           </div>
-        </div>
-      )}
-
-      {validationError && (
-        <div className="error" role="alert">
-          {validationError}
+          <p className="text-center text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Retrieving Content</p>
         </div>
       )}
 
       {state.error && (
-        <div className="error" role="alert">
-          Error: {state.error}
+        <div className="mt-5 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl flex items-start gap-3 animate-fade-in">
+          <i data-lucide="alert-circle" className="w-5 h-5 mt-0.5 flex-shrink-0"></i>
+          <span className="font-medium">{state.error}</span>
         </div>
       )}
     </div>
