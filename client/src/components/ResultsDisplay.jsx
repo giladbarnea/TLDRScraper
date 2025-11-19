@@ -54,6 +54,16 @@ function DailyResults({ payload }) {
   }))
   const issues = livePayload?.issues ?? payload.issues ?? []
 
+  const isArticleUnread = (article) => {
+    return !article.removed && !article.tldrHidden && !article.read?.isRead
+  }
+
+  const categoryHasUnreadArticles = (category) => {
+    return articles.some((article) => article.category === category && isArticleUnread(article))
+  }
+
+  const deprioritizedArticles = articles.filter((article) => !isArticleUnread(article))
+
   return (
     <div className="date-group">
       <div className="date-header-container" data-date={date}>
@@ -61,36 +71,45 @@ function DailyResults({ payload }) {
         {loading && <span className="loading-indicator"> (loading...)</span>}
       </div>
 
-      {issues.map((issue) => (
-        <div
-          key={`${date}-${issue.category}`}
-          className="issue-section"
-        >
-          <div className="issue-header-container">
-            <h4>{issue.category}</h4>
-          </div>
+      {issues.map((issue) => {
+        const hasUnread = categoryHasUnreadArticles(issue.category)
+        if (!hasUnread) return null
 
-          {(issue.title || issue.subtitle) && (
-            <div className="issue-title-block">
-              {issue.title && (
-                <div className="issue-title-line">{issue.title}</div>
-              )}
-              {issue.subtitle && issue.subtitle !== issue.title && (
-                <div className="issue-title-line">{issue.subtitle}</div>
-              )}
+        return (
+          <div
+            key={`${date}-${issue.category}`}
+            className="issue-section"
+          >
+            <div className="issue-header-container">
+              <h4>{issue.category}</h4>
             </div>
-          )}
 
-          <ArticleList
-            articles={articles.filter((article) => article.category === issue.category)}
-          />
-        </div>
-      ))}
+            {(issue.title || issue.subtitle) && (
+              <div className="issue-title-block">
+                {issue.title && (
+                  <div className="issue-title-line">{issue.title}</div>
+                )}
+                {issue.subtitle && issue.subtitle !== issue.title && (
+                  <div className="issue-title-line">{issue.subtitle}</div>
+                )}
+              </div>
+            )}
 
-      {articles.some((article) => !article.category) && (
+            <ArticleList
+              articles={articles.filter((article) => article.category === issue.category && isArticleUnread(article))}
+            />
+          </div>
+        )
+      })}
+
+      {articles.some((article) => !article.category && isArticleUnread(article)) && (
         <ArticleList
-          articles={articles.filter((article) => !article.category)}
+          articles={articles.filter((article) => !article.category && isArticleUnread(article))}
         />
+      )}
+
+      {deprioritizedArticles.length > 0 && (
+        <ArticleList articles={deprioritizedArticles} />
       )}
     </div>
   )
