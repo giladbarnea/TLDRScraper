@@ -96,7 +96,7 @@ def find_files_recursive(root_dir: pathlib.Path, extensions: Set[str], excludes:
 
 
 def generate_server_context(root_dir: pathlib.Path, no_body: bool) -> str:
-    """Generate server context with Python files."""
+    """Generate server context with Python files only."""
     excludes = {
         'CLAUDE.md', 'thoughts', '.claude', '.git', '.github', '.githooks',
         'experimental', 'docs', 'tests', 'scripts', 'node_modules', '__pycache__',
@@ -104,7 +104,6 @@ def generate_server_context(root_dir: pathlib.Path, no_body: bool) -> str:
     }
 
     python_files = find_files(root_dir, '*.py', excludes)
-    markdown_files = find_files(root_dir, '*.md', excludes)
 
     output = ['<files>']
 
@@ -121,25 +120,18 @@ def generate_server_context(root_dir: pathlib.Path, no_body: bool) -> str:
         output.append(content)
         output.append('</file>')
 
-    for md_file in markdown_files:
-        rel_path = md_file.relative_to(root_dir)
-        output.append(f'<file path="{rel_path}">')
-        with open(md_file, encoding='utf-8') as f:
-            output.append(f.read())
-        output.append('</file>')
-
     output.append('</files>')
     return '\n'.join(output)
 
 
 def generate_client_context(root_dir: pathlib.Path) -> str:
-    """Generate client context with all client files."""
+    """Generate client context with client files (excluding markdown)."""
     client_dir = root_dir / 'client'
     if not client_dir.exists():
         return '<files>\n</files>'
 
     excludes = {'node_modules', '__pycache__', 'dist', 'build', '.venv', 'venv', 'env'}
-    extensions = {'.css', '.html', '.jsx', '.js', '.md'}
+    extensions = {'.css', '.html', '.jsx', '.js'}
 
     files = []
     for path in client_dir.rglob('*'):
@@ -162,17 +154,30 @@ def generate_client_context(root_dir: pathlib.Path) -> str:
 
 
 def generate_docs_context(root_dir: pathlib.Path) -> str:
-    """Generate docs context with all markdown files."""
+    """Generate docs context with all markdown files (root + client)."""
     excludes = {
         'CLAUDE.md', 'thoughts', '.claude', '.git', '.github', 'node_modules',
-        '__pycache__', 'dist', 'build', '.venv', 'venv', 'env'
+        '__pycache__', 'dist', 'build', '.venv', 'venv', 'env',
+        'experimental', 'docs', 'tests', 'scripts'
     }
 
-    md_files = find_files_recursive(root_dir, {'.md'}, excludes)
+    # Get root markdown files
+    root_md_files = find_files(root_dir, '*.md', excludes)
+
+    # Get client markdown files
+    client_md_files = []
+    client_dir = root_dir / 'client'
+    if client_dir.exists():
+        for path in client_dir.rglob('*.md'):
+            rel_to_root = path.relative_to(root_dir)
+            if not should_exclude(rel_to_root, {'node_modules', '__pycache__', 'dist', 'build'}):
+                client_md_files.append(path)
+
+    all_md_files = sorted(root_md_files + client_md_files)
 
     output = ['<files>']
 
-    for md_file in md_files:
+    for md_file in all_md_files:
         rel_path = md_file.relative_to(root_dir)
         output.append(f'<file path="{rel_path}">')
         with open(md_file, encoding='utf-8') as f:
