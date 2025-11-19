@@ -1,0 +1,26 @@
+{
+  "article": {
+    "url": "https://downdetectorsdowndetectorsdowndetectorsdowndetector.com",
+    "title": "I made a downdetector for downdetector's downdetector's downdetector"
+  },
+  "experiments": [
+    {
+      "success": false,
+      "thinking_level": "high",
+      "url": "https://downdetectorsdowndetectorsdowndetectorsdowndetector.com",
+      "title": "I made a downdetector for downdetector's downdetector's downdetector",
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Read timed out. (read timeout=180)",
+      "elapsed_seconds": 180.01,
+      "timestamp": "2025-11-19T21:03:44.841715"
+    },
+    {
+      "success": false,
+      "thinking_level": "low",
+      "url": "https://downdetectorsdowndetectorsdowndetectorsdowndetector.com",
+      "title": "I made a downdetector for downdetector's downdetector's downdetector",
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Read timed out. (read timeout=180)",
+      "elapsed_seconds": 180.01,
+      "timestamp": "2025-11-19T21:03:44.841519"
+    }
+  ]
+}
