@@ -1,3 +1,6 @@
+---
+last_updated: 2025-11-19 21:30, cc55a25
+---
 # What nicotine does to your brain
 
 **URL:** https://economist.com/science-and-technology/2025/09/12/what-nicotine-does-to-your-brain

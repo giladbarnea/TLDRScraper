@@ -1,3 +1,6 @@
+---
+last_updated: 2025-11-19 21:30, cc55a25
+---
 # I made a downdetector for downdetector's downdetector's downdetector
 
 **URL:** https://downdetectorsdowndetectorsdowndetectorsdowndetector.com
