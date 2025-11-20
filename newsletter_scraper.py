@@ -74,6 +74,15 @@ def _get_adapter_for_source(config):
     elif config.source_id == "hillel_wayne":
         from hillel_wayne_adapter import HillelWayneAdapter
         return HillelWayneAdapter(config)
+    elif config.source_id == "infoq":
+        from infoq_adapter import InfoQAdapter
+        return InfoQAdapter(config)
+    elif config.source_id == "bytebytego":
+        from bytebytego_adapter import ByteByteGoAdapter
+        return ByteByteGoAdapter(config)
+    elif config.source_id == "martin_fowler":
+        from martin_fowler_adapter import MartinFowlerAdapter
+        return MartinFowlerAdapter(config)
     else:
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 
