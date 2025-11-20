@@ -29,6 +29,66 @@ def _get_adapter_for_source(config):
     elif config.source_id == "hackernews":
         from hackernews_adapter import HackerNewsAdapter
         return HackerNewsAdapter(config)
+    elif config.source_id == "xeiaso":
+        from xeiaso_adapter import XeIasoAdapter
+        return XeIasoAdapter(config)
+    elif config.source_id == "simon_willison":
+        from simon_willison_adapter import SimonWillisonAdapter
+        return SimonWillisonAdapter(config)
+    elif config.source_id == "danluu":
+        from danluu_adapter import DanLuuAdapter
+        return DanLuuAdapter(config)
+    elif config.source_id == "will_larson":
+        from will_larson_adapter import WillLarsonAdapter
+        return WillLarsonAdapter(config)
+    elif config.source_id == "lenny_newsletter":
+        from lenny_newsletter_adapter import LennyNewsletterAdapter
+        return LennyNewsletterAdapter(config)
+    elif config.source_id == "pragmatic_engineer":
+        from pragmatic_engineer_adapter import PragmaticEngineerAdapter
+        return PragmaticEngineerAdapter(config)
+    elif config.source_id == "cloudflare":
+        from cloudflare_adapter import CloudflareAdapter
+        return CloudflareAdapter(config)
+    elif config.source_id == "jessitron":
+        from jessitron_adapter import JessitronAdapter
+        return JessitronAdapter(config)
+    elif config.source_id == "stripe_engineering":
+        from stripe_engineering_adapter import StripeEngineeringAdapter
+        return StripeEngineeringAdapter(config)
+    elif config.source_id == "deepmind":
+        from deepmind_adapter import DeepMindAdapter
+        return DeepMindAdapter(config)
+    elif config.source_id == "pointer":
+        from pointer_adapter import PointerAdapter
+        return PointerAdapter(config)
+    elif config.source_id == "softwareleadweekly":
+        from softwareleadweekly_adapter import SoftwareLeadWeeklyAdapter
+        return SoftwareLeadWeeklyAdapter(config)
+    elif config.source_id == "anthropic":
+        from anthropic_adapter import AnthropicAdapter
+        return AnthropicAdapter(config)
+    elif config.source_id == "netflix":
+        from netflix_adapter import NetflixAdapter
+        return NetflixAdapter(config)
+    elif config.source_id == "hillel_wayne":
+        from hillel_wayne_adapter import HillelWayneAdapter
+        return HillelWayneAdapter(config)
+    elif config.source_id == "infoq":
+        from infoq_adapter import InfoQAdapter
+        return InfoQAdapter(config)
+    elif config.source_id == "bytebytego":
+        from bytebytego_adapter import ByteByteGoAdapter
+        return ByteByteGoAdapter(config)
+    elif config.source_id == "martin_fowler":
+        from martin_fowler_adapter import MartinFowlerAdapter
+        return MartinFowlerAdapter(config)
+    elif config.source_id == "react_status":
+        from react_status_adapter import ReactStatusAdapter
+        return ReactStatusAdapter(config)
+    elif config.source_id == "node_weekly":
+        from node_weekly_adapter import NodeWeeklyAdapter
+        return NodeWeeklyAdapter(config)
     else:
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 
