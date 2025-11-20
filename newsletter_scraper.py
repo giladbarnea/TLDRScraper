@@ -71,6 +71,9 @@ def _get_adapter_for_source(config):
     elif config.source_id == "netflix":
         from netflix_adapter import NetflixAdapter
         return NetflixAdapter(config)
+    elif config.source_id == "hillel_wayne":
+        from hillel_wayne_adapter import HillelWayneAdapter
+        return HillelWayneAdapter(config)
     else:
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 
