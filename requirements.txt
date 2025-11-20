@@ -1,5 +1,6 @@
 beautifulsoup4>=4.13.5
 curl-cffi>=0.13.0
+feedparser>=6.0.0
 Flask>=3.1.2
 haxor>=1.2.4
 markitdown[pdf]>=0.1.3
