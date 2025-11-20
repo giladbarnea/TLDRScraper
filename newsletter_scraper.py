@@ -83,6 +83,12 @@ def _get_adapter_for_source(config):
     elif config.source_id == "martin_fowler":
         from martin_fowler_adapter import MartinFowlerAdapter
         return MartinFowlerAdapter(config)
+    elif config.source_id == "react_status":
+        from react_status_adapter import ReactStatusAdapter
+        return ReactStatusAdapter(config)
+    elif config.source_id == "node_weekly":
+        from node_weekly_adapter import NodeWeeklyAdapter
+        return NodeWeeklyAdapter(config)
     else:
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 
