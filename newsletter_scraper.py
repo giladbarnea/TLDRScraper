@@ -68,6 +68,9 @@ def _get_adapter_for_source(config):
     elif config.source_id == "anthropic":
         from anthropic_adapter import AnthropicAdapter
         return AnthropicAdapter(config)
+    elif config.source_id == "netflix":
+        from netflix_adapter import NetflixAdapter
+        return NetflixAdapter(config)
     else:
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 
