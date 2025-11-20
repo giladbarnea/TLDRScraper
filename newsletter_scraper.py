@@ -29,6 +29,18 @@ def _get_adapter_for_source(config):
     elif config.source_id == "hackernews":
         from hackernews_adapter import HackerNewsAdapter
         return HackerNewsAdapter(config)
+    elif config.source_id == "xeiaso":
+        from xeiaso_adapter import XeIasoAdapter
+        return XeIasoAdapter(config)
+    elif config.source_id == "simon_willison":
+        from simon_willison_adapter import SimonWillisonAdapter
+        return SimonWillisonAdapter(config)
+    elif config.source_id == "danluu":
+        from danluu_adapter import DanLuuAdapter
+        return DanLuuAdapter(config)
+    elif config.source_id == "will_larson":
+        from will_larson_adapter import WillLarsonAdapter
+        return WillLarsonAdapter(config)
     else:
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 
