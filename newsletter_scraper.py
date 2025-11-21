@@ -6,10 +6,14 @@ from datetime import datetime
 from newsletter_config import NEWSLETTER_CONFIGS
 from tldr_adapter import TLDRAdapter
 from newsletter_merger import build_markdown_output
+import newsletter_limiter
+import storage_service
 
 import util
 
 logger = logging.getLogger("newsletter_scraper")
+
+DEFAULT_DAILY_LIMIT = 50
 
 
 def _get_adapter_for_source(config):
@@ -228,6 +232,43 @@ def _build_scrape_response(
 
 
 
+def _extract_removed_urls(cached_payload: dict | None) -> set[str]:
+    """Extract set of removed article URLs from cached payload.
+
+    >>> payload = {'articles': [{'url': 'a.com', 'removed': True}, {'url': 'b.com', 'removed': False}]}
+    >>> result = _extract_removed_urls(payload)
+    >>> 'a.com' in result and 'b.com' not in result
+    True
+    """
+    if not cached_payload or 'articles' not in cached_payload:
+        return set()
+
+    return {
+        article['url']
+        for article in cached_payload['articles']
+        if article.get('removed', False)
+    }
+
+
+def _group_articles_by_source(articles: list[dict]) -> dict[str, list[dict]]:
+    """Group articles by source_id, preserving order within each source.
+
+    >>> articles = [
+    ...     {'source_id': 'hn', 'title': '1'},
+    ...     {'source_id': 'tldr', 'title': '2'},
+    ...     {'source_id': 'hn', 'title': '3'}
+    ... ]
+    >>> result = _group_articles_by_source(articles)
+    >>> len(result['hn']) == 2 and len(result['tldr']) == 1
+    True
+    """
+    grouped = {}
+    for article in articles:
+        source_id = article.get('source_id', 'unknown')
+        grouped.setdefault(source_id, []).append(article)
+    return grouped
+
+
 def _collect_newsletters_for_date_from_source(
     source_id,
     config,
@@ -335,6 +376,8 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
 
     for date in dates:
         date_str = util.format_date_for_url(date)
+        date_articles: list[dict] = []
+        date_url_set: set[str] = set()
 
         for source_id in source_ids:
             if source_id not in NEWSLETTER_CONFIGS:
@@ -352,12 +395,45 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
                 date_str,
                 processed_count,
                 total_count,
-                url_set,
-                all_articles,
+                date_url_set,
+                date_articles,
                 issue_metadata_by_key,
                 excluded_urls,
             )
             network_fetches += network_increment
+
+        logger.info(f"[newsletter_scraper] Collected {len(date_articles)} articles for {date_str}, applying limits")
+
+        cached_payload = storage_service.get_daily_payload(date_str)
+        removed_urls = _extract_removed_urls(cached_payload)
+
+        active_candidates = [
+            article for article in date_articles
+            if article['url'] not in removed_urls
+        ]
+
+        logger.info(f"[newsletter_scraper] {len(active_candidates)} articles after filtering removed items")
+
+        candidates_by_source = _group_articles_by_source(active_candidates)
+        source_counts = {source: len(articles) for source, articles in candidates_by_source.items()}
+
+        quotas = newsletter_limiter.calculate_quotas(source_counts, DEFAULT_DAILY_LIMIT)
+
+        logger.info(f"[newsletter_scraper] Calculated quotas for {date_str}: {quotas}")
+
+        limited_articles = []
+        for source_id, articles in candidates_by_source.items():
+            limit = quotas.get(source_id, 0)
+            selected = articles[:limit]
+            limited_articles.extend(selected)
+            if len(articles) > limit:
+                logger.info(f"[newsletter_scraper] Limited {source_id} from {len(articles)} to {limit} articles")
+
+        for article in limited_articles:
+            canonical_url = article['url']
+            if canonical_url not in url_set:
+                url_set.add(canonical_url)
+                all_articles.append(article)
 
     # Ensure all articles have removed field
     for article in all_articles:
