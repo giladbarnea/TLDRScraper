@@ -8,6 +8,7 @@ import './App.css'
 function App() {
   const [results, setResults] = useState(null)
   const [copying, setCopying] = useState(null)
+  const [downloadError, setDownloadError] = useState(null)
 
   useEffect(() => {
     const today = new Date()
@@ -29,7 +30,10 @@ function App() {
   }, [])
 
   const handleContextCopy = async (contextType) => {
+    console.log(`[handleContextCopy] Starting download for: ${contextType}`)
     setCopying(contextType)
+    setDownloadError(null)
+
     try {
       const response = await fetch('/api/generate-context', {
         method: 'POST',
@@ -37,17 +41,31 @@ function App() {
         body: JSON.stringify({ context_type: contextType })
       })
 
+      console.log(`[handleContextCopy] Response status: ${response.status}`)
       const result = await response.json()
+      console.log(`[handleContextCopy] Result success: ${result.success}, content length: ${result.content?.length || 0}`)
 
       if (result.success) {
-        await navigator.clipboard.writeText(result.content)
+        const blob = new Blob([result.content], { type: 'text/plain' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `context-${contextType}.txt`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+
+        console.log(`[handleContextCopy] Download triggered`)
         setTimeout(() => setCopying(null), 1000)
       } else {
         console.error('Failed to generate context:', result.error)
+        setDownloadError(`Server error: ${result.error}`)
         setCopying(null)
       }
     } catch (err) {
-      console.error('Failed to copy context:', err)
+      console.error('Failed to download context:', err)
+      setDownloadError(`Network error: ${err.message}`)
       setCopying(null)
     }
   }
@@ -62,30 +80,36 @@ function App() {
           disabled={copying === 'server'}
           className="context-btn"
         >
-          📋 {copying === 'server' ? 'Copied!' : 'server'}
+          ⬇ {copying === 'server' ? 'Downloaded!' : 'server'}
         </button>
         <button
           onClick={() => handleContextCopy('client')}
           disabled={copying === 'client'}
           className="context-btn"
         >
-          📋 {copying === 'client' ? 'Copied!' : 'client'}
+          ⬇ {copying === 'client' ? 'Downloaded!' : 'client'}
         </button>
         <button
           onClick={() => handleContextCopy('docs')}
           disabled={copying === 'docs'}
           className="context-btn"
         >
-          📋 {copying === 'docs' ? 'Copied!' : 'docs'}
+          ⬇ {copying === 'docs' ? 'Downloaded!' : 'docs'}
         </button>
         <button
           onClick={() => handleContextCopy('all')}
           disabled={copying === 'all'}
           className="context-btn"
         >
-          📋 {copying === 'all' ? 'Copied!' : 'all'}
+          ⬇ {copying === 'all' ? 'Downloaded!' : 'all'}
         </button>
       </div>
+
+      {downloadError && (
+        <div className="copy-error">
+          {downloadError}
+        </div>
+      )}
 
       <CacheToggle />
 
