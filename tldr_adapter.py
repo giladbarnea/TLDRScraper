@@ -91,20 +91,12 @@ class TLDRAdapter(NewsletterAdapter):
             if response.is_redirect:
                 return None
 
-            util.log(
-                f"[tldr_adapter.fetch_issue] Fetched {newsletter_type} for {date_str} in {net_ms}ms",
-                logger=logger,
-            )
+            logger.info(f"[tldr_adapter.fetch_issue] Fetched {newsletter_type} for {date_str} in {net_ms}ms")
 
             return response.text
 
         except requests.RequestException:
-            util.log(
-                f"[tldr_adapter.fetch_issue] Request error for url={url}",
-                level=logging.ERROR,
-                exc_info=True,
-                logger=logger,
-            )
+            logger.error(f"[tldr_adapter.fetch_issue] Request error for url={url}", exc_info=True)
             return None
 
     def _parse_markdown_structure(
