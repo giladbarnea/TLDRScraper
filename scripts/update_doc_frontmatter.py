@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
 
+sys.path.insert(0, str(Path(__file__).parent))
 import markdown_frontmatter
 
 SKIP_FILES = {

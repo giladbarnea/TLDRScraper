@@ -38,9 +38,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python dependencies
-        run: pip install markdown-frontmatter
-
       - name: Update doc frontmatter
         id: update
         run: |
