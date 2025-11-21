@@ -1,0 +1,183 @@
+name: Maintain Documentation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
+
+jobs:
+  update-frontmatter:
+    name: Update Markdown Frontmatter
+    # Run on: direct pushes to main, open/updated PRs, or merged PRs
+    if: github.event_name == 'push' || github.event.pull_request.merged == true || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    outputs:
+      modified_files: ${{ steps.update.outputs.modified_files }}
+      has_changes: ${{ steps.update.outputs.has_changes }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # For merged PRs: checkout the merge commit (prioritize over head)
+          # For open PRs: checkout the PR branch
+          # For direct pushes: checkout the pushed commit
+          ref: ${{ github.event.pull_request.merged == true && github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Update doc frontmatter
+        id: update
+        run: |
+          # Make script executable
+          chmod +x scripts/update_doc_frontmatter.py
+
+          # Run the script to update frontmatter of modified markdown files
+          python scripts/update_doc_frontmatter.py > frontmatter_output.txt 2>&1
+          cat frontmatter_output.txt
+
+          # Extract modified files from output for next job
+          if grep -q "✓ Updated:" frontmatter_output.txt; then
+            modified=$(grep "✓ Updated:" frontmatter_output.txt | sed 's/✓ Updated: //' | tr '\n' ',' | sed 's/,$//')
+            echo "modified_files=$modified" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push if changed
+        if: steps.update.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Stage any modified markdown files
+          git add '*.md' || true
+
+          # Determine target branch
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+              # For merged PRs: push to base branch (main)
+              TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+            else
+              # For open PRs: push to PR branch
+              TARGET_BRANCH="${{ github.event.pull_request.head.ref }}"
+            fi
+          else
+            # For direct pushes: push to the same branch
+            TARGET_BRANCH="${{ github.ref_name }}"
+          fi
+
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to documentation frontmatter"
+          else
+            git commit -m "chore: Update doc frontmatter [skip ci]"
+            git push origin HEAD:$TARGET_BRANCH
+          fi
+
+  sync-agents-to-claude:
+    name: Sync AGENTS.md to CLAUDE.md
+    needs: [update-frontmatter]
+    # Only run if frontmatter job completed AND AGENTS.md was in modified files
+    if: needs.update-frontmatter.result == 'success' && contains(needs.update-frontmatter.outputs.modified_files, 'AGENTS.md')
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Checkout the latest state (after frontmatter updates)
+          ref: ${{ github.event.pull_request.merged == true && github.event.pull_request.base.ref || (github.event_name == 'pull_request' && github.event.pull_request.head.ref) || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Copy AGENTS.md to CLAUDE.md
+        run: |
+          echo "Syncing AGENTS.md to CLAUDE.md (AGENTS.md was modified)"
+          cp AGENTS.md CLAUDE.md
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CLAUDE.md
+
+          # Determine target branch
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+              # For merged PRs: push to base branch (main)
+              TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+            else
+              # For open PRs: push to PR branch
+              TARGET_BRANCH="${{ github.event.pull_request.head.ref }}"
+            fi
+          else
+            # For direct pushes: push to the same branch
+            TARGET_BRANCH="${{ github.ref_name }}"
+          fi
+
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to CLAUDE.md"
+          else
+            git commit -m "chore: Sync CLAUDE.md with AGENTS.md [skip ci]"
+            git push origin HEAD:$TARGET_BRANCH
+          fi
+
+  generate-structure-preview:
+    name: Generate Project Structure Preview
+    needs: [sync-agents-to-claude]
+    # Always run after sync job completes (success or skipped)
+    if: always() && (needs.sync-agents-to-claude.result == 'success' || needs.sync-agents-to-claude.result == 'skipped')
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Checkout the latest state (after all updates)
+          ref: ${{ github.event.pull_request.merged == true && github.event.pull_request.base.ref || (github.event_name == 'pull_request' && github.event.pull_request.head.ref) || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Install eza
+        run: |
+          wget -q https://github.com/eza-community/eza/releases/latest/download/eza_x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf eza_x86_64-unknown-linux-gnu.tar.gz
+          sudo mv eza /usr/local/bin/
+          sudo chmod +x /usr/local/bin/eza
+
+      - name: Generate project structure
+        run: |
+          eza \
+            --classify \
+            --icons \
+            --tree \
+            --git-ignore \
+            --all \
+            . > PROJECT_STRUCTURE.md
+
+      - name: Display generated structure summary
+        run: |
+          echo "PROJECT_STRUCTURE.md is generated locally and not committed."
+          if [ -f PROJECT_STRUCTURE.md ]; then
+            echo "Preview:"
+            head -n 20 PROJECT_STRUCTURE.md
+          fi
