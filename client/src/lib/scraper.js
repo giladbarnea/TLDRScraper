@@ -207,8 +207,7 @@ export async function scrapeNewsletters(startDate, endDate, cacheEnabled = true)
       success: true,
       payloads: mergedPayloads,
       source: 'Live scrape',
-      stats: data.stats,
-      debugLogs: data.stats?.debug_logs || []
+      stats: data.stats
     }
   } else {
     throw new Error(data.error || 'Scraping failed')

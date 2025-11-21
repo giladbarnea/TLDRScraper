@@ -40,9 +40,8 @@ class PragmaticEngineerAdapter(NewsletterAdapter):
         target_date_str = util.format_date_for_url(date)
         target_date = datetime.fromisoformat(target_date_str).date()
 
-        util.log(
-            f"[pragmatic_engineer_adapter.scrape_date] Fetching RSS feed for {target_date_str}",
-            logger=logger,
+        logger.info(
+            f"[pragmatic_engineer_adapter.scrape_date] Fetching RSS feed for {target_date_str}"
         )
 
         try:
@@ -55,16 +54,13 @@ class PragmaticEngineerAdapter(NewsletterAdapter):
             feed = feedparser.parse(response.content)
 
             if not feed.entries:
-                util.log(
-                    f"[pragmatic_engineer_adapter.scrape_date] No entries found in RSS feed",
-                    level=logging.WARNING,
-                    logger=logger,
+                logger.warning(
+                    f"[pragmatic_engineer_adapter.scrape_date] No entries found in RSS feed"
                 )
                 return self._normalize_response([], [])
 
-            util.log(
-                f"[pragmatic_engineer_adapter.scrape_date] Fetched {len(feed.entries)} total entries from RSS",
-                logger=logger,
+            logger.info(
+                f"[pragmatic_engineer_adapter.scrape_date] Fetched {len(feed.entries)} total entries from RSS"
             )
 
             for entry in feed.entries:
@@ -72,17 +68,14 @@ class PragmaticEngineerAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            util.log(
-                f"[pragmatic_engineer_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}",
-                logger=logger,
+            logger.info(
+                f"[pragmatic_engineer_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}"
             )
 
         except Exception as e:
-            util.log(
+            logger.error(
                 f"[pragmatic_engineer_adapter.scrape_date] Error fetching RSS feed: {e}",
-                level=logging.ERROR,
-                exc_info=True,
-                logger=logger,
+                exc_info=True
             )
 
         issues = []

@@ -51,24 +51,21 @@ class PointerAdapter(NewsletterAdapter):
 
         date_str = util.format_date_for_url(date)
 
-        util.log(
-            f"[pointer_adapter.scrape_date] Scraping Pointer for {date_str} (excluding {len(excluded_urls)} URLs)",
-            logger=logger,
+        logger.info(
+            f"[pointer_adapter.scrape_date] Scraping Pointer for {date_str} (excluding {len(excluded_urls)} URLs)"
         )
 
         try:
             issue_url = self._get_issue_url_for_date(date_str)
 
             if not issue_url:
-                util.log(
-                    f"[pointer_adapter.scrape_date] No issue found for {date_str}",
-                    logger=logger,
+                logger.info(
+                    f"[pointer_adapter.scrape_date] No issue found for {date_str}"
                 )
                 return self._normalize_response([], [])
 
-            util.log(
-                f"[pointer_adapter.scrape_date] Found issue URL: {issue_url}",
-                logger=logger,
+            logger.info(
+                f"[pointer_adapter.scrape_date] Found issue URL: {issue_url}"
             )
 
             scraped_articles = self._scrape_issue(issue_url, date_str)
@@ -78,17 +75,14 @@ class PointerAdapter(NewsletterAdapter):
                 if canonical_url not in excluded_set:
                     articles.append(article)
 
-            util.log(
-                f"[pointer_adapter.scrape_date] Scraped {len(articles)} articles after filtering",
-                logger=logger,
+            logger.info(
+                f"[pointer_adapter.scrape_date] Scraped {len(articles)} articles after filtering"
             )
 
         except Exception as e:
-            util.log(
+            logger.error(
                 f"[pointer_adapter.scrape_date] Error scraping Pointer for {date_str}: {e}",
-                level=logging.ERROR,
-                exc_info=True,
-                logger=logger,
+                exc_info=True
             )
 
         category = self.config.category_display_names.get("newsletter", "Pointer")
@@ -126,9 +120,8 @@ class PointerAdapter(NewsletterAdapter):
         """
         archives_url = f"{self.config.base_url}/archives"
 
-        util.log(
-            f"[pointer_adapter._build_date_to_url_mapping] Fetching archives from {archives_url}",
-            logger=logger,
+        logger.info(
+            f"[pointer_adapter._build_date_to_url_mapping] Fetching archives from {archives_url}"
         )
 
         response = requests.get(
@@ -158,9 +151,8 @@ class PointerAdapter(NewsletterAdapter):
                 except Exception:
                     continue
 
-        util.log(
-            f"[pointer_adapter._build_date_to_url_mapping] Built mapping for {len(date_to_url)} issues",
-            logger=logger,
+        logger.info(
+            f"[pointer_adapter._build_date_to_url_mapping] Built mapping for {len(date_to_url)} issues"
         )
 
         return date_to_url

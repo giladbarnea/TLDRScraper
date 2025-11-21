@@ -51,34 +51,29 @@ class ReactStatusAdapter(NewsletterAdapter):
         target_date_str = util.format_date_for_url(date)
         target_date = datetime.fromisoformat(target_date_str).date()
 
-        util.log(
-            f"[react_status_adapter.scrape_date] Fetching RSS feed for {target_date_str} (excluding {len(excluded_urls)} URLs)",
-            logger=logger,
+        logger.info(
+            f"[react_status_adapter.scrape_date] Fetching RSS feed for {target_date_str} (excluding {len(excluded_urls)} URLs)"
         )
 
         try:
             feed = feedparser.parse(RSS_FEED_URL)
 
             if not feed.entries:
-                util.log(
-                    "[react_status_adapter.scrape_date] No entries found in RSS feed",
-                    level=logging.WARNING,
-                    logger=logger,
+                logger.warning(
+                    "[react_status_adapter.scrape_date] No entries found in RSS feed"
                 )
                 return self._normalize_response([], [])
 
-            util.log(
-                f"[react_status_adapter.scrape_date] Fetched {len(feed.entries)} issues from RSS",
-                logger=logger,
+            logger.info(
+                f"[react_status_adapter.scrape_date] Fetched {len(feed.entries)} issues from RSS"
             )
 
             # Find the issue for the target date
             matching_entry = self._find_matching_issue(feed.entries, target_date)
 
             if not matching_entry:
-                util.log(
-                    f"[react_status_adapter.scrape_date] No issue found for {target_date_str}",
-                    logger=logger,
+                logger.info(
+                    f"[react_status_adapter.scrape_date] No issue found for {target_date_str}"
                 )
                 return self._normalize_response([], [])
 
@@ -89,17 +84,14 @@ class ReactStatusAdapter(NewsletterAdapter):
 
             articles.extend(parsed_articles)
 
-            util.log(
-                f"[react_status_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}",
-                logger=logger,
+            logger.info(
+                f"[react_status_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}"
             )
 
         except Exception as e:
-            util.log(
+            logger.error(
                 f"[react_status_adapter.scrape_date] Error fetching RSS feed: {e}",
-                level=logging.ERROR,
-                exc_info=True,
-                logger=logger,
+                exc_info=True
             )
 
         issues = []
@@ -215,10 +207,8 @@ class ReactStatusAdapter(NewsletterAdapter):
                 })
 
             except Exception as e:
-                util.log(
-                    f"[react_status_adapter._parse_issue_articles] Error processing article '{title}': {e}",
-                    level=logging.WARNING,
-                    logger=logger,
+                logger.warning(
+                    f"[react_status_adapter._parse_issue_articles] Error processing article '{title}': {e}"
                 )
                 continue
 
@@ -242,9 +232,7 @@ class ReactStatusAdapter(NewsletterAdapter):
             )
             return response.url
         except Exception as e:
-            util.log(
-                f"[react_status_adapter._resolve_tracking_link] Error resolving {tracking_url}: {e}",
-                level=logging.WARNING,
-                logger=logger,
+            logger.warning(
+                f"[react_status_adapter._resolve_tracking_link] Error resolving {tracking_url}: {e}"
             )
             return None

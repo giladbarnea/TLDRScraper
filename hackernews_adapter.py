@@ -66,9 +66,8 @@ class HackerNewsAdapter(NewsletterAdapter):
         start_timestamp = int(start_of_day.timestamp())
         end_timestamp = int(end_of_day.timestamp())
 
-        util.log(
-            f"[hackernews_adapter.scrape_date] Fetching stories for {date} using Algolia API (excluding {len(excluded_urls)} URLs)",
-            logger=logger,
+        logger.info(
+            f"[hackernews_adapter.scrape_date] Fetching stories for {date} using Algolia API (excluding {len(excluded_urls)} URLs)"
         )
 
         # Fetch stories using Algolia API with server-side filtering
@@ -81,9 +80,8 @@ class HackerNewsAdapter(NewsletterAdapter):
                 limit=self.max_stories
             )
 
-            util.log(
-                f"[hackernews_adapter.scrape_date] Fetched {len(stories)} pre-filtered stories for {date}",
-                logger=logger,
+            logger.info(
+                f"[hackernews_adapter.scrape_date] Fetched {len(stories)} pre-filtered stories for {date}"
             )
 
             # Filter out excluded URLs before scoring
@@ -95,9 +93,8 @@ class HackerNewsAdapter(NewsletterAdapter):
                 if canonical_url not in excluded_set:
                     filtered_stories.append(story)
 
-            util.log(
-                f"[hackernews_adapter.scrape_date] {len(filtered_stories)} stories after filtering excluded URLs",
-                logger=logger,
+            logger.info(
+                f"[hackernews_adapter.scrape_date] {len(filtered_stories)} stories after filtering excluded URLs"
             )
 
             # Sort by leading score (already have points and comments from API)
@@ -121,17 +118,14 @@ class HackerNewsAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            util.log(
-                f"[hackernews_adapter.scrape_date] Converted {len(articles)} stories to articles",
-                logger=logger,
+            logger.info(
+                f"[hackernews_adapter.scrape_date] Converted {len(articles)} stories to articles"
             )
 
         except Exception as e:
-            util.log(
+            logger.error(
                 f"[hackernews_adapter.scrape_date] Error fetching stories: {e}",
-                level=logging.ERROR,
-                exc_info=True,
-                logger=logger,
+                exc_info=True
             )
 
         # Create issues for each category that has articles
@@ -179,9 +173,8 @@ class HackerNewsAdapter(NewsletterAdapter):
             "hitsPerPage": limit
         }
 
-        util.log(
-            f"[hackernews_adapter._fetch_stories_algolia] Querying Algolia API with filters: {params['numericFilters']}",
-            logger=logger,
+        logger.info(
+            f"[hackernews_adapter._fetch_stories_algolia] Querying Algolia API with filters: {params['numericFilters']}"
         )
 
         response = requests.get(url, params=params, timeout=10)
@@ -190,9 +183,8 @@ class HackerNewsAdapter(NewsletterAdapter):
         data = response.json()
         hits = data.get('hits', [])
 
-        util.log(
-            f"[hackernews_adapter._fetch_stories_algolia] Received {len(hits)} stories from Algolia",
-            logger=logger,
+        logger.info(
+            f"[hackernews_adapter._fetch_stories_algolia] Received {len(hits)} stories from Algolia"
         )
 
         return hits

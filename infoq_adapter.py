@@ -43,9 +43,8 @@ class InfoQAdapter(NewsletterAdapter):
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
         target_date_str = target_date.strftime("%Y-%m-%d")
 
-        util.log(
-            f"[infoq_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)",
-            logger=logger,
+        logger.info(
+            f"[infoq_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)"
         )
 
         try:
@@ -54,9 +53,8 @@ class InfoQAdapter(NewsletterAdapter):
 
             feed = feedparser.parse(response.content)
 
-            util.log(
-                f"[infoq_adapter.scrape_date] Fetched {len(feed.entries)} total entries from feed",
-                logger=logger,
+            logger.info(
+                f"[infoq_adapter.scrape_date] Fetched {len(feed.entries)} total entries from feed"
             )
 
             for entry in feed.entries:
@@ -82,17 +80,14 @@ class InfoQAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            util.log(
-                f"[infoq_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}",
-                logger=logger,
+            logger.info(
+                f"[infoq_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}"
             )
 
         except Exception as e:
-            util.log(
+            logger.error(
                 f"[infoq_adapter.scrape_date] Error fetching feed: {e}",
-                level=logging.ERROR,
-                exc_info=True,
-                logger=logger,
+                exc_info=True
             )
 
         issues = []

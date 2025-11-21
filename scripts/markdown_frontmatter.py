@@ -4,6 +4,7 @@ Generic CRUD operations for Markdown YAML frontmatter.
 Handles reading, updating, writing, and deleting frontmatter fields.
 """
 
+import logging
 import re
 import sys
 from pathlib import Path
@@ -13,6 +14,8 @@ try:
 except ModuleNotFoundError:
     sys.path.insert(0, str(Path(__file__).parent.parent))
     import util
+
+logger = logging.getLogger("markdown_frontmatter")
 
 
 def _read_frontmatter(file_path: Path) -> tuple[dict[str, str], str]:
@@ -35,10 +38,10 @@ def _read_frontmatter(file_path: Path) -> tuple[dict[str, str], str]:
     try:
         content = file_path.read_text(encoding='utf-8')
     except FileNotFoundError:
-        util.log(f"File not found: {file_path}", level=40)
+        logger.error(f"File not found: {file_path}")
         return {}, ""
     except Exception as e:
-        util.log(f"Error reading {file_path}: {e}", level=40)
+        logger.error(f"Error reading {file_path}: {e}")
         return {}, ""
 
     frontmatter_pattern = r'^---\s*\n(.*?)---\s*\n'
@@ -49,7 +52,7 @@ def _read_frontmatter(file_path: Path) -> tuple[dict[str, str], str]:
         try:
             file_path.write_text(new_content, encoding='utf-8')
         except Exception as e:
-            util.log(f"Error writing frontmatter boundaries to {file_path}: {e}", level=40)
+            logger.error(f"Error writing frontmatter boundaries to {file_path}: {e}")
         return {}, new_content
 
     frontmatter_text = match.group(1).strip()
@@ -87,7 +90,7 @@ def _write_frontmatter(file_path: Path, frontmatter_dict: dict[str, str]) -> Non
     try:
         file_path.write_text(new_content, encoding='utf-8')
     except Exception as e:
-        util.log(f"Error writing frontmatter to {file_path}: {e}", level=40)
+        logger.error(f"Error writing frontmatter to {file_path}: {e}")
         raise
 
 
@@ -137,7 +140,7 @@ def update(file_path: str | Path, frontmatter: dict[str, str]) -> dict[str, str]
     >>> path.unlink()
     """
     if not frontmatter:
-        util.log(f"No frontmatter provided for update operation on {file_path}", level=40)
+        logger.error(f"No frontmatter provided for update operation on {file_path}")
         return {}
 
     file_path = Path(file_path)
@@ -166,7 +169,7 @@ def write(file_path: str | Path, frontmatter: dict[str, str]) -> dict[str, str]:
     >>> path.unlink()
     """
     if not frontmatter:
-        util.log(f"No frontmatter provided for write operation on {file_path}", level=40)
+        logger.error(f"No frontmatter provided for write operation on {file_path}")
         return {}
 
     file_path = Path(file_path)
@@ -198,7 +201,7 @@ def delete(file_path: str | Path, *fields: str) -> dict[str, str]:
         try:
             content = file_path.read_text(encoding='utf-8')
         except Exception as e:
-            util.log(f"Error reading {file_path}: {e}", level=40)
+            logger.error(f"Error reading {file_path}: {e}")
             return {}
 
         frontmatter_pattern = r'^---\s*\n(.*?)---\s*\n\n?'
@@ -207,7 +210,7 @@ def delete(file_path: str | Path, *fields: str) -> dict[str, str]:
         try:
             file_path.write_text(new_content, encoding='utf-8')
         except Exception as e:
-            util.log(f"Error removing frontmatter from {file_path}: {e}", level=40)
+            logger.error(f"Error removing frontmatter from {file_path}: {e}")
 
         return {}
 
