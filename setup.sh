@@ -275,41 +275,12 @@ function uv_sync(){
     local uv_sync_output
     if uv_sync_output=$(uv sync -p 3.11 2>&1); then
         [[ "$quiet" == false ]] && message "[$0] Successfully ran uv sync. Use 'uv run python3 ...' to run Python."
-        uv run --with=playwright playwright install chromium 1>/dev/null # Install browser
-        return $?
+        return 0
     else
         error "[$0] failed to uv sync. Output:"
         echo "$uv_sync_output" >&2
         return 1
     fi
-}
-
-# ensure_gh [-q,-quiet]
-# Idempotent installation of gh (GitHub CLI).
-function ensure_gh(){
-    :ensure_tool gh "apt install gh -y" "$@"
-}
-
-# ensure_wrap_gh
-# Idempotent wrapping of gh to add ARCHITECTURE.md reminder on PR creation.
-function ensure_wrap_gh(){
-    if ! isdefined gh; then
-        return 0
-    fi
-    if declare -F gh >/dev/null 2>&1; then
-        return 0
-    fi
-    _REAL_GH_PATH="$(command -v gh)"
-    gh() {
-        if [[ "$1" == "pr" && "$2" == "create" ]]; then
-            echo "" >&2
-            echo "<system-reminder>" >&2
-            echo "Has any significant architectural change been made in the project? Does it merit an update to ARCHITECTURE.md?" >&2
-            echo "</system-reminder>" >&2
-            echo "" >&2
-        fi
-        "$_REAL_GH_PATH" "$@"
-    }
 }
 
 # # ensure_eza [-q,--quiet]
@@ -431,17 +402,17 @@ function main() {
   mkdir -p "$run_dir"
 
   [[ "$quiet" == false ]] && message "[$0] Ensuring dependencies..."
-  local ensure_uv_success=true uv_sync_success=true ensure_gh_success=true
+  local ensure_uv_success=true uv_sync_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
-  uv run --with=playwright playwright install chromium 1>/dev/null # Install browser
+  uv run --with=playwright playwright install chromium 1>/dev/null 2>&1 # Install browser
   
   # if [[ ! "${GITHUB_ACTIONS:-}" ]]; then
   #   ensure_gh --quiet="$quiet" || ensure_gh_success=false
   #   ensure_wrap_gh
   # fi
 
-  if ! "$ensure_uv_success" || ! "$uv_sync_success" || ! "$ensure_gh_success"; then
+  if ! "$ensure_uv_success" || ! "$uv_sync_success"; then
     error "[$0] Failed to install dependencies. Please check the output above."
     return 1
   fi
