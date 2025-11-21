@@ -8,7 +8,7 @@ import './App.css'
 function App() {
   const [results, setResults] = useState(null)
   const [copying, setCopying] = useState(null)
-  const [copyError, setCopyError] = useState(null)
+  const [downloadError, setDownloadError] = useState(null)
 
   useEffect(() => {
     const today = new Date()
@@ -29,32 +29,12 @@ function App() {
       })
   }, [])
 
-  const fallbackCopy = (text) => {
-    const textarea = document.createElement('textarea')
-    textarea.value = text
-    textarea.style.position = 'fixed'
-    textarea.style.opacity = '0'
-    document.body.appendChild(textarea)
-    textarea.select()
-    try {
-      document.execCommand('copy')
-      console.log('Fallback copy succeeded')
-      return true
-    } catch (err) {
-      console.error('Fallback copy failed:', err)
-      return false
-    } finally {
-      document.body.removeChild(textarea)
-    }
-  }
-
   const handleContextCopy = async (contextType) => {
-    console.log(`[handleContextCopy] Starting copy for: ${contextType}`)
+    console.log(`[handleContextCopy] Starting download for: ${contextType}`)
     setCopying(contextType)
-    setCopyError(null)
+    setDownloadError(null)
 
     try {
-      console.log(`[handleContextCopy] Fetching context...`)
       const response = await fetch('/api/generate-context', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,29 +46,26 @@ function App() {
       console.log(`[handleContextCopy] Result success: ${result.success}, content length: ${result.content?.length || 0}`)
 
       if (result.success) {
-        try {
-          await navigator.clipboard.writeText(result.content)
-          console.log(`[handleContextCopy] Clipboard write succeeded`)
-          setTimeout(() => setCopying(null), 1000)
-        } catch (clipErr) {
-          console.error(`[handleContextCopy] Clipboard API failed:`, clipErr)
-          console.log(`[handleContextCopy] Trying fallback method...`)
+        const blob = new Blob([result.content], { type: 'text/plain' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `context-${contextType}.txt`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
 
-          if (fallbackCopy(result.content)) {
-            setTimeout(() => setCopying(null), 1000)
-          } else {
-            setCopyError(`Clipboard access denied. Content length: ${result.content.length}`)
-            setCopying(null)
-          }
-        }
+        console.log(`[handleContextCopy] Download triggered`)
+        setTimeout(() => setCopying(null), 1000)
       } else {
         console.error('Failed to generate context:', result.error)
-        setCopyError(`Server error: ${result.error}`)
+        setDownloadError(`Server error: ${result.error}`)
         setCopying(null)
       }
     } catch (err) {
-      console.error('Failed to copy context:', err)
-      setCopyError(`Network error: ${err.message}`)
+      console.error('Failed to download context:', err)
+      setDownloadError(`Network error: ${err.message}`)
       setCopying(null)
     }
   }
@@ -103,34 +80,34 @@ function App() {
           disabled={copying === 'server'}
           className="context-btn"
         >
-          📋 {copying === 'server' ? 'Copied!' : 'server'}
+          ⬇ {copying === 'server' ? 'Downloaded!' : 'server'}
         </button>
         <button
           onClick={() => handleContextCopy('client')}
           disabled={copying === 'client'}
           className="context-btn"
         >
-          📋 {copying === 'client' ? 'Copied!' : 'client'}
+          ⬇ {copying === 'client' ? 'Downloaded!' : 'client'}
         </button>
         <button
           onClick={() => handleContextCopy('docs')}
           disabled={copying === 'docs'}
           className="context-btn"
         >
-          📋 {copying === 'docs' ? 'Copied!' : 'docs'}
+          ⬇ {copying === 'docs' ? 'Downloaded!' : 'docs'}
         </button>
         <button
           onClick={() => handleContextCopy('all')}
           disabled={copying === 'all'}
           className="context-btn"
         >
-          📋 {copying === 'all' ? 'Copied!' : 'all'}
+          ⬇ {copying === 'all' ? 'Downloaded!' : 'all'}
         </button>
       </div>
 
-      {copyError && (
+      {downloadError && (
         <div className="copy-error">
-          {copyError}
+          {downloadError}
         </div>
       )}
 
