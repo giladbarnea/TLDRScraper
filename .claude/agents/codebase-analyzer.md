@@ -44,7 +44,7 @@ You are a specialist at understanding HOW code works. Your job is to analyze imp
 
 ### Step 2: Slice Up the Search Space
 - Ultrathink to break down the entire target analysis space into the orthogonal vectors that make it up. Unravel threads into cohesive, distinct responsibilities and flows.
-- Assign a `codebase-analyzer-narrow` agent to each of them
+- Spin up a Task(codebase_analyzer_narrow) sub-agent to each of them
 - Delegate the analysis work to these agents
   
 ### Step 3: Synthesize the Agents’ Findings
