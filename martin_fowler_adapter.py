@@ -42,10 +42,7 @@ class MartinFowlerAdapter(NewsletterAdapter):
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
         target_date_str = target_date.strftime("%Y-%m-%d")
 
-        util.log(
-            f"[martin_fowler_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)",
-            logger=logger,
-        )
+        logger.info(f"[martin_fowler_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
             response = requests.get(self.feed_url, timeout=10)
@@ -53,10 +50,7 @@ class MartinFowlerAdapter(NewsletterAdapter):
 
             feed = feedparser.parse(response.content)
 
-            util.log(
-                f"[martin_fowler_adapter.scrape_date] Fetched {len(feed.entries)} total entries from feed",
-                logger=logger,
-            )
+            logger.info(f"[martin_fowler_adapter.scrape_date] Fetched {len(feed.entries)} total entries from feed")
 
             for entry in feed.entries:
                 if not entry.get('updated_parsed'):
@@ -81,18 +75,10 @@ class MartinFowlerAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            util.log(
-                f"[martin_fowler_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}",
-                logger=logger,
-            )
+            logger.info(f"[martin_fowler_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}")
 
         except Exception as e:
-            util.log(
-                f"[martin_fowler_adapter.scrape_date] Error fetching feed: {e}",
-                level=logging.ERROR,
-                exc_info=True,
-                logger=logger,
-            )
+            logger.error(f"[martin_fowler_adapter.scrape_date] Error fetching feed: {e}", exc_info=True)
 
         issues = []
         if articles:

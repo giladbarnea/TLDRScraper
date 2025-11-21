@@ -42,10 +42,7 @@ class DeepMindAdapter(NewsletterAdapter):
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
         target_month_year = target_date.strftime("%B %Y")
 
-        util.log(
-            f"[deepmind_adapter.scrape_date] Fetching articles for {target_month_year} (excluding {len(excluded_urls)} URLs)",
-            logger=logger,
-        )
+        logger.info(f"[deepmind_adapter.scrape_date] Fetching articles for {target_month_year} (excluding {len(excluded_urls)} URLs)")
 
         try:
             response = requests.get(self.blog_url, timeout=10)
@@ -54,10 +51,7 @@ class DeepMindAdapter(NewsletterAdapter):
             soup = BeautifulSoup(response.content, 'html.parser')
             article_cards = soup.find_all('article', class_='card-blog')
 
-            util.log(
-                f"[deepmind_adapter.scrape_date] Found {len(article_cards)} total articles on blog page",
-                logger=logger,
-            )
+            logger.info(f"[deepmind_adapter.scrape_date] Found {len(article_cards)} total articles on blog page")
 
             for card in article_cards:
                 time_elem = card.find('time')
@@ -87,18 +81,10 @@ class DeepMindAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            util.log(
-                f"[deepmind_adapter.scrape_date] Found {len(articles)} articles for {target_month_year}",
-                logger=logger,
-            )
+            logger.info(f"[deepmind_adapter.scrape_date] Found {len(articles)} articles for {target_month_year}")
 
         except Exception as e:
-            util.log(
-                f"[deepmind_adapter.scrape_date] Error fetching blog: {e}",
-                level=logging.ERROR,
-                exc_info=True,
-                logger=logger,
-            )
+            logger.error(f"[deepmind_adapter.scrape_date] Error fetching blog: {e}", exc_info=True)
 
         issues = []
         if articles:
