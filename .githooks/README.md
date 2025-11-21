@@ -30,24 +30,38 @@ Automatically generates `PROJECT_STRUCTURE.md` using `eza` before merge commits 
 
 The hook will attempt to auto-install `eza` on Ubuntu/Debian systems.
 
-### post-checkout, post-merge, post-rewrite
+### post-checkout
+
+Ensures the local clone has the `merge.ours` driver configured so Git respects the `PROJECT_STRUCTURE.md merge=ours` rule from `.gitattributes`.
+
+Also regenerates `PROJECT_STRUCTURE.md` using `eza` to ensure the file is present and up-to-date when switching branches.
+
+### post-merge, post-rewrite
 
 These hooks ensure the local clone always has the `merge.ours` driver configured so Git respects the `PROJECT_STRUCTURE.md merge=ours` rule from `.gitattributes`.
 
-They also regenerate `PROJECT_STRUCTURE.md` using `eza` to ensure the file is always present and up-to-date in the local worktree (the file remains untracked/ignored in git).
-
 ## GitHub Actions
 
-The same functionality runs automatically in GitHub Actions in two modes:
+Documentation maintenance runs automatically via a single consolidated workflow with explicit sequential dependencies to prevent race conditions:
 
-1. **PR Check** (before merge):
-   - Runs when a PR is opened, updated, or reopened
-   - Generates `PROJECT_STRUCTURE.md` and surfaces a preview in the workflow logs
-   - Ensures reviewers can inspect the structure without committing the artifact
+**Workflow:** `.github/workflows/maintain-documentation.yml`
 
-2. **Update** (after merge):
-   - Runs when a PR is merged to main or when pushing directly to main
-   - Regenerates the preview to reflect the latest repository state
-   - Keeps the generated artifact aligned with the working tree expectations
+**Sequential Job Execution:**
 
-See `.github/workflows/update-project-structure.yml` for implementation details.
+1. **update-frontmatter** (runs first):
+   - Updates YAML frontmatter in modified `*.md` files with timestamp and commit hash
+   - Commits and pushes changes
+   - Outputs list of modified files for downstream jobs
+
+2. **sync-agents-to-claude** (depends on job 1):
+   - Only runs if `AGENTS.md` was modified in job 1
+   - Copies `AGENTS.md` to `CLAUDE.md` (after frontmatter updates)
+   - Commits and pushes changes
+   - Prevents race condition by running sequentially
+
+3. **generate-structure-preview** (depends on job 2):
+   - Generates `PROJECT_STRUCTURE.md` preview in workflow logs
+   - Runs after all mutations complete
+   - File is not committed to git
+
+This design eliminates the race condition that occurred when parallel workflows (`update-doc-frontmatter.yml`, `copy-agents-to-claude.yml`) both modified and pushed changes simultaneously.
