@@ -7,6 +7,8 @@ from flask import Flask, request, jsonify, send_from_directory
 import logging
 import requests
 import os
+import subprocess
+import pathlib
 
 import util
 import tldr_app
@@ -204,6 +206,66 @@ def check_storage_is_cached(date):
         logger.error(
             "[serve.check_storage_is_cached] error date=%s error=%s",
             date, repr(e),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+@app.route("/api/generate-context", methods=["POST"])
+def generate_context():
+    """Generate context for server, client, docs, or all."""
+    try:
+        data = request.get_json()
+        context_type = data.get('context_type')
+
+        if context_type not in ['server', 'client', 'docs', 'all']:
+            return jsonify({"success": False, "error": "Invalid context_type. Must be 'server', 'client', 'docs', or 'all'"}), 400
+
+        root_dir = pathlib.Path(__file__).parent
+        script_path = root_dir / 'scripts' / 'generate_context.py'
+
+        if context_type == 'all':
+            contents = []
+            for ctx in ['docs', 'server', 'client']:
+                cmd = ['python3', str(script_path), ctx]
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    cwd=root_dir
+                )
+                if result.returncode != 0:
+                    logger.error(
+                        "[serve.generate_context] script failed for %s stderr=%s",
+                        ctx, result.stderr
+                    )
+                    return jsonify({"success": False, "error": f"Failed to generate {ctx} context: {result.stderr}"}), 500
+                contents.append(result.stdout)
+
+            combined_content = '\n\n'.join(contents)
+            return jsonify({"success": True, "content": combined_content})
+        else:
+            cmd = ['python3', str(script_path), context_type]
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                cwd=root_dir
+            )
+
+            if result.returncode != 0:
+                logger.error(
+                    "[serve.generate_context] script failed stderr=%s",
+                    result.stderr
+                )
+                return jsonify({"success": False, "error": result.stderr}), 500
+
+            return jsonify({"success": True, "content": result.stdout})
+
+    except Exception as e:
+        logger.error(
+            "[serve.generate_context] error error=%s",
+            repr(e),
             exc_info=True,
         )
         return jsonify({"success": False, "error": repr(e)}), 500

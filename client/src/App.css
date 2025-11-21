@@ -59,6 +59,35 @@ h1 {
   text-wrap: balance;
 }
 
+.context-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  justify-content: stretch;
+}
+
+.context-btn {
+  flex: 1;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.context-btn:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--muted);
+}
+
+.context-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 /* Focus styles */
 a:focus-visible,
 button:focus-visible,
