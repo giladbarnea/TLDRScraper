@@ -2,7 +2,3 @@
 set -euo pipefail
 
 git config --local merge.ours.driver true
-
-if command -v eza &> /dev/null; then
-  eza --classify --icons --tree --git-ignore --all . > PROJECT_STRUCTURE.md
-fi
