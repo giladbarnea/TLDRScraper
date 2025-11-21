@@ -1,0 +1,13 @@
+#!/bin/bash
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [[ "$CURRENT_BRANCH" == claude/* ]] || [[ "$CURRENT_BRANCH" == feature/* ]]; then
+    echo "Cleaning up old Vercel deployments for branch: $CURRENT_BRANCH"
+
+    if ! /home/user/TLDRScraper/scripts/cleanup-vercel-previews.sh "$CURRENT_BRANCH"; then
+        echo "Warning: Vercel cleanup failed, but continuing with push..."
+    fi
+fi
+
+exit 0

@@ -1,0 +1,76 @@
+name: Cleanup Vercel Preview Deployments
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  cleanup-old-previews:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old deployments for this branch
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          KEEP_RECENT=1
+
+          echo "Fetching deployments for branch '$BRANCH'..."
+
+          API_URL="https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&branch=$BRANCH&limit=100"
+          if [ -n "$VERCEL_TEAM_ID" ]; then
+            API_URL="$API_URL&teamId=$VERCEL_TEAM_ID"
+          fi
+
+          RESPONSE=$(curl -sf -X GET "$API_URL" \
+            -H "Authorization: Bearer $VERCEL_TOKEN") || {
+            echo "Error: Failed to fetch deployments"
+            exit 1
+          }
+
+          DEPLOYMENT_IDS=$(echo "$RESPONSE" | \
+            jq -r --arg keep "$KEEP_RECENT" \
+            '.deployments | sort_by(.created) | .[0:-($keep|tonumber)] | .[].uid')
+
+          if [ -z "$DEPLOYMENT_IDS" ]; then
+            echo "No old deployments to delete."
+            exit 0
+          fi
+
+          COUNT=$(echo "$DEPLOYMENT_IDS" | wc -w)
+          echo "Found $COUNT deployment(s) to delete (keeping $KEEP_RECENT most recent)"
+
+          DELETED=0
+          FAILED=0
+
+          while IFS= read -r DEPLOYMENT_ID; do
+            [ -z "$DEPLOYMENT_ID" ] && continue
+
+            DELETE_URL="https://api.vercel.com/v13/deployments/$DEPLOYMENT_ID"
+            if [ -n "$VERCEL_TEAM_ID" ]; then
+              DELETE_URL="$DELETE_URL?teamId=$VERCEL_TEAM_ID"
+            fi
+
+            RESULT=$(curl -sf -X DELETE "$DELETE_URL" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" 2>&1) || {
+              echo "  ✗ Failed: $DEPLOYMENT_ID"
+              ((FAILED++))
+              continue
+            }
+
+            STATE=$(echo "$RESULT" | jq -r '.state // empty')
+            if [ "$STATE" = "DELETED" ]; then
+              echo "  ✓ Deleted: $DEPLOYMENT_ID"
+              ((DELETED++))
+            else
+              echo "  ✗ Unexpected response for $DEPLOYMENT_ID"
+              ((FAILED++))
+            fi
+          done <<< "$DEPLOYMENT_IDS"
+
+          echo "Cleanup complete: $DELETED deleted, $FAILED failed"
+          [ $FAILED -gt 0 ] && exit 1
+          exit 0
