@@ -60,16 +60,14 @@ def scrape_newsletters_in_date_range(
 
     sources_str = ", ".join(source_ids) if source_ids else "all"
     excluded_count = len(excluded_urls) if excluded_urls else 0
-    util.log(
+    logger.info(
         f"[tldr_service.scrape_newsletters] start start_date={start_date_text} end_date={end_date_text} sources={sources_str} excluded_count={excluded_count}",
-        logger=logger,
     )
 
     result = scrape_date_range(start_date, end_date, source_ids=source_ids, excluded_urls=excluded_urls)
 
-    util.log(
+    logger.info(
         f"[tldr_service.scrape_newsletters] done dates_processed={result['stats']['dates_processed']} total_articles={result['stats']['total_articles']}",
-        logger=logger,
     )
     return result
 
@@ -98,12 +96,10 @@ def tldr_url_content(
             model=model,
         )
     except requests.RequestException as error:
-        util.log(
+        logger.error(
             "[tldr_service.tldr_url_content] request error error=%s",
             repr(error),
-            level=logging.ERROR,
             exc_info=True,
-            logger=logger,
         )
         raise
 

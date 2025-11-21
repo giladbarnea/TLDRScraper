@@ -86,22 +86,18 @@ def tldr_url(model: str = DEFAULT_MODEL):
     except ValueError as error:
         return jsonify({"success": False, "error": str(error)}), 400
     except requests.RequestException as e:
-        util.log(
+        logger.error(
             "[serve.tldr_url] request error error=%s",
             repr(e),
-            level=logging.ERROR,
             exc_info=True,
-            logger=logger,
         )
         return jsonify({"success": False, "error": f"Network error: {repr(e)}"}), 502
 
     except Exception as e:
-        util.log(
+        logger.error(
             "[serve.tldr_url] error error=%s",
             repr(e),
-            level=logging.ERROR,
             exc_info=True,
-            logger=logger,
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
@@ -117,12 +113,10 @@ def get_storage_setting(key):
         return jsonify({"success": True, "value": value})
 
     except Exception as e:
-        util.log(
+        logger.error(
             "[serve.get_storage_setting] error key=%s error=%s",
             key, repr(e),
-            level=logging.ERROR,
             exc_info=True,
-            logger=logger
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
@@ -137,12 +131,10 @@ def set_storage_setting(key):
         return jsonify({"success": True, "data": result})
 
     except Exception as e:
-        util.log(
+        logger.error(
             "[serve.set_storage_setting] error key=%s error=%s",
             key, repr(e),
-            level=logging.ERROR,
             exc_info=True,
-            logger=logger
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
@@ -157,12 +149,10 @@ def get_storage_daily(date):
         return jsonify({"success": True, "payload": payload})
 
     except Exception as e:
-        util.log(
+        logger.error(
             "[serve.get_storage_daily] error date=%s error=%s",
             date, repr(e),
-            level=logging.ERROR,
             exc_info=True,
-            logger=logger
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
@@ -177,12 +167,10 @@ def set_storage_daily(date):
         return jsonify({"success": True, "data": result})
 
     except Exception as e:
-        util.log(
+        logger.error(
             "[serve.set_storage_daily] error date=%s error=%s",
             date, repr(e),
-            level=logging.ERROR,
             exc_info=True,
-            logger=logger
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
@@ -198,12 +186,10 @@ def get_storage_daily_range():
         return jsonify({"success": True, "payloads": payloads})
 
     except Exception as e:
-        util.log(
+        logger.error(
             "[serve.get_storage_daily_range] error error=%s",
             repr(e),
-            level=logging.ERROR,
             exc_info=True,
-            logger=logger
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
@@ -215,12 +201,10 @@ def check_storage_is_cached(date):
         return jsonify({"success": True, "is_cached": is_cached})
 
     except Exception as e:
-        util.log(
+        logger.error(
             "[serve.check_storage_is_cached] error date=%s error=%s",
             date, repr(e),
-            level=logging.ERROR,
             exc_info=True,
-            logger=logger
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 

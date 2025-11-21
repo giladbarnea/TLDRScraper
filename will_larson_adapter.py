@@ -44,10 +44,7 @@ class WillLarsonAdapter(NewsletterAdapter):
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
         target_date_str = target_date.strftime("%Y-%m-%d")
 
-        util.log(
-            f"[will_larson_adapter.scrape_date] Fetching articles for {target_date_str} from RSS feed",
-            logger=logger,
-        )
+        logger.info(f"[will_larson_adapter.scrape_date] Fetching articles for {target_date_str} from RSS feed")
 
         try:
             # Fetch RSS feed
@@ -58,10 +55,7 @@ class WillLarsonAdapter(NewsletterAdapter):
             root = ET.fromstring(response.content)
             items = root.findall('.//item')
 
-            util.log(
-                f"[will_larson_adapter.scrape_date] Found {len(items)} items in RSS feed",
-                logger=logger,
-            )
+            logger.info(f"[will_larson_adapter.scrape_date] Found {len(items)} items in RSS feed")
 
             # Filter items by date
             for item in items:
@@ -78,11 +72,7 @@ class WillLarsonAdapter(NewsletterAdapter):
                     pub_datetime = parsedate_to_datetime(pubdate_elem.text)
                     article_date_str = pub_datetime.strftime("%Y-%m-%d")
                 except Exception as e:
-                    util.log(
-                        f"[will_larson_adapter.scrape_date] Error parsing date '{pubdate_elem.text}': {e}",
-                        level=logging.WARNING,
-                        logger=logger,
-                    )
+                    logger.warning(f"[will_larson_adapter.scrape_date] Error parsing date '{pubdate_elem.text}': {e}")
                     continue
 
                 # Check if article matches target date
@@ -124,18 +114,10 @@ class WillLarsonAdapter(NewsletterAdapter):
 
                 articles.append(article)
 
-            util.log(
-                f"[will_larson_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}",
-                logger=logger,
-            )
+            logger.info(f"[will_larson_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}")
 
         except Exception as e:
-            util.log(
-                f"[will_larson_adapter.scrape_date] Error fetching RSS feed: {e}",
-                level=logging.ERROR,
-                exc_info=True,
-                logger=logger,
-            )
+            logger.error(f"[will_larson_adapter.scrape_date] Error fetching RSS feed: {e}", exc_info=True)
 
         # Create issue metadata if we have articles
         issues = []

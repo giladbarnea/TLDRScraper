@@ -56,29 +56,20 @@ class NodeWeeklyAdapter(NewsletterAdapter):
 
         date_str = util.format_date_for_url(date)
 
-        util.log(
-            f"[node_weekly_adapter.scrape_date] Scraping Node Weekly for {date_str} (excluding {len(excluded_urls)} URLs)",
-            logger=logger,
-        )
+        logger.info(f"[node_weekly_adapter.scrape_date] Scraping Node Weekly for {date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
             issue_data = self._get_issue_for_date(date_str)
 
             if not issue_data:
-                util.log(
-                    f"[node_weekly_adapter.scrape_date] No issue found for {date_str}",
-                    logger=logger,
-                )
+                logger.info(f"[node_weekly_adapter.scrape_date] No issue found for {date_str}")
                 return self._normalize_response([], [])
 
             issue_url = issue_data['url']
             issue_date = issue_data['date']
             issue_number = issue_data['issue_number']
 
-            util.log(
-                f"[node_weekly_adapter.scrape_date] Found issue #{issue_number} at {issue_url} (published {issue_date})",
-                logger=logger,
-            )
+            logger.info(f"[node_weekly_adapter.scrape_date] Found issue #{issue_number} at {issue_url} (published {issue_date})")
 
             scraped_articles = self._scrape_issue(issue_url, issue_date, issue_number)
 
@@ -87,18 +78,10 @@ class NodeWeeklyAdapter(NewsletterAdapter):
                 if canonical_url not in excluded_set:
                     articles.append(article)
 
-            util.log(
-                f"[node_weekly_adapter.scrape_date] Scraped {len(articles)} articles after filtering",
-                logger=logger,
-            )
+            logger.info(f"[node_weekly_adapter.scrape_date] Scraped {len(articles)} articles after filtering")
 
         except Exception as e:
-            util.log(
-                f"[node_weekly_adapter.scrape_date] Error scraping Node Weekly for {date_str}: {e}",
-                level=logging.ERROR,
-                exc_info=True,
-                logger=logger,
-            )
+            logger.error(f"[node_weekly_adapter.scrape_date] Error scraping Node Weekly for {date_str}: {e}", exc_info=True)
 
         category = self.config.category_display_names.get("newsletter", "Node Weekly")
         issues = []
@@ -148,10 +131,7 @@ class NodeWeeklyAdapter(NewsletterAdapter):
         Returns:
             Dictionary mapping YYYY-MM-DD strings to issue data dicts
         """
-        util.log(
-            f"[node_weekly_adapter._build_date_to_issue_mapping] Fetching RSS feed from {RSS_FEED_URL}",
-            logger=logger,
-        )
+        logger.info(f"[node_weekly_adapter._build_date_to_issue_mapping] Fetching RSS feed from {RSS_FEED_URL}")
 
         response = requests.get(RSS_FEED_URL, timeout=30)
         response.raise_for_status()
@@ -187,17 +167,10 @@ class NodeWeeklyAdapter(NewsletterAdapter):
                 }
 
             except Exception as e:
-                util.log(
-                    f"[node_weekly_adapter._build_date_to_issue_mapping] Error parsing RSS item: {e}",
-                    level=logging.WARNING,
-                    logger=logger,
-                )
+                logger.warning(f"[node_weekly_adapter._build_date_to_issue_mapping] Error parsing RSS item: {e}")
                 continue
 
-        util.log(
-            f"[node_weekly_adapter._build_date_to_issue_mapping] Built mapping for {len(date_to_issue)} issues",
-            logger=logger,
-        )
+        logger.info(f"[node_weekly_adapter._build_date_to_issue_mapping] Built mapping for {len(date_to_issue)} issues")
 
         return date_to_issue
 
