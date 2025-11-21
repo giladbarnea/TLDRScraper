@@ -78,6 +78,13 @@ function App() {
         >
           📋 {copying === 'docs' ? 'Copied!' : 'docs'}
         </button>
+        <button
+          onClick={() => handleContextCopy('all')}
+          disabled={copying === 'all'}
+          className="context-btn"
+        >
+          📋 {copying === 'all' ? 'Copied!' : 'all'}
+        </button>
       </div>
 
       <CacheToggle />

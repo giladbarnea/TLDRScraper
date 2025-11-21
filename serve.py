@@ -212,34 +212,55 @@ def check_storage_is_cached(date):
 
 @app.route("/api/generate-context", methods=["POST"])
 def generate_context():
-    """Generate context for server, client, or docs."""
+    """Generate context for server, client, docs, or all."""
     try:
         data = request.get_json()
         context_type = data.get('context_type')
 
-        if context_type not in ['server', 'client', 'docs']:
-            return jsonify({"success": False, "error": "Invalid context_type. Must be 'server', 'client', or 'docs'"}), 400
+        if context_type not in ['server', 'client', 'docs', 'all']:
+            return jsonify({"success": False, "error": "Invalid context_type. Must be 'server', 'client', 'docs', or 'all'"}), 400
 
         root_dir = pathlib.Path(__file__).parent
         script_path = root_dir / 'scripts' / 'generate_context.py'
 
-        cmd = ['python3', str(script_path), context_type]
+        if context_type == 'all':
+            contents = []
+            for ctx in ['docs', 'server', 'client']:
+                cmd = ['python3', str(script_path), ctx]
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    cwd=root_dir
+                )
+                if result.returncode != 0:
+                    logger.error(
+                        "[serve.generate_context] script failed for %s stderr=%s",
+                        ctx, result.stderr
+                    )
+                    return jsonify({"success": False, "error": f"Failed to generate {ctx} context: {result.stderr}"}), 500
+                contents.append(result.stdout)
 
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            cwd=root_dir
-        )
+            combined_content = '\n\n'.join(contents)
+            return jsonify({"success": True, "content": combined_content})
+        else:
+            cmd = ['python3', str(script_path), context_type]
 
-        if result.returncode != 0:
-            logger.error(
-                "[serve.generate_context] script failed stderr=%s",
-                result.stderr
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                cwd=root_dir
             )
-            return jsonify({"success": False, "error": result.stderr}), 500
 
-        return jsonify({"success": True, "content": result.stdout})
+            if result.returncode != 0:
+                logger.error(
+                    "[serve.generate_context] script failed stderr=%s",
+                    result.stderr
+                )
+                return jsonify({"success": False, "error": result.stderr}), 500
+
+            return jsonify({"success": True, "content": result.stdout})
 
     except Exception as e:
         logger.error(
