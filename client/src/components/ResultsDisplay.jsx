@@ -10,8 +10,6 @@ function ResultsDisplay({ results }) {
     results.source && `Source: ${results.source}`
   ].filter(Boolean)
 
-  const debugLogs = results.debugLogs || []
-
   return (
     <div id="result" className="result success">
       <div className="stats">
@@ -19,15 +17,6 @@ function ResultsDisplay({ results }) {
           <div key={index}>{line}</div>
         ))}
       </div>
-
-      {debugLogs.length > 0 && (
-        <div id="logs-slot" className="logs-slot">
-          <details>
-            <summary>Debug logs</summary>
-            <pre>{debugLogs.join('\n')}</pre>
-          </details>
-        </div>
-      )}
 
       <main id="write">
         {(results.payloads || []).map((payload) => (

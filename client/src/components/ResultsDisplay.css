@@ -16,33 +16,6 @@
   border-radius: 4px;
 }
 
-.logs-slot {
-  margin-bottom: 15px;
-}
-
-.logs-slot details {
-  background: #f6f7f9;
-  padding: 10px;
-  border-radius: 4px;
-  border: 1px solid #e5e7eb;
-}
-
-.logs-slot summary {
-  cursor: pointer;
-  font-weight: 600;
-  color: #475569;
-  user-select: none;
-}
-
-.logs-slot pre {
-  margin-top: 10px;
-  font-size: 13px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  color: #0f172a;
-}
-
 .date-header-container {
   display: flex;
   align-items: center;

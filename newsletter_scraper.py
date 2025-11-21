@@ -192,7 +192,6 @@ def _compute_stats(
         "dates_with_content": len(grouped_articles),
         "network_fetches": network_fetches,
         "cache_mode": "read_write",
-        "debug_logs": list(util.LOGS),
     }
 
 
@@ -263,9 +262,8 @@ def _collect_newsletters_for_date_from_source(
     current_processed = processed_count
 
     current_processed += 1
-    util.log(
+    logger.info(
         f"[newsletter_scraper] Processing {config.display_name} for {date_str} ({current_processed}/{total_count})",
-        logger=logger,
     )
 
     try:
@@ -298,11 +296,9 @@ def _collect_newsletters_for_date_from_source(
             time.sleep(0.2)
 
     except Exception as e:
-        util.log(
+        logger.error(
             f"[newsletter_scraper] Error processing {config.display_name} for {date_str}: {e}",
-            level=logging.ERROR,
             exc_info=True,
-            logger=logger,
         )
 
     return current_processed, network_articles
@@ -342,10 +338,8 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
 
         for source_id in source_ids:
             if source_id not in NEWSLETTER_CONFIGS:
-                util.log(
+                logger.warning(
                     f"[newsletter_scraper] Unknown source_id: {source_id}, skipping",
-                    level=logging.WARNING,
-                    logger=logger,
                 )
                 continue
 
