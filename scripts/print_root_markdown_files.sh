@@ -3,7 +3,7 @@
 # read_root_markdown_files [-q,--quiet]
 # Reads all markdown files in the root directory.
 # Adapted from .claude/hooks/SessionStart
-function read_root_markdown_files(){
+function read_root_markdown_files() {
   scripts/resolve_quiet_setting.sh "$@" && return 0
 
   local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
@@ -13,10 +13,10 @@ function read_root_markdown_files(){
   fi
 
   local -a exclude=(
-    CLAUDE.md  # Auto-generated from AGENTS.md
+    CLAUDE.md # Auto-generated from AGENTS.md
   )
 
-  function _is_excluded(){
+  function _is_excluded() {
     local _exclude
     for _exclude in "${exclude[@]}"; do
       if [[ "$1" == "${_exclude}" ]]; then
@@ -25,7 +25,7 @@ function read_root_markdown_files(){
     done
     return 1
   }
-  
+
   local md_file
   local base_name
   for md_file in "$workdir"/*.md; do
@@ -42,6 +42,8 @@ function read_root_markdown_files(){
       echo
     fi
   done
+  echo "Further reading: docs/SCREENSHOTTING_APP.md — detailed guide on using Playwright on a remote machine to take screenshots of the client GUI and moving them to own machine to view."
 }
 
 read_root_markdown_files "$@"
+
