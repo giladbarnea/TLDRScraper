@@ -1,0 +1,5 @@
+{
+	"name": "TLDR Smart Reader",
+	"description": "A reimagined tech news feed featuring AI-powered summarization using Gemini.",
+	"requestFramePermissions": []
+}

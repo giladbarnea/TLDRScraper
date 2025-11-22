@@ -1,123 +1,105 @@
-import { useState, useEffect } from 'react'
-import CacheToggle from './components/CacheToggle'
-import ScrapeForm from './components/ScrapeForm'
-import ResultsDisplay from './components/ResultsDisplay'
-import { loadFromCache } from './lib/scraper'
-import './App.css'
+import { useEffect, useState } from "react";
+import CacheToggle from "./components/CacheToggle";
+import ResultsDisplay from "./components/ResultsDisplay";
+import ScrapeForm from "./components/ScrapeForm";
+import { loadFromCache } from "./lib/scraper";
+import "./App.css";
 
 function App() {
-  const [results, setResults] = useState(null)
-  const [copying, setCopying] = useState(null)
-  const [downloadError, setDownloadError] = useState(null)
+	const [results, setResults] = useState(null);
+	const [copying, setCopying] = useState(null);
+	const [downloadError, setDownloadError] = useState(null);
 
-  useEffect(() => {
-    const today = new Date()
-    const threeDaysAgo = new Date(today)
-    threeDaysAgo.setDate(today.getDate() - 3)
+	useEffect(() => {
+		const today = new Date();
+		const threeDaysAgo = new Date(today);
+		threeDaysAgo.setDate(today.getDate() - 3);
 
-    const endDate = today.toISOString().split('T')[0]
-    const startDate = threeDaysAgo.toISOString().split('T')[0]
+		const endDate = today.toISOString().split("T")[0];
+		const startDate = threeDaysAgo.toISOString().split("T")[0];
 
-    loadFromCache(startDate, endDate)
-      .then(cached => {
-        if (cached) {
-          setResults(cached)
-        }
-      })
-      .catch(err => {
-        console.error('Failed to load cached results:', err)
-      })
-  }, [])
+		loadFromCache(startDate, endDate)
+			.then((cached) => {
+				if (cached) {
+					setResults(cached);
+				}
+			})
+			.catch((err) => {
+				console.error("Failed to load cached results:", err);
+			});
+	}, []);
 
-  const handleContextCopy = async (contextType) => {
-    console.log(`[handleContextCopy] Starting download for: ${contextType}`)
-    setCopying(contextType)
-    setDownloadError(null)
+	const handleContextCopy = async (contextType) => {
+		console.log(`[handleContextCopy] Starting download for: ${contextType}`);
+		setCopying(contextType);
+		setDownloadError(null);
 
-    try {
-      const response = await fetch('/api/generate-context', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ context_type: contextType })
-      })
+		try {
+			const response = await fetch("/api/generate-context", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ context_type: contextType }),
+			});
 
-      console.log(`[handleContextCopy] Response status: ${response.status}`)
-      const result = await response.json()
-      console.log(`[handleContextCopy] Result success: ${result.success}, content length: ${result.content?.length || 0}`)
+			console.log(`[handleContextCopy] Response status: ${response.status}`);
+			const result = await response.json();
+			console.log(
+				`[handleContextCopy] Result success: ${result.success}, content length: ${result.content?.length || 0}`,
+			);
 
-      if (result.success) {
-        const blob = new Blob([result.content], { type: 'text/plain' })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `context-${contextType}.txt`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
+			if (result.success) {
+				const blob = new Blob([result.content], { type: "text/plain" });
+				const url = URL.createObjectURL(blob);
+				const link = document.createElement("a");
+				link.href = url;
+				link.download = `context-${contextType}.txt`;
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+				URL.revokeObjectURL(url);
 
-        console.log(`[handleContextCopy] Download triggered`)
-        setTimeout(() => setCopying(null), 1000)
-      } else {
-        console.error('Failed to generate context:', result.error)
-        setDownloadError(`Server error: ${result.error}`)
-        setCopying(null)
-      }
-    } catch (err) {
-      console.error('Failed to download context:', err)
-      setDownloadError(`Network error: ${err.message}`)
-      setCopying(null)
-    }
-  }
+				console.log(`[handleContextCopy] Download triggered`);
+				setTimeout(() => setCopying(null), 1000);
+			} else {
+				console.error("Failed to generate context:", result.error);
+				setDownloadError(`Server error: ${result.error}`);
+				setCopying(null);
+			}
+		} catch (err) {
+			console.error("Failed to download context:", err);
+			setDownloadError(`Network error: ${err.message}`);
+			setCopying(null);
+		}
+	};
 
-  return (
-    <div className="container">
-      <h1>Newsletter Aggregator</h1>
+	return (
+		<div className="container">
+			<h1>Newsletter Aggregator</h1>
 
-      <div className="context-buttons">
-        <button
-          onClick={() => handleContextCopy('server')}
-          disabled={copying === 'server'}
-          className="context-btn"
-        >
-          ⬇ {copying === 'server' ? 'Downloaded!' : 'server'}
-        </button>
-        <button
-          onClick={() => handleContextCopy('client')}
-          disabled={copying === 'client'}
-          className="context-btn"
-        >
-          ⬇ {copying === 'client' ? 'Downloaded!' : 'client'}
-        </button>
-        <button
-          onClick={() => handleContextCopy('docs')}
-          disabled={copying === 'docs'}
-          className="context-btn"
-        >
-          ⬇ {copying === 'docs' ? 'Downloaded!' : 'docs'}
-        </button>
-        <button
-          onClick={() => handleContextCopy('all')}
-          disabled={copying === 'all'}
-          className="context-btn"
-        >
-          ⬇ {copying === 'all' ? 'Downloaded!' : 'all'}
-        </button>
-      </div>
+			<div className="context-buttons">
+				<button className="context-btn" disabled={copying === "server"} onClick={() => handleContextCopy("server")}>
+					⬇ {copying === "server" ? "Downloaded!" : "server"}
+				</button>
+				<button className="context-btn" disabled={copying === "client"} onClick={() => handleContextCopy("client")}>
+					⬇ {copying === "client" ? "Downloaded!" : "client"}
+				</button>
+				<button className="context-btn" disabled={copying === "docs"} onClick={() => handleContextCopy("docs")}>
+					⬇ {copying === "docs" ? "Downloaded!" : "docs"}
+				</button>
+				<button className="context-btn" disabled={copying === "all"} onClick={() => handleContextCopy("all")}>
+					⬇ {copying === "all" ? "Downloaded!" : "all"}
+				</button>
+			</div>
 
-      {downloadError && (
-        <div className="copy-error">
-          {downloadError}
-        </div>
-      )}
+			{downloadError && <div className="copy-error">{downloadError}</div>}
 
-      <CacheToggle />
+			<CacheToggle />
 
-      <ScrapeForm onResults={setResults} />
+			<ScrapeForm onResults={setResults} />
 
-      {results && <ResultsDisplay results={results} />}
-    </div>
-  )
+			{results && <ResultsDisplay results={results} />}
+		</div>
+	);
 }
 
-export default App
+export default App;
