@@ -1,101 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light" />
-    <title>TLDR Smart Reader</title>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="color-scheme" content="light">
+		<title>TLDR Smart Reader</title>
 
-    <!-- Fonts: Outfit for Display, Inter for Body -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              display: ['Outfit', 'sans-serif'],
-            },
-            colors: {
-              brand: {
-                50: '#eef2ff',
-                100: '#e0e7ff',
-                500: '#6366f1', // Indigo
-                600: '#4f46e5',
-                700: '#4338ca',
-                900: '#312e81',
-              },
-              slate: {
-                850: '#1e293b',
-                900: '#0f172a',
-              }
-            },
-            boxShadow: {
-              'soft': '0 2px 12px rgba(0, 0, 0, 0.03)',
-              'soft-hover': '0 12px 32px -8px rgba(0, 0, 0, 0.08)',
-            },
-            animation: {
-              'fade-in': 'fadeIn 0.4s ease-out',
-              'slide-up': 'slideUp 0.4s ease-out',
-            },
-            keyframes: {
-              fadeIn: {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' },
-              },
-              slideUp: {
-                '0%': { transform: 'translateY(12px)', opacity: '0' },
-                '100%': { transform: 'translateY(0)', opacity: '1' },
-              }
-            }
-          }
-        }
-      }
-    </script>
-    <style>
-      body {
-        background-color: #f8fafc;
-        -webkit-font-smoothing: antialiased;
-        color: #0f172a;
-      }
-      /* Clean scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-    <script>
-      // Initialize Lucide icons after render
-      window.addEventListener('load', () => {
-        if (window.lucide) window.lucide.createIcons();
-      });
-      // Re-run on DOM changes for dynamic content
-      const observer = new MutationObserver(() => {
-        if (window.lucide) window.lucide.createIcons();
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-    </script>
-  </body>
+		<!-- Fonts: Outfit for Display, Inter for Body -->
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap"
+			rel="stylesheet"
+		>
+
+		<!-- Tailwind CSS -->
+		<script src="https://cdn.tailwindcss.com"></script>
+
+		<!-- Icons -->
+		<script src="https://unpkg.com/lucide@latest"></script>
+
+		<script>
+		tailwind.config = {
+			theme: {
+				extend: {
+					fontFamily: {
+						sans: ["Inter", "sans-serif"],
+						display: ["Outfit", "sans-serif"],
+					},
+					colors: {
+						brand: {
+							50: "#eef2ff",
+							100: "#e0e7ff",
+							500: "#6366f1", // Indigo
+							600: "#4f46e5",
+							700: "#4338ca",
+							900: "#312e81",
+						},
+						slate: {
+							850: "#1e293b",
+							900: "#0f172a",
+						},
+					},
+					boxShadow: {
+						soft: "0 2px 12px rgba(0, 0, 0, 0.03)",
+						"soft-hover": "0 12px 32px -8px rgba(0, 0, 0, 0.08)",
+					},
+					animation: {
+						"fade-in": "fadeIn 0.4s ease-out",
+						"slide-up": "slideUp 0.4s ease-out",
+					},
+					keyframes: {
+						fadeIn: {
+							"0%": { opacity: "0" },
+							"100%": { opacity: "1" },
+						},
+						slideUp: {
+							"0%": { transform: "translateY(12px)", opacity: "0" },
+							"100%": { transform: "translateY(0)", opacity: "1" },
+						},
+					},
+				},
+			},
+		};
+		</script>
+		<style>
+		body {
+			background-color: #f8fafc;
+			-webkit-font-smoothing: antialiased;
+			color: #0f172a;
+		}
+		/* Clean scrollbar */
+		::-webkit-scrollbar {
+			width: 8px;
+		}
+		::-webkit-scrollbar-track {
+			background: transparent;
+		}
+		::-webkit-scrollbar-thumb {
+			background: #cbd5e1;
+			border-radius: 4px;
+		}
+		::-webkit-scrollbar-thumb:hover {
+			background: #94a3b8;
+		}
+		</style>
+	</head>
+	<body>
+		<div id="root"></div>
+		<script type="module" src="/src/main.jsx"></script>
+		<script>
+		// Initialize Lucide icons after render
+		window.addEventListener("load", () => {
+			if (window.lucide) window.lucide.createIcons();
+		});
+		// Re-run on DOM changes for dynamic content
+		const observer = new MutationObserver(() => {
+			if (window.lucide) window.lucide.createIcons();
+		});
+		observer.observe(document.body, { childList: true, subtree: true });
+		</script>
+	</body>
 </html>
