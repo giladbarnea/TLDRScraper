@@ -1,35 +1,35 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { fileURLToPath, URL } from 'node:url'
+import { fileURLToPath, URL } from "node:url";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [react()],
+	plugins: [react()],
 
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
-  },
+	resolve: {
+		alias: {
+			"@": fileURLToPath(new URL("./src", import.meta.url)),
+		},
+	},
 
-  server: {
-    port: 3000,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5001',
-        changeOrigin: true
-      }
-    }
-  },
+	server: {
+		port: 3000,
+		proxy: {
+			"/api": {
+				target: "http://localhost:5001",
+				changeOrigin: true,
+			},
+		},
+	},
 
-  build: {
-    outDir: '../static/dist',
-    emptyOutDir: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'vendor': ['react', 'react-dom', 'marked', 'dompurify']
-        }
-      }
-    }
-  }
-})
+	build: {
+		outDir: "../static/dist",
+		emptyOutDir: true,
+		rollupOptions: {
+			output: {
+				manualChunks: {
+					vendor: ["react", "react-dom", "marked", "dompurify"],
+				},
+			},
+		},
+	},
+});
