@@ -52,10 +52,12 @@ function ArticleCard({ article, index }) {
       className={`
         group relative transition-all duration-300 ease-out
         rounded-[20px] border
-        ${isRemoved
-          ? 'opacity-50 grayscale scale-[0.98] bg-slate-50 border-transparent cursor-pointer hover:opacity-60'
-          : 'bg-white/80 backdrop-blur-xl border-white/40 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5'}
-        ${tldr.expanded ? 'mb-6 ring-1 ring-brand-100 shadow-md bg-white' : 'mb-3'}
+        ${stateLoading
+          ? 'opacity-40 grayscale pointer-events-none bg-slate-50 border-slate-200'
+          : isRemoved
+            ? 'opacity-50 grayscale scale-[0.98] bg-slate-50 border-transparent cursor-pointer hover:opacity-60'
+            : 'bg-white/80 backdrop-blur-xl border-white/40 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5'}
+        ${tldr.expanded && !stateLoading ? 'mb-6 ring-1 ring-brand-100 shadow-md bg-white' : 'mb-3'}
       `}
     >
       <div className="p-5 flex flex-col gap-3">
@@ -110,7 +112,11 @@ function ArticleCard({ article, index }) {
               </button>
 
               <div className="flex gap-2">
-                  <button onClick={handleRemove} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
+                  <button
+                    onClick={handleRemove}
+                    disabled={stateLoading}
+                    className={`p-2 rounded-full transition-colors ${stateLoading ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
+                  >
                      <Trash2 size={14} />
                   </button>
               </div>
