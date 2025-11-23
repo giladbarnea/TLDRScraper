@@ -1,15 +1,19 @@
-import { useEffect, useState } from 'react'
-import { Download } from 'lucide-react'
-import CacheToggle from './components/CacheToggle'
-import ResultsDisplay from './components/ResultsDisplay'
-import ScrapeForm from './components/ScrapeForm'
+import { useState, useEffect } from 'react'
 import { loadFromCache } from './lib/scraper'
-import './App.css'
+import Feed from './components/Feed'
+import ScrapeForm from './components/ScrapeForm'
+import { RefreshCw, Zap, Calendar, Settings } from 'lucide-react'
 
 function App() {
   const [results, setResults] = useState(null)
-  const [copying, setCopying] = useState(null)
-  const [downloadError, setDownloadError] = useState(null)
+  const [scrolled, setScrolled] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   useEffect(() => {
     const today = new Date()
@@ -30,78 +34,88 @@ function App() {
       })
   }, [])
 
-  const handleContextCopy = async (contextType) => {
-    console.log(`[handleContextCopy] Starting download for: ${contextType}`)
-    setCopying(contextType)
-    setDownloadError(null)
-
-    try {
-      const response = await fetch('/api/generate-context', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ context_type: contextType })
-      })
-
-      console.log(`[handleContextCopy] Response status: ${response.status}`)
-      const result = await response.json()
-      console.log(`[handleContextCopy] Result success: ${result.success}, content length: ${result.content?.length || 0}`)
-
-      if (result.success) {
-        const blob = new Blob([result.content], { type: 'text/plain' })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `context-${contextType}.txt`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
-
-        console.log(`[handleContextCopy] Download triggered`)
-        setTimeout(() => setCopying(null), 1000)
-      } else {
-        console.error('Failed to generate context:', result.error)
-        setDownloadError(`Server error: ${result.error}`)
-        setCopying(null)
-      }
-    } catch (err) {
-      console.error('Failed to download context:', err)
-      setDownloadError(`Network error: ${err.message}`)
-      setCopying(null)
-    }
-  }
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric'
+  })
 
   return (
-    <div className="container">
-      <h1>Newsletter Aggregator</h1>
+    <div className="min-h-screen flex justify-center font-sans bg-[#f8fafc] text-slate-900 selection:bg-brand-100 selection:text-brand-900">
+      <div className="w-full max-w-3xl relative">
 
-      <div className="flex gap-2 mb-4">
-        {['server', 'client', 'docs', 'all'].map(type => (
-          <button
-            key={type}
-            onClick={() => handleContextCopy(type)}
-            disabled={copying === type}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-                       bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Download size={16} />
-            {copying === type ? 'Downloaded!' : type}
-          </button>
-        ))}
-      </div>
+        {/* Header */}
+        <header
+          className={`
+            sticky top-0 z-40 px-6 py-6 transition-all duration-300 ease-out
+            ${scrolled ? 'bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-sm' : 'bg-transparent'}
+          `}
+        >
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="font-display text-3xl font-extrabold tracking-tight text-slate-900">
+                TLDR<span className="text-brand-500">.</span>
+              </h1>
+              <p className={`text-sm font-medium text-slate-500 transition-all duration-300 ${scrolled ? 'h-0 opacity-0 overflow-hidden' : 'h-auto opacity-100 mt-1'}`}>
+                {currentDate}
+              </p>
+            </div>
 
-      {downloadError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
-          {downloadError}
+            <div className="flex gap-2">
+               <button
+                onClick={() => setShowSettings(!showSettings)}
+                className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${showSettings ? 'bg-brand-50 text-brand-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
+                title="Date Range & Settings"
+              >
+                <Calendar size={18} className="transition-colors" />
+              </button>
+            </div>
+          </div>
+
+          {/* Settings / Scrape Form Area */}
+          <div className={`
+              overflow-hidden transition-all duration-500 ease-in-out
+              ${showSettings ? 'max-h-[400px] opacity-100 mt-4' : 'max-h-0 opacity-0'}
+          `}>
+             <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
+                <ScrapeForm onResults={(res) => { setResults(res); setShowSettings(false); }} />
+             </div>
+          </div>
+        </header>
+
+        {/* Minimalist Ticker (Insight) */}
+        <div className={`
+            px-6 mb-8 transition-all duration-500 ease-in-out
+            ${scrolled ? 'opacity-0 h-0 -mt-4 overflow-hidden' : 'opacity-100 h-auto'}
+        `}>
+          {results?.stats && (
+             <div className="bg-white rounded-2xl p-4 shadow-soft border border-slate-50 flex items-start gap-3 animate-fade-in">
+               <div className="mt-1 bg-brand-50 p-1.5 rounded-lg">
+                 <Zap size={16} className="text-brand-600" />
+               </div>
+               <p className="text-sm text-slate-600 font-medium leading-relaxed">
+                 <span className="font-bold text-slate-900">Daily Update:</span>
+                 {' '}Synced <span className="text-brand-600 font-bold">{results.stats.total_articles}</span> articles across {results.stats.dates_processed} days.
+                 {results.stats.unique_urls > 0 && <span> ({results.stats.unique_urls} unique).</span>}
+               </p>
+             </div>
+          )}
         </div>
-      )}
 
-      <CacheToggle />
+        {/* Main Content */}
+        <main className="px-6">
+          {!results ? (
+             <div className="flex flex-col items-center justify-center py-32 opacity-50 animate-pulse">
+                <div className="w-12 h-12 bg-slate-200 rounded-full mb-4"></div>
+                <div className="h-4 w-32 bg-slate-200 rounded mb-2"></div>
+                <div className="h-3 w-24 bg-slate-100 rounded"></div>
+             </div>
+          ) : (
+            <Feed payloads={results.payloads || []} />
+          )}
+        </main>
 
-      <ScrapeForm onResults={setResults} />
-
-      {results && <ResultsDisplay results={results} />}
+      </div>
     </div>
   )
 }
