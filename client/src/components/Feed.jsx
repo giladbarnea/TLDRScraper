@@ -41,28 +41,33 @@ function DailyGroup({ payload }) {
       </div>
 
       <div className="space-y-12">
-        {issues.map((issue) => (
-          <div key={`${date}-${issue.category}`} className="space-y-6">
-             <div className="flex items-center gap-3 pl-1 border-l-2 border-brand-200">
-                <h3 className="font-display font-bold text-lg text-slate-800 pl-3">
+        {issues.map((issue) => {
+          const categoryArticles = articles.filter((article) => article.category === issue.category)
+          const allRemoved = categoryArticles.length > 0 && categoryArticles.every((article) => article.removed)
+
+          return (
+            <div key={`${date}-${issue.category}`} className="space-y-6">
+              <div className={`flex items-center gap-3 pl-1 border-l-2 transition-all duration-300 ${allRemoved ? 'border-slate-200 opacity-50' : 'border-brand-200'}`}>
+                <h3 className={`font-display font-bold text-lg pl-3 transition-all duration-300 ${allRemoved ? 'text-slate-400 line-through decoration-2' : 'text-slate-800'}`}>
                   {issue.category}
                 </h3>
-             </div>
+              </div>
 
-             {(issue.title || issue.subtitle) && (
-                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm mx-1">
-                   {issue.title && <div className="font-semibold text-slate-900">{issue.title}</div>}
-                   {issue.subtitle && issue.subtitle !== issue.title && (
-                     <div className="text-sm text-slate-500 mt-1">{issue.subtitle}</div>
-                   )}
+              {(issue.title || issue.subtitle) && (
+                <div className={`p-4 rounded-xl border mx-1 transition-all duration-300 ${allRemoved ? 'bg-slate-50 border-slate-200 opacity-50' : 'bg-white border-slate-100 shadow-sm'}`}>
+                  {issue.title && <div className={`font-semibold transition-all duration-300 ${allRemoved ? 'text-slate-400 line-through decoration-2' : 'text-slate-900'}`}>{issue.title}</div>}
+                  {issue.subtitle && issue.subtitle !== issue.title && (
+                    <div className={`text-sm mt-1 transition-all duration-300 ${allRemoved ? 'text-slate-300 line-through decoration-2' : 'text-slate-500'}`}>{issue.subtitle}</div>
+                  )}
                 </div>
-             )}
+              )}
 
-             <ArticleList
-               articles={articles.filter((article) => article.category === issue.category)}
-             />
-          </div>
-        ))}
+              <ArticleList
+                articles={categoryArticles}
+              />
+            </div>
+          )
+        })}
 
         {articles.some((article) => !article.category) && (
            <div className="space-y-6">
