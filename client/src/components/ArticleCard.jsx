@@ -1,7 +1,7 @@
+import { Bot, CheckCircle, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
-import { Minus, Trash2, Bot, Loader2, Sparkles, CheckCircle } from 'lucide-react'
 
 function ArticleCard({ article, index }) {
   const { isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
