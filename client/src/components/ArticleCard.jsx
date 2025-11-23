@@ -39,13 +39,21 @@ function ArticleCard({ article, index }) {
     toggleRemove();
   };
 
+  const handleCardClick = (e) => {
+    if (isRemoved) {
+      e.preventDefault();
+      toggleRemove();
+    }
+  };
+
   return (
     <div
+      onClick={handleCardClick}
       className={`
         group relative transition-all duration-300 ease-out
         rounded-[20px] border
         ${isRemoved
-          ? 'opacity-50 grayscale scale-[0.98] bg-slate-50 border-transparent'
+          ? 'opacity-50 grayscale scale-[0.98] bg-slate-50 border-transparent cursor-pointer hover:opacity-60'
           : 'bg-white/80 backdrop-blur-xl border-white/40 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5'}
         ${tldr.expanded ? 'mb-6 ring-1 ring-brand-100 shadow-md bg-white' : 'mb-3'}
       `}
@@ -53,15 +61,22 @@ function ArticleCard({ article, index }) {
       <div className="p-5 flex flex-col gap-3">
          {/* Title */}
          <a
-           href={fullUrl}
-           target="_blank"
-           rel="noopener noreferrer"
+           href={isRemoved ? undefined : fullUrl}
+           target={isRemoved ? undefined : "_blank"}
+           rel={isRemoved ? undefined : "noopener noreferrer"}
            className={`
              text-[17px] font-display font-semibold leading-snug text-slate-900
              group-hover:text-brand-600 transition-colors duration-200 block tracking-tight
              ${isRead ? 'text-slate-500 font-normal' : ''}
+             ${isRemoved ? 'pointer-events-none' : ''}
            `}
-           onClick={() => !isRead && toggleRead()}
+           onClick={(e) => {
+             if (isRemoved) {
+               e.preventDefault();
+               return;
+             }
+             if (!isRead) toggleRead();
+           }}
          >
            {article.title}
          </a>
@@ -77,52 +92,56 @@ function ArticleCard({ article, index }) {
          )}
 
          {/* Actions */}
-         <div className="flex items-center justify-between pt-1">
-            <button
-              onClick={handleExpand}
-              disabled={tldr.loading}
-              className={`
-                flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-semibold tracking-wide transition-all duration-200
-                ${tldr.expanded
-                  ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  : 'bg-slate-50 text-slate-600 hover:bg-brand-50 hover:text-brand-600'}
-              `}
-            >
-               {tldr.loading ? <Loader2 size={12} className="animate-spin" /> :
-                tldr.expanded ? <><Minus size={12} /> Close Summary</> : <><Sparkles size={12} /> TLDR</>
-               }
-            </button>
+         {!isRemoved && (
+           <div className="flex items-center justify-between pt-1">
+              <button
+                onClick={handleExpand}
+                disabled={tldr.loading}
+                className={`
+                  flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-semibold tracking-wide transition-all duration-200
+                  ${tldr.expanded
+                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-50 text-slate-600 hover:bg-brand-50 hover:text-brand-600'}
+                `}
+              >
+                 {tldr.loading ? <Loader2 size={12} className="animate-spin" /> :
+                  tldr.expanded ? <><Minus size={12} /> Close Summary</> : <><Sparkles size={12} /> TLDR</>
+                 }
+              </button>
 
-            <div className="flex gap-2">
-                <button onClick={handleRemove} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
-                   <Trash2 size={14} />
-                </button>
-            </div>
-         </div>
+              <div className="flex gap-2">
+                  <button onClick={handleRemove} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
+                     <Trash2 size={14} />
+                  </button>
+              </div>
+           </div>
+         )}
 
          {/* TLDR Content */}
-         <div
-            className={`
-              overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
-              ${tldr.expanded && tldr.html ? 'max-h-[1000px] opacity-100 mt-4 border-t border-slate-100 pt-5' : 'max-h-0 opacity-0 -mt-3'}
-            `}
-         >
-            {/* -mt-3 cancels parent's gap-3 to eliminate spacing when collapsed */}
-            {tldr.status === 'error' ? (
-               <div className="text-xs text-red-500 bg-red-50 p-3 rounded-lg">{tldr.errorMessage || 'Failed to load summary.'}</div>
-            ) : (
-               <div className="animate-fade-in">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Bot size={16} className="text-brand-500" />
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Gemini Insight</span>
-                  </div>
-                  <div
-                    className="prose prose-sm prose-slate max-w-none font-sans text-slate-600 leading-relaxed text-[15px] prose-p:my-2"
-                    dangerouslySetInnerHTML={{ __html: tldr.html }}
-                  />
-               </div>
-            )}
-         </div>
+         {!isRemoved && (
+           <div
+              className={`
+                overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
+                ${tldr.expanded && tldr.html ? 'max-h-[1000px] opacity-100 mt-4 border-t border-slate-100 pt-5' : 'max-h-0 opacity-0 -mt-3'}
+              `}
+           >
+              {/* -mt-3 cancels parent's gap-3 to eliminate spacing when collapsed */}
+              {tldr.status === 'error' ? (
+                 <div className="text-xs text-red-500 bg-red-50 p-3 rounded-lg">{tldr.errorMessage || 'Failed to load summary.'}</div>
+              ) : (
+                 <div className="animate-fade-in">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Bot size={16} className="text-brand-500" />
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Gemini Insight</span>
+                    </div>
+                    <div
+                      className="prose prose-sm prose-slate max-w-none font-sans text-slate-600 leading-relaxed text-[15px] prose-p:my-2"
+                      dangerouslySetInnerHTML={{ __html: tldr.html }}
+                    />
+                 </div>
+              )}
+           </div>
+         )}
       </div>
     </div>
   )
