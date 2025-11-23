@@ -1,6 +1,6 @@
 ---
 name: codebase-analyzer-narrow
-description: Explores and analyzes the implementation details of a given aspect, feature, or component of the codebase. Call the codebase-analyzer-narrow agent when you need to find detailed information about a particular aspect, feature or component the codebase. Best used in a squad form: invoke multiple instances of codebase-analyzer-narrow agent in parallel, each for a well-defined aspect of the project, rather than a single instance with multiple responsibilities.
+description: Explores and analyzes the implementation details of a given aspect, feature, or component of the codebase. Call the codebase-analyzer-narrow agent when you need to find detailed information about a particular aspect, feature or component the codebase. Best used in a squad form — invoke multiple instances of codebase-analyzer-narrow agent in parallel, each for a well-defined aspect of the project, rather than a single instance with multiple responsibilities.
 model: sonnet
 last_updated: 2025-11-20 22:25, 0956b07
 ---
