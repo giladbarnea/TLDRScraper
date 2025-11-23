@@ -1,133 +1,131 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
-import './ArticleCard.css'
+import { Minus, Trash2, Bot, Loader2, Sparkles, CheckCircle } from 'lucide-react'
 
 function ArticleCard({ article, index }) {
-  const { isRead, isRemoved, isTldrHidden, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
+  const { isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
   )
-
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
-
-  const cardClasses = [
-    'article-card',
-    !isRead && 'unread',
-    isRead && 'read',
-    isRemoved && 'removed',
-    isTldrHidden && 'tldr-hidden'
-  ].filter(Boolean).join(' ')
 
   const fullUrl = useMemo(() => {
     const url = article.url
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url
-    }
+    if (url.startsWith('http://') || url.startsWith('https://')) return url
     return `https://${url}`
   }, [article.url])
 
-  const faviconUrl = useMemo(() => {
-    try {
-      const url = new URL(fullUrl)
-      return `${url.origin}/favicon.ico`
-    } catch {
-      return null
-    }
-  }, [fullUrl])
-
-  const handleLinkClick = (e) => {
-    if (isRemoved) return
-    if (e.ctrlKey || e.metaKey) return
-
-    if (!isRead) {
-      toggleRead()
-    }
-  }
-
-  const handleTldrClick = () => {
-    if (isRemoved) return
+  const handleExpand = async (e) => {
+    e.stopPropagation();
+    if (isRemoved) return;
 
     const wasExpanded = tldr.expanded
     tldr.toggle()
 
-    if (!isRead && tldr.expanded) {
-      toggleRead()
+    if (!isRead && !tldr.expanded) {
+       toggleRead()
     }
-
-    if (wasExpanded && !tldr.expanded) {
+     if (wasExpanded && !tldr.expanded) {
       markTldrHidden()
     } else if (tldr.expanded) {
       unmarkTldrHidden()
     }
-  }
+  };
 
-  const handleRemoveClick = () => {
-    if (!isRemoved && tldr.expanded) {
-      tldr.collapse()
-    }
-    toggleRemove()
-  }
+  const handleRemove = (e) => {
+    e.stopPropagation();
+    if (!isRemoved && tldr.expanded) tldr.collapse();
+    toggleRemove();
+  };
 
   return (
-    <div className={cardClasses} data-original-order={index} onClick={isRemoved ? handleRemoveClick : undefined}>
-      <div className="article-header">
-        <div className="article-number">{index + 1}</div>
+    <div
+      className={`
+        group relative transition-all duration-300 ease-out
+        rounded-[20px] border
+        ${isRemoved
+          ? 'opacity-50 grayscale scale-[0.98] bg-slate-50 border-transparent'
+          : 'bg-white/80 backdrop-blur-xl border-white/40 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5'}
+        ${tldr.expanded ? 'mb-6 ring-1 ring-brand-100 shadow-md bg-white' : 'mb-3'}
+      `}
+    >
+      <div className="p-5 flex flex-col gap-3">
+         {/* Header */}
+         <div className="flex items-center justify-between mb-1">
+             <div className="flex items-center gap-2">
+               <span className="text-[10px] font-bold tracking-widest uppercase text-brand-600 bg-brand-50/80 px-2.5 py-1 rounded-full">
+                  {article.source || 'WEB'}
+               </span>
+               {isRead && <CheckCircle size={14} className="text-slate-300" />}
+             </div>
+             <span className="text-[11px] font-medium text-slate-400">
+                {article.articleMeta || 'Today'}
+             </span>
+         </div>
 
-        <div className="article-content">
-          <a
-            href={fullUrl}
-            className={`article-link ${stateLoading ? 'loading' : ''}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-url={fullUrl}
-            tabIndex={isRemoved ? -1 : 0}
-            onClick={handleLinkClick}
-          >
-            {faviconUrl && (
-              <img
-                src={faviconUrl}
-                className="article-favicon"
-                loading="lazy"
-                alt=""
-                onError={(e) => e.target.style.display = 'none'}
-              />
+         {/* Title */}
+         <a
+           href={fullUrl}
+           target="_blank"
+           rel="noopener noreferrer"
+           className={`
+             text-[17px] font-display font-semibold leading-snug text-slate-900
+             group-hover:text-brand-600 transition-colors duration-200 block tracking-tight
+             ${isRead ? 'text-slate-500 font-normal' : ''}
+           `}
+           onClick={() => !isRead && toggleRead()}
+         >
+           {article.title}
+         </a>
+
+         {/* Actions */}
+         <div className="flex items-center justify-between pt-1">
+            <button
+              onClick={handleExpand}
+              disabled={tldr.loading}
+              className={`
+                flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-semibold tracking-wide transition-all duration-200
+                ${tldr.expanded
+                  ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-50 text-slate-600 hover:bg-brand-50 hover:text-brand-600'}
+              `}
+            >
+               {tldr.loading ? <Loader2 size={12} className="animate-spin" /> :
+                tldr.expanded ? <><Minus size={12} /> Close Summary</> : <><Sparkles size={12} /> TLDR</>
+               }
+            </button>
+
+            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <button onClick={handleRemove} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
+                   <Trash2 size={14} />
+                </button>
+            </div>
+         </div>
+
+         {/* TLDR Content */}
+         <div
+            className={`
+              overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
+              ${tldr.expanded && tldr.html ? 'max-h-[1000px] opacity-100 mt-4 border-t border-slate-100 pt-5' : 'max-h-0 opacity-0 mt-0'}
+            `}
+         >
+            {tldr.status === 'error' ? (
+               <div className="text-xs text-red-500 bg-red-50 p-3 rounded-lg">{tldr.errorMessage || 'Failed to load summary.'}</div>
+            ) : (
+               <div className="animate-fade-in">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Bot size={16} className="text-brand-500" />
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Gemini Insight</span>
+                  </div>
+                  <div
+                    className="prose prose-sm prose-slate max-w-none font-sans text-slate-600 leading-relaxed text-[15px] prose-p:my-2"
+                    dangerouslySetInnerHTML={{ __html: tldr.html }}
+                  />
+               </div>
             )}
-            <span className="article-link-text">
-              {article.title}{!isRemoved && article.articleMeta ? ` (${article.articleMeta})` : ''}
-            </span>
-          </a>
-        </div>
-
-        <div className="article-actions">
-          <button
-            className={`article-btn tldr-btn ${tldr.isAvailable ? 'loaded' : ''} ${tldr.expanded ? 'expanded' : ''}`}
-            disabled={stateLoading || tldr.loading}
-            type="button"
-            title={tldr.isAvailable ? 'TLDR cached - click to show' : 'Show TLDR'}
-            onClick={handleTldrClick}
-          >
-            {tldr.buttonLabel}
-          </button>
-
-          <button
-            className="article-btn remove-article-btn"
-            type="button"
-            title={isRemoved ? 'Restore this article to the list' : 'Remove this article from the list'}
-            disabled={stateLoading}
-            onClick={handleRemoveClick}
-          >
-            {isRemoved ? 'Restore' : 'Remove'}
-          </button>
-        </div>
+         </div>
       </div>
-
-      {tldr.expanded && tldr.html && (
-        <div className="inline-tldr">
-          <strong>TLDR</strong>
-          <div dangerouslySetInnerHTML={{ __html: tldr.html }} />
-        </div>
-      )}
     </div>
   )
 }
