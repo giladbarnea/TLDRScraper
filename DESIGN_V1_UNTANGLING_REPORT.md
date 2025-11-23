@@ -55,6 +55,241 @@ These existed at fork point but were **intentionally replaced** in design-v1's r
 
 ---
 
+## Design Extrapolation Difficulty Assessment
+
+This section categorizes the missing features by how easy they are to design using existing patterns from design-v1.
+
+### Easy to Extrapolate (Trivial) ⭐
+
+These features can be designed by **directly applying existing patterns** from design-v1 with minimal thinking:
+
+#### 1. Context Download Buttons ⭐ (Very Easy)
+
+**Why trivial:** design-v1 already established the utility button pattern in ScrapeForm.
+
+**Existing pattern to copy:**
+- Slate-100/200 background colors for utility actions
+- `rounded-lg` corners
+- `text-sm font-semibold` typography
+- `px-4 py-2` padding
+- `transition-colors` on hover
+- Icon + text pattern (lucide-react)
+
+**Extrapolation:**
+```jsx
+<div className="flex gap-2">
+  {['server', 'client', 'docs', 'all'].map(type => (
+    <button
+      onClick={() => handleContextCopy(type)}
+      disabled={copying === type}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
+                 bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+    >
+      <Download size={16} />
+      {copying === type ? 'Downloaded!' : type}
+    </button>
+  ))}
+</div>
+```
+
+**Effort:** 10 minutes
+**Design thinking required:** None (copy-paste pattern)
+
+---
+
+#### 2. Prominent Stats Section ⭐⭐ (Easy)
+
+**Why trivial:** design-v1 has the exact card pattern needed.
+
+**Existing pattern to copy:**
+- `bg-white rounded-2xl p-6 shadow-soft border border-slate-100` (card)
+- Grid layout for metrics
+- `text-sm uppercase tracking-wider text-slate-500` (labels)
+- `text-2xl font-bold text-slate-900` (values)
+
+**Extrapolation:**
+```jsx
+<div className="bg-white rounded-2xl p-6 shadow-soft border border-slate-100 mb-8">
+  <div className="grid grid-cols-3 gap-6">
+    <div>
+      <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+        Articles
+      </div>
+      <div className="text-2xl font-bold text-slate-900 mt-1">
+        {stats.total_articles}
+      </div>
+    </div>
+    <div>
+      <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+        Unique URLs
+      </div>
+      <div className="text-2xl font-bold text-slate-900 mt-1">
+        {stats.unique_urls}
+      </div>
+    </div>
+    <div>
+      <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+        Dates
+      </div>
+      <div className="text-2xl font-bold text-slate-900 mt-1">
+        {stats.dates_with_content}/{stats.dates_processed}
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+**Effort:** 15 minutes
+**Design thinking required:** Minimal (apply existing card + grid patterns)
+
+---
+
+### Requires Design Thinking (Not Trivial) ⭐⭐⭐⭐+
+
+These features require **intentional design decisions** because design-v1 made deliberate minimalist choices that conflict with these features.
+
+#### 3. Favicons ⭐⭐⭐⭐ (Design Decision Required)
+
+**Why not trivial:** design-v1 **intentionally moved away from favicons** toward cleaner text-based source indicators:
+
+```jsx
+// design-v1's minimalist approach (text badge only)
+<span className="text-[10px] font-bold tracking-widest uppercase text-brand-600 bg-brand-50/80 px-2.5 py-1 rounded-full">
+  {article.source || 'WEB'}
+</span>
+```
+
+**Three design options:**
+
+**Option A: Inline with title** (Least intrusive)
+```jsx
+<a className="flex items-center gap-2">
+  <img src={faviconUrl} className="w-4 h-4 shrink-0" />
+  <span>{article.title}</span>
+</a>
+```
+- ✅ Pro: Maintains existing source badge
+- ❌ Con: Adds visual noise to title line
+
+**Option B: Replace source badge** (Clean but loses text)
+```jsx
+<img src={faviconUrl} className="w-6 h-6 rounded-full border border-slate-200" />
+```
+- ✅ Pro: Cleaner, more visual
+- ❌ Con: Loses explicit source name (user must recognize favicon)
+
+**Option C: Hybrid (favicon + text)** (Information-dense)
+```jsx
+<div className="flex items-center gap-2">
+  <img src={faviconUrl} className="w-4 h-4" />
+  <span className="text-[10px] font-bold uppercase text-brand-600">
+    {article.source}
+  </span>
+</div>
+```
+- ✅ Pro: Best of both worlds
+- ❌ Con: More space, might feel cluttered
+
+**Recommendation:** Start **without favicons**. Use the app for a few days and see if you actually miss them. design-v1's text badges are cleaner and honor the minimalist intent. If you do add them later, go with **Option A** (subtle, inline with title).
+
+**Effort:** 30 minutes (after design decision)
+**Design thinking required:** High (philosophy question: information density vs minimalism)
+
+---
+
+#### 4. Article Numbering ⭐⭐⭐⭐⭐ (Hardest - Layout Rethink)
+
+**Why not trivial:** design-v1's ArticleCard has a **very tight, centered layout** with no obvious place for numbers:
+
+```jsx
+<div className="p-5 flex flex-col gap-3">
+  {/* Header: source badge + meta (already full) */}
+  {/* Title (full width) */}
+  {/* Actions */}
+</div>
+```
+
+main's approach was simple (left column with number), but design-v1 eliminated that structure.
+
+**Three design options:**
+
+**Option A: Number badge in header** (Cleanest integration)
+```jsx
+<div className="flex items-center justify-between">
+  <div className="flex items-center gap-2">
+    <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-xs font-bold
+                     flex items-center justify-center">
+      {index + 1}
+    </span>
+    <span className="text-[10px] uppercase text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full">
+      {article.source}
+    </span>
+  </div>
+  <span className="text-[11px] text-slate-400">{article.articleMeta}</span>
+</div>
+```
+- ✅ Pro: Uses existing header space
+- ❌ Con: Header becomes more crowded
+
+**Option B: Number overlay on card** (Stylish but unconventional)
+```jsx
+<div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur
+                shadow-sm flex items-center justify-center text-xs font-bold text-slate-400">
+  {index + 1}
+</div>
+```
+- ✅ Pro: Doesn't disrupt layout, modern look
+- ❌ Con: Overlays content, might feel gimmicky
+
+**Option C: Don't add numbering** (Embrace minimalism)
+
+Ask yourself: **Why do you need numbering?**
+- For reference in discussion? → Use URL or title instead
+- For visual progress indication? → Feed already shows natural order
+- For accessibility? → Screen readers don't need visual numbers
+
+**Recommendation:** **Option C - skip numbering entirely**. design-v1 intentionally removed it for visual cleanliness. Articles are naturally ordered. If you absolutely need it, use **Option A** (small badge in header), but understand it adds visual weight that conflicts with the minimalist aesthetic.
+
+**Effort:** 20 minutes (after design decision)
+**Design thinking required:** Very high (fundamental UX question about information density)
+
+---
+
+### Recommended Approach
+
+**Phase 1: Do the trivial stuff first** (30 minutes total)
+1. ✅ Add context buttons (copy ScrapeForm button pattern)
+2. ✅ Add stats section (copy card pattern, grid layout)
+3. ✅ Test and verify these work
+
+**Phase 2: Live with it, then decide** (1-2 weeks)
+1. **Use the app daily** with just the trivial additions
+2. Ask yourself:
+   - Do I actually miss favicons? Or are text badges sufficient?
+   - Do I actually need article numbers? Or is visual order enough?
+3. Make **intentional decisions** based on actual use, not theoretical needs
+
+**Phase 3: Add thoughtfully (if needed)** (1 hour)
+- If you truly miss favicons: Add inline with title (Option A) - subtle
+- If you truly need numbering: Add badge in header (Option A) - or don't add at all
+
+---
+
+### Key Insight: design-v1's Deliberate Minimalism
+
+design-v1 wasn't just "incomplete" - it made **intentional minimalist choices**:
+- ✅ Text badges instead of favicons (cleaner)
+- ✅ No numbering (less visual clutter)
+- ✅ Stats in dismissible ticker (focus on content)
+
+**Decision point:** Do you want to honor that minimalism, or restore information density?
+
+**Our take:** The trivial extrapolations (buttons, stats card) are **30 minutes of work**. The non-trivial ones (favicons, numbering) are **design philosophy questions** that should be answered by using the app, not by guessing.
+
+**Start with the easy wins, ship it, use it, then iterate.**
+
+---
+
 ## The Two (Actually Three) Intertwined Projects
 
 ### Project 1: Original TLDRScraper (Main Branch)
