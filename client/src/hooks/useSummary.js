@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from 'react'
-import { useArticleState } from './useArticleState'
-import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import { marked } from 'marked'
+import { useCallback, useMemo, useState } from 'react'
+import { useArticleState } from './useArticleState'
 
 export function useSummary(date, url, type = 'tldr') {
   if (type === 'summary') {
