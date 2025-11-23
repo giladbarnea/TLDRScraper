@@ -52,16 +52,11 @@ function ArticleCard({ article, index }) {
     >
       <div className="p-5 flex flex-col gap-3">
          {/* Header */}
-         <div className="flex items-center justify-between mb-1">
-             <div className="flex items-center gap-2">
-               <span className="text-[10px] font-bold tracking-widest uppercase text-brand-600 bg-brand-50/80 px-2.5 py-1 rounded-full">
-                  {article.source || 'WEB'}
-               </span>
-               {isRead && <CheckCircle size={14} className="text-slate-300" />}
-             </div>
+         <div className="mb-1">
              <span className="text-[11px] font-medium text-slate-400">
                 {article.articleMeta || 'Today'}
              </span>
+             {isRead && <CheckCircle size={14} className="text-slate-300 inline ml-2" />}
          </div>
 
          {/* Title */}
