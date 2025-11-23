@@ -3,8 +3,8 @@
  * Extracted from composables/useScraper.js
  */
 
-import { getNewsletterScrapeKey } from './storageKeys'
 import * as storageApi from './storageApi'
+import { getNewsletterScrapeKey } from './storageKeys'
 
 function computeDateRange(startDate, endDate) {
   const dates = []

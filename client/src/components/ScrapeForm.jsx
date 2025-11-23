@@ -1,6 +1,6 @@
-import { useActionState, useState, useEffect } from 'react'
-import { scrapeNewsletters } from '../lib/scraper'
+import { useActionState, useEffect, useState } from 'react'
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
+import { scrapeNewsletters } from '../lib/scraper'
 import './ScrapeForm.css'
 
 function ScrapeForm({ onResults }) {

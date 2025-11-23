@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import CacheToggle from './components/CacheToggle'
-import ScrapeForm from './components/ScrapeForm'
 import ResultsDisplay from './components/ResultsDisplay'
+import ScrapeForm from './components/ScrapeForm'
 import { loadFromCache } from './lib/scraper'
 import './App.css'
 
