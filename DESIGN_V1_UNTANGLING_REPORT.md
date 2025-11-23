@@ -1145,3 +1145,21 @@ Start fresh from current main and extract design patterns from design-v1:
 - ResultsDisplay.jsx (replaced by Feed)
 
 **Follow the step-by-step extraction checklist above** (6 phases, ~90 tasks) to systematically apply the design while preserving all functionality and avoiding the technical debt from design-v1.
+
+---
+
+## Implementation Notes
+
+**Initial Scope Misunderstanding (Nov 23, 2025)**
+
+When asked to "do 1 and 2 now" (referring to the two trivial extrapolations), I initially implemented ONLY the 2 new features (context buttons + stats section) without converting existing components to Tailwind. This resulted in a CSS cascade conflict where:
+- Tailwind loaded via index.css
+- All 6 CSS module files still imported and overrode Tailwind
+- Only ~10-15% of design visible (new elements with no CSS conflicts)
+
+**Correct scope**: Apply full design-v1 styling to ALL components (Phases 2-4 of checklist):
+- Convert all 6 components to Tailwind (remove CSS imports)
+- Apply design-v1 patterns throughout
+- Delete orphaned CSS files
+
+This is ~60 tasks of mechanical pattern copying from design-v1 - no design decisions, just systematic application of existing patterns. Completed via sub-agent.
