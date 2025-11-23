@@ -9,19 +9,49 @@
 
 ## Executive Summary
 
-The `design-v1` branch is **NOT just a UI redesign overlay** - it's a complex mixture of THREE distinct changes squished together:
+The `design-v1` branch is a **Tailwind CSS UI redesign** that forked from main on **Nov 18, 2025**. Since then, **main has progressed** with new features while design-v1 focused solely on visual redesign.
 
-1. **UI Redesign**: Tailwind CSS conversion of the React frontend
-2. **Feature Removal**: Deletion of 20+ newsletter source adapters (kept only TLDR + HackerNews)
-3. **Architecture Changes**: Moving files, reorganizing imports, changing workflows
+**Timeline:**
+- **Fork point**: Nov 18, 2025 (commit 8f1d5b9)
+- **design-v1 created**: Nov 19, 2025 (Tailwind redesign work)
+- **main progression**: Nov 20-21, 2025 (context buttons, adapters added)
 
-The branch does indeed suffer from the "two decks of cards pushed together" problem you described, but the situation is more complex than anticipated. The AI agent that created this branch:
-- Added new Tailwind-based components WITHOUT removing the old CSS Module components
-- Left orphaned files (CacheToggle, ResultsDisplay) that are no longer referenced
-- Deleted critical backend functionality (20+ newsletter adapters)
-- Mixed unrelated changes (documentation, workflows, backend logic)
+**Key Understanding:**
+- design-v1 is a **UI-only redesign branch** that has orphaned files from incomplete cleanup
+- main has **continued development** with new features that design-v1 doesn't have
+- The "missing features" in design-v1 are actually **features added to main AFTER the fork**
 
-**Bottom line**: This is not a clean mock design that can be generalized. It's a partial redesign with significant feature regressions that would need substantial work to salvage.
+**What needs to happen:**
+1. Extract the design system and component styles from design-v1
+2. Apply them to current main branch (which has more features)
+3. Design the NEW features that were added to main after fork
+4. Clean up orphaned files from design-v1
+
+**Bottom line**: design-v1 has valuable design work, but shouldn't be used as a base. Instead, extract its design patterns and apply them to current main.
+
+---
+
+## What's in Main But Not in design-v1: The Critical Distinction
+
+### Features Added to Main AFTER Fork (Need Design)
+
+These features were **added to main on Nov 20-21** (AFTER design-v1 forked on Nov 19):
+
+| Feature | When Added | Impact | Design Needed? |
+|---------|-----------|--------|----------------|
+| **Context download buttons** | Nov 21, 2025 | 4 buttons in App.jsx to download server/client/docs/all context | ✅ **YES** - Design button group to match Tailwind theme |
+| **20+ newsletter adapters** | Nov 20, 2025 | Backend only (adapters/ directory) | ❌ **NO** - Backend feature, no UI impact |
+| **Adapter reorganization** | Nov 20, 2025 | Moved adapters to adapters/ module | ❌ **NO** - File structure only |
+
+### Components Orphaned in design-v1 (Intentional Removal)
+
+These existed at fork point but were **intentionally replaced** in design-v1's redesign:
+
+| Component | Status in design-v1 | Replacement | Should Design? |
+|-----------|-------------------|-------------|----------------|
+| **ResultsDisplay.jsx** | Replaced by Feed.jsx | Feed.jsx is superior (sticky headers, animations) | ❌ **NO** - Use Feed.jsx instead |
+| **CacheToggle.jsx** | Functionality absorbed into ScrapeForm | ScrapeForm has integrated badge | ⚠️ **DECISION NEEDED** - Separate component OR integrated? |
+| **All .css files** | Replaced by Tailwind inline classes | CSS Modules → Tailwind utility classes | ❌ **NO** - Tailwind pattern is better |
 
 ---
 
@@ -504,41 +534,376 @@ App.css (never imported)
 
 ---
 
-## Conclusion
+## Component Relationship Mapping (Venn Diagram Analysis)
 
-The design-v1 branch is **not a clean mock design** that can be easily generalized and applied. It's a messy combination of:
+### 1. Direct Equivalents - Same Component, Tailwind-ified
 
-1. **A partial UI redesign** (Tailwind conversion) that left orphaned files behind
-2. **A drastic backend simplification** that removed 91% of newsletter sources
-3. **Unrelated changes** to documentation and workflows
+| design-v1 Component | main Component | Relationship | What to Extract |
+|---------------------|----------------|--------------|-----------------|
+| `ArticleCard.jsx` | `ArticleCard.jsx` | ✅ **SAME** - Just restyled | • Lucide icons (Minus, Trash2, Bot, Sparkles, CheckCircle, Loader2)<br>• Card animations (hover lift, expand transitions)<br>• "Gemini Insight" branding<br>• `rounded-[20px]` cards<br>• Gradient/backdrop-blur effects<br>• Group hover opacity pattern |
+| `ArticleList.jsx` | `ArticleList.jsx` | ✅ **SAME** - Minor changes | • Section title styling (`uppercase`, `tracking-widest`)<br>• Spacing utilities (`space-y-4`, `pt-6 pb-2`) |
+| `ScrapeForm.jsx` | `ScrapeForm.jsx` | ✅ **SAME** - Enhanced | • Integrated cache badge (shows "Cache Active"/"Live Mode")<br>• Animated progress bar with percentage<br>• Two-column date input grid<br>• Better error UI with AlertCircle icon<br>• "Update Feed" button with ArrowRight icon<br>• Slate-900 button with brand-600 hover |
 
-**For your goal of generalizing and applying a design:**
+### 2. Functional Equivalents - Different Structure, Same Purpose
 
-I recommend **Option 2: Start Fresh with Clean Mock**. This approach:
-- Gives you a clean separation between design and functionality
-- Ensures all 23 newsletter sources are preserved
-- Maintains feature parity with original app
-- Creates a proper foundation for design iteration
-- Avoids inheriting technical debt from design-v1
+| design-v1 | main | Relationship | Notes |
+|-----------|------|--------------|-------|
+| **Feed.jsx** (NEW) | **ResultsDisplay.jsx** | ⚠️ **REPLACEMENT** | **Feed.jsx is SUPERIOR:**<br>• Sticky date headers with `backdrop-blur-sm`<br>• "Today" vs formatted date logic<br>• Inline "Syncing..." loading indicator<br>• Issue grouping with colored borders<br>• Issue title/subtitle display block<br><br>**ResultsDisplay has:**<br>• Prominent stats section (needs to be added to Feed)<br>• Simpler structure<br><br>**Decision: Use Feed.jsx as base, add stats section** |
+| `App.jsx` (modified) | `App.jsx` + `CacheToggle.jsx` | ⚠️ **MERGED** | design-v1 absorbed CacheToggle functionality into ScrapeForm badge.<br>**Decision needed:** Keep integrated OR restore dedicated component? |
 
-The design-v1 branch can serve as **visual reference** for:
-- Color scheme and CSS variables
-- Component layout patterns
-- Animation/transition styles
-- Icon choices (lucide-react)
+### 3. New Components in design-v1 (Core Redesign Value)
 
-But it should NOT be used as the base for further work due to its structural problems and missing functionality.
+| Component | Purpose | Keep? | Why Important |
+|-----------|---------|-------|---------------|
+| **Feed.jsx** | Date-grouped article display with sticky headers | ✅ **YES** | This IS the redesign - better UX than ResultsDisplay |
+
+### 4. Features in Main (Added After Fork) - Need Design
+
+| Feature | Location in main | Exists in design-v1? | Design Work Needed |
+|---------|------------------|---------------------|---------------------|
+| **Context download buttons** | `App.jsx` lines 77-106 | ❌ NO | Design 4-button group matching Tailwind theme:<br>• "server", "client", "docs", "all" buttons<br>• Download icon (⬇)<br>• Success state ("Downloaded!")<br>• Error display |
+| **Favicons** | `ArticleCard.jsx` lines 30-38, 87-94 | ❌ NO | Design favicon layout:<br>• Small icon (16x16) next to title<br>• Fallback when image fails<br>• Lazy loading |
+| **Article numbering** | `ArticleCard.jsx` line 75 | ❌ NO | Design number badge:<br>• Small circle/square<br>• Position: left of article content |
+
+### 5. Orphaned Files in design-v1 (Can Be Deleted)
+
+| File | Status | Action |
+|------|--------|--------|
+| `CacheToggle.jsx` + `.css` | Dead code (not imported) | 🗑️ **DELETE** - Functionality moved to ScrapeForm |
+| `ResultsDisplay.jsx` + `.css` | Dead code (replaced by Feed) | 🗑️ **DELETE** - Feed.jsx is superior |
+| `App.css` | Not imported | 🗑️ **DELETE** - Tailwind inline classes |
+| `ArticleCard.css` | Not imported | 🗑️ **DELETE** - Tailwind inline classes |
+| `ArticleList.css` | Not imported | 🗑️ **DELETE** - Tailwind inline classes |
+| `ScrapeForm.css` | Not imported | 🗑️ **DELETE** - Tailwind inline classes |
 
 ---
 
-**Next Steps (If Proceeding with Option 2):**
+## Design System Extraction Guide
 
-1. Create new branch from main: `git checkout -b design-v2-clean`
-2. Add Tailwind dependencies only
-3. Convert components one-by-one with full testing
-4. Delete CSS files only after confirming replacement works
-5. Document design system as you go
-6. Keep all 23 adapters, all UI features intact
-7. Verify with browser testing at each step
+### Design Tokens (from `client/src/index.css`)
 
-This will give you a clean, generalizable design that truly reflects the full capabilities of the real app.
+```css
+/* Color Palette - Blue Brand */
+--color-brand-50: #f0f9ff
+--color-brand-100: #e0f2fe
+--color-brand-200: #bae6fd
+--color-brand-300: #7dd3fc
+--color-brand-400: #38bdf8
+--color-brand-500: #0ea5e9  /* Primary brand color */
+--color-brand-600: #0284c7
+--color-brand-700: #0369a1
+--color-brand-800: #075985
+--color-brand-900: #0c4a6e
+
+/* Typography */
+--font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", ...
+--font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", ...
+
+/* Shadows */
+--shadow-soft: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)
+--shadow-soft-hover: 0 10px 40px -3px rgba(0, 0, 0, 0.12), 0 4px 15px -2px rgba(0, 0, 0, 0.08)
+
+/* Base Styles */
+body: bg-slate-50, text-slate-900, antialiased
+```
+
+### Animation Patterns
+
+| Pattern | CSS Classes | Usage |
+|---------|-------------|-------|
+| Slide up on mount | `animate-slide-up` | Feed sections |
+| Fade in | `animate-fade-in` | Stats ticker, TLDR content |
+| Pulse | `animate-pulse` | Loading states |
+| Smooth transitions | `transition-all duration-300 ease-out` | Card hover, header scroll |
+| Hover lift | `hover:-translate-y-0.5` | Article cards |
+
+### Layout Patterns
+
+| Pattern | Classes | Example |
+|---------|---------|---------|
+| Vertical spacing | `space-y-16`, `space-y-12`, `space-y-6` | Feed sections |
+| Bottom padding for scroll | `pb-32` | Main content area |
+| Card roundness | `rounded-[20px]` (large), `rounded-xl` (medium), `rounded-full` (pills) | Cards, badges |
+| Sticky headers | `sticky top-20 z-30` | Date headers in Feed |
+| Backdrop blur | `backdrop-blur-sm`, `backdrop-blur-md` | Header, date headers |
+| Card effects | `shadow-soft`, `shadow-soft-hover` | Article cards |
+
+### Interaction Patterns
+
+| Pattern | Where | Implementation |
+|---------|-------|----------------|
+| **Scroll-triggered header** | App.jsx | `scrolled` state → changes bg, shadow, hides subtitle |
+| **Collapsible settings** | App.jsx | `max-h-[400px] opacity-100` → `max-h-0 opacity-0` |
+| **Stats ticker** | App.jsx | Fades out on scroll (same `scrolled` state) |
+| **Inline loading** | Feed.jsx | "Syncing..." badge next to date header |
+| **Card hover lift** | ArticleCard.jsx | `hover:-translate-y-0.5` + shadow transition |
+| **Group hover actions** | ArticleCard.jsx | `opacity-0 group-hover:opacity-100` for remove button |
+
+---
+
+## Step-by-Step Extraction Checklist
+
+### Phase 1: Foundation Setup
+
+- [ ] **1.1** Start fresh from main: `git checkout -b design-v2-clean main`
+- [ ] **1.2** Copy design system files from design-v1:
+  - [ ] Copy `client/src/index.css` → Update imports from "tailwindcss"
+  - [ ] Copy `client/postcss.config.js`
+- [ ] **1.3** Update `client/package.json` dependencies:
+  ```json
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.554.0",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
+    "autoprefixer": "^10.4.22",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17"
+  }
+  ```
+- [ ] **1.4** Run `npm install` in client/
+- [ ] **1.5** Update `client/src/main.jsx`:
+  ```jsx
+  import './index.css'  // Add this line
+  ```
+- [ ] **1.6** Test: Run `npm run dev` and verify Tailwind loads
+
+### Phase 2: Core Components (Bottom-Up Approach)
+
+#### ArticleCard.jsx
+
+- [ ] **2.1** Install lucide-react icons (already in dependencies)
+- [ ] **2.2** Replace imports:
+  ```jsx
+  import { Minus, Trash2, Bot, Loader2, Sparkles, CheckCircle } from 'lucide-react'
+  ```
+- [ ] **2.3** Remove CSS import: `import './ArticleCard.css'`
+- [ ] **2.4** Copy Tailwind classes from design-v1 ArticleCard:
+  - [ ] Card container classes (lines 43-51)
+  - [ ] Header section (lines 54-65)
+  - [ ] Title link (lines 68-80)
+  - [ ] Action buttons (lines 83-104)
+  - [ ] TLDR content section (lines 106-127)
+- [ ] **2.5** Restore favicon logic from main (lines 30-38):
+  ```jsx
+  const faviconUrl = useMemo(() => {
+    try {
+      const url = new URL(fullUrl)
+      return `${url.origin}/favicon.ico`
+    } catch {
+      return null
+    }
+  }, [fullUrl])
+  ```
+- [ ] **2.6** Add favicon to title:
+  ```jsx
+  {faviconUrl && (
+    <img src={faviconUrl} className="w-4 h-4 mr-2" loading="lazy" alt=""
+         onError={(e) => e.target.style.display = 'none'} />
+  )}
+  ```
+- [ ] **2.7** Add article numbering badge:
+  ```jsx
+  <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+    <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
+      {index + 1}
+    </span>
+  </div>
+  ```
+- [ ] **2.8** Test ArticleCard renders correctly
+
+#### ArticleList.jsx
+
+- [ ] **2.9** Remove CSS import: `import './ArticleList.css'`
+- [ ] **2.10** Replace container div:
+  ```jsx
+  <div className="space-y-4">  // design-v1
+  ```
+- [ ] **2.11** Replace section title:
+  ```jsx
+  <div className="pt-6 pb-2">
+    <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400 ml-1">
+      {item.label}
+    </h4>
+  </div>
+  ```
+- [ ] **2.12** Test ArticleList with sections
+
+#### ScrapeForm.jsx
+
+- [ ] **2.13** Remove CSS import: `import './ScrapeForm.css'`
+- [ ] **2.14** Import icons:
+  ```jsx
+  import { ArrowRight, Loader2, AlertCircle } from 'lucide-react'
+  ```
+- [ ] **2.15** Copy design-v1 ScrapeForm structure (lines 56-134):
+  - [ ] Wrapper with cache badge header
+  - [ ] Two-column date grid
+  - [ ] Submit button with icons
+  - [ ] Animated progress bar
+  - [ ] Error display with icon
+- [ ] **2.16** Test form submission and validation
+
+### Phase 3: Layout Components
+
+#### Feed.jsx (NEW - Copy from design-v1)
+
+- [ ] **3.1** Copy entire `client/src/components/Feed.jsx` from design-v1
+- [ ] **3.2** Add stats display section (missing in design-v1):
+  ```jsx
+  {/* Stats Section - Add above payloads map */}
+  {stats && (
+    <div className="mb-8 bg-white rounded-2xl p-6 shadow-soft border border-slate-100">
+      <div className="grid grid-cols-3 gap-6">
+        <div>
+          <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">Articles</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">{stats.total_articles}</div>
+        </div>
+        <div>
+          <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">Unique URLs</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">{stats.unique_urls}</div>
+        </div>
+        <div>
+          <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">Dates</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">{stats.dates_with_content}/{stats.dates_processed}</div>
+        </div>
+      </div>
+    </div>
+  )}
+  ```
+- [ ] **3.3** Test Feed with multiple days of data
+
+#### App.jsx
+
+- [ ] **3.4** Remove CSS import: `import './App.css'`
+- [ ] **3.5** Import icons:
+  ```jsx
+  import { RefreshCw, Zap, Calendar, Settings } from 'lucide-react'
+  ```
+- [ ] **3.6** Add scroll state (design-v1 lines 9-16):
+  ```jsx
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+  ```
+- [ ] **3.7** Add settings toggle state (design-v1 line 10):
+  ```jsx
+  const [showSettings, setShowSettings] = useState(false)
+  ```
+- [ ] **3.8** Replace header with design-v1 sticky header (lines 48-84)
+- [ ] **3.9** Keep context download buttons from main (lines 77-106)
+- [ ] **3.10** Design context buttons to match Tailwind theme:
+  ```jsx
+  <div className="flex gap-2 mt-4">
+    {['server', 'client', 'docs', 'all'].map(type => (
+      <button
+        key={type}
+        onClick={() => handleContextCopy(type)}
+        disabled={copying === type}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
+                   bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+      >
+        <Download size={16} />
+        {copying === type ? 'Downloaded!' : type}
+      </button>
+    ))}
+  </div>
+  ```
+- [ ] **3.11** Add stats ticker (design-v1 lines 86-103)
+- [ ] **3.12** Replace ResultsDisplay with Feed:
+  ```jsx
+  {results && <Feed payloads={results.payloads || []} stats={results.stats} />}
+  ```
+- [ ] **3.13** Test entire app flow
+
+### Phase 4: Cleanup
+
+- [ ] **4.1** Delete orphaned CSS files:
+  - [ ] Delete `client/src/App.css`
+  - [ ] Delete `client/src/components/ArticleCard.css`
+  - [ ] Delete `client/src/components/ArticleList.css`
+  - [ ] Delete `client/src/components/ScrapeForm.css`
+- [ ] **4.2** Delete orphaned components:
+  - [ ] Delete `client/src/components/CacheToggle.jsx` (if keeping integrated approach)
+  - [ ] Delete `client/src/components/CacheToggle.css`
+  - [ ] Delete `client/src/components/ResultsDisplay.jsx`
+  - [ ] Delete `client/src/components/ResultsDisplay.css`
+- [ ] **4.3** Verify no broken imports:
+  ```bash
+  npm run build
+  ```
+
+### Phase 5: Testing & Verification
+
+- [ ] **5.1** Visual regression testing:
+  - [ ] Compare with design-v1 screenshots
+  - [ ] Verify all animations work
+  - [ ] Check responsive behavior
+- [ ] **5.2** Functional testing:
+  - [ ] Scrape newsletters (date range)
+  - [ ] Read/unread article toggling
+  - [ ] Remove/restore articles
+  - [ ] TLDR expand/collapse
+  - [ ] Context button downloads
+  - [ ] Cache toggle
+- [ ] **5.3** Cross-browser testing:
+  - [ ] Chrome/Edge
+  - [ ] Firefox
+  - [ ] Safari (if available)
+- [ ] **5.4** Performance check:
+  - [ ] Lighthouse score
+  - [ ] Bundle size check
+  - [ ] Animation smoothness
+
+### Phase 6: Documentation
+
+- [ ] **6.1** Document design decisions in `DESIGN_SYSTEM.md`:
+  - [ ] Color palette usage
+  - [ ] Typography scale
+  - [ ] Spacing patterns
+  - [ ] Component patterns
+- [ ] **6.2** Update `ARCHITECTURE.md` with new component structure
+- [ ] **6.3** Add screenshots to `docs/design/` directory
+
+---
+
+## Conclusion
+
+The design-v1 branch contains **valuable design work** but has orphaned files from incomplete cleanup. The correct understanding:
+
+1. **design-v1 = UI redesign branch** (forked Nov 19, 2025)
+2. **main has progressed** (adapters + context buttons added Nov 20-21)
+3. **"Missing features"** are actually features added to main AFTER the fork
+
+**The Extraction Strategy:**
+
+Start fresh from current main and extract design patterns from design-v1:
+
+✅ **Extract from design-v1:**
+- Tailwind theme and design tokens
+- Component styling patterns (ArticleCard, Feed, ScrapeForm)
+- Animation/interaction patterns
+- Lucide icons integration
+
+✅ **Keep from main:**
+- All 23 newsletter adapters
+- Context download buttons (need design)
+- All functionality
+
+✅ **Design new features:**
+- Context button group (to match Tailwind theme)
+- Favicon display layout
+- Article numbering badge
+- Prominent stats section
+
+🗑️ **Delete orphaned files:**
+- 6 CSS modules (replaced by Tailwind)
+- CacheToggle.jsx (merged into ScrapeForm)
+- ResultsDisplay.jsx (replaced by Feed)
+
+**Follow the step-by-step extraction checklist above** (6 phases, ~90 tasks) to systematically apply the design while preserving all functionality and avoiding the technical debt from design-v1.
