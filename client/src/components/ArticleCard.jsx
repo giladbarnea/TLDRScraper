@@ -51,14 +51,6 @@ function ArticleCard({ article, index }) {
       `}
     >
       <div className="p-5 flex flex-col gap-3">
-         {/* Header */}
-         <div className="mb-1">
-             <span className="text-[11px] font-medium text-slate-400">
-                {article.articleMeta || 'Today'}
-             </span>
-             {isRead && <CheckCircle size={14} className="text-slate-300 inline ml-2" />}
-         </div>
-
          {/* Title */}
          <a
            href={fullUrl}
@@ -73,6 +65,14 @@ function ArticleCard({ article, index }) {
          >
            {article.title}
          </a>
+
+         {/* Header */}
+         <div className="mb-1">
+             <span className="text-[11px] font-medium text-slate-400">
+                {article.articleMeta || 'Today'}
+             </span>
+             {isRead && <CheckCircle size={14} className="text-slate-300 inline ml-2" />}
+         </div>
 
          {/* Actions */}
          <div className="flex items-center justify-between pt-1">
