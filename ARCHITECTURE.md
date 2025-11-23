@@ -13,6 +13,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 **Frontend:**
 - React 19
 - Vite (build tool)
+- Tailwind CSS v4 (utility-first CSS framework)
 - Marked.js (markdown parsing)
 - DOMPurify (XSS sanitization)
 
@@ -41,7 +42,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  │    Display │  │   Display    │  │                          │  │  │
 │  │  │            │  │ - ArticleList│  │ Lib                      │  │  │
 │  │  │            │  │ - ArticleCard│  │ - scraper.js             │  │  │
-│  │  │            │  │              │  │ - storageApi.js          │  │  │
+│  │  │            │  │ - Feed        │  │ - storageApi.js          │  │  │
 │  │  └────────────┘  └──────────────┘  └──────────────────────────┘  │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -57,6 +58,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  GET/POST /api/storage/daily/<date>                              │  │
 │  │  POST /api/storage/daily-range                                   │  │
 │  │  GET /api/storage/is-cached/<date>                               │  │
+│  │  POST /api/generate-context                                      │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                    │                                     │
 │                                    ▼                                     │
@@ -86,9 +88,9 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  - scrape_date_range() │   │  - tldr_url()                       │ │
 │  │  - Adapter Factory     │   │  - url_to_markdown()                │ │
 │  │                        │   │  - scrape_url()                     │ │
-│  │  Uses:                 │   │  - _call_llm()                      │ │
-│  │  - TLDRAdapter         │   │                                      │ │
-│  │  - HackerNewsAdapter   │   │                                      │ │
+│  │  22 Adapter Classes:   │   │  - _call_llm()                      │ │
+│  │  TLDR, HackerNews,     │   │                                      │ │
+│  │  and 20 blog sources   │   │                                      │ │
 │  └────────────────────────┘   └──────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -150,15 +152,41 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - Click again → Collapse TLDR (marks as tldrHidden; deprioritized)
 - Cached TLDRs show "Available" (green)
 
-### 5. Results Display
+### 5. Results Display with Feed Component
 **User Action:** View scraped results
 
 **Available Interactions:**
-- Articles grouped by: Date → Issue/Category → Section
+- Feed component with DailyGroup subcomponents (one per date)
+- DailyGroup features:
+  - Live sync with Supabase via useSupabaseStorage hook
+  - Sticky date header with "Syncing..." indicator during updates
+  - Articles grouped by: Date → Issue/Category → Section
+  - "Other" section for uncategorized articles
 - Articles sorted by state: Unread → Read → TLDR-hidden → Removed
 - Visual state indicators (bold = unread, muted = read, strikethrough = removed)
 - Stats display (article count, unique URLs, dates processed)
 - Collapsible debug logs
+
+### 6. Context Generation (Development Tool)
+**User Action:** Call POST /api/generate-context endpoint
+
+**Available Modes:**
+- `server`: Extract Python server code with optional AST-only mode
+- `client`: Extract all client-side code (JSX, JS, CSS, HTML)
+- `docs`: Extract all markdown documentation
+- `all`: Concatenate all three contexts
+
+**Output Format:** XML with file paths and contents for LLM consumption
+
+### 7. Tailwind CSS v4 Configuration
+**Configuration Method:** CSS-first via `@theme` directive in index.css
+
+**Custom Design Tokens:**
+- Font stacks: `--font-sans` (SF Pro Text), `--font-display` (SF Pro Display)
+- Brand colors: Sky blue palette (brand-50 through brand-900)
+- Shadows: `--shadow-soft`, `--shadow-soft-hover`
+
+**Note:** No tailwind.config.js file - Tailwind v4 uses CSS-based configuration
 
 ---
 
@@ -473,13 +501,10 @@ User clicks "Scrape Newsletters"
        │              │                             │    │
        │              │                             │    ├─ newsletter_scraper.py:16 _get_adapter_for_source(config)
        │              │                             │    │    │
-       │              │                             │    │    ├─ If source_id.startswith('tldr_'):
-       │              │                             │    │    │    │
-       │              │                             │    │    │    └─ Return TLDRAdapter(config)
-       │              │                             │    │    │
-       │              │                             │    │    └─ If source_id == 'hackernews':
-       │              │                             │    │         │
-       │              │                             │    │         └─ Return HackerNewsAdapter(config)
+       │              │                             │    │    └─ Factory returns adapter based on source_id:
+       │              │                             │    │         - tldr_* → TLDRAdapter
+       │              │                             │    │         - hackernews → HackerNewsAdapter
+       │              │                             │    │         - 20 other sources → respective adapters
        │              │                             │    │
        │              │                             │    └─ adapter.scrape_date(date, excluded_urls)
        │              │                             │         │
@@ -685,7 +710,7 @@ User clicks "TLDR" button
 
   // User state
   removed: boolean,
-  tldrHidden: boolean,
+  tldrHidden: boolean,      // When user collapses TLDR after reading
   read: {
     isRead: boolean,
     markedAt: string | null  // ISO timestamp
@@ -767,9 +792,9 @@ App.jsx
   │     └── scraper.js functions
   │           └── storageApi.js (GET/POST /api/storage/daily/*)
   │
-  └── ResultsDisplay.jsx
+  └── Feed.jsx
         │
-        └── DailyResults (per date)
+        └── DailyGroup (per date)
               │
               ├── useSupabaseStorage('newsletters:scrapes:{date}')
               │     └── GET/POST /api/storage/daily/{date}
@@ -976,6 +1001,21 @@ CREATE TABLE daily_cache (
 3. **User Interaction**: Modify article state → POST /api/storage/daily/{date} → Supabase upsert → Dispatches 'supabase-storage-change' event
 4. **Summary/TLDR**: Fetch from API → Update article → POST /api/storage/daily/{date} → Supabase upsert
 
+### Storage Key Patterns
+
+- **Settings**: `cache:*` (e.g., `cache:enabled`)
+- **Daily Payloads**: `newsletters:scrapes:{date}` (e.g., `newsletters:scrapes:2024-01-01`)
+- Keys are used by `useSupabaseStorage` hook to route to correct endpoint
+
+### Client-Side Caching
+
+Three-tier cache strategy in `useSupabaseStorage`:
+1. **readCache**: In-memory Map for instant access
+2. **inflightReads**: Deduplicates simultaneous requests for same key
+3. **Network fetch**: Falls back to API if not cached
+- Change listeners enable cross-component synchronization
+- CustomEvent dispatched on storage changes for cross-tab sync
+
 ---
 
 ## Error Handling
@@ -1105,6 +1145,7 @@ TLDRScraper/
 │   │   │   ├── ArticleCard.jsx
 │   │   │   ├── ArticleList.jsx
 │   │   │   ├── CacheToggle.jsx
+│   │   │   ├── Feed.jsx
 │   │   │   ├── ResultsDisplay.jsx
 │   │   │   └── ScrapeForm.jsx
 │   │   ├── hooks/            # Custom React hooks
@@ -1122,6 +1163,12 @@ TLDRScraper/
 ├── api/                       # Backend entry point
 │   └── index.py
 │
+├── adapters/                  # Newsletter source adapters (22 sources)
+│   ├── newsletter_adapter.py # Base adapter class
+│   ├── tldr_adapter.py       # TLDR newsletter adapter
+│   ├── hackernews_adapter.py # HackerNews adapter
+│   └── ... (20 more blog/newsletter adapters)
+│
 ├── serve.py                   # Flask routes
 ├── tldr_app.py               # Application logic layer
 ├── tldr_service.py           # Service layer
@@ -1129,9 +1176,6 @@ TLDRScraper/
 ├── supabase_client.py        # Supabase client initialization
 ├── newsletter_scraper.py     # Scraping orchestration
 ├── summarizer.py             # URL → Summary/TLDR
-├── newsletter_adapter.py     # Base adapter
-├── tldr_adapter.py           # TLDR newsletter adapter
-├── hackernews_adapter.py     # HackerNews adapter
 ├── newsletter_merger.py      # Markdown formatting
 ├── newsletter_config.py      # Source configurations
 └── util.py                   # Shared utilities
