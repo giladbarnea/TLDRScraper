@@ -90,7 +90,8 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │                        │   │  - scrape_url()                     │ │
 │  │  22 Adapter Classes:   │   │  - _call_llm()                      │ │
 │  │  TLDR, HackerNews,     │   │                                      │ │
-│  │  and 20 blog sources   │   │                                      │ │
+│  │  Anthropic, Stripe,    │   │                                      │ │
+│  │  Simon Willison, etc.  │   │                                      │ │
 │  └────────────────────────┘   └──────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -139,8 +140,9 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 
 **Available Interactions:**
 - Click article title → Mark as read
-- Click "Remove" → Mark as removed (visual strikethrough)
+- Click "Remove" → Mark as removed (visual strikethrough, subtitle hidden)
 - Click "Restore" → Restore removed article
+- Trash icon always visible on mobile devices
 - Article states persist in Supabase daily_cache table
 
 ### 4. TLDR Generation
@@ -460,7 +462,7 @@ User clicks "Scrape Newsletters"
        │         │
        │         └─ Server receives request...
        │              │
-       │              ├─ serve.py:32 scrape_newsletters_in_date_range()
+       │              ├─ serve.py:36 scrape_newsletters_in_date_range()
        │              │    │
        │              │    ├─ Extract request.get_json()
        │              │    │    - start_date: "2024-01-01"
@@ -479,7 +481,7 @@ User clicks "Scrape Newsletters"
        │              │              │    │
        │              │              │    └─ Return (datetime, datetime)
        │              │              │
-       │              │              └─ newsletter_scraper.py:251 scrape_date_range(start_date, end_date, source_ids, excluded_urls)
+       │              │              └─ newsletter_scraper.py:307 scrape_date_range(start_date, end_date, source_ids, excluded_urls)
        │              │                   │
        │              │                   ├─ util.get_date_range(start, end)
        │              │                   │    │
@@ -497,9 +499,9 @@ User clicks "Scrape Newsletters"
        │              │                        │
        │              │                        └─ For each source_id in source_ids:
        │              │                             │
-       │              │                             ├─ newsletter_scraper.py:172 _collect_newsletters_for_date_from_source()
+       │              │                             ├─ newsletter_scraper.py:231 _collect_newsletters_for_date_from_source()
        │              │                             │    │
-       │              │                             │    ├─ newsletter_scraper.py:16 _get_adapter_for_source(config)
+       │              │                             │    ├─ newsletter_scraper.py:15 _get_adapter_for_source(config)
        │              │                             │    │    │
        │              │                             │    │    └─ Factory returns adapter based on source_id:
        │              │                             │    │         - tldr_* → TLDRAdapter
@@ -538,7 +540,7 @@ User clicks "Scrape Newsletters"
        │              │                             │
        │              │                             └─ Sleep 0.2s (rate limiting)
        │              │
-       │              ├─ newsletter_scraper.py:139 _build_scrape_response()
+       │              ├─ newsletter_scraper.py:198 _build_scrape_response()
        │              │    │
        │              │    ├─ Group articles by date
        │              │    ├─ Build markdown output (newsletter_merger.py)
@@ -578,7 +580,7 @@ User clicks "Scrape Newsletters"
   │              │    │
   │              │    ├─ If cached data exists:
   │              │    │    │
-  │              │    │    └─ Merge articles (preserve summary, tldr, read, removed)
+  │              │    │    └─ Merge articles (preserve tldr, read, removed, tldrHidden)
   │              │    │
   │              │    └─ POST /api/storage/daily/{date} (save to Supabase)
   │              │
@@ -631,7 +633,7 @@ User clicks "TLDR" button
   │                        │
   │                        └─ Server receives request...
   │                             │
-  │                             ├─ serve.py:68 tldr_url()
+  │                             ├─ serve.py:72 tldr_url()
   │                             │    │
   │                             │    └─ tldr_app.py:32 tldr_url(url, summary_effort)
   │                             │         │
@@ -639,10 +641,10 @@ User clicks "TLDR" button
   │                             │              │
   │                             │              ├─ util.canonicalize_url(url)
   │                             │              │
-  │                             │              └─ summarizer.py:291 tldr_url(url, summary_effort)
+  │                             │              └─ summarizer.py:279 tldr_url(url, summary_effort)
   │                             │                   │
   │                             │                   ├─ url_to_markdown(url)
-  │                             │                   │    [Same flow as summarize]
+  │                             │                   │    (scrapes and converts URL content to markdown)
   │                             │                   │
   │                             │                   ├─ Fetch TLDR prompt template:
   │                             │                   │    │
@@ -657,7 +659,7 @@ User clicks "TLDR" button
   │                             │                   └─ Call LLM:
   │                             │                        │
   │                             │                        └─ _call_llm(prompt, summary_effort)
-  │                             │                             [Same flow as summarize]
+  │                             │                             (calls OpenAI GPT-5 API)
   │                             │
   │                             └─ Return { success, tldr_markdown, canonical_url, summary_effort }
   │
@@ -717,14 +719,6 @@ User clicks "TLDR" button
   },
 
   // AI-generated content
-  summary: {
-    status: 'unknown' | 'creating' | 'available' | 'error',
-    markdown: string,
-    effort: 'minimal' | 'low' | 'medium' | 'high',
-    checkedAt: string | null,
-    errorMessage: string | null
-  },
-
   tldr: {
     status: 'unknown' | 'creating' | 'available' | 'error',
     markdown: string,
@@ -939,7 +933,7 @@ async function mergeWithCache(payloads) {
 }
 ```
 
-### 4. URL Deduplication (newsletter_scraper.py:172)
+### 4. URL Deduplication (newsletter_scraper.py:231)
 
 ```python
 # Deduplicate articles across sources using canonical URLs
@@ -1163,7 +1157,8 @@ TLDRScraper/
 ├── api/                       # Backend entry point
 │   └── index.py
 │
-├── adapters/                  # Newsletter source adapters (22 sources)
+├── adapters/                  # Newsletter source adapters (23 files: 1 base + 22 sources)
+│   ├── __init__.py           # Module marker
 │   ├── newsletter_adapter.py # Base adapter class
 │   ├── tldr_adapter.py       # TLDR newsletter adapter
 │   ├── hackernews_adapter.py # HackerNews adapter
