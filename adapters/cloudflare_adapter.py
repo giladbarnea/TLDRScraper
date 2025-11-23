@@ -1,9 +1,9 @@
 """
-The Pragmatic Engineer newsletter adapter using RSS feed.
+Cloudflare Blog adapter using RSS feed.
 
-This adapter fetches articles from The Pragmatic Engineer newsletter (by Gergely Orosz)
-via the Substack RSS feed. The newsletter covers senior engineering topics, industry insights,
-scaling teams, tech trends, and the popular "The Scoop" series.
+Cloudflare Blog (blog.cloudflare.com) covers deep technical topics on networking,
+security, edge computing, and performance optimization. High-quality technical content
+from a leading CDN and security provider.
 """
 
 import logging
@@ -12,20 +12,20 @@ from datetime import datetime
 import requests
 import feedparser
 
-from newsletter_adapter import NewsletterAdapter
+from adapters.newsletter_adapter import NewsletterAdapter
 import util
 
 
-logger = logging.getLogger("pragmatic_engineer_adapter")
+logger = logging.getLogger("cloudflare_adapter")
 
-RSS_FEED_URL = "https://newsletter.pragmaticengineer.com/feed"
+RSS_FEED_URL = "https://blog.cloudflare.com/rss/"
 
 
-class PragmaticEngineerAdapter(NewsletterAdapter):
-    """Adapter for The Pragmatic Engineer newsletter using Substack RSS feed."""
+class CloudflareAdapter(NewsletterAdapter):
+    """Adapter for Cloudflare Blog using RSS feed."""
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
-        """Fetch newsletter articles for a specific date using RSS feed.
+        """Fetch Cloudflare blog posts for a specific date using RSS feed.
 
         Args:
             date: Date string in YYYY-MM-DD format
@@ -40,39 +40,36 @@ class PragmaticEngineerAdapter(NewsletterAdapter):
         target_date_str = util.format_date_for_url(date)
         target_date = datetime.fromisoformat(target_date_str).date()
 
-        logger.info(f"[pragmatic_engineer_adapter.scrape_date] Fetching RSS feed for {target_date_str}")
+        logger.info(f"[cloudflare_adapter.scrape_date] Fetching RSS feed for {target_date_str}")
 
         try:
-            headers = {
-                'User-Agent': self.config.user_agent
-            }
-            response = requests.get(RSS_FEED_URL, headers=headers, timeout=10)
+            response = requests.get(RSS_FEED_URL, timeout=10)
             response.raise_for_status()
 
             feed = feedparser.parse(response.content)
 
             if not feed.entries:
-                logger.warning(f"[pragmatic_engineer_adapter.scrape_date] No entries found in RSS feed")
+                logger.warning(f"[cloudflare_adapter.scrape_date] No entries found in RSS feed")
                 return self._normalize_response([], [])
 
-            logger.info(f"[pragmatic_engineer_adapter.scrape_date] Fetched {len(feed.entries)} total entries from RSS")
+            logger.info(f"[cloudflare_adapter.scrape_date] Fetched {len(feed.entries)} entries from RSS")
 
             for entry in feed.entries:
                 article = self._parse_rss_entry(entry, target_date, excluded_set)
                 if article:
                     articles.append(article)
 
-            logger.info(f"[pragmatic_engineer_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}")
+            logger.info(f"[cloudflare_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}")
 
         except Exception as e:
-            logger.error(f"[pragmatic_engineer_adapter.scrape_date] Error fetching RSS feed: {e}", exc_info=True)
+            logger.error(f"[cloudflare_adapter.scrape_date] Error fetching RSS feed: {e}", exc_info=True)
 
         issues = []
         if articles:
             issues.append({
                 'date': target_date_str,
                 'source_id': self.config.source_id,
-                'category': 'The Pragmatic Engineer',
+                'category': 'Cloudflare Blog',
                 'title': None,
                 'subtitle': None
             })
@@ -107,33 +104,35 @@ class PragmaticEngineerAdapter(NewsletterAdapter):
             return None
 
         title = entry.get('title', 'Untitled')
-        summary = entry.get('summary', '')
+        description = entry.get('description', '')
 
-        article_meta = self._extract_article_meta(summary)
+        description_text = self._strip_html(description) if description else ''
+
+        if description_text:
+            if len(description_text) > 150:
+                description_text = description_text[:150] + '...'
+            article_meta = description_text
+        else:
+            article_meta = ""
 
         return {
             "title": title,
             "article_meta": article_meta,
             "url": entry['link'],
-            "category": "The Pragmatic Engineer",
+            "category": "Cloudflare Blog",
             "date": util.format_date_for_url(entry_date),
-            "newsletter_type": "newsletter",
+            "newsletter_type": "blog",
             "removed": False,
         }
 
-    def _extract_article_meta(self, summary: str) -> str:
-        """Extract clean article metadata from HTML summary.
+    def _strip_html(self, html: str) -> str:
+        """Strip HTML tags from text.
 
-        Args:
-            summary: HTML summary from RSS feed
-
-        Returns:
-            Clean text excerpt for article_meta
+        >>> from newsletter_config import NEWSLETTER_CONFIGS
+        >>> adapter = CloudflareAdapter(NEWSLETTER_CONFIGS['cloudflare'])
+        >>> adapter._strip_html("<p>Hello <b>world</b></p>")
+        'Hello world'
         """
-        clean_text = re.sub(r'<[^>]+>', '', summary)
-        clean_text = re.sub(r'\s+', ' ', clean_text).strip()
-
-        if len(clean_text) > 200:
-            clean_text = clean_text[:200] + '...'
-
-        return clean_text
+        text = re.sub(r'<[^>]+>', '', html)
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()

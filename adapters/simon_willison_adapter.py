@@ -1,7 +1,7 @@
 """
-Hillel Wayne blog adapter using RSS feed.
+Simon Willison's blog adapter using Atom RSS feed.
 
-This adapter fetches articles from Hillel Wayne's blog via the RSS feed,
+This adapter fetches articles from Simon Willison's blog via the Atom feed,
 filtering by date and extracting article metadata.
 """
 
@@ -11,20 +11,20 @@ from datetime import datetime
 import requests
 import feedparser
 
-from newsletter_adapter import NewsletterAdapter
+from adapters.newsletter_adapter import NewsletterAdapter
 import util
 
 
-logger = logging.getLogger("hillel_wayne_adapter")
+logger = logging.getLogger("simon_willison_adapter")
 
 
-class HillelWayneAdapter(NewsletterAdapter):
-    """Adapter for Hillel Wayne's blog using RSS feed."""
+class SimonWillisonAdapter(NewsletterAdapter):
+    """Adapter for Simon Willison's blog using Atom RSS feed."""
 
     def __init__(self, config):
         """Initialize with config."""
         super().__init__(config)
-        self.feed_url = "https://www.hillelwayne.com/index.xml"
+        self.feed_url = "https://simonwillison.net/atom/everything/"
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
         """Fetch blog posts for a specific date from RSS feed.
@@ -42,7 +42,7 @@ class HillelWayneAdapter(NewsletterAdapter):
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
         target_date_str = target_date.strftime("%Y-%m-%d")
 
-        logger.info(f"[hillel_wayne_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"[simon_willison_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
             response = requests.get(self.feed_url, timeout=10)
@@ -50,7 +50,7 @@ class HillelWayneAdapter(NewsletterAdapter):
 
             feed = feedparser.parse(response.content)
 
-            logger.info(f"[hillel_wayne_adapter.scrape_date] Fetched {len(feed.entries)} total entries from feed")
+            logger.info(f"[simon_willison_adapter.scrape_date] Fetched {len(feed.entries)} total entries from feed")
 
             for entry in feed.entries:
                 if not entry.get('published_parsed'):
@@ -66,6 +66,7 @@ class HillelWayneAdapter(NewsletterAdapter):
                 if not link:
                     continue
 
+                link = self._clean_url(link)
                 canonical_url = util.canonicalize_url(link)
 
                 if canonical_url in excluded_set:
@@ -75,27 +76,38 @@ class HillelWayneAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            logger.info(f"[hillel_wayne_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}")
+            logger.info(f"[simon_willison_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}")
 
         except Exception as e:
-            logger.error(f"[hillel_wayne_adapter.scrape_date] Error fetching feed: {e}", exc_info=True)
+            logger.error(f"[simon_willison_adapter.scrape_date] Error fetching feed: {e}", exc_info=True)
 
         issues = []
         if articles:
             issues.append({
                 'date': target_date_str,
                 'source_id': self.config.source_id,
-                'category': self.config.category_display_names.get('blog', 'Hillel Wayne'),
+                'category': self.config.category_display_names.get('blog', 'Simon Willison'),
                 'title': None,
                 'subtitle': None
             })
 
         return self._normalize_response(articles, issues)
 
+    def _clean_url(self, url: str) -> str:
+        """Remove feed-specific fragments from URL.
+
+        >>> adapter = SimonWillisonAdapter(None)
+        >>> adapter._clean_url("https://example.com/post/#atom-everything")
+        'https://example.com/post/'
+        """
+        if '#atom-everything' in url:
+            url = url.replace('#atom-everything', '')
+        return url
+
     def _strip_html(self, html: str) -> str:
         """Strip HTML tags from text.
 
-        >>> adapter = HillelWayneAdapter(None)
+        >>> adapter = SimonWillisonAdapter(None)
         >>> adapter._strip_html("<p>Hello <b>world</b></p>")
         'Hello world'
         """
@@ -117,7 +129,7 @@ class HillelWayneAdapter(NewsletterAdapter):
         if not title:
             return None
 
-        link = entry.get('link', '')
+        link = self._clean_url(entry.get('link', ''))
         if not link:
             return None
 
@@ -139,7 +151,7 @@ class HillelWayneAdapter(NewsletterAdapter):
             "title": title,
             "article_meta": article_meta,
             "url": link,
-            "category": self.config.category_display_names.get('blog', 'Hillel Wayne'),
+            "category": self.config.category_display_names.get('blog', 'Simon Willison'),
             "date": date,
             "newsletter_type": "blog",
             "removed": False,

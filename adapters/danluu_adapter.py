@@ -1,8 +1,8 @@
 """
-Netflix Tech Blog adapter implementation using RSS feed.
+Dan Luu blog adapter implementation using RSS feed.
 
-This adapter implements the NewsletterAdapter interface for Netflix Tech Blog,
-fetching articles from the Medium RSS feed and filtering them by publication date.
+This adapter implements the NewsletterAdapter interface for Dan Luu's blog,
+fetching articles from the RSS feed and filtering them by publication date.
 """
 
 import logging
@@ -11,15 +11,15 @@ from datetime import datetime
 
 import requests
 
-from newsletter_adapter import NewsletterAdapter
+from adapters.newsletter_adapter import NewsletterAdapter
 import util
 
 
-logger = logging.getLogger("netflix_adapter")
+logger = logging.getLogger("danluu_adapter")
 
 
-class NetflixAdapter(NewsletterAdapter):
-    """Adapter for Netflix Tech Blog using Medium RSS feed."""
+class DanLuuAdapter(NewsletterAdapter):
+    """Adapter for Dan Luu's blog using RSS feed."""
 
     def __init__(self, config):
         """Initialize with config.
@@ -27,10 +27,10 @@ class NetflixAdapter(NewsletterAdapter):
         Note: We don't use the HTML-to-markdown functionality from base class.
         """
         super().__init__(config)
-        self.rss_url = "https://medium.com/feed/netflix-techblog"
+        self.rss_url = "https://danluu.com/atom.xml"
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
-        """Fetch Netflix Tech Blog articles from RSS feed for a specific date.
+        """Fetch Dan Luu blog articles from RSS feed for a specific date.
 
         Args:
             date: Date string in YYYY-MM-DD format
@@ -44,12 +44,12 @@ class NetflixAdapter(NewsletterAdapter):
 
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
 
-        logger.info(f"[netflix_adapter.scrape_date] Fetching articles for {date} from RSS feed (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"[danluu_adapter.scrape_date] Fetching articles for {date} from RSS feed (excluding {len(excluded_urls)} URLs)")
 
         try:
             feed_items = self._fetch_rss_feed()
 
-            logger.info(f"[netflix_adapter.scrape_date] Fetched {len(feed_items)} total items from RSS feed")
+            logger.info(f"[danluu_adapter.scrape_date] Fetched {len(feed_items)} total items from RSS feed")
 
             # Filter items by date and excluded URLs
             filtered_items = []
@@ -71,7 +71,7 @@ class NetflixAdapter(NewsletterAdapter):
                 if canonical_url not in excluded_set:
                     filtered_items.append(item)
 
-            logger.info(f"[netflix_adapter.scrape_date] {len(filtered_items)} articles match date {date}")
+            logger.info(f"[danluu_adapter.scrape_date] {len(filtered_items)} articles match date {date}")
 
             # Convert to article format
             for item in filtered_items:
@@ -79,10 +79,10 @@ class NetflixAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            logger.info(f"[netflix_adapter.scrape_date] Converted {len(articles)} items to articles")
+            logger.info(f"[danluu_adapter.scrape_date] Converted {len(articles)} items to articles")
 
         except Exception as e:
-            logger.error(f"[netflix_adapter.scrape_date] Error fetching RSS feed: {e}", exc_info=True)
+            logger.error(f"[danluu_adapter.scrape_date] Error fetching RSS feed: {e}", exc_info=True)
 
         # Create issue metadata if we have articles
         issues = []
@@ -90,7 +90,7 @@ class NetflixAdapter(NewsletterAdapter):
             issues.append({
                 'date': util.format_date_for_url(date),
                 'source_id': self.config.source_id,
-                'category': 'Netflix Tech',
+                'category': 'Dan Luu',
                 'title': None,
                 'subtitle': None
             })
@@ -101,7 +101,7 @@ class NetflixAdapter(NewsletterAdapter):
         """Fetch and parse the RSS feed.
 
         Returns:
-            List of item dictionaries with title, link, pubDate, categories, description
+            List of item dictionaries with title, link, pubDate, description
         """
         response = requests.get(self.rss_url, timeout=30, headers={
             'User-Agent': self.config.user_agent
@@ -112,7 +112,7 @@ class NetflixAdapter(NewsletterAdapter):
         channel = root.find('channel')
 
         if channel is None:
-            logger.warning("[netflix_adapter._fetch_rss_feed] No channel found in RSS feed")
+            logger.warning("[danluu_adapter._fetch_rss_feed] No channel found in RSS feed")
             return []
 
         items = []
@@ -120,20 +120,13 @@ class NetflixAdapter(NewsletterAdapter):
             title = item_elem.find('title')
             link = item_elem.find('link')
             pub_date = item_elem.find('pubDate')
-
-            # Medium RSS feeds include content:encoded with full HTML
-            content_ns = '{http://purl.org/rss/1.0/modules/content/}'
-            content_encoded = item_elem.find(f'{content_ns}encoded')
-
-            # Get all categories
-            categories = [cat.text for cat in item_elem.findall('category') if cat.text]
+            description = item_elem.find('description')
 
             items.append({
                 'title': title.text if title is not None else '',
                 'link': link.text if link is not None else '',
                 'pubDate': pub_date.text if pub_date is not None else '',
-                'content': content_encoded.text if content_encoded is not None else '',
-                'categories': categories,
+                'description': description.text if description is not None else '',
             })
 
         return items
@@ -151,10 +144,10 @@ class NetflixAdapter(NewsletterAdapter):
             return None
 
         try:
-            # RSS 2.0 uses RFC 822/2822 format: "Tue, 04 Nov 2025 20:33:44 GMT"
-            return datetime.strptime(pub_date_str, '%a, %d %b %Y %H:%M:%S %Z')
+            # RSS 2.0 uses RFC 822/2822 format: "Mon, 28 Oct 2024 00:00:00 +0000"
+            return datetime.strptime(pub_date_str, '%a, %d %b %Y %H:%M:%S %z')
         except ValueError:
-            logger.warning(f"[netflix_adapter._parse_pub_date] Failed to parse date: {pub_date_str}")
+            logger.warning(f"[danluu_adapter._parse_pub_date] Failed to parse date: {pub_date_str}")
             return None
 
     def _rss_item_to_article(self, item: dict, date: str) -> dict | None:
@@ -173,27 +166,15 @@ class NetflixAdapter(NewsletterAdapter):
         if not title or not url:
             return None
 
-        # Get categories for metadata
-        categories = item.get('categories', [])
-        category_str = ', '.join(categories[:3]) if categories else ''
-
-        # Extract excerpt from content (strip HTML tags)
-        content = item.get('content', '')
-        excerpt = self._extract_text_from_html(content)[:150]
-
-        # Build article_meta with categories and excerpt length
-        article_meta_parts = []
-        if category_str:
-            article_meta_parts.append(category_str)
-        if excerpt:
-            article_meta_parts.append(f"{len(excerpt)} char excerpt")
-        article_meta = ' | '.join(article_meta_parts) if article_meta_parts else ''
+        # Extract excerpt from description (strip HTML tags)
+        description = item.get('description', '')
+        excerpt = self._extract_text_from_html(description)[:200]
 
         return {
             "title": title,
-            "article_meta": article_meta,
+            "article_meta": f"{len(excerpt)} char excerpt",
             "url": url,
-            "category": "Netflix Tech",
+            "category": "Dan Luu",
             "date": util.format_date_for_url(date),
             "newsletter_type": "blog",
             "removed": False,
@@ -201,7 +182,7 @@ class NetflixAdapter(NewsletterAdapter):
 
     @staticmethod
     def _extract_text_from_html(html: str) -> str:
-        """Extract plain text from HTML content.
+        """Extract plain text from HTML description.
 
         Args:
             html: HTML content
@@ -215,12 +196,11 @@ class NetflixAdapter(NewsletterAdapter):
         # Simple tag removal (good enough for excerpts)
         import re
         text = re.sub(r'<[^>]+>', '', html)
-        # Decode common HTML entities
+        # Decode HTML entities
         text = text.replace('&quot;', '"')
         text = text.replace('&amp;', '&')
         text = text.replace('&lt;', '<')
         text = text.replace('&gt;', '>')
         text = text.replace('&#39;', "'")
-        text = text.replace('&nbsp;', ' ')
 
         return text.strip()

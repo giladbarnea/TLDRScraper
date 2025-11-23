@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 import feedparser
 
-from newsletter_adapter import NewsletterAdapter
+from adapters.newsletter_adapter import NewsletterAdapter
 import util
 
 

@@ -1,9 +1,8 @@
 """
-InfoQ adapter using RSS feed.
+ByteByteGo newsletter adapter using RSS feed.
 
-This adapter fetches articles from InfoQ via the RSS feed,
+This adapter fetches articles from ByteByteGo's newsletter via the RSS feed,
 filtering by date and extracting article metadata.
-InfoQ focuses on software architecture for senior engineers/architects.
 """
 
 import logging
@@ -12,23 +11,23 @@ from datetime import datetime
 import requests
 import feedparser
 
-from newsletter_adapter import NewsletterAdapter
+from adapters.newsletter_adapter import NewsletterAdapter
 import util
 
 
-logger = logging.getLogger("infoq_adapter")
+logger = logging.getLogger("bytebytego_adapter")
 
 
-class InfoQAdapter(NewsletterAdapter):
-    """Adapter for InfoQ using RSS feed."""
+class ByteByteGoAdapter(NewsletterAdapter):
+    """Adapter for ByteByteGo newsletter using RSS feed."""
 
     def __init__(self, config):
         """Initialize with config."""
         super().__init__(config)
-        self.feed_url = "https://www.infoq.com/feed"
+        self.feed_url = "https://blog.bytebytego.com/feed"
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
-        """Fetch articles for a specific date from RSS feed.
+        """Fetch newsletter articles for a specific date from RSS feed.
 
         Args:
             date: Date string in YYYY-MM-DD format
@@ -43,7 +42,7 @@ class InfoQAdapter(NewsletterAdapter):
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
         target_date_str = target_date.strftime("%Y-%m-%d")
 
-        logger.info(f"[infoq_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"[bytebytego_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
             response = requests.get(self.feed_url, timeout=10)
@@ -51,7 +50,7 @@ class InfoQAdapter(NewsletterAdapter):
 
             feed = feedparser.parse(response.content)
 
-            logger.info(f"[infoq_adapter.scrape_date] Fetched {len(feed.entries)} total entries from feed")
+            logger.info(f"[bytebytego_adapter.scrape_date] Fetched {len(feed.entries)} total entries from feed")
 
             for entry in feed.entries:
                 if not entry.get('published_parsed'):
@@ -76,17 +75,17 @@ class InfoQAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            logger.info(f"[infoq_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}")
+            logger.info(f"[bytebytego_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}")
 
         except Exception as e:
-            logger.error(f"[infoq_adapter.scrape_date] Error fetching feed: {e}", exc_info=True)
+            logger.error(f"[bytebytego_adapter.scrape_date] Error fetching feed: {e}", exc_info=True)
 
         issues = []
         if articles:
             issues.append({
                 'date': target_date_str,
                 'source_id': self.config.source_id,
-                'category': self.config.category_display_names.get('articles', 'InfoQ'),
+                'category': self.config.category_display_names.get('newsletter', 'ByteByteGo'),
                 'title': None,
                 'subtitle': None
             })
@@ -96,7 +95,7 @@ class InfoQAdapter(NewsletterAdapter):
     def _strip_html(self, html: str) -> str:
         """Strip HTML tags from text.
 
-        >>> adapter = InfoQAdapter(None)
+        >>> adapter = ByteByteGoAdapter(None)
         >>> adapter._strip_html("<p>Hello <b>world</b></p>")
         'Hello world'
         """
@@ -122,7 +121,7 @@ class InfoQAdapter(NewsletterAdapter):
         if not link:
             return None
 
-        summary = entry.get('summary', entry.get('description', ''))
+        summary = entry.get('summary', '')
         summary_text = self._strip_html(summary) if summary else ''
 
         if summary_text:
@@ -131,20 +130,12 @@ class InfoQAdapter(NewsletterAdapter):
 
         article_meta = summary_text if summary_text else ""
 
-        tags = [tag.get('term', '') for tag in entry.get('tags', [])]
-        if tags:
-            tags_str = ', '.join(tags[:3])
-            if article_meta:
-                article_meta = f"{article_meta} | Tags: {tags_str}"
-            else:
-                article_meta = f"Tags: {tags_str}"
-
         return {
             "title": title,
             "article_meta": article_meta,
             "url": link,
-            "category": self.config.category_display_names.get('articles', 'InfoQ'),
+            "category": self.config.category_display_names.get('newsletter', 'ByteByteGo'),
             "date": date,
-            "newsletter_type": "articles",
+            "newsletter_type": "newsletter",
             "removed": False,
         }
