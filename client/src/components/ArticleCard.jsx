@@ -107,6 +107,7 @@ function ArticleCard({ article, index }) {
               ${tldr.expanded && tldr.html ? 'max-h-[1000px] opacity-100 mt-4 border-t border-slate-100 pt-5' : 'max-h-0 opacity-0 -mt-3'}
             `}
          >
+            {/* -mt-3 cancels parent's gap-3 to eliminate spacing when collapsed */}
             {tldr.status === 'error' ? (
                <div className="text-xs text-red-500 bg-red-50 p-3 rounded-lg">{tldr.errorMessage || 'Failed to load summary.'}</div>
             ) : (
