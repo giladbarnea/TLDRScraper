@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 
 from newsletter_config import NEWSLETTER_CONFIGS
-from tldr_adapter import TLDRAdapter
+from adapters.tldr_adapter import TLDRAdapter
 from newsletter_merger import build_markdown_output
 
 import util
@@ -27,67 +27,67 @@ def _get_adapter_for_source(config):
     if config.source_id.startswith("tldr_"):
         return TLDRAdapter(config)
     elif config.source_id == "hackernews":
-        from hackernews_adapter import HackerNewsAdapter
+        from adapters.hackernews_adapter import HackerNewsAdapter
         return HackerNewsAdapter(config)
     elif config.source_id == "xeiaso":
-        from xeiaso_adapter import XeIasoAdapter
+        from adapters.xeiaso_adapter import XeIasoAdapter
         return XeIasoAdapter(config)
     elif config.source_id == "simon_willison":
-        from simon_willison_adapter import SimonWillisonAdapter
+        from adapters.simon_willison_adapter import SimonWillisonAdapter
         return SimonWillisonAdapter(config)
     elif config.source_id == "danluu":
-        from danluu_adapter import DanLuuAdapter
+        from adapters.danluu_adapter import DanLuuAdapter
         return DanLuuAdapter(config)
     elif config.source_id == "will_larson":
-        from will_larson_adapter import WillLarsonAdapter
+        from adapters.will_larson_adapter import WillLarsonAdapter
         return WillLarsonAdapter(config)
     elif config.source_id == "lenny_newsletter":
-        from lenny_newsletter_adapter import LennyNewsletterAdapter
+        from adapters.lenny_newsletter_adapter import LennyNewsletterAdapter
         return LennyNewsletterAdapter(config)
     elif config.source_id == "pragmatic_engineer":
-        from pragmatic_engineer_adapter import PragmaticEngineerAdapter
+        from adapters.pragmatic_engineer_adapter import PragmaticEngineerAdapter
         return PragmaticEngineerAdapter(config)
     elif config.source_id == "cloudflare":
-        from cloudflare_adapter import CloudflareAdapter
+        from adapters.cloudflare_adapter import CloudflareAdapter
         return CloudflareAdapter(config)
     elif config.source_id == "jessitron":
-        from jessitron_adapter import JessitronAdapter
+        from adapters.jessitron_adapter import JessitronAdapter
         return JessitronAdapter(config)
     elif config.source_id == "stripe_engineering":
-        from stripe_engineering_adapter import StripeEngineeringAdapter
+        from adapters.stripe_engineering_adapter import StripeEngineeringAdapter
         return StripeEngineeringAdapter(config)
     elif config.source_id == "deepmind":
-        from deepmind_adapter import DeepMindAdapter
+        from adapters.deepmind_adapter import DeepMindAdapter
         return DeepMindAdapter(config)
     elif config.source_id == "pointer":
-        from pointer_adapter import PointerAdapter
+        from adapters.pointer_adapter import PointerAdapter
         return PointerAdapter(config)
     elif config.source_id == "softwareleadweekly":
-        from softwareleadweekly_adapter import SoftwareLeadWeeklyAdapter
+        from adapters.softwareleadweekly_adapter import SoftwareLeadWeeklyAdapter
         return SoftwareLeadWeeklyAdapter(config)
     elif config.source_id == "anthropic":
-        from anthropic_adapter import AnthropicAdapter
+        from adapters.anthropic_adapter import AnthropicAdapter
         return AnthropicAdapter(config)
     elif config.source_id == "netflix":
-        from netflix_adapter import NetflixAdapter
+        from adapters.netflix_adapter import NetflixAdapter
         return NetflixAdapter(config)
     elif config.source_id == "hillel_wayne":
-        from hillel_wayne_adapter import HillelWayneAdapter
+        from adapters.hillel_wayne_adapter import HillelWayneAdapter
         return HillelWayneAdapter(config)
     elif config.source_id == "infoq":
-        from infoq_adapter import InfoQAdapter
+        from adapters.infoq_adapter import InfoQAdapter
         return InfoQAdapter(config)
     elif config.source_id == "bytebytego":
-        from bytebytego_adapter import ByteByteGoAdapter
+        from adapters.bytebytego_adapter import ByteByteGoAdapter
         return ByteByteGoAdapter(config)
     elif config.source_id == "martin_fowler":
-        from martin_fowler_adapter import MartinFowlerAdapter
+        from adapters.martin_fowler_adapter import MartinFowlerAdapter
         return MartinFowlerAdapter(config)
     elif config.source_id == "react_status":
-        from react_status_adapter import ReactStatusAdapter
+        from adapters.react_status_adapter import ReactStatusAdapter
         return ReactStatusAdapter(config)
     elif config.source_id == "node_weekly":
-        from node_weekly_adapter import NodeWeeklyAdapter
+        from adapters.node_weekly_adapter import NodeWeeklyAdapter
         return NodeWeeklyAdapter(config)
     else:
         raise ValueError(f"No adapter registered for source: {config.source_id}")

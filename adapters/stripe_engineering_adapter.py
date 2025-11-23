@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 from firecrawl import FirecrawlApp
 
-from newsletter_adapter import NewsletterAdapter
+from adapters.newsletter_adapter import NewsletterAdapter
 import util
 
 

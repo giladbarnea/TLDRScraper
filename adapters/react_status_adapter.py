@@ -17,7 +17,7 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 
-from newsletter_adapter import NewsletterAdapter
+from adapters.newsletter_adapter import NewsletterAdapter
 import util
 
 

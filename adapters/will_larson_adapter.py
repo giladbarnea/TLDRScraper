@@ -12,7 +12,7 @@ from email.utils import parsedate_to_datetime
 
 import requests
 
-from newsletter_adapter import NewsletterAdapter
+from adapters.newsletter_adapter import NewsletterAdapter
 import util
 
 
