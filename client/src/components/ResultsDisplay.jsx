@@ -4,18 +4,36 @@ import ArticleList from './ArticleList'
 import './ResultsDisplay.css'
 
 function ResultsDisplay({ results }) {
-  const statsLines = [
-    `📊 Stats: ${results.stats.total_articles} articles, ${results.stats.unique_urls} unique URLs`,
-    `📅 Dates: ${results.stats.dates_with_content}/${results.stats.dates_processed} with content`,
-    results.source && `Source: ${results.source}`
-  ].filter(Boolean)
-
   return (
     <div id="result" className="result success">
-      <div className="stats">
-        {statsLines.map((line, index) => (
-          <div key={index}>{line}</div>
-        ))}
+      {/* Prominent Stats Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-soft border border-slate-100 mb-8">
+        <div className="grid grid-cols-3 gap-6">
+          <div>
+            <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+              Articles
+            </div>
+            <div className="text-2xl font-bold text-slate-900 mt-1">
+              {results.stats.total_articles}
+            </div>
+          </div>
+          <div>
+            <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+              Unique URLs
+            </div>
+            <div className="text-2xl font-bold text-slate-900 mt-1">
+              {results.stats.unique_urls}
+            </div>
+          </div>
+          <div>
+            <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+              Dates
+            </div>
+            <div className="text-2xl font-bold text-slate-900 mt-1">
+              {results.stats.dates_with_content}/{results.stats.dates_processed}
+            </div>
+          </div>
+        </div>
       </div>
 
       <main id="write">

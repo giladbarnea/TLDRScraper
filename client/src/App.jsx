@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Download } from 'lucide-react'
 import CacheToggle from './components/CacheToggle'
 import ResultsDisplay from './components/ResultsDisplay'
 import ScrapeForm from './components/ScrapeForm'
@@ -74,39 +75,24 @@ function App() {
     <div className="container">
       <h1>Newsletter Aggregator</h1>
 
-      <div className="context-buttons">
-        <button
-          onClick={() => handleContextCopy('server')}
-          disabled={copying === 'server'}
-          className="context-btn"
-        >
-          ⬇ {copying === 'server' ? 'Downloaded!' : 'server'}
-        </button>
-        <button
-          onClick={() => handleContextCopy('client')}
-          disabled={copying === 'client'}
-          className="context-btn"
-        >
-          ⬇ {copying === 'client' ? 'Downloaded!' : 'client'}
-        </button>
-        <button
-          onClick={() => handleContextCopy('docs')}
-          disabled={copying === 'docs'}
-          className="context-btn"
-        >
-          ⬇ {copying === 'docs' ? 'Downloaded!' : 'docs'}
-        </button>
-        <button
-          onClick={() => handleContextCopy('all')}
-          disabled={copying === 'all'}
-          className="context-btn"
-        >
-          ⬇ {copying === 'all' ? 'Downloaded!' : 'all'}
-        </button>
+      <div className="flex gap-2 mb-4">
+        {['server', 'client', 'docs', 'all'].map(type => (
+          <button
+            key={type}
+            onClick={() => handleContextCopy(type)}
+            disabled={copying === type}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
+                       bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download size={16} />
+            {copying === type ? 'Downloaded!' : type}
+          </button>
+        ))}
       </div>
 
       {downloadError && (
-        <div className="copy-error">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
           {downloadError}
         </div>
       )}
