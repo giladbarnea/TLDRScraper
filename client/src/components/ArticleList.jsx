@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import ArticleCard from './ArticleCard'
-import './ArticleList.css'
 
 function ArticleList({ articles }) {
   const sortedArticles = useMemo(() => {
@@ -52,11 +51,13 @@ function ArticleList({ articles }) {
   }, [sortedArticles])
 
   return (
-    <div className="article-list">
+    <div className="space-y-4">
       {sectionsWithArticles.map((item) => (
         item.type === 'section' ? (
-          <div key={item.key} className="section-title">
-            {item.label}
+          <div key={item.key} className="pt-6 pb-2">
+            <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400 ml-1">
+              {item.label}
+            </h4>
           </div>
         ) : (
           <ArticleCard

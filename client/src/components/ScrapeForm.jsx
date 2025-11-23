@@ -1,7 +1,7 @@
-import { useActionState, useEffect, useState } from 'react'
-import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
+import { useActionState, useState, useEffect } from 'react'
 import { scrapeNewsletters } from '../lib/scraper'
-import './ScrapeForm.css'
+import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
+import { ArrowRight, Loader2, AlertCircle } from 'lucide-react'
 
 function ScrapeForm({ onResults }) {
   const [startDate, setStartDate] = useState('')
@@ -30,17 +30,22 @@ function ScrapeForm({ onResults }) {
         return { error: 'Start date must be before or equal to end date.' }
       }
       if (daysDiff >= 31) {
-        return { error: 'Date range cannot exceed 31 days. Please select a smaller range.' }
+        return { error: 'Date range cannot exceed 31 days.' }
       }
 
-      setProgress(50)
+      setProgress(10)
+      const interval = setInterval(() => {
+         setProgress(prev => Math.min(prev + 5, 90))
+      }, 500)
 
       try {
         const results = await scrapeNewsletters(start, end, cacheEnabled)
+        clearInterval(interval)
         setProgress(100)
         onResults(results)
         return { success: true }
       } catch (err) {
+        clearInterval(interval)
         setProgress(0)
         return { error: err.message || 'Network error' }
       }
@@ -48,82 +53,81 @@ function ScrapeForm({ onResults }) {
     { success: false }
   )
 
-  const validationError = (() => {
-    if (!startDate || !endDate) return null
-
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
-
-    if (start > end) {
-      return 'Start date must be before or equal to end date.'
-    }
-    if (daysDiff >= 31) {
-      return 'Date range cannot exceed 31 days. Please select a smaller range.'
-    }
-    return null
-  })()
-
   return (
-    <div>
-      <form id="scrapeForm" action={formAction}>
-        <div className="form-group">
-          <label htmlFor="start_date">Start Date:</label>
-          <input
-            id="start_date"
-            name="start_date"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            required
-          />
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+         <h3 className="font-display font-bold text-lg text-slate-900">Sync Settings</h3>
+         <div className="text-xs font-medium text-brand-600 bg-brand-50 px-3 py-1 rounded-full">
+            {cacheEnabled ? 'Cache Active' : 'Live Mode'}
+         </div>
+      </div>
 
-        <div className="form-group">
-          <label htmlFor="end_date">End Date:</label>
-          <input
-            id="end_date"
-            name="end_date"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            required
-          />
-        </div>
-
-        <button
-          id="scrapeBtn"
-          type="submit"
-          disabled={isPending || !!validationError}
-          data-testid="scrape-btn"
-        >
-          {isPending ? 'Scraping...' : 'Scrape Newsletters'}
-        </button>
-      </form>
-
-      {isPending && (
-        <div className="progress">
-          <div id="progress-text">
-            Scraping newsletters... This may take several minutes.
+      <form action={formAction} className="space-y-5">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label htmlFor="start_date" className="block text-xs font-bold uppercase tracking-wider text-slate-500">Start Date</label>
+            <input
+              id="start_date"
+              name="start_date"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
+              className="w-full bg-slate-50 border-0 rounded-lg px-4 py-3 text-slate-900 font-medium focus:ring-2 focus:ring-brand-500 transition-shadow"
+            />
           </div>
-          <div className="progress-bar">
-            <div
-              className="progress-fill"
-              style={{ width: `${progress}%` }}
+
+          <div className="space-y-2">
+            <label htmlFor="end_date" className="block text-xs font-bold uppercase tracking-wider text-slate-500">End Date</label>
+            <input
+              id="end_date"
+              name="end_date"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              required
+              className="w-full bg-slate-50 border-0 rounded-lg px-4 py-3 text-slate-900 font-medium focus:ring-2 focus:ring-brand-500 transition-shadow"
             />
           </div>
         </div>
-      )}
 
-      {validationError && (
-        <div className="error" role="alert">
-          {validationError}
-        </div>
-      )}
+        <button
+          type="submit"
+          disabled={isPending}
+          className={`
+             w-full py-4 rounded-xl font-bold tracking-wide text-sm flex items-center justify-center gap-2 transition-all duration-200
+             ${isPending
+               ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+               : 'bg-slate-900 text-white hover:bg-brand-600 hover:shadow-lg hover:shadow-brand-500/30'}
+          `}
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="animate-spin" size={18} />
+              <span>Syncing... {progress}%</span>
+            </>
+          ) : (
+            <>
+              <span>Update Feed</span>
+              <ArrowRight size={18} />
+            </>
+          )}
+        </button>
+
+        {isPending && (
+           <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div
+                 className="h-full bg-brand-500 transition-all duration-500 ease-out"
+                 style={{ width: `${progress}%` }}
+              />
+           </div>
+        )}
+      </form>
 
       {state.error && (
-        <div className="error" role="alert">
-          Error: {state.error}
+        <div className="flex items-start gap-3 p-4 bg-red-50 text-red-600 rounded-xl text-sm">
+           <AlertCircle size={18} className="shrink-0 mt-0.5" />
+           <p>{state.error}</p>
         </div>
       )}
     </div>
