@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
-import { loadFromCache } from './lib/scraper'
+import { Calendar, RefreshCw, Settings, Zap } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import Feed from './components/Feed'
 import ScrapeForm from './components/ScrapeForm'
-import { RefreshCw, Zap, Calendar, Settings } from 'lucide-react'
+import { loadFromCache } from './lib/scraper'
 
 function App() {
   const [results, setResults] = useState(null)

@@ -1,7 +1,7 @@
-import { useActionState, useState, useEffect } from 'react'
-import { scrapeNewsletters } from '../lib/scraper'
+import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react'
+import { useActionState, useEffect, useState } from 'react'
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
-import { ArrowRight, Loader2, AlertCircle } from 'lucide-react'
+import { scrapeNewsletters } from '../lib/scraper'
 
 function ScrapeForm({ onResults }) {
   const [startDate, setStartDate] = useState('')
