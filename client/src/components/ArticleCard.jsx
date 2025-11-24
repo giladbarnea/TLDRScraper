@@ -121,8 +121,8 @@ function ArticleCard({ article, index }) {
          {!isRemoved && (
            <div
               className={`
-                overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
-                ${tldr.expanded && tldr.html ? 'max-h-[1000px] opacity-100 mt-4 border-t border-slate-100 pt-5' : 'max-h-0 opacity-0 -mt-3'}
+                transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
+                ${tldr.expanded && tldr.html ? 'opacity-100 mt-4 border-t border-slate-100 pt-5' : 'max-h-0 opacity-0 overflow-hidden -mt-3'}
               `}
            >
               {/* -mt-3 cancels parent's gap-3 to eliminate spacing when collapsed */}
