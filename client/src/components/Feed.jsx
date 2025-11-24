@@ -31,7 +31,7 @@ function DailyGroup({ payload }) {
 
   return (
     <section className="animate-slide-up">
-      <div className="sticky top-20 z-30 bg-slate-50/95 backdrop-blur-sm py-4 mb-6 border-b border-slate-200/60">
+      <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm py-4 mb-6 border-b border-slate-200/60">
         <div className="flex items-baseline gap-3">
           <h2 className="font-display text-2xl font-bold text-slate-900 tracking-tight">
             {isToday ? 'Today' : niceDate}
