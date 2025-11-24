@@ -7,6 +7,22 @@ This document catalogs recurring pitfalls in various topics, including managing 
 
 ---
 
+#### 2025-11-24: Removed article repositioning on TLDR collapse
+
+session-id: 01UFCK16ngqZGTQNBXCogUbU
+
+**Feature removed**: Previously, when a user collapsed a TLDR, the article would be marked as `tldrHidden` and repositioned to a lower position in the list (below read articles, above removed articles). This "deprioritization" behavior has been removed.
+
+**Current behavior**: Articles now maintain their position when TLDRs are collapsed. The `tldrHidden` property is still tracked internally but no longer affects article sorting.
+
+**Changes made**:
+- `ArticleList.jsx:7-12` - Removed `tldrHidden` from sorting logic (3-state system now: unread→read→removed)
+- `ARCHITECTURE.md:154,167,868-881` - Updated documentation to remove references to deprioritization behavior
+
+**Historical context**: The deprioritization feature was originally implemented to help users move articles they'd finished reading to the bottom of their feed. However, this automatic repositioning was confusing and not desired. The feature existed from 2025-10-31 through 2025-11-24.
+
+---
+
 #### 2025-11-17: Child component bypassing state management layer causes infinite API hammering
 
 session-id: 892fa714-0087-4c5a-9930-cffdfc5f5359

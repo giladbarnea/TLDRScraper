@@ -151,7 +151,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 **Available Interactions:**
 - Click "TLDR" → Fetch TLDR from API
 - TLDR displayed inline below article
-- Click again → Collapse TLDR (marks as tldrHidden; deprioritized)
+- Click again → Collapse TLDR
 - Cached TLDRs show "Available" (green)
 
 ### 5. Results Display with Feed Component
@@ -164,7 +164,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
   - Sticky date header with "Syncing..." indicator during updates
   - Articles grouped by: Date → Issue/Category → Section
   - "Other" section for uncategorized articles
-- Articles sorted by state: Unread → Read → TLDR-hidden → Removed
+- Articles sorted by state: Unread → Read → Removed
 - Visual state indicators (bold = unread, muted = read, strikethrough = removed)
 - Stats display (article count, unique URLs, dates processed)
 - Collapsible debug logs
@@ -865,10 +865,10 @@ sequenceDiagram
 ### 1. Article Sorting Algorithm (ArticleList.jsx)
 
 ```javascript
-// Sort articles by state (unread → read → tldrHidden → removed), then by original order
+// Sort articles by state (unread → read → removed), then by original order
 function sortArticles(articles) {
   return articles.sort((a, b) => {
-    const stateA = getArticleState(a)  // 0=unread, 1=read, 2=tldrHidden, 3=removed
+    const stateA = getArticleState(a)  // 0=unread, 1=read, 2=removed
     const stateB = getArticleState(b)
 
     // Primary sort: by state

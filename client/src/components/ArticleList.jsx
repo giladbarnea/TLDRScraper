@@ -4,12 +4,10 @@ import ArticleCard from './ArticleCard'
 function ArticleList({ articles }) {
   const sortedArticles = useMemo(() => {
     return [...articles].sort((a, b) => {
-      const stateA = a.removed ? 3
-        : a.tldrHidden ? 2
+      const stateA = a.removed ? 2
         : a.read?.isRead ? 1
         : 0
-      const stateB = b.removed ? 3
-        : b.tldrHidden ? 2
+      const stateB = b.removed ? 2
         : b.read?.isRead ? 1
         : 0
 
