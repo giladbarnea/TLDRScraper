@@ -37,7 +37,7 @@ cd ~/dev/TLDRScraper && node /tmp/screenshot.js && ls -lh /tmp/tldr_local.png" -
 curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/shell -d "cd ~/dev/TLDRScraper && git checkout -b screenshots-$(date +%s)" -s
 
 # Copy, commit, and push
-curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/ -d "cd ~/dev/TLDRScraper && cp /tmp/tldr_local.png ./screenshot.png && git commit -am 'Add screenshot' && git push --set-upstream origin HEAD 2>&1 | grep -E 'screenshots-|branch'" -s
+curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/shell/ -d "cd ~/dev/TLDRScraper && cp /tmp/tldr_local.png ./screenshot.png && git commit -am 'Add screenshot' && git push --set-upstream origin HEAD 2>&1 | grep -E 'screenshots-|branch'" -s
 ```
 
 Note the branch name from output (e.g., `screenshots-1763449916`)
@@ -55,10 +55,10 @@ file /tmp/tldr_screenshot.png  # Verify it's a valid PNG
 **Remote machine:**
 ```bash
 # Remove temp files
-curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/ -d "rm /tmp/tldr_local.png /tmp/screenshot.js" -s
+curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/shell/ -d "rm /tmp/tldr_local.png /tmp/screenshot.js" -s
 
 # Delete local git branch
-curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/ -d "cd ~/dev/TLDRScraper && git checkout - && git branch -D screenshots-1763449916" -s
+curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/shell/ -d "cd ~/dev/TLDRScraper && git checkout - && git branch -D screenshots-1763449916" -s
 ```
 
 **Remote GitHub:**
