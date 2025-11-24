@@ -1,3 +1,6 @@
+---
+last_updated: 2025-11-24 07:01, b718764
+---
 # Playwright in Sandboxed Environment: What Works and What Doesn't
 
 ## Testing Environment
