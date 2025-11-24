@@ -8,7 +8,10 @@ function ArticleCard({ article, index }) {
     article.issueDate,
     article.url
   )
+  
+  // 1. Destructure isAvailable from the hook
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
+  const { isAvailable } = tldr
 
   const fullUrl = useMemo(() => {
     const url = article.url
@@ -98,10 +101,17 @@ function ArticleCard({ article, index }) {
                 onClick={handleExpand}
                 disabled={tldr.loading}
                 className={`
-                  flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-semibold tracking-wide transition-all duration-200
-                  ${tldr.expanded
-                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    : 'bg-slate-50 text-slate-600 hover:bg-brand-50 hover:text-brand-600'}
+                  flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-semibold tracking-wide transition-all duration-300
+                  ${tldr.loading 
+                    ? 'bg-slate-50 text-slate-400' 
+                    : tldr.expanded
+                        ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        : isAvailable
+                            /* STATE: Available (Magic Tint) - Purple/Indigo tint with a subtle ring to indicate value is ready */
+                            ? 'bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-200/50 hover:bg-indigo-100'
+                            /* STATE: Default (Invite) - Clean slate that turns brand-blue on hover to invite action */
+                            : 'bg-slate-50 text-slate-500 hover:bg-brand-50 hover:text-brand-600'
+                  }
                 `}
               >
                  {tldr.loading ? <Loader2 size={12} className="animate-spin" /> :
