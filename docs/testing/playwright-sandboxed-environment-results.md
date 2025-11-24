@@ -199,3 +199,79 @@ I successfully used Playwright as a **JavaScript execution and inspection tool**
 ## Success Rate: 20/22 (91%)
 
 The vast majority of Playwright features work perfectly in sandboxed environments when used correctly. The key is treating it as a JavaScript execution and monitoring tool rather than relying on complex pointer interactions or video features.
+
+---
+
+# Additional Implementation Notes (Session 2025-11-24)
+
+## ES Module vs CommonJS Compatibility
+
+**Issue:** Projects with `"type": "module"` in package.json cannot use `require()` syntax.
+
+**Error:** `ReferenceError: require is not defined in ES module scope`
+
+**Solution:** Use `.cjs` file extension for CommonJS scripts.
+
+```bash
+# ❌ Fails
+cd ~/dev/TLDRScraper && node screenshot.js
+
+# ✅ Works
+cd ~/dev/TLDRScraper && mv screenshot.js screenshot.cjs && node screenshot.cjs
+```
+
+---
+
+## Correct Viewport Method Name
+
+**Issue:** `page.setViewport()` does not exist in Playwright.
+
+**Error:** `TypeError: page.setViewport is not a function`
+
+**Solution:** Use `page.setViewportSize()` instead.
+
+```javascript
+// ❌ Wrong
+await page.setViewport({width: 1920, height: 1080});
+
+// ✅ Correct
+await page.setViewportSize({width: 1920, height: 1080});
+```
+
+---
+
+## Node Module Resolution from Temp Directories
+
+**Issue:** Running scripts from `/tmp/` fails to find `playwright` module even when `cd` into project directory.
+
+**Explanation:** Node.js resolves `require('playwright')` relative to the script's location, not the current working directory.
+
+**Solution:** Place script file in project directory where `node_modules` exists.
+
+```bash
+# ❌ Fails - Node looks for /tmp/node_modules/
+cd ~/dev/TLDRScraper && node /tmp/screenshot.cjs
+
+# ✅ Works - Node looks for ~/dev/TLDRScraper/node_modules/
+cd ~/dev/TLDRScraper && node screenshot.cjs
+```
+
+---
+
+## ngrok Timeout Behavior with Long-Running Commands
+
+**Issue:** ERR_NGROK_3004 timeout errors occur for commands taking >30-40 seconds, but commands complete successfully in the background.
+
+**Workaround:** After timeout, check if output files were created.
+
+```bash
+# Command times out but completes in background
+curl -X POST https://example.ngrok-free.dev/shell/ -d "node screenshot.cjs" -s
+# Returns: ERR_NGROK_3004
+
+# Verify it actually completed
+curl -X POST https://example.ngrok-free.dev/shell/ -d "ls -lh /tmp/tldr_local.png" -s
+# Returns: -rw-r--r--@ 1 user wheel 14K Nov 24 08:57 /tmp/tldr_local.png
+```
+
+**Note:** This is a ngrok free tier limitation (~40 second HTTP timeout), not a Playwright issue.
