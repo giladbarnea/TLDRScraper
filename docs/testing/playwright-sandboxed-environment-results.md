@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-11-24 07:01, b718764
+last_updated: 2025-11-24 13:00, 336397d
 ---
 # Playwright in Sandboxed Environment: What Works and What Doesn't
 
