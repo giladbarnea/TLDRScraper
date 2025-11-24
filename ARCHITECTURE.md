@@ -164,7 +164,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
   - Sticky date header with "Syncing..." indicator during updates
   - Articles grouped by: Date → Issue/Category → Section
   - "Other" section for uncategorized articles
-- Articles sorted by state: Unread → Read → Removed
+- Articles sorted: Removed articles at bottom, all others maintain original order
 - Visual state indicators (bold = unread, muted = read, strikethrough = removed)
 - Stats display (article count, unique URLs, dates processed)
 - Collapsible debug logs
@@ -865,16 +865,16 @@ sequenceDiagram
 ### 1. Article Sorting Algorithm (ArticleList.jsx)
 
 ```javascript
-// Sort articles by state (unread → read → removed), then by original order
+// Sort articles: removed at bottom, all others by original order
 function sortArticles(articles) {
   return articles.sort((a, b) => {
-    const stateA = getArticleState(a)  // 0=unread, 1=read, 2=removed
-    const stateB = getArticleState(b)
+    const stateA = a.removed ? 1 : 0
+    const stateB = b.removed ? 1 : 0
 
-    // Primary sort: by state
+    // Primary sort: removed articles to bottom
     if (stateA !== stateB) return stateA - stateB
 
-    // Secondary sort: preserve original order within same state
+    // Secondary sort: preserve original order
     return (a.originalOrder ?? 0) - (b.originalOrder ?? 0)
   })
 }
