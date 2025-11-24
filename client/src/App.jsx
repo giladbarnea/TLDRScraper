@@ -27,6 +27,8 @@ function App() {
       .then(cached => {
         if (cached) {
           setResults(cached)
+        } else {
+          setResults({ payloads: [], stats: null })
         }
       })
       .catch(err => {
@@ -110,8 +112,15 @@ function App() {
                 <div className="h-4 w-32 bg-slate-200 rounded mb-2"></div>
                 <div className="h-3 w-24 bg-slate-100 rounded"></div>
              </div>
+          ) : (results.payloads && results.payloads.length > 0) ? (
+            <Feed payloads={results.payloads} />
           ) : (
-            <Feed payloads={results.payloads || []} />
+            <div className="flex flex-col items-center justify-center py-32 text-slate-400">
+               <p>No newsletters found for this period.</p>
+               <button onClick={() => setShowSettings(true)} className="mt-4 text-brand-600 font-medium hover:underline">
+                 Open settings to scrape
+               </button>
+            </div>
           )}
         </main>
 
