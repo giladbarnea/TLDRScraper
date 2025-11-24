@@ -5,6 +5,29 @@ last_updated: 2025-11-24 06:20, 2ad4969
 
 **Setup:** User has ngrok endpoint at `https://josue-ungreedy-unphysically.ngrok-free.dev/`
 
+## Remote Shell API Basics
+
+**Check API documentation:**
+```bash
+curl https://josue-ungreedy-unphysically.ngrok-free.dev/help
+```
+
+**Stateful sessions (use for most tasks):**
+Commands that need persistent state (cd, export) or take >5 seconds use sessions:
+```bash
+SID=$(curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/session -s)
+curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/session/$SID -d "cd ~/dev/TLDRScraper" -s
+curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/session/$SID -d "pwd" -s  # Still in same dir
+```
+
+**Stateless (quick commands only):**
+For simple commands (<5 sec) without state:
+```bash
+curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/shell -d "echo test" -s
+```
+
+**Note:** Long-running commands via stateless endpoint cause ERR_NGROK_3004 timeout. Always use sessions for git, uv, node, etc.
+
 ## Steps
 
 1. **Verify Playwright is installed locally:**
