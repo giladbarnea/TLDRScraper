@@ -49,7 +49,7 @@ function App() {
         {/* Header */}
         <header
           className={`
-            sticky top-0 z-40 px-6 py-6 transition-all duration-300 ease-out
+            relative z-40 px-6 py-6 transition-all duration-300 ease-out
             ${scrolled ? 'bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-sm' : 'bg-transparent'}
           `}
         >
