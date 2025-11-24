@@ -405,8 +405,7 @@ function main() {
   local ensure_uv_success=true uv_sync_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
-  uv run --with=playwright playwright install chromium 1>/dev/null 2>&1 # Install browser
-  
+
   # if [[ ! "${GITHUB_ACTIONS:-}" ]]; then
   #   ensure_gh --quiet="$quiet" || ensure_gh_success=false
   #   ensure_wrap_gh
