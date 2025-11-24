@@ -23,6 +23,27 @@ session-id: 01UFCK16ngqZGTQNBXCogUbU
 
 ---
 
+#### 2025-11-24: Removed article repositioning on read/unread state changes
+
+session-id: 01UFCK16ngqZGTQNBXCogUbU
+
+**Feature removed**: Previously, articles were repositioned based on read/unread state. The sorting system used a 3-state priority: unread (top) → read (middle) → removed (bottom). When a user marked an article as read (by clicking the title or expanding TLDR), the article would move from the top section to the middle section.
+
+**Current behavior**: Articles maintain their original position when marked as read/unread. Only removed articles are repositioned (to bottom). The `read` property is still tracked and displayed visually (bold for unread, muted for read) but no longer affects article sorting.
+
+**Changes made**:
+- `ArticleList.jsx:7-8` - Simplified sorting to 2-state system (removed: 1, everything else: 0)
+- `ARCHITECTURE.md:167,868-881` - Updated documentation to reflect new sorting behavior
+
+**Rationale**: Automatic repositioning when reading articles was unexpected and disorienting. Users prefer articles to stay in their original order as they read through them. Removed articles still go to bottom as this is an explicit "hide this" action.
+
+**State transitions affected**:
+- Mark as read (click title, expand TLDR) - NO LONGER repositions
+- Toggle read/unread - NO LONGER repositions
+- Remove/restore - STILL repositions (moved to bottom / restored to original position)
+
+---
+
 #### 2025-11-17: Child component bypassing state management layer causes infinite API hammering
 
 session-id: 892fa714-0087-4c5a-9930-cffdfc5f5359
