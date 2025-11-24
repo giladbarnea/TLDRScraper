@@ -1,4 +1,4 @@
-import { Bot, CheckCircle, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
+import { CheckCircle, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
@@ -130,10 +130,6 @@ function ArticleCard({ article, index }) {
                  <div className="text-xs text-red-500 bg-red-50 p-3 rounded-lg">{tldr.errorMessage || 'Failed to load summary.'}</div>
               ) : (
                  <div className="animate-fade-in">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Bot size={16} className="text-brand-500" />
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Gemini Insight</span>
-                    </div>
                     <div
                       className="prose prose-sm prose-slate max-w-none font-sans text-slate-600 leading-relaxed text-[15px] prose-p:my-2"
                       dangerouslySetInnerHTML={{ __html: tldr.html }}
