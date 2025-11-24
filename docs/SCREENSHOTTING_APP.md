@@ -9,12 +9,12 @@ last_updated: 2025-11-18 10:35, af7d9f0
 
 1. **Verify Playwright is installed locally:**
 ```bash
-curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/ -d "ls ~/Library/Caches/ms-playwright"
+curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/shell -d "ls ~/Library/Caches/ms-playwright"
 ```
 
 2. **Create and run Playwright script via heredoc:**
 ```bash
-curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/ -d "cat > /tmp/screenshot.js << 'EOF'
+curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/shell -d "cat > /tmp/screenshot.js << 'EOF'
 const {chromium} = require('playwright');
 (async () => {
   const browser = await chromium.launch({headless: true});
@@ -34,7 +34,7 @@ cd ~/dev/TLDRScraper && node /tmp/screenshot.js && ls -lh /tmp/tldr_local.png" -
 3. **Transfer screenshot via Git:**
 ```bash
 # Create temporary branch
-curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/ -d "cd ~/dev/TLDRScraper && git checkout -b screenshots-$(date +%s)" -s
+curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/shell -d "cd ~/dev/TLDRScraper && git checkout -b screenshots-$(date +%s)" -s
 
 # Copy, commit, and push
 curl -X POST https://josue-ungreedy-unphysically.ngrok-free.dev/ -d "cd ~/dev/TLDRScraper && cp /tmp/tldr_local.png ./screenshot.png && git commit -am 'Add screenshot' && git push --set-upstream origin HEAD 2>&1 | grep -E 'screenshots-|branch'" -s
