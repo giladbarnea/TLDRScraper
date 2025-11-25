@@ -1,5 +1,4 @@
 ---
-last-updated: 2025-11-14 14:33, e0594d7
 last_updated: 2025-11-24 19:04, c120e94
 ---
 # TLDRScraper Architecture Documentation
