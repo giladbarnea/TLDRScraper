@@ -996,7 +996,7 @@ CREATE TABLE daily_cache (
 
 ### Storage Key Patterns
 
-- **Settings**: `cache:*` (e.g., `cache:enabled`)
+- **Settings**: `cache:*` or `ui:*` (e.g., `cache:enabled`, `ui:foldedContainers`)
 - **Daily Payloads**: `newsletters:scrapes:{date}` (e.g., `newsletters:scrapes:2024-01-01`)
 - Keys are used by `useSupabaseStorage` hook to route to correct endpoint
 
@@ -1139,10 +1139,12 @@ TLDRScraper/
 │   │   │   ├── ArticleList.jsx
 │   │   │   ├── CacheToggle.jsx
 │   │   │   ├── Feed.jsx
+│   │   │   ├── FoldableContainer.jsx
 │   │   │   ├── ResultsDisplay.jsx
 │   │   │   └── ScrapeForm.jsx
 │   │   ├── hooks/            # Custom React hooks
 │   │   │   ├── useArticleState.js
+│   │   │   ├── useFoldState.js
 │   │   │   ├── useSupabaseStorage.js
 │   │   │   └── useSummary.js
 │   │   └── lib/              # Utilities & logic
