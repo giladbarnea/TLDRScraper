@@ -18,7 +18,7 @@ done
 echo "Running biome lint fix for whitelisted rules..."
 npx -y @biomejs/biome lint --write "${biome_args[@]}" .
 echo "Running biome assist fix for whitelisted rules..."
-npx -y @biomejs/biome check --formatter-enabled=false --linter-enabled=false --write
+npx -y @biomejs/biome check --formatter-enabled=false --linter-enabled=false --assist-enabled=true --write
 # Check and report remaining errors
 echo "Running biome check..."
 npx -y @biomejs/biome check . --diagnostic-level=warn

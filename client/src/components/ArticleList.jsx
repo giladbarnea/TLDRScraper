@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import ArticleCard from './ArticleCard'
 
-function ArticleList({ articles }) {
+function ArticleList({ articles, showSectionHeaders = true }) {
   const sortedArticles = useMemo(() => {
     return [...articles].sort((a, b) => {
       const stateA = a.removed ? 1 : 0
@@ -48,11 +48,13 @@ function ArticleList({ articles }) {
     <div className="space-y-4">
       {sectionsWithArticles.map((item) => (
         item.type === 'section' ? (
-          <div key={item.key} className="pt-6 pb-2">
-            <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400 ml-1">
-              {item.label}
-            </h4>
-          </div>
+          showSectionHeaders && (
+            <div key={item.key} className="pt-6 pb-2">
+              <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400 ml-1">
+                {item.label}
+              </h4>
+            </div>
+          )
         ) : (
           <ArticleCard
             key={item.key}
