@@ -1,4 +1,4 @@
-import { CheckCircle, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
+import { Bot, CheckCircle, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
@@ -9,6 +9,7 @@ function ArticleCard({ article, index }) {
     article.url
   )
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
+  const { isAvailable } = tldr
 
   const fullUrl = useMemo(() => {
     const url = article.url
@@ -93,25 +94,32 @@ function ArticleCard({ article, index }) {
 
          {/* Actions */}
          {!isRemoved && (
-           <div className="flex items-center justify-between pt-1">
+           <div className="flex items-center justify-between pt-1 gap-4">
               <button
                 onClick={handleExpand}
                 disabled={tldr.loading}
                 className={`
-                  flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-semibold tracking-wide transition-all duration-200
-                  ${tldr.expanded
-                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    : 'bg-slate-50 text-slate-600 hover:bg-brand-50 hover:text-brand-600'}
+                  flex items-center justify-center w-full gap-2 py-3.5 rounded-full text-sm font-semibold tracking-wide transition-all duration-300
+                  ${tldr.loading
+                    ? 'bg-slate-50 text-slate-400'
+                    : tldr.expanded
+                        ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        : isAvailable
+                            /* STATE: Available (Magic Tint) */
+                            ? 'bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-200/50 hover:bg-indigo-100'
+                            /* STATE: Default (Invite) */
+                            : 'bg-slate-50 text-slate-500 hover:bg-brand-50 hover:text-brand-600'
+                  }
                 `}
               >
-                 {tldr.loading ? <Loader2 size={12} className="animate-spin" /> :
-                  tldr.expanded ? <><Minus size={12} /> Close Summary</> : <><Sparkles size={12} /> TLDR</>
+                 {tldr.loading ? <Loader2 size={16} className="animate-spin" /> :
+                  tldr.expanded ? <><Minus size={16} /> Close Summary</> : <><Sparkles size={16} /> TLDR</>
                  }
               </button>
 
               <div className="flex gap-2">
-                  <button onClick={handleRemove} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
-                     <Trash2 size={14} />
+                  <button onClick={handleRemove} className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
+                     <Trash2 size={18} />
                   </button>
               </div>
            </div>
@@ -130,6 +138,10 @@ function ArticleCard({ article, index }) {
                  <div className="text-xs text-red-500 bg-red-50 p-3 rounded-lg">{tldr.errorMessage || 'Failed to load summary.'}</div>
               ) : (
                  <div className="animate-fade-in">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Bot size={16} className="text-brand-500" />
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Gemini Insight</span>
+                    </div>
                     <div
                       className="prose prose-sm prose-slate max-w-none font-sans text-slate-600 leading-relaxed text-[15px] prose-p:my-2"
                       dangerouslySetInnerHTML={{ __html: tldr.html }}
