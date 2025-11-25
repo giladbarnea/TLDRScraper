@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-11-25 08:14, d65d34b
+last_updated: 2025-11-25 23:04, 4548f86
 ---
 # TLDRScraper Architecture Documentation
 
@@ -38,10 +38,13 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  │  - Root    │  │ - ScrapeForm │  │ - useArticleState        │  │  │
 │  │  │  - Hydrate │  │ - CacheToggle│  │ - useSummary             │  │  │
 │  │  │  - Results │  │ - Results    │  │ - useSupabaseStorage     │  │  │
-│  │  │    Display │  │   Display    │  │                          │  │  │
-│  │  │            │  │ - ArticleList│  │ Lib                      │  │  │
-│  │  │            │  │ - ArticleCard│  │ - scraper.js             │  │  │
-│  │  │            │  │ - Feed        │  │ - storageApi.js          │  │  │
+│  │  │    Display │  │   Display    │  │ - useLocalStorage        │  │  │
+│  │  │            │  │ - Feed       │  │                          │  │  │
+│  │  │            │  │ - CalendarDay│  │ Lib                      │  │  │
+│  │  │            │  │ - Newsletter │  │ - scraper.js             │  │  │
+│  │  │            │  │   Day        │  │ - storageApi.js          │  │  │
+│  │  │            │  │ - ArticleList│  │                          │  │  │
+│  │  │            │  │ - ArticleCard│  │                          │  │  │
 │  │  └────────────┘  └──────────────┘  └──────────────────────────┘  │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -157,8 +160,8 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 **User Action:** View scraped results
 
 **Available Interactions:**
-- Feed component with DailyGroup subcomponents (one per date)
-- DailyGroup features:
+- Feed component with CalendarDay subcomponents (one per date)
+- CalendarDay features:
   - Live sync with Supabase via useSupabaseStorage hook
   - Sticky date header with "Syncing..." indicator during updates
   - Articles grouped by: Date → Issue/Category → Section
@@ -787,20 +790,22 @@ App.jsx
   │
   └── Feed.jsx
         │
-        └── DailyGroup (per date)
+        └── CalendarDay (per date)
               │
               ├── useSupabaseStorage('newsletters:scrapes:{date}')
               │     └── GET/POST /api/storage/daily/{date}
               │
-              └── ArticleList.jsx
+              └── NewsletterDay
                     │
-                    └── ArticleCard.jsx
-                          ├── useArticleState(date, url)
-                          │     └── useSupabaseStorage('newsletters:scrapes:{date}')
-                          │           └── GET/POST /api/storage/daily/{date}
+                    └── ArticleList.jsx
                           │
-                          └── useSummary(date, url)
-                                └── useArticleState(date, url)
+                          └── ArticleCard.jsx
+                                ├── useArticleState(date, url)
+                                │     └── useSupabaseStorage('newsletters:scrapes:{date}')
+                                │           └── GET/POST /api/storage/daily/{date}
+                                │
+                                └── useSummary(date, url)
+                                      └── useArticleState(date, url)
 ```
 
 ---
@@ -996,7 +1001,7 @@ CREATE TABLE daily_cache (
 
 ### Storage Key Patterns
 
-- **Settings**: `cache:*` (e.g., `cache:enabled`)
+- **Settings**: `cache:*` or `ui:*` (e.g., `cache:enabled`, `ui:foldedContainers`)
 - **Daily Payloads**: `newsletters:scrapes:{date}` (e.g., `newsletters:scrapes:2024-01-01`)
 - Keys are used by `useSupabaseStorage` hook to route to correct endpoint
 
@@ -1139,10 +1144,12 @@ TLDRScraper/
 │   │   │   ├── ArticleList.jsx
 │   │   │   ├── CacheToggle.jsx
 │   │   │   ├── Feed.jsx
+│   │   │   ├── FoldableContainer.jsx
 │   │   │   ├── ResultsDisplay.jsx
 │   │   │   └── ScrapeForm.jsx
 │   │   ├── hooks/            # Custom React hooks
 │   │   │   ├── useArticleState.js
+│   │   │   ├── useLocalStorage.js
 │   │   │   ├── useSupabaseStorage.js
 │   │   │   └── useSummary.js
 │   │   └── lib/              # Utilities & logic
