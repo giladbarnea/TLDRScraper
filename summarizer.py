@@ -18,7 +18,7 @@ _TLDR_PROMPT_CACHE = None
 
 SUMMARY_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
 DEFAULT_TLDR_REASONING_EFFORT = "low"
-DEFAULT_MODEL = "gpt-5"
+DEFAULT_MODEL = "gemini-3-pro-preview"
 
 
 def normalize_summary_effort(value: str) -> str:
@@ -281,8 +281,8 @@ def tldr_url(url: str, summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT, mode
 
     Args:
         url: The URL to TLDR
-        summary_effort: OpenAI reasoning effort level
-        model: OpenAI model to use
+        summary_effort: Reasoning effort level (minimal, low, medium, high)
+        model: Gemini model to use
 
     Returns:
         The TLDR markdown
@@ -366,51 +366,68 @@ def _fetch_tldr_prompt(
     )
 
 
+def _map_reasoning_effort_to_thinking_level(summary_effort: str) -> str:
+    """Map OpenAI reasoning effort levels to Gemini thinking_level.
+
+    >>> _map_reasoning_effort_to_thinking_level("minimal")
+    'low'
+    >>> _map_reasoning_effort_to_thinking_level("low")
+    'low'
+    >>> _map_reasoning_effort_to_thinking_level("medium")
+    'high'
+    >>> _map_reasoning_effort_to_thinking_level("high")
+    'high'
+    """
+    effort = normalize_summary_effort(summary_effort)
+    if effort in ("minimal", "low"):
+        return "low"
+    return "high"
+
+
 def _call_llm(prompt: str, summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT, model: str = DEFAULT_MODEL) -> str:
-    """Call OpenAI API with prompt."""
-    api_key = util.resolve_env_var("OPENAI_API_KEY", "")
+    """Call Gemini API with prompt."""
+    api_key = util.resolve_env_var("GEMINI_API_KEY", "")
     if not api_key:
-        raise RuntimeError("OPENAI_API_KEY not set")
+        raise RuntimeError("GEMINI_API_KEY not set")
     if not prompt.strip():
         raise ValueError("Prompt is empty")
 
-    url = "https://api.openai.com/v1/responses"
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    thinking_level = _map_reasoning_effort_to_thinking_level(summary_effort)
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    headers = {
+        "x-goog-api-key": api_key,
+        "Content-Type": "application/json"
+    }
     body = {
-        "model": model,
-        "input": prompt,
-        "reasoning": {"effort": normalize_summary_effort(summary_effort)},
-        "stream": False,
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }],
+        "generationConfig": {
+            "thinkingConfig": {
+                "thinkingLevel": thinking_level
+            }
+        }
     }
 
     resp = requests.post(url, headers=headers, data=json.dumps(body), timeout=600)
     resp.raise_for_status()
     data = resp.json()
 
-    if isinstance(data, dict) and "output_text" in data:
-        if isinstance(data["output_text"], str):
-            return data["output_text"]
-        if isinstance(data["output_text"], list):
-            return "\n".join([
-                str(x) for x in data["output_text"] if isinstance(x, str)
-            ])
+    candidates = data.get("candidates") or []
+    if not candidates:
+        raise RuntimeError(f"No candidates in Gemini response: {data}")
 
-    outputs = data.get("output") or []
+    content = candidates[0].get("content") or {}
+    parts = content.get("parts") or []
+
     texts = []
-    for item in outputs:
-        for c in item.get("content") or []:
-            if c.get("type") in ("output_text", "text") and isinstance(
-                c.get("text"), str
-            ):
-                texts.append(c["text"])
+    for part in parts:
+        text = part.get("text")
+        if isinstance(text, str):
+            texts.append(text)
+
     if texts:
         return "\n".join(texts)
 
-    choices = data.get("choices") or []
-    if choices:
-        msg = choices[0].get("message") or {}
-        content = msg.get("content")
-        if isinstance(content, str):
-            return content
-    assert data, "No LLM output found"
-    return json.dumps(data)
+    raise RuntimeError(f"No text found in Gemini response: {data}")
