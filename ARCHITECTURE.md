@@ -38,10 +38,11 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  │  - Root    │  │ - ScrapeForm │  │ - useArticleState        │  │  │
 │  │  │  - Hydrate │  │ - CacheToggle│  │ - useSummary             │  │  │
 │  │  │  - Results │  │ - Results    │  │ - useSupabaseStorage     │  │  │
-│  │  │    Display │  │   Display    │  │                          │  │  │
-│  │  │            │  │ - ArticleList│  │ Lib                      │  │  │
-│  │  │            │  │ - ArticleCard│  │ - scraper.js             │  │  │
-│  │  │            │  │ - Feed        │  │ - storageApi.js          │  │  │
+│  │  │    Display │  │   Display    │  │ - useFoldState           │  │  │
+│  │  │            │  │ - ArticleList│  │                          │  │  │
+│  │  │            │  │ - ArticleCard│  │ Lib                      │  │  │
+│  │  │            │  │ - Feed       │  │ - scraper.js             │  │  │
+│  │  │            │  │ - Foldable   │  │ - storageApi.js          │  │  │
 │  │  └────────────┘  └──────────────┘  └──────────────────────────┘  │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -162,6 +163,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
   - Live sync with Supabase via useSupabaseStorage hook
   - Sticky date header with "Syncing..." indicator during updates
   - Articles grouped by: Date → Issue/Category → Section
+  - Collapsible/Foldable containers for all groups (persisted state)
   - "Other" section for uncategorized articles
 - Articles sorted: Removed articles at bottom, all others maintain original order
 - Visual state indicators (bold = unread, muted = read, strikethrough = removed)
@@ -397,6 +399,42 @@ available
 - **tldr.effort**: 'minimal' | 'low' | 'medium' | 'high'
 - **tldr.expanded**: boolean (UI state)
 - **tldr.errorMessage**: string | null
+
+---
+
+### Feature 5: UI State Management (Foldable Sections)
+
+#### States (per container)
+1. **expanded** - Content visible (default for most)
+2. **folded** - Content hidden, header only
+
+#### State Transitions
+
+```
+expanded
+  │
+  └─ User clicks header
+       ↓
+     folded
+       │
+       ├─ Add containerId to ui:foldedContainers list
+       │
+       └─ POST /api/storage/setting/ui:foldedContainers → Supabase upsert
+
+folded
+  │
+  └─ User clicks header
+       ↓
+     expanded
+       │
+       ├─ Remove containerId from ui:foldedContainers list
+       │
+       └─ POST /api/storage/setting/ui:foldedContainers → Supabase upsert
+```
+
+#### Key State Data
+- **foldedIds**: string[] (list of IDs for currently folded containers)
+- **isFolded**: boolean (derived from foldedIds.includes(id))
 
 ---
 
@@ -789,10 +827,16 @@ App.jsx
         │
         └── DailyGroup (per date)
               │
+              ├── FoldableContainer.jsx
+              │     └── useFoldState(id)
+              │           └── useSupabaseStorage('ui:foldedContainers')
+              │
               ├── useSupabaseStorage('newsletters:scrapes:{date}')
               │     └── GET/POST /api/storage/daily/{date}
               │
               └── ArticleList.jsx
+                    │
+                    ├── FoldableContainer.jsx
                     │
                     └── ArticleCard.jsx
                           ├── useArticleState(date, url)
