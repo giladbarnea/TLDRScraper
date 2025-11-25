@@ -1,8 +1,8 @@
 import { ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { useLocalStorage } from '../hooks/useLocalStorage'
 
-function FoldableContainer({ title, children, defaultFolded = false, className = '', headerClassName = '', contentClassName = '' }) {
-  const [isFolded, setIsFolded] = useState(defaultFolded)
+function FoldableContainer({ id, title, children, defaultFolded = false, className = '', headerClassName = '', contentClassName = '' }) {
+  const [isFolded, setIsFolded] = useLocalStorage(id, defaultFolded)
 
   return (
     <div className={`transition-all duration-300 ${className}`}>

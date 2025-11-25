@@ -1,12 +1,11 @@
 import ArticleList from './ArticleList'
 import FoldableContainer from './FoldableContainer'
 
-function NewsletterDay({ title, articles }) {
+function NewsletterDay({ date, title, issue, articles }) {
+  // Logic to determine if all articles in this newsletter are removed
+  const allRemoved = articles.length > 0 && articles.every(a => a.removed)
+
   // Group articles by section (Category)
-  // We use the 'section' property of articles to group them.
-  // If an article has no section, it goes into "Other" or stays at top level?
-  // User wants "real categories" to be foldable.
-  
   const sections = articles.reduce((acc, article) => {
     const sectionKey = article.section || 'Other'
     if (!acc[sectionKey]) {
@@ -16,8 +15,7 @@ function NewsletterDay({ title, articles }) {
     return acc
   }, {})
 
-  // We need to maintain the order of sections. 
-  // Ideally we should use the order from the first article of that section or `sectionOrder` if available.
+  // Maintain order of sections based on sectionOrder
   const sortedSections = Object.keys(sections).sort((a, b) => {
     if (a === 'Other') return 1
     if (b === 'Other') return -1
@@ -30,21 +28,29 @@ function NewsletterDay({ title, articles }) {
 
   return (
     <FoldableContainer 
-      id={`newsletter-${title}`}
+      id={`newsletter-${date}-${title}`}
+      headerClassName={`pl-1 border-l-2 transition-all duration-300 ${allRemoved ? 'border-slate-200 opacity-50' : 'border-brand-200'}`}
       title={
-        <h3 className="font-display font-bold text-xl text-slate-800 py-2">
+        <h3 className={`font-display font-bold text-xl py-2 transition-all duration-300 ${allRemoved ? 'text-slate-400 line-through decoration-2' : 'text-slate-800'}`}>
           {title}
         </h3>
       }
-      className="mb-4"
+      className="mb-8"
     >
       <div className="pl-4 space-y-6 mt-2 border-l-2 border-slate-100 ml-2">
+        {/* Issue Title & Subtitle Display */}
+        {issue && (issue.title || issue.subtitle) && (
+          <div className={`p-4 rounded-xl border mb-6 transition-all duration-300 ${allRemoved ? 'bg-slate-50 border-slate-200 opacity-50' : 'bg-white border-slate-100 shadow-sm'}`}>
+            {issue.title && <div className={`font-semibold text-lg transition-all duration-300 ${allRemoved ? 'text-slate-400 line-through decoration-2' : 'text-slate-900'}`}>{issue.title}</div>}
+            {issue.subtitle && issue.subtitle !== issue.title && (
+              <div className={`text-sm mt-1 transition-all duration-300 ${allRemoved ? 'text-slate-300 line-through decoration-2' : 'text-slate-500'}`}>{issue.subtitle}</div>
+            )}
+          </div>
+        )}
+
         {sortedSections.map((sectionKey) => {
           const sectionArticles = sections[sectionKey]
-          const allRemoved = sectionArticles.every(a => a.removed)
-          
-          // If section is "Other" and it's the only section, maybe we don't need a folder?
-          // But consistency is good.
+          const sectionAllRemoved = sectionArticles.every(a => a.removed)
           
           const firstArticle = sectionArticles[0]
           const sectionEmoji = firstArticle.sectionEmoji
@@ -52,7 +58,7 @@ function NewsletterDay({ title, articles }) {
 
           const SectionTitle = (
              <div className={`flex items-center gap-3 transition-all duration-300`}>
-               <h4 className={`font-display font-bold text-lg transition-all duration-300 ${allRemoved ? 'text-slate-400 line-through decoration-2' : 'text-slate-700'}`}>
+               <h4 className={`font-display font-bold text-lg transition-all duration-300 ${sectionAllRemoved ? 'text-slate-400 line-through decoration-2' : 'text-slate-700'}`}>
                  {displayTitle}
                </h4>
              </div>
@@ -61,7 +67,7 @@ function NewsletterDay({ title, articles }) {
           return (
             <FoldableContainer 
               key={`${title}-${sectionKey}`}
-              id={`section-${title}-${sectionKey}`}
+              id={`section-${date}-${title}-${sectionKey}`}
               title={SectionTitle}
               className="mb-4"
             >

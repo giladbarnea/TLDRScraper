@@ -91,7 +91,9 @@ function CalendarDay({ payload }) {
                return (
                  <NewsletterDay 
                    key={`${date}-${newsletterName}`}
-                   title={newsletterName} 
+                   date={date}
+                   title={newsletterName}
+                   issue={issue}
                    articles={newsletterArticles} 
                  />
                )
