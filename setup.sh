@@ -573,6 +573,7 @@ function start_server_and_watchdog() {
   nohup bash -lc "$watchdog_command" >> "$log_file" 2>&1 &
   echo $! > "$watchdog_pid_file"
   message "[$0] Watchdog started with PID $(cat "$watchdog_pid_file")"
+  print_server_and_watchdog_pids "$@"
 }
 
 KILL_SERVER_AND_WATCHDOG_DOC="Idempotent stop of the server and watchdog processes. Usage: source setup.sh && kill_server_and_watchdog"
@@ -614,17 +615,20 @@ function print_server_and_watchdog_pids() {
   local check_interval="$SERVER_CONTEXT_CHECK_INTERVAL"
   local port="$SERVER_CONTEXT_PORT"
   main --quiet "$@"
+  local server_pid="" watchdog_pid=""
   if [[ -f "$server_pid_file" ]]; then
-    message "[$0] Server PID: $(cat "$server_pid_file")"
-    ps -o pid,cmd -p "$(cat "$server_pid_file")" || true
+    server_pid="$(cat "$server_pid_file")"
   else
     error "[$0] Server PID file not found at $server_pid_file"
+    return 1
   fi
   if [[ -f "$watchdog_pid_file" ]]; then
-    message "[$0] Watchdog PID: $(cat "$watchdog_pid_file")"
+    watchdog_pid="$(cat "$watchdog_pid_file")"
   else
     error "[$0] Watchdog PID file not found at $watchdog_pid_file"
+    return 1
   fi
+  message "[$0] server pid: $server_pid. watchdog pid: $watchdog_pid."
 }
 
 if [[ "${SETUP_SH_SKIP_MAIN:-0}" != "1" ]]; then
