@@ -53,7 +53,7 @@ async function readValue(key, defaultValue) {
     try {
       let value = defaultValue
 
-      if (key.startsWith('cache:')) {
+      if (key.startsWith('cache:') || key.startsWith('ui:')) {
         const response = await window.fetch(`/api/storage/setting/${key}`)
         const data = await response.json()
         if (data.success) {
@@ -89,7 +89,7 @@ async function writeValue(key, value) {
   if (typeof window === 'undefined') return
 
   try {
-    if (key.startsWith('cache:')) {
+    if (key.startsWith('cache:') || key.startsWith('ui:')) {
       const response = await window.fetch(`/api/storage/setting/${key}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

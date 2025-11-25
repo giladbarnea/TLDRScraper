@@ -1,5 +1,6 @@
 export const STORAGE_KEYS = {
-  CACHE_ENABLED: 'cache:enabled'
+  CACHE_ENABLED: 'cache:enabled',
+  FOLDED_CONTAINERS: 'ui:foldedContainers'
 }
 
 /**
