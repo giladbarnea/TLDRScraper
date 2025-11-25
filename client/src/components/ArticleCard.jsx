@@ -61,7 +61,7 @@ function ArticleCard({ article, index }) {
         ${tldr.expanded ? 'mb-6 ring-1 ring-brand-100 shadow-md bg-white' : 'mb-3'}
       `}
     >
-      <div className="p-5 flex flex-col gap-3">
+      <div className="p-5 flex flex-col gap-2">
          {/* Title */}
          <a
            href={isRemoved ? undefined : fullUrl}
@@ -96,32 +96,41 @@ function ArticleCard({ article, index }) {
 
          {/* Actions */}
          {!isRemoved && (
-           <div className="flex items-center justify-between pt-1">
+           <div className="flex items-center justify-between pt-3">
               <button
                 onClick={handleExpand}
                 disabled={tldr.loading}
                 className={`
-                  flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-semibold tracking-wide transition-all duration-300
+                  flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300
                   ${tldr.loading
                     ? 'bg-slate-50 text-slate-400'
                     : tldr.expanded
                         ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-200'
                         : isAvailable
-                            /* STATE: Available (Magic Tint) - Purple/Indigo tint with a subtle ring to indicate value is ready */
+                            /* STATE: Available (Magic Tint) */
                             ? 'bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-200/50 hover:bg-indigo-100 active:bg-indigo-100'
-                            /* STATE: Default (Invite) - Clean slate that turns brand-blue on hover to invite action */
+                            /* STATE: Default (Invite) */
                             : 'bg-slate-50 text-slate-500 hover:bg-brand-50 hover:text-brand-600 active:bg-brand-50 active:text-brand-600'
                   }
                 `}
               >
-                 {tldr.loading ? <Loader2 size={12} className="animate-spin" /> :
-                  tldr.expanded ? <><Minus size={12} /> Close Summary</> : <><Sparkles size={12} /> TLDR</>
+                 {tldr.loading ? <Loader2 size={14} className="animate-spin" /> :
+                  tldr.expanded ? <><Minus size={14} /> Close</> : <><Sparkles size={14} /> TLDR</>
                  }
               </button>
 
               <div className="flex gap-2">
-                  <button onClick={handleRemove} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
-                     <Trash2 size={14} />
+                  <button
+                    onClick={handleRemove}
+                    disabled={stateLoading}
+                    className={`
+                      p-1.5 rounded-full transition-all duration-200
+                      ${stateLoading
+                        ? 'text-slate-300 bg-slate-50 cursor-not-allowed'
+                        : 'text-slate-400 hover:text-red-500 hover:bg-red-50 active:text-red-500 active:bg-red-50'}
+                    `}
+                  >
+                     {stateLoading ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                   </button>
               </div>
            </div>
