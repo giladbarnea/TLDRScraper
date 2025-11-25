@@ -59,7 +59,7 @@ function ArticleCard({ article, index }) {
         ${tldr.expanded ? 'mb-6 ring-1 ring-brand-100 shadow-md bg-white' : 'mb-3'}
       `}
     >
-      <div className="p-5 flex flex-col gap-3">
+      <div className="p-5 flex flex-col gap-2">
          {/* Title */}
          <a
            href={isRemoved ? undefined : fullUrl}
@@ -94,12 +94,12 @@ function ArticleCard({ article, index }) {
 
          {/* Actions */}
          {!isRemoved && (
-           <div className="flex items-center justify-between pt-1 gap-4">
+           <div className="flex items-center justify-between pt-3">
               <button
                 onClick={handleExpand}
                 disabled={tldr.loading}
                 className={`
-                  flex items-center justify-center w-full gap-2 py-3.5 rounded-full text-sm font-semibold tracking-wide transition-all duration-300
+                  flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300
                   ${tldr.loading
                     ? 'bg-slate-50 text-slate-400'
                     : tldr.expanded
@@ -112,14 +112,14 @@ function ArticleCard({ article, index }) {
                   }
                 `}
               >
-                 {tldr.loading ? <Loader2 size={16} className="animate-spin" /> :
-                  tldr.expanded ? <><Minus size={16} /> Close Summary</> : <><Sparkles size={16} /> TLDR</>
+                 {tldr.loading ? <Loader2 size={14} className="animate-spin" /> :
+                  tldr.expanded ? <><Minus size={14} /> Close</> : <><Sparkles size={14} /> TLDR</>
                  }
               </button>
 
               <div className="flex gap-2">
-                  <button onClick={handleRemove} className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
-                     <Trash2 size={18} />
+                  <button onClick={handleRemove} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
+                     <Trash2 size={14} />
                   </button>
               </div>
            </div>
