@@ -46,10 +46,14 @@ function NewsletterDay({ title, articles }) {
           // If section is "Other" and it's the only section, maybe we don't need a folder?
           // But consistency is good.
           
+          const firstArticle = sectionArticles[0]
+          const sectionEmoji = firstArticle.sectionEmoji
+          const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
+
           const SectionTitle = (
              <div className={`flex items-center gap-3 transition-all duration-300`}>
                <h4 className={`font-display font-bold text-lg transition-all duration-300 ${allRemoved ? 'text-slate-400 line-through decoration-2' : 'text-slate-700'}`}>
-                 {sectionKey}
+                 {displayTitle}
                </h4>
              </div>
           )

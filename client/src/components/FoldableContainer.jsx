@@ -8,15 +8,15 @@ function FoldableContainer({ title, children, defaultFolded = false, className =
     <div className={`transition-all duration-300 ${className}`}>
       <div 
         onClick={() => setIsFolded(!isFolded)}
-        className={`cursor-pointer group select-none flex items-center justify-between ${headerClassName}`}
+        className={`cursor-pointer group select-none flex items-center ${headerClassName}`}
       >
-        <div className="flex-grow">
+        <div className="flex-grow-0">
           {title}
         </div>
         
         {/* Chevron - only visible when folded */}
         <div className={`
-          text-slate-400 transition-all duration-300 transform
+          text-slate-400 transition-all duration-300 transform ml-4
           ${isFolded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none'}
         `}>
           <ChevronRight size={20} />
