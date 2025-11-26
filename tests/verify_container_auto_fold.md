@@ -1,3 +1,6 @@
+---
+last_updated: 2025-11-26 19:54, cbcd0ca
+---
 # Container Auto-Fold Verification
 
 ## What Changed
