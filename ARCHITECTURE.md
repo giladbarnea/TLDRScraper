@@ -166,10 +166,11 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
   - Sticky date header with "Syncing..." indicator during updates
   - Articles grouped by: Date → Issue/Category → Section
   - "Other" section for uncategorized articles
-  - Auto-collapse behavior: Containers automatically collapse when all child articles are removed
+  - Auto-collapse behavior: Containers automatically collapse in real-time when all child articles are removed
     - Calendar days collapse when all articles for that date are removed
     - Newsletters/categories collapse when all their articles are removed
     - Sections collapse when all their articles are removed
+    - Implemented via useEffect hook that detects defaultFolded state transitions
   - Users can manually expand/collapse any container regardless of auto-collapse state
 - Articles sorted: Removed articles at bottom, all others maintain original order
 - Visual state indicators (bold = unread, muted = read, strikethrough = removed)
@@ -1022,7 +1023,8 @@ CREATE TABLE daily_cache (
 - **Daily Payloads**: `newsletters:scrapes:{date}` (e.g., `newsletters:scrapes:2024-01-01`)
 - **Container Fold State**: Stored in browser localStorage (not Supabase) with keys like `calendar-{date}`, `newsletter-{date}-{title}`, `section-{date}-{title}-{section}`
   - FoldableContainer uses `useLocalStorage` hook to persist fold state per container
-  - `defaultFolded` prop determines initial state: containers auto-collapse when all child articles are removed
+  - `defaultFolded` prop determines initial state and triggers auto-collapse: containers automatically fold in real-time when all child articles are removed
+  - useEffect hook monitors `defaultFolded` transitions (false → true) to trigger immediate fold
   - Users can manually toggle any container, overriding the auto-collapse state
 - Keys are used by `useSupabaseStorage` hook to route to correct endpoint (except localStorage keys)
 
@@ -1166,7 +1168,7 @@ TLDRScraper/
 │   │   │   ├── CacheToggle.jsx
 │   │   │   ├── CalendarDay.jsx      # Wraps all newsletters for a date, auto-collapses when all articles removed
 │   │   │   ├── Feed.jsx
-│   │   │   ├── FoldableContainer.jsx # Collapsible container with auto-collapse support via defaultFolded prop
+│   │   │   ├── FoldableContainer.jsx # Collapsible container with real-time auto-collapse via defaultFolded prop
 │   │   │   ├── NewsletterDay.jsx    # Wraps sections for a newsletter, auto-collapses when all articles removed
 │   │   │   ├── ResultsDisplay.jsx
 │   │   │   └── ScrapeForm.jsx
