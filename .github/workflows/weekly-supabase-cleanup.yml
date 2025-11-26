@@ -1,0 +1,46 @@
+name: Weekly Supabase Data Cleanup
+
+on:
+  schedule:
+    # Run every Sunday at 3 AM UTC (1 hour after branch cleanup)
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install supabase
+
+      - name: Delete old daily cache entries
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from datetime import datetime, timedelta
+          from supabase import create_client
+
+          url = os.environ["SUPABASE_URL"]
+          key = os.environ["SUPABASE_SERVICE_KEY"]
+          supabase = create_client(url, key)
+
+          cutoff_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+          print(f"Deleting daily_cache entries older than {cutoff_date}...")
+
+          result = supabase.table('daily_cache').delete().lt('date', cutoff_date).execute()
+
+          deleted_count = len(result.data) if result.data else 0
+          print(f"Deleted {deleted_count} old cache entries")
+          PY
