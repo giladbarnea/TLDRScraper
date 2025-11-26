@@ -1,0 +1,120 @@
+name: Weekly Branch & PR Cleanup
+
+on:
+  schedule:
+    # Run every Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete branches for old merged/closed PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Finding branches with merged/closed PRs older than 1 week..."
+
+          # Get all remote branches except main/master
+          git fetch --all --prune
+          branches=$(git branch -r | grep -v 'HEAD\|main\|master' | sed 's/origin\///' | xargs)
+
+          one_week_ago=$(date -d '7 days ago' --iso-8601=seconds)
+          deleted_count=0
+
+          for branch in $branches; do
+            echo "Checking branch: $branch"
+
+            # Get PR number for this branch (if any)
+            pr_number=$(gh pr list --state all --head "$branch" --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+            if [ -z "$pr_number" ]; then
+              echo "  No PR found for $branch, skipping"
+              continue
+            fi
+
+            # Get PR state and closed date
+            pr_info=$(gh pr view "$pr_number" --json state,closedAt,mergedAt 2>/dev/null || echo "")
+            if [ -z "$pr_info" ]; then
+              echo "  Could not fetch PR info for #$pr_number, skipping"
+              continue
+            fi
+
+            state=$(echo "$pr_info" | jq -r '.state')
+            closed_at=$(echo "$pr_info" | jq -r '.closedAt // empty')
+            merged_at=$(echo "$pr_info" | jq -r '.mergedAt // empty')
+
+            # Skip if PR is still open
+            if [ "$state" = "OPEN" ]; then
+              echo "  PR #$pr_number is still open, skipping branch deletion"
+              continue
+            fi
+
+            # Use merged_at if available, otherwise closed_at
+            completion_date="${merged_at:-$closed_at}"
+
+            if [ -z "$completion_date" ]; then
+              echo "  PR #$pr_number has no completion date, skipping"
+              continue
+            fi
+
+            # Compare dates
+            if [[ "$completion_date" < "$one_week_ago" ]]; then
+              echo "  PR #$pr_number was $state on $completion_date (>1 week ago)"
+              echo "  Deleting branch: $branch"
+              git push origin --delete "$branch" 2>/dev/null || echo "  Failed to delete $branch (may not exist)"
+              deleted_count=$((deleted_count + 1))
+            else
+              echo "  PR #$pr_number was $state on $completion_date (<1 week ago), skipping"
+            fi
+          done
+
+          echo ""
+          echo "Deleted $deleted_count branch(es)"
+
+      - name: Close stale open PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Finding open PRs older than 1 week..."
+
+          one_week_ago=$(date -d '7 days ago' --iso-8601=seconds)
+          closed_count=0
+
+          # Get all open PRs
+          pr_numbers=$(gh pr list --state open --json number --jq '.[].number')
+
+          for pr_number in $pr_numbers; do
+            echo "Checking PR #$pr_number"
+
+            # Get PR creation date and last update
+            pr_info=$(gh pr view "$pr_number" --json createdAt,updatedAt 2>/dev/null || echo "")
+            if [ -z "$pr_info" ]; then
+              echo "  Could not fetch PR info, skipping"
+              continue
+            fi
+
+            created_at=$(echo "$pr_info" | jq -r '.createdAt')
+
+            # Compare creation date
+            if [[ "$created_at" < "$one_week_ago" ]]; then
+              echo "  PR #$pr_number was created on $created_at (>1 week ago)"
+              echo "  Closing PR #$pr_number"
+              gh pr close "$pr_number" --comment "Automatically closed: PR has been open for more than 1 week without merge." || echo "  Failed to close PR #$pr_number"
+              closed_count=$((closed_count + 1))
+            else
+              echo "  PR #$pr_number was created on $created_at (<1 week ago), skipping"
+            fi
+          done
+
+          echo ""
+          echo "Closed $closed_count PR(s)"
