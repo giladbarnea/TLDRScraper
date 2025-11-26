@@ -1,5 +1,5 @@
 ---
-last-updated: 2025-11-04 22:04, 9a1f568
+last_updated: 2025-11-26 19:48
 ---
 # Git Hooks
 

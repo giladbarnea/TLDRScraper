@@ -1,5 +1,4 @@
 ---
-last-updated: 2025-11-10 21:29, 96a5633
 description: Implement technical plans from ${arg1} with verification
 model: sonnet
 argument-hint: plan_file_path
