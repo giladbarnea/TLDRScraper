@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-11-25 23:06, b2c4d1a
+last_updated: 2025-11-26 06:56, df25578
 ---
 # TLDRScraper Architecture Documentation
 
@@ -166,6 +166,11 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
   - Sticky date header with "Syncing..." indicator during updates
   - Articles grouped by: Date → Issue/Category → Section
   - "Other" section for uncategorized articles
+  - Auto-collapse behavior: Containers automatically collapse when all child articles are removed
+    - Calendar days collapse when all articles for that date are removed
+    - Newsletters/categories collapse when all their articles are removed
+    - Sections collapse when all their articles are removed
+  - Users can manually expand/collapse any container regardless of auto-collapse state
 - Articles sorted: Removed articles at bottom, all others maintain original order
 - Visual state indicators (bold = unread, muted = read, strikethrough = removed)
 - Stats display (article count, unique URLs, dates processed)
@@ -795,7 +800,19 @@ App.jsx
               ├── useSupabaseStorage('newsletters:scrapes:{date}')
               │     └── GET/POST /api/storage/daily/{date}
               │
-              └── NewsletterDay
+              ├── FoldableContainer (wraps entire calendar day)
+              │     ├── useLocalStorage(id, defaultFolded)
+              │     └── defaultFolded={allArticlesRemoved}
+              │
+              └── NewsletterDay (per newsletter/category)
+                    │
+                    ├── FoldableContainer (wraps newsletter)
+                    │     ├── useLocalStorage(id, defaultFolded)
+                    │     └── defaultFolded={allRemoved}
+                    │
+                    ├── FoldableContainer (wraps each section)
+                    │     ├── useLocalStorage(id, defaultFolded)
+                    │     └── defaultFolded={sectionAllRemoved}
                     │
                     └── ArticleList.jsx
                           │
@@ -1001,9 +1018,13 @@ CREATE TABLE daily_cache (
 
 ### Storage Key Patterns
 
-- **Settings**: `cache:*` or `ui:*` (e.g., `cache:enabled`, `ui:foldedContainers`)
+- **Settings**: `cache:*` or `ui:*` (e.g., `cache:enabled`)
 - **Daily Payloads**: `newsletters:scrapes:{date}` (e.g., `newsletters:scrapes:2024-01-01`)
-- Keys are used by `useSupabaseStorage` hook to route to correct endpoint
+- **Container Fold State**: Stored in browser localStorage (not Supabase) with keys like `calendar-{date}`, `newsletter-{date}-{title}`, `section-{date}-{title}-{section}`
+  - FoldableContainer uses `useLocalStorage` hook to persist fold state per container
+  - `defaultFolded` prop determines initial state: containers auto-collapse when all child articles are removed
+  - Users can manually toggle any container, overriding the auto-collapse state
+- Keys are used by `useSupabaseStorage` hook to route to correct endpoint (except localStorage keys)
 
 ### Client-Side Caching
 
@@ -1143,8 +1164,10 @@ TLDRScraper/
 │   │   │   ├── ArticleCard.jsx
 │   │   │   ├── ArticleList.jsx
 │   │   │   ├── CacheToggle.jsx
+│   │   │   ├── CalendarDay.jsx      # Wraps all newsletters for a date, auto-collapses when all articles removed
 │   │   │   ├── Feed.jsx
-│   │   │   ├── FoldableContainer.jsx
+│   │   │   ├── FoldableContainer.jsx # Collapsible container with auto-collapse support via defaultFolded prop
+│   │   │   ├── NewsletterDay.jsx    # Wraps sections for a newsletter, auto-collapses when all articles removed
 │   │   │   ├── ResultsDisplay.jsx
 │   │   │   └── ScrapeForm.jsx
 │   │   ├── hooks/            # Custom React hooks
