@@ -20,6 +20,8 @@ function CalendarDay({ payload }) {
   const niceDate = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const isToday = new Date().toDateString() === dateObj.toDateString()
 
+  const allArticlesRemoved = articles.length > 0 && articles.every(a => a.removed)
+
   const Title = (
     <div className="flex items-baseline gap-3 py-4">
       <h2 className="font-display text-2xl font-bold text-slate-900 tracking-tight">
@@ -31,10 +33,10 @@ function CalendarDay({ payload }) {
 
   return (
     <section className="animate-slide-up mb-12">
-      <FoldableContainer 
+      <FoldableContainer
         id={`calendar-${date}`}
-        title={Title} 
-        defaultFolded={false}
+        title={Title}
+        defaultFolded={allArticlesRemoved}
         headerClassName="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/60"
         contentClassName="mt-4"
       >
