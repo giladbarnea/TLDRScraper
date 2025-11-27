@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-11-26 22:14, 9b47af0
+last_updated: 2025-11-27 10:43, 297ec21
 ---
 # TLDRScraper Architecture Documentation
 
@@ -148,13 +148,14 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - Article states persist in Supabase daily_cache table
 
 ### 4. TLDR Generation
-**User Action:** Click "TLDR" button on article
+**User Action:** Click "TLDR" button on article OR click article card body
 
 **Available Interactions:**
-- Click "TLDR" → Fetch TLDR from API
+- Click "TLDR" button → Fetch TLDR from API (if not available) OR toggle visibility (if available)
+- Click article card body → Toggle TLDR visibility (only when TLDR content already exists)
 - TLDR displayed inline below article
-- Click again → Collapse TLDR
 - Cached TLDRs show "Available" (green)
+- Card shows pointer cursor when TLDR content is available for toggling
 
 ### 5. Results Display with Feed Component
 **User Action:** View scraped results
@@ -624,68 +625,82 @@ User clicks "Scrape Newsletters"
 ### Feature 4: TLDR Generation - Complete Flow
 
 ```
-User clicks "TLDR" button
+User clicks "TLDR" button OR clicks article card body
   │
-  ├─ ArticleCard.jsx onClick={handleTldrClick}
+  ├─ BUTTON CLICK PATH
   │    │
-  │    └─ useSummary hook toggle()
+  │    ├─ ArticleCard.jsx onClick={handleExpand}
+  │    │    │
+  │    │    └─ useSummary hook toggle()
+  │    │         │
+  │    │         ├─ If TLDR already available: Toggle visibility only
+  │    │         │
+  │    │         └─ If TLDR not available: Fetch from API
+  │    │              │
+  │    │              └─ window.fetch('/api/tldr-url', {
+  │    │                   method: 'POST',
+  │    │                   body: JSON.stringify({ url, summary_effort })
+  │    │                 })
+  │    │                   │
+  │    │                   └─ Server receives request...
+  │    │                        │
+  │    │                        ├─ serve.py:72 tldr_url()
+  │    │                        │    │
+  │    │                        │    └─ tldr_app.py:32 tldr_url(url, summary_effort)
+  │    │                        │         │
+  │    │                        │         └─ tldr_service.py:79 tldr_url_content(url, summary_effort)
+  │    │                        │              │
+  │    │                        │              ├─ util.canonicalize_url(url)
+  │    │                        │              │
+  │    │                        │              └─ summarizer.py:279 tldr_url(url, summary_effort)
+  │    │                        │                   │
+  │    │                        │                   ├─ url_to_markdown(url)
+  │    │                        │                   │    (scrapes and converts URL content to markdown)
+  │    │                        │                   │
+  │    │                        │                   ├─ Fetch TLDR prompt template:
+  │    │                        │                   │    │
+  │    │                        │                   │    └─ _fetch_tldr_prompt()
+  │    │                        │                   │         │
+  │    │                        │                   │         └─ Fetch from GitHub:
+  │    │                        │                   │              "https://api.github.com/repos/giladbarnea/llm-templates/contents/text/tldr.md"
+  │    │                        │                   │
+  │    │                        │                   ├─ Build prompt:
+  │    │                        │                   │    template + "\n\n<tldr this>\n" + markdown + "\n</tldr this>"
+  │    │                        │                   │
+  │    │                        │                   └─ Call LLM:
+  │    │                        │                        │
+  │    │                        │                        └─ _call_llm(prompt, summary_effort)
+  │    │                        │                             (calls OpenAI GPT-5 API)
+  │    │                        │
+  │    │                        └─ Return { success, tldr_markdown, canonical_url, summary_effort }
+  │    │
+  │    └─ Client receives response:
   │         │
-  │         ├─ Check if TLDR already available
+  │         ├─ Update article state:
+  │         │    {
+  │         │      status: 'available',
+  │         │      markdown: result.tldr_markdown,
+  │         │      effort: summaryEffort,
+  │         │      checkedAt: timestamp,
+  │         │      errorMessage: null
+  │         │    }
   │         │
-  │         └─ useSummary.js fetch(summaryEffort)
-  │                   │
-  │                   └─ window.fetch('/api/tldr-url', {
-  │                        method: 'POST',
-  │                        body: JSON.stringify({ url, summary_effort })
-  │                      })
-  │                        │
-  │                        └─ Server receives request...
-  │                             │
-  │                             ├─ serve.py:72 tldr_url()
-  │                             │    │
-  │                             │    └─ tldr_app.py:32 tldr_url(url, summary_effort)
-  │                             │         │
-  │                             │         └─ tldr_service.py:79 tldr_url_content(url, summary_effort)
-  │                             │              │
-  │                             │              ├─ util.canonicalize_url(url)
-  │                             │              │
-  │                             │              └─ summarizer.py:279 tldr_url(url, summary_effort)
-  │                             │                   │
-  │                             │                   ├─ url_to_markdown(url)
-  │                             │                   │    (scrapes and converts URL content to markdown)
-  │                             │                   │
-  │                             │                   ├─ Fetch TLDR prompt template:
-  │                             │                   │    │
-  │                             │                   │    └─ _fetch_tldr_prompt()
-  │                             │                   │         │
-  │                             │                   │         └─ Fetch from GitHub:
-  │                             │                   │              "https://api.github.com/repos/giladbarnea/llm-templates/contents/text/tldr.md"
-  │                             │                   │
-  │                             │                   ├─ Build prompt:
-  │                             │                   │    template + "\n\n<tldr this>\n" + markdown + "\n</tldr this>"
-  │                             │                   │
-  │                             │                   └─ Call LLM:
-  │                             │                        │
-  │                             │                        └─ _call_llm(prompt, summary_effort)
-  │                             │                             (calls OpenAI GPT-5 API)
-  │                             │
-  │                             └─ Return { success, tldr_markdown, canonical_url, summary_effort }
+  │         ├─ Set expanded state to true
+  │         ├─ Mark article as read (if not already)
+  │         │
+  │         └─ Display inline TLDR
   │
-  └─ Client receives response:
+  └─ CARD CLICK PATH
        │
-       ├─ Update article state:
-       │    {
-       │      status: 'available',
-       │      markdown: result.tldr_markdown,
-       │      effort: summaryEffort,
-       │      checkedAt: timestamp,
-       │      errorMessage: null
-       │    }
+       ├─ ArticleCard.jsx onClick={handleCardClick}
+       │    │
+       │    └─ useSummary hook toggleVisibility()
+       │         │
+       │         ├─ Only acts if TLDR content already exists (isAvailable)
+       │         ├─ Toggles expanded state (no API call)
+       │         └─ Updates tldrHidden preference in storage
        │
-       ├─ Set expanded state to true
-       ├─ Mark article as read (if not already)
-       │
-       └─ Display inline TLDR
+       └─ TLDR content shown/hidden (no server interaction)
 ```
 
 ---
