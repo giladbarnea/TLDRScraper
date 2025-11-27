@@ -1,0 +1,84 @@
+name: Lint Client Code
+
+on:
+  pull_request:
+    paths:
+      - 'client/**'
+      - '.github/workflows/lint-client.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'client/**'
+
+jobs:
+  biome:
+    name: Biome Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write  # For PR annotations
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Full history needed for git diff to work reliably
+          # Note: We don't use biome's --changed flag because it's unreliable in CI
+          # See: https://github.com/biomejs/biome/discussions/4896
+          fetch-depth: 0
+
+      - name: Fetch base branch for PR change detection
+        if: github.event_name == 'pull_request'
+        run: git fetch origin ${{ github.base_ref }} --depth 1
+
+      - name: Setup Biome
+        uses: biomejs/setup-biome@v2
+        with:
+          version: latest  # Uses version from package-lock.json if present
+
+      - name: Run Biome on changed files (PR)
+        if: github.event_name == 'pull_request'
+        working-directory: client
+        run: |
+          # Manual git diff approach (more reliable than --changed flag)
+          # Get list of changed JS/TS/JSON files, excluding deleted files
+          CHANGED_FILES=$(git diff --name-only --diff-filter=d origin/${{ github.base_ref }}...HEAD \
+            | grep -E '\.(js|jsx|ts|tsx|json|jsonc)$' \
+            | grep '^client/' \
+            | sed 's|^client/||' \
+            || true)
+
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+            echo ""
+
+            # Critical flags explained:
+            # --reporter=github: Creates inline PR annotations (::error file=...,line=...)
+            # --formatter-enabled=false: Only check linting, not formatting
+            # --no-errors-on-unmatched: Don't fail if some files don't match patterns
+            # --files-ignore-unknown: Skip non-JS/TS files without erroring
+            # --error-on-warnings: Treat warnings as errors for strict enforcement
+            echo "$CHANGED_FILES" | xargs biome ci \
+              --reporter=github \
+              --formatter-enabled=false \
+              --no-errors-on-unmatched \
+              --files-ignore-unknown=true \
+              --error-on-warnings
+          else
+            echo "No relevant client files changed in this PR"
+          fi
+
+      - name: Run Biome on all files (push to main)
+        if: github.event_name == 'push'
+        working-directory: client
+        run: |
+          # On main branch pushes, check all files
+          # Uses biome ci (not biome check) - it's read-only and optimized for CI
+          biome ci \
+            --reporter=github \
+            --formatter-enabled=false \
+            --no-errors-on-unmatched \
+            --files-ignore-unknown=true \
+            --error-on-warnings \
+            .

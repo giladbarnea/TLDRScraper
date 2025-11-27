@@ -12,6 +12,8 @@ fi
 echo "Running biome lint on staged client files..."
 
 # Run lint in check mode (DRY_RUN=1 prevents file modifications)
+# Uses lint.sh which runs 'biome ci' in check mode with critical flags:
+# --no-errors-on-unmatched, --files-ignore-unknown, --error-on-warnings
 cd client && DRY_RUN=1 bash scripts/lint.sh
 
 # Exit with lint status (non-zero prevents commit)
