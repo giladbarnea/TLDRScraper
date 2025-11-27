@@ -7,8 +7,8 @@ last_updated: 2025-11-27 08:28, dd5b623
 
 The architecture update detection dataset has a fundamental challenge: **temporal labeling ambiguity**. When analyzing historical commits, we need to distinguish between:
 
-1. Commits that correctly didn't update architecture (true negatives)
-2. Commits that should have updated architecture but didn't (false negatives that were later corrected)
+1. Commits that didn't update architecture
+2. Commits that may have needed an architecture update but didn't (potentially corrected in later commits)
 
 This document describes the "lookahead" technique for identifying case #2 and improving training data quality.
 
@@ -109,7 +109,7 @@ Heuristics:
 
 ### 3. Manual Curation of Edge Cases
 
-**Problem:** Automated lookahead will always produce some false positives/negatives.
+**Problem:** Automated lookahead will always produce some incorrect labels.
 
 **Improvement:** Flag uncertain cases for manual review.
 
@@ -145,16 +145,16 @@ def compute_confidence(commit, later_commit, commits_between):
 
 ### 4. Negative Lookahead
 
-**Problem:** Current approach only adds positive labels. But some commits genuinely don't need updates.
+**Problem:** Current approach only adds positive labels. Some commits likely didn't need updates.
 
-**Improvement:** If commit N changed components but no architecture update happened in the next 10 commits, confidently label as negative.
+**Improvement:** If commit N changed components but no architecture update happened in the next 10 commits, label as likely-negative with confidence score.
 
 Logic:
 ```python
 # If meaningful changes but no update in lookahead window:
 if has_meaningful_changes and not found_later_update:
     if lookahead_distance >= 10:  # Long enough window
-        commit['should_have_updated'] = False  # Confident negative
+        commit['should_have_updated'] = False  # Likely didn't need update
     else:
         commit['should_have_updated'] = None  # Uncertain
 ```
@@ -163,7 +163,7 @@ if has_meaningful_changes and not found_later_update:
 
 **Important:** Do NOT validate lookahead results against the existing heuristic's predictions. That would be circular reasoning.
 
-Instead, validate against ground truth:
+Instead, establish reference labels through:
 1. **Manual review:** Sample 20-30 retrospectively-labeled commits and manually verify
 2. **Interrater reliability:** Have 2+ humans independently label cases, measure agreement
 3. **Time-based split:** Use early commits for training, later commits for validation
@@ -185,7 +185,7 @@ The lookahead-improved dataset is meant to be used for training/evaluating **bot
 **Key Point:** These are **independent predictors**, not validator and validatee. The goal is to compare them:
 
 ```
-Ground Truth Labels (from lookahead + manual review)
+Reference Labels (from lookahead heuristics + manual review)
          ↓
     ┌────┴────┐
     ↓         ↓
@@ -209,13 +209,13 @@ From `architecture_update_dataset.json`:
 - Architecture updated in commit: 3
 - Retrospectively labeled as should-have-updated: 2
   - `98fb9711`: Changed 2 components, updated 1 commit later ✓ (confident)
-  - `827e1833`: Changed 0 components, behavior keyword match ✗ (false positive)
+  - `827e1833`: Changed 0 components, behavior keyword match ✗ (likely incorrect)
 
-**Improvement needed:** The false positive rate (50% of retrospective labels) suggests the lookahead logic needs refinement, particularly around semantic similarity and confidence scoring.
+**Improvement needed:** The low confidence rate (50% of retrospective labels likely incorrect) suggests the lookahead logic needs refinement, particularly around semantic similarity and confidence scoring.
 
 ## Next Steps
 
-1. **Implement semantic similarity checks** to reduce false positives
+1. **Implement semantic similarity checks** to reduce incorrect labels
 2. **Add confidence scoring** and flag uncertain cases
 3. **Manually review** all retrospectively-labeled commits (currently only 2, easy to do)
 4. **Expand dataset** by analyzing more commits (currently only 18, increase to 100+)

@@ -156,7 +156,7 @@ else:
 
 ## Historical Examples
 
-### ✅ Examples Where Architecture WAS Updated (Correctly)
+### ✅ Examples Where Architecture WAS Updated
 
 1. **9b47af05**: "fix: trigger container auto-fold in real-time when last article removed"
    - Changed: 1 component (FoldableContainer.jsx)
@@ -173,7 +173,7 @@ else:
    - Why: Explicit documentation update of new behavior
    - Keywords: "behavior", "document"
 
-### ❌ Examples Where Architecture Was NOT Updated (Correctly)
+### ❌ Examples Where Architecture Was NOT Updated
 
 1. **72437d9b**: "fix: tldr bold text"
    - Changed: 1 CSS file only
@@ -191,21 +191,21 @@ else:
 
 1. **98fb9711**: "Fold containers by default if children are removed"
    - Changed: 2 components
-   - Why: Behavior change - should have updated architecture
+   - Why: Behavior change - architecture was updated in next commit
    - **Note**: Architecture was updated in NEXT commit (71e7f126)
    - Lesson: Sometimes architecture updates come in separate doc-only commits
 
 ## Estimated Performance
 
-Based on historical data:
+Based on 18-commit sample (may be overfit):
 
-- **Precision**: ~70-75%
-  - Would correctly identify all 3 architecture updates
-  - Might flag 2-3 false positives out of 15 non-updates
+- **Precision**: ~70-75% (estimated on small sample)
+  - Would match all 3 historical architecture updates
+  - Might flag 2-3 historical non-updates
 
-- **Recall**: ~100%
-  - Would catch all architecture updates
-  - Very few false negatives (prioritizes recall over precision)
+- **Recall**: ~100% (on 18-commit sample)
+  - Would catch all historical architecture updates
+  - Prioritizes recall over precision (better to over-warn than under-warn)
 
 - **F1 Score**: ~0.82-0.85
 
@@ -227,7 +227,7 @@ Based on historical data:
 
 1. **Use as a CI check** that warns but doesn't block
 2. **Combine with manual review** for edge cases (result = None)
-3. **Track false positives/negatives** over time to refine heuristic
+3. **Track warnings and misses** over time to refine heuristic
 4. **Measure performance** against improved training data (see `IMPROVING_TRAINING_DATA.md`)
 
 ## Comparison with LLM Approach
@@ -246,7 +246,7 @@ This string-based heuristic is designed to be **fast, deterministic, and cheap**
 - **Non-deterministic**: May vary between runs
 - **Performance**: Unknown (to be measured)
 
-**Key Point:** These are independent prediction methods, not validator and validatee. Both should be evaluated against ground truth labels (from manual review + lookahead analysis), then compared to determine:
+**Key Point:** These are independent prediction methods, not validator and validatee. Both should be evaluated against reference labels (from manual review + lookahead heuristics), then compared to determine:
 - Does the simple heuristic perform well enough?
 - Is the LLM's extra accuracy worth the cost?
 - Should we use a hybrid approach?
@@ -259,4 +259,4 @@ See `IMPROVING_TRAINING_DATA.md` for details on training data quality and evalua
 2. **Expand training dataset** to 100+ commits (currently 18)
 3. **Implement LLM classifier** as independent comparison baseline
 4. **Evaluate both approaches** on held-out test set
-5. **Refine heuristic** based on real-world false positives/negatives
+5. **Refine heuristic** based on real-world feedback and manual review
