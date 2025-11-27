@@ -9,7 +9,7 @@ function ArticleCard({ article, index }) {
     article.url
   )
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
-  const { isAvailable } = tldr
+  const { isAvailable, toggleVisibility } = tldr
 
   const fullUrl = useMemo(() => {
     const url = article.url
@@ -44,6 +44,18 @@ function ArticleCard({ article, index }) {
     if (isRemoved) {
       e.preventDefault();
       toggleRemove();
+      return;
+    }
+
+    if (isAvailable) {
+      const wasExpanded = tldr.expanded;
+      toggleVisibility();
+
+      if (wasExpanded) {
+        markTldrHidden();
+      } else {
+        unmarkTldrHidden();
+      }
     }
   };
 
@@ -78,6 +90,7 @@ function ArticleCard({ article, index }) {
                e.preventDefault();
                return;
              }
+             e.stopPropagation();
              if (!isRead) toggleRead();
            }}
          >

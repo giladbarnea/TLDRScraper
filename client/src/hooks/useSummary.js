@@ -111,6 +111,12 @@ export function useSummary(date, url, type = 'tldr') {
     setExpanded(true)
   }, [])
 
+  const toggleVisibility = useCallback(() => {
+    if (isAvailable) {
+      setExpanded(!expanded)
+    }
+  }, [isAvailable, expanded])
+
   return {
     data,
     status,
@@ -126,6 +132,7 @@ export function useSummary(date, url, type = 'tldr') {
     fetch,
     toggle,
     collapse,
-    expand
+    expand,
+    toggleVisibility
   }
 }
