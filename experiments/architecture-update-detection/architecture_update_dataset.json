@@ -1,0 +1,1840 @@
+{
+  "summary": {
+    "total_commits": 18,
+    "architecture_body_updated": 3,
+    "architecture_not_updated": 15,
+    "architecture_frontmatter_only": 0,
+    "retrospective_should_have_updated": 2
+  },
+  "commits": [
+    {
+      "commit_hash": "9b47af059b82e344eb1d191f6c0c64d1fc8461ca",
+      "commit_hash_short": "9b47af05",
+      "message_subject": "fix: trigger container auto-fold in real-time when last article removed (#294)",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-27 00:14:31 +0200",
+      "total_files_changed": 3,
+      "total_additions": 60,
+      "total_deletions": 4,
+      "files": [
+        "ARCHITECTURE.md",
+        "client/src/components/FoldableContainer.jsx",
+        "tests/verify_container_auto_fold.md"
+      ],
+      "file_stats": {
+        "ARCHITECTURE.md": {
+          "added": 6,
+          "deleted": 4
+        },
+        "client/src/components/FoldableContainer.jsx": {
+          "added": 9,
+          "deleted": 0
+        },
+        "tests/verify_container_auto_fold.md": {
+          "added": 45,
+          "deleted": 0
+        }
+      },
+      "architecture_changed": true,
+      "architecture_body_changed": true,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 1,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 1,
+      "config_files": 0,
+      "test_files": 0,
+      "other_files": 1,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": true,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": true,
+      "msg_flow_change": false,
+      "msg_component_change": true,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": false,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "5004cbb9e4c25769c219b7c575b92b2b48f8d396",
+      "commit_hash_short": "5004cbb9",
+      "message_subject": "feat: add weekly automated cleanup for stale branches and PRs (#293)",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-26 17:01:36 +0200",
+      "total_files_changed": 1,
+      "total_additions": 120,
+      "total_deletions": 0,
+      "files": [
+        ".github/workflows/weekly-branch-pr-cleanup.yml"
+      ],
+      "file_stats": {
+        ".github/workflows/weekly-branch-pr-cleanup.yml": {
+          "added": 120,
+          "deleted": 0
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 0,
+      "config_files": 1,
+      "test_files": 0,
+      "other_files": 0,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": true,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": true,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "827e1833e3bde44b2ee121a25e022e25a19d611d",
+      "commit_hash_short": "827e1833",
+      "message_subject": "fix: use npm ci instead of npm install to prevent package-lock.json churn (#292)",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-26 08:59:05 +0200",
+      "total_files_changed": 1,
+      "total_additions": 2,
+      "total_deletions": 2,
+      "files": [
+        "setup.sh"
+      ],
+      "file_stats": {
+        "setup.sh": {
+          "added": 2,
+          "deleted": 2
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 0,
+      "config_files": 0,
+      "test_files": 0,
+      "other_files": 1,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": true,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": true,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": true,
+      "updated_in_later_commit": "71e7f126",
+      "commits_until_update": 1
+    },
+    {
+      "commit_hash": "71e7f1260dfdb11e20beedbdecbe4044b83c3aef",
+      "commit_hash_short": "71e7f126",
+      "message_subject": "docs: document recursive auto-collapse behavior in ARCHITECTURE.md (#291)",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-26 08:57:01 +0200",
+      "total_files_changed": 1,
+      "total_additions": 28,
+      "total_deletions": 5,
+      "files": [
+        "ARCHITECTURE.md"
+      ],
+      "file_stats": {
+        "ARCHITECTURE.md": {
+          "added": 28,
+          "deleted": 5
+        }
+      },
+      "architecture_changed": true,
+      "architecture_body_changed": true,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 0,
+      "config_files": 0,
+      "test_files": 0,
+      "other_files": 1,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": true,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": true,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": true,
+      "should_have_updated": false,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "98fb9711f714018141e161480bde1171957e0396",
+      "commit_hash_short": "98fb9711",
+      "message_subject": "Fold containers by default if children are removed (#290)",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-26 08:41:37 +0200",
+      "total_files_changed": 3,
+      "total_additions": 111,
+      "total_deletions": 36,
+      "files": [
+        "client/package-lock.json",
+        "client/src/components/CalendarDay.jsx",
+        "client/src/components/NewsletterDay.jsx"
+      ],
+      "file_stats": {
+        "client/package-lock.json": {
+          "added": 97,
+          "deleted": 26
+        },
+        "client/src/components/CalendarDay.jsx": {
+          "added": 5,
+          "deleted": 3
+        },
+        "client/src/components/NewsletterDay.jsx": {
+          "added": 9,
+          "deleted": 7
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 2,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 0,
+      "config_files": 1,
+      "test_files": 0,
+      "other_files": 0,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": true,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": true,
+      "updated_in_later_commit": "b2c4d1a0",
+      "commits_until_update": 1
+    },
+    {
+      "commit_hash": "b2c4d1a0193a132e1a6e226ed813b63fb5ce814b",
+      "commit_hash_short": "b2c4d1a0",
+      "message_subject": "Foldable containers (#289)",
+      "message_body": "Refactors the Feed architecture to improved CalendarDay -> NewsletterDay hierarchy.\n- Introduces FoldableContainer for collapsing newsletters and sections.\n- Persists fold state to client localStorage via new useLocalStorage hook.\n- Adds specific visual states for 'all removed' content.\n- Updates Architecture documentation to reflect new component structure.",
+      "author": "Gilad Barnea",
+      "date": "2025-11-26 01:06:16 +0200",
+      "total_files_changed": 9,
+      "total_additions": 356,
+      "total_deletions": 194,
+      "files": [
+        "ARCHITECTURE.md",
+        "client/package-lock.json",
+        "client/scripts/lint.sh",
+        "client/src/components/ArticleList.jsx",
+        "client/src/components/CalendarDay.jsx",
+        "client/src/components/Feed.jsx",
+        "client/src/components/FoldableContainer.jsx",
+        "client/src/components/NewsletterDay.jsx",
+        "client/src/hooks/useLocalStorage.js"
+      ],
+      "file_stats": {
+        "ARCHITECTURE.md": {
+          "added": 23,
+          "deleted": 16
+        },
+        "client/package-lock.json": {
+          "added": 26,
+          "deleted": 97
+        },
+        "client/scripts/lint.sh": {
+          "added": 1,
+          "deleted": 1
+        },
+        "client/src/components/ArticleList.jsx": {
+          "added": 8,
+          "deleted": 6
+        },
+        "client/src/components/CalendarDay.jsx": {
+          "added": 115,
+          "deleted": 0
+        },
+        "client/src/components/Feed.jsx": {
+          "added": 2,
+          "deleted": 74
+        },
+        "client/src/components/FoldableContainer.jsx": {
+          "added": 44,
+          "deleted": 0
+        },
+        "client/src/components/NewsletterDay.jsx": {
+          "added": 88,
+          "deleted": 0
+        },
+        "client/src/hooks/useLocalStorage.js": {
+          "added": 49,
+          "deleted": 0
+        }
+      },
+      "architecture_changed": true,
+      "architecture_body_changed": true,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 5,
+      "jsx_non_component": 0,
+      "js_hooks": 1,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 0,
+      "config_files": 1,
+      "test_files": 0,
+      "other_files": 2,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": true,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": true,
+      "msg_state_change": true,
+      "msg_ui_change": false,
+      "msg_architecture": true,
+      "should_have_updated": false,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "048ca27f8b3abad1e112b4fc1fc7af1802279611",
+      "commit_hash_short": "048ca27f",
+      "message_subject": "Merge pull request #266 from giladbarnea/claude/fix-clipboard-fallback-01AQCQytYPKevLiDyJUpom5T",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-21 14:29:48 +0200",
+      "total_files_changed": 2,
+      "total_additions": 40,
+      "total_deletions": 6,
+      "files": [
+        "client/src/App.css",
+        "client/src/App.jsx"
+      ],
+      "file_stats": {
+        "client/src/App.css": {
+          "added": 10,
+          "deleted": 0
+        },
+        "client/src/App.jsx": {
+          "added": 30,
+          "deleted": 6
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 1,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 1,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 0,
+      "config_files": 0,
+      "test_files": 0,
+      "other_files": 0,
+      "has_app_jsx": true,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "4119d7d96cc920f6ec6e34704ca5064ceae4abd0",
+      "commit_hash_short": "4119d7d9",
+      "message_subject": "Merge pull request #265 from giladbarnea/claude/fix-git-hooks-race-condition-01PNKaMNURt7avHBNhss2Esh",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-21 12:22:25 +0200",
+      "total_files_changed": 14,
+      "total_additions": 541,
+      "total_deletions": 238,
+      "files": [
+        ".githooks/README.md",
+        ".githooks/post-merge",
+        ".githooks/post-rewrite",
+        ".githooks/pre-rebase",
+        ".github/workflows/WORKFLOW_DIAGRAM.md",
+        ".github/workflows/copy-agents-to-claude.yml",
+        ".github/workflows/copy-agents-to-claude.yml.deprecated",
+        ".github/workflows/maintain-documentation.yml",
+        ".github/workflows/update-doc-frontmatter.yml",
+        ".github/workflows/update-doc-frontmatter.yml.deprecated",
+        ".github/workflows/update-project-structure.yml",
+        ".github/workflows/update-project-structure.yml.deprecated",
+        "scripts/markdown_frontmatter.py",
+        "scripts/update_doc_frontmatter.py"
+      ],
+      "file_stats": {
+        ".githooks/README.md": {
+          "added": 27,
+          "deleted": 13
+        },
+        ".githooks/post-merge": {
+          "added": 0,
+          "deleted": 4
+        },
+        ".githooks/post-rewrite": {
+          "added": 0,
+          "deleted": 4
+        },
+        ".githooks/pre-rebase": {
+          "added": 0,
+          "deleted": 27
+        },
+        ".github/workflows/WORKFLOW_DIAGRAM.md": {
+          "added": 142,
+          "deleted": 0
+        },
+        ".github/workflows/copy-agents-to-claude.yml": {
+          "added": 0,
+          "deleted": 60
+        },
+        ".github/workflows/copy-agents-to-claude.yml.deprecated": {
+          "added": 60,
+          "deleted": 0
+        },
+        ".github/workflows/maintain-documentation.yml": {
+          "added": 183,
+          "deleted": 0
+        },
+        ".github/workflows/update-doc-frontmatter.yml": {
+          "added": 0,
+          "deleted": 72
+        },
+        ".github/workflows/update-doc-frontmatter.yml.deprecated": {
+          "added": 72,
+          "deleted": 0
+        },
+        ".github/workflows/update-project-structure.yml": {
+          "added": 0,
+          "deleted": 54
+        },
+        ".github/workflows/update-project-structure.yml.deprecated": {
+          "added": 54,
+          "deleted": 0
+        },
+        "scripts/markdown_frontmatter.py": {
+          "added": 2,
+          "deleted": 4
+        },
+        "scripts/update_doc_frontmatter.py": {
+          "added": 1,
+          "deleted": 0
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 2,
+      "py_other": 0,
+      "md_docs": 2,
+      "config_files": 10,
+      "test_files": 0,
+      "other_files": 0,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": true,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "7037f58598b7d85676b726c5a00d30e24bd2a69e",
+      "commit_hash_short": "7037f585",
+      "message_subject": "Merge pull request #264 from giladbarnea/claude/add-navigation-buttons-01AQCQytYPKevLiDyJUpom5T",
+      "message_body": "Add three navigation buttons below main title",
+      "author": "Gilad Barnea",
+      "date": "2025-11-21 11:09:47 +0200",
+      "total_files_changed": 3,
+      "total_additions": 147,
+      "total_deletions": 0,
+      "files": [
+        "client/src/App.css",
+        "client/src/App.jsx",
+        "serve.py"
+      ],
+      "file_stats": {
+        "client/src/App.css": {
+          "added": 29,
+          "deleted": 0
+        },
+        "client/src/App.jsx": {
+          "added": 56,
+          "deleted": 0
+        },
+        "serve.py": {
+          "added": 62,
+          "deleted": 0
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 1,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 1,
+      "py_core": 1,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 0,
+      "config_files": 0,
+      "test_files": 0,
+      "other_files": 0,
+      "has_app_jsx": true,
+      "has_serve_py": true,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": true,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "ed462f866df465e3eae225fbc9972603eedf9ced",
+      "commit_hash_short": "ed462f86",
+      "message_subject": "Merge pull request #262 from giladbarnea/claude/remove-util-log-01ChfWzSVEvTcNE7k9py13tm",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-21 10:35:47 +0200",
+      "total_files_changed": 33,
+      "total_additions": 161,
+      "total_deletions": 656,
+      "files": [
+        "anthropic_adapter.py",
+        "bytebytego_adapter.py",
+        "client/src/components/ResultsDisplay.css",
+        "client/src/components/ResultsDisplay.jsx",
+        "client/src/lib/scraper.js",
+        "cloudflare_adapter.py",
+        "danluu_adapter.py",
+        "deepmind_adapter.py",
+        "hackernews_adapter.py",
+        "hillel_wayne_adapter.py",
+        "infoq_adapter.py",
+        "jessitron_adapter.py",
+        "lenny_newsletter_adapter.py",
+        "martin_fowler_adapter.py",
+        "netflix_adapter.py",
+        "newsletter_scraper.py",
+        "node_weekly_adapter.py",
+        "pointer_adapter.py",
+        "pragmatic_engineer_adapter.py",
+        "react_status_adapter.py",
+        "scripts/markdown_frontmatter.py",
+        "serve.py",
+        "simon_willison_adapter.py",
+        "softwareleadweekly_adapter.py",
+        "stripe_engineering_adapter.py",
+        "summarizer.py",
+        "tldr_adapter.py",
+        "tldr_service.py",
+        "util.py",
+        "will_larson_adapter.py",
+        "xeiaso_adapter.py",
+        "AGENTS.md",
+        "CLAUDE.md"
+      ],
+      "file_stats": {
+        "anthropic_adapter.py": {
+          "added": 3,
+          "deleted": 14
+        },
+        "bytebytego_adapter.py": {
+          "added": 4,
+          "deleted": 18
+        },
+        "client/src/components/ResultsDisplay.css": {
+          "added": 0,
+          "deleted": 27
+        },
+        "client/src/components/ResultsDisplay.jsx": {
+          "added": 0,
+          "deleted": 11
+        },
+        "client/src/lib/scraper.js": {
+          "added": 1,
+          "deleted": 2
+        },
+        "cloudflare_adapter.py": {
+          "added": 5,
+          "deleted": 23
+        },
+        "danluu_adapter.py": {
+          "added": 7,
+          "deleted": 32
+        },
+        "deepmind_adapter.py": {
+          "added": 4,
+          "deleted": 18
+        },
+        "hackernews_adapter.py": {
+          "added": 7,
+          "deleted": 30
+        },
+        "hillel_wayne_adapter.py": {
+          "added": 4,
+          "deleted": 18
+        },
+        "infoq_adapter.py": {
+          "added": 4,
+          "deleted": 18
+        },
+        "jessitron_adapter.py": {
+          "added": 5,
+          "deleted": 23
+        },
+        "lenny_newsletter_adapter.py": {
+          "added": 4,
+          "deleted": 18
+        },
+        "martin_fowler_adapter.py": {
+          "added": 4,
+          "deleted": 18
+        },
+        "netflix_adapter.py": {
+          "added": 7,
+          "deleted": 32
+        },
+        "newsletter_scraper.py": {
+          "added": 3,
+          "deleted": 9
+        },
+        "node_weekly_adapter.py": {
+          "added": 8,
+          "deleted": 35
+        },
+        "pointer_adapter.py": {
+          "added": 7,
+          "deleted": 30
+        },
+        "pragmatic_engineer_adapter.py": {
+          "added": 5,
+          "deleted": 23
+        },
+        "react_status_adapter.py": {
+          "added": 8,
+          "deleted": 37
+        },
+        "scripts/markdown_frontmatter.py": {
+          "added": 13,
+          "deleted": 8
+        },
+        "serve.py": {
+          "added": 8,
+          "deleted": 24
+        },
+        "simon_willison_adapter.py": {
+          "added": 4,
+          "deleted": 18
+        },
+        "softwareleadweekly_adapter.py": {
+          "added": 8,
+          "deleted": 36
+        },
+        "stripe_engineering_adapter.py": {
+          "added": 6,
+          "deleted": 27
+        },
+        "summarizer.py": {
+          "added": 11,
+          "deleted": 25
+        },
+        "tldr_adapter.py": {
+          "added": 2,
+          "deleted": 10
+        },
+        "tldr_service.py": {
+          "added": 3,
+          "deleted": 7
+        },
+        "util.py": {
+          "added": 0,
+          "deleted": 15
+        },
+        "will_larson_adapter.py": {
+          "added": 5,
+          "deleted": 23
+        },
+        "xeiaso_adapter.py": {
+          "added": 5,
+          "deleted": 23
+        },
+        "AGENTS.md": {
+          "added": 3,
+          "deleted": 2
+        },
+        "CLAUDE.md": {
+          "added": 3,
+          "deleted": 2
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 1,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 1,
+      "css_files": 1,
+      "py_core": 3,
+      "py_adapters": 22,
+      "py_scripts": 1,
+      "py_other": 2,
+      "md_docs": 2,
+      "config_files": 0,
+      "test_files": 0,
+      "other_files": 0,
+      "has_app_jsx": false,
+      "has_serve_py": true,
+      "has_scraper_js": true,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "59bacb573e999bfd1a732aff926f2b0da5c8d834",
+      "commit_hash_short": "59bacb57",
+      "message_subject": "Merge pull request #261 from giladbarnea/claude/document-sub-agents-016hCKXGP1P1H5WUp5WJhp1K",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-21 09:37:07 +0200",
+      "total_files_changed": 1,
+      "total_additions": 3,
+      "total_deletions": 2,
+      "files": [
+        "AGENTS.md"
+      ],
+      "file_stats": {
+        "AGENTS.md": {
+          "added": 3,
+          "deleted": 2
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 1,
+      "config_files": 0,
+      "test_files": 0,
+      "other_files": 0,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "6d61f028207767a9ec873d36e1acfd4254796418",
+      "commit_hash_short": "6d61f028",
+      "message_subject": "Merge pull request #260 from giladbarnea/claude/analyze-article-preferences-01SKBiEAh8zMhAKoKwkapQVH",
+      "message_body": "Support 24 new sources scrapers",
+      "author": "Gilad Barnea",
+      "date": "2025-11-20 23:29:54 +0200",
+      "total_files_changed": 25,
+      "total_additions": 4181,
+      "total_deletions": 0,
+      "files": [
+        "anthropic_adapter.py",
+        "bytebytego_adapter.py",
+        "cloudflare_adapter.py",
+        "danluu_adapter.py",
+        "deepmind_adapter.py",
+        "hillel_wayne_adapter.py",
+        "infoq_adapter.py",
+        "jessitron_adapter.py",
+        "lenny_newsletter_adapter.py",
+        "martin_fowler_adapter.py",
+        "netflix_adapter.py",
+        "newsletter_config.py",
+        "newsletter_scraper.py",
+        "node_weekly_adapter.py",
+        "pointer_adapter.py",
+        "pragmatic_engineer_adapter.py",
+        "pyproject.toml",
+        "react_status_adapter.py",
+        "requirements.txt",
+        "simon_willison_adapter.py",
+        "softwareleadweekly_adapter.py",
+        "stripe_engineering_adapter.py",
+        "uv.lock",
+        "will_larson_adapter.py",
+        "xeiaso_adapter.py"
+      ],
+      "file_stats": {
+        "anthropic_adapter.py": {
+          "added": 185,
+          "deleted": 0
+        },
+        "bytebytego_adapter.py": {
+          "added": 155,
+          "deleted": 0
+        },
+        "cloudflare_adapter.py": {
+          "added": 156,
+          "deleted": 0
+        },
+        "danluu_adapter.py": {
+          "added": 231,
+          "deleted": 0
+        },
+        "deepmind_adapter.py": {
+          "added": 156,
+          "deleted": 0
+        },
+        "hillel_wayne_adapter.py": {
+          "added": 160,
+          "deleted": 0
+        },
+        "infoq_adapter.py": {
+          "added": 164,
+          "deleted": 0
+        },
+        "jessitron_adapter.py": {
+          "added": 162,
+          "deleted": 0
+        },
+        "lenny_newsletter_adapter.py": {
+          "added": 157,
+          "deleted": 0
+        },
+        "martin_fowler_adapter.py": {
+          "added": 155,
+          "deleted": 0
+        },
+        "netflix_adapter.py": {
+          "added": 251,
+          "deleted": 0
+        },
+        "newsletter_config.py": {
+          "added": 220,
+          "deleted": 0
+        },
+        "newsletter_scraper.py": {
+          "added": 60,
+          "deleted": 0
+        },
+        "node_weekly_adapter.py": {
+          "added": 306,
+          "deleted": 0
+        },
+        "pointer_adapter.py": {
+          "added": 252,
+          "deleted": 0
+        },
+        "pragmatic_engineer_adapter.py": {
+          "added": 157,
+          "deleted": 0
+        },
+        "pyproject.toml": {
+          "added": 2,
+          "deleted": 0
+        },
+        "react_status_adapter.py": {
+          "added": 250,
+          "deleted": 0
+        },
+        "requirements.txt": {
+          "added": 1,
+          "deleted": 0
+        },
+        "simon_willison_adapter.py": {
+          "added": 172,
+          "deleted": 0
+        },
+        "softwareleadweekly_adapter.py": {
+          "added": 291,
+          "deleted": 0
+        },
+        "stripe_engineering_adapter.py": {
+          "added": 198,
+          "deleted": 0
+        },
+        "uv.lock": {
+          "added": 49,
+          "deleted": 0
+        },
+        "will_larson_adapter.py": {
+          "added": 151,
+          "deleted": 0
+        },
+        "xeiaso_adapter.py": {
+          "added": 140,
+          "deleted": 0
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 1,
+      "py_adapters": 20,
+      "py_scripts": 0,
+      "py_other": 1,
+      "md_docs": 0,
+      "config_files": 2,
+      "test_files": 0,
+      "other_files": 1,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "8f1d5b997327e0757c689f3e9af2148cbd7e5639",
+      "commit_hash_short": "8f1d5b99",
+      "message_subject": "Merge pull request #257 from giladbarnea/claude/generate-codebase-txt-01A47MPDKxnt1om9qc6wG5Ha",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-19 23:43:28 +0200",
+      "total_files_changed": 33,
+      "total_additions": 2373,
+      "total_deletions": 2,
+      "files": [
+        "scripts/generate_context.py",
+        "BUGS.md",
+        "experimental/gemini_3_pro_thinking_levels/COMPARISON_REPORT.md",
+        "experimental/gemini_3_pro_thinking_levels/Exploring the Limits of Large Language Models as Q.json",
+        "experimental/gemini_3_pro_thinking_levels/Exploring the Limits of Large Language Models as Q_high.md",
+        "experimental/gemini_3_pro_thinking_levels/Exploring the Limits of Large Language Models as Q_low.md",
+        "experimental/gemini_3_pro_thinking_levels/I just want working RCS messaging.json",
+        "experimental/gemini_3_pro_thinking_levels/I made a downdetector for downdetector_s downdetec.json",
+        "experimental/gemini_3_pro_thinking_levels/Outdated Samsung handset linked to fatal emergency.json",
+        "experimental/gemini_3_pro_thinking_levels/What nicotine does to your brain.json",
+        "experimental/gemini_3_pro_thinking_levels/What nicotine does to your brain_low.md",
+        "experimental/gemini_3_pro_thinking_levels/experiment_summary.json",
+        "experimental/openai_reasoning_effort/COMPARISON_REPORT.md",
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q.json",
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_1_low.md",
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_1_medium.md",
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_low.md",
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_medium.md",
+        "experimental/openai_reasoning_effort/I just want working RCS messaging.json",
+        "experimental/openai_reasoning_effort/I just want working RCS messaging_gpt-5_1_low.md",
+        "experimental/openai_reasoning_effort/I just want working RCS messaging_gpt-5_low.md",
+        "experimental/openai_reasoning_effort/I just want working RCS messaging_gpt-5_medium.md",
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec.json",
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec_gpt-5_1_medium.md",
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec_gpt-5_low.md",
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec_gpt-5_medium.md",
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency.json",
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_1_low.md",
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_1_medium.md",
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_low.md",
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_medium.md",
+        "experimental/openai_reasoning_effort/What nicotine does to your brain.json",
+        "experimental/openai_reasoning_effort/experiment_summary.json"
+      ],
+      "file_stats": {
+        "scripts/generate_context.py": {
+          "added": 222,
+          "deleted": 0
+        },
+        "BUGS.md": {
+          "added": 3,
+          "deleted": 2
+        },
+        "experimental/gemini_3_pro_thinking_levels/COMPARISON_REPORT.md": {
+          "added": 114,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/Exploring the Limits of Large Language Models as Q.json": {
+          "added": 30,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/Exploring the Limits of Large Language Models as Q_high.md": {
+          "added": 47,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/Exploring the Limits of Large Language Models as Q_low.md": {
+          "added": 55,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/I just want working RCS messaging.json": {
+          "added": 26,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/I made a downdetector for downdetector_s downdetec.json": {
+          "added": 26,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/Outdated Samsung handset linked to fatal emergency.json": {
+          "added": 26,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/What nicotine does to your brain.json": {
+          "added": 28,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/What nicotine does to your brain_low.md": {
+          "added": 27,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/experiment_summary.json": {
+          "added": 152,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/COMPARISON_REPORT.md": {
+          "added": 190,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q.json": {
+          "added": 56,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_1_low.md": {
+          "added": 149,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_1_medium.md": {
+          "added": 182,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_low.md": {
+          "added": 46,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_medium.md": {
+          "added": 67,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I just want working RCS messaging.json": {
+          "added": 54,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I just want working RCS messaging_gpt-5_1_low.md": {
+          "added": 117,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I just want working RCS messaging_gpt-5_low.md": {
+          "added": 30,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I just want working RCS messaging_gpt-5_medium.md": {
+          "added": 31,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec.json": {
+          "added": 54,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec_gpt-5_1_medium.md": {
+          "added": 30,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec_gpt-5_low.md": {
+          "added": 25,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec_gpt-5_medium.md": {
+          "added": 25,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency.json": {
+          "added": 56,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_1_low.md": {
+          "added": 46,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_1_medium.md": {
+          "added": 50,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_low.md": {
+          "added": 28,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_medium.md": {
+          "added": 32,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/What nicotine does to your brain.json": {
+          "added": 48,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/experiment_summary.json": {
+          "added": 301,
+          "deleted": 0
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 1,
+      "py_other": 0,
+      "md_docs": 20,
+      "config_files": 0,
+      "test_files": 0,
+      "other_files": 12,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "47266640ac2a13bd209a506434cc033c76b4885e",
+      "commit_hash_short": "47266640",
+      "message_subject": "Merge pull request #259 from giladbarnea/claude/gemini-3-pro-api-research-018dWURBLzyB7Gm2D6GtNRYC",
+      "message_body": "Research Gemini 3 Pro Python API parameters",
+      "author": "Gilad Barnea",
+      "date": "2025-11-19 23:31:23 +0200",
+      "total_files_changed": 32,
+      "total_additions": 2244,
+      "total_deletions": 23,
+      "files": [
+        "client/package-lock.json",
+        "experimental/gemini_3_pro_thinking_levels/COMPARISON_REPORT.md",
+        "experimental/gemini_3_pro_thinking_levels/Exploring the Limits of Large Language Models as Q.json",
+        "experimental/gemini_3_pro_thinking_levels/Exploring the Limits of Large Language Models as Q_high.md",
+        "experimental/gemini_3_pro_thinking_levels/Exploring the Limits of Large Language Models as Q_low.md",
+        "experimental/gemini_3_pro_thinking_levels/I just want working RCS messaging.json",
+        "experimental/gemini_3_pro_thinking_levels/I made a downdetector for downdetector_s downdetec.json",
+        "experimental/gemini_3_pro_thinking_levels/Outdated Samsung handset linked to fatal emergency.json",
+        "experimental/gemini_3_pro_thinking_levels/What nicotine does to your brain.json",
+        "experimental/gemini_3_pro_thinking_levels/What nicotine does to your brain_low.md",
+        "experimental/gemini_3_pro_thinking_levels/experiment_summary.json",
+        "experimental/openai_reasoning_effort/COMPARISON_REPORT.md",
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q.json",
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_1_low.md",
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_1_medium.md",
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_low.md",
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_medium.md",
+        "experimental/openai_reasoning_effort/I just want working RCS messaging.json",
+        "experimental/openai_reasoning_effort/I just want working RCS messaging_gpt-5_1_low.md",
+        "experimental/openai_reasoning_effort/I just want working RCS messaging_gpt-5_low.md",
+        "experimental/openai_reasoning_effort/I just want working RCS messaging_gpt-5_medium.md",
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec.json",
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec_gpt-5_1_medium.md",
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec_gpt-5_low.md",
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec_gpt-5_medium.md",
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency.json",
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_1_low.md",
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_1_medium.md",
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_low.md",
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_medium.md",
+        "experimental/openai_reasoning_effort/What nicotine does to your brain.json",
+        "experimental/openai_reasoning_effort/experiment_summary.json"
+      ],
+      "file_stats": {
+        "client/package-lock.json": {
+          "added": 96,
+          "deleted": 23
+        },
+        "experimental/gemini_3_pro_thinking_levels/COMPARISON_REPORT.md": {
+          "added": 114,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/Exploring the Limits of Large Language Models as Q.json": {
+          "added": 30,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/Exploring the Limits of Large Language Models as Q_high.md": {
+          "added": 47,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/Exploring the Limits of Large Language Models as Q_low.md": {
+          "added": 55,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/I just want working RCS messaging.json": {
+          "added": 26,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/I made a downdetector for downdetector_s downdetec.json": {
+          "added": 26,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/Outdated Samsung handset linked to fatal emergency.json": {
+          "added": 26,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/What nicotine does to your brain.json": {
+          "added": 28,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/What nicotine does to your brain_low.md": {
+          "added": 27,
+          "deleted": 0
+        },
+        "experimental/gemini_3_pro_thinking_levels/experiment_summary.json": {
+          "added": 152,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/COMPARISON_REPORT.md": {
+          "added": 190,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q.json": {
+          "added": 56,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_1_low.md": {
+          "added": 149,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_1_medium.md": {
+          "added": 182,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_low.md": {
+          "added": 46,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Exploring the Limits of Large Language Models as Q_gpt-5_medium.md": {
+          "added": 67,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I just want working RCS messaging.json": {
+          "added": 54,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I just want working RCS messaging_gpt-5_1_low.md": {
+          "added": 117,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I just want working RCS messaging_gpt-5_low.md": {
+          "added": 30,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I just want working RCS messaging_gpt-5_medium.md": {
+          "added": 31,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec.json": {
+          "added": 54,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec_gpt-5_1_medium.md": {
+          "added": 30,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec_gpt-5_low.md": {
+          "added": 25,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/I made a downdetector for downdetector_s downdetec_gpt-5_medium.md": {
+          "added": 25,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency.json": {
+          "added": 56,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_1_low.md": {
+          "added": 46,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_1_medium.md": {
+          "added": 50,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_low.md": {
+          "added": 28,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/Outdated Samsung handset linked to fatal emergency_gpt-5_medium.md": {
+          "added": 32,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/What nicotine does to your brain.json": {
+          "added": 48,
+          "deleted": 0
+        },
+        "experimental/openai_reasoning_effort/experiment_summary.json": {
+          "added": 301,
+          "deleted": 0
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 19,
+      "config_files": 1,
+      "test_files": 0,
+      "other_files": 12,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "2f20fa30869f7065d444f3b048a659e1036c6b96",
+      "commit_hash_short": "2f20fa30",
+      "message_subject": "Merge pull request #256 from giladbarnea/claude/test-scraping-workflow-01VdmsNuRtdgCp2MtbaGXJ7b",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-18 17:52:35 +0200",
+      "total_files_changed": 3,
+      "total_additions": 37,
+      "total_deletions": 100,
+      "files": [
+        "supabase_client.py",
+        ".claude/agents/web-deep-researcher.md",
+        "client/package-lock.json"
+      ],
+      "file_stats": {
+        "supabase_client.py": {
+          "added": 11,
+          "deleted": 0
+        },
+        ".claude/agents/web-deep-researcher.md": {
+          "added": 3,
+          "deleted": 4
+        },
+        "client/package-lock.json": {
+          "added": 23,
+          "deleted": 96
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 1,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 1,
+      "config_files": 1,
+      "test_files": 0,
+      "other_files": 0,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": true,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": true,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "af7d9f03d6265da023b3e0c0a7bbf397aae15949",
+      "commit_hash_short": "af7d9f03",
+      "message_subject": "Merge pull request #255 from giladbarnea/claude/check-code-hooks-01GqGQkfUgF4fY4twiXpNXTg",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-18 12:34:58 +0200",
+      "total_files_changed": 7,
+      "total_additions": 16,
+      "total_deletions": 6,
+      "files": [
+        ".claude/settings.json",
+        "AGENTS.md",
+        "ARCHITECTURE.md",
+        "BUGS.md",
+        "CLAUDE.md",
+        "GOTCHAS.md",
+        "SCREENSHOTTING_APP.md"
+      ],
+      "file_stats": {
+        ".claude/settings.json": {
+          "added": 10,
+          "deleted": 0
+        },
+        "AGENTS.md": {
+          "added": 1,
+          "deleted": 1
+        },
+        "ARCHITECTURE.md": {
+          "added": 1,
+          "deleted": 1
+        },
+        "BUGS.md": {
+          "added": 1,
+          "deleted": 1
+        },
+        "CLAUDE.md": {
+          "added": 1,
+          "deleted": 1
+        },
+        "GOTCHAS.md": {
+          "added": 1,
+          "deleted": 1
+        },
+        "SCREENSHOTTING_APP.md": {
+          "added": 1,
+          "deleted": 1
+        }
+      },
+      "architecture_changed": true,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 0,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 5,
+      "config_files": 0,
+      "test_files": 0,
+      "other_files": 2,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": true,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "8c20b7e052973a3c14b1da142dbd142f66d18732",
+      "commit_hash_short": "8c20b7e0",
+      "message_subject": "Merge pull request #252 from giladbarnea/claude/fix-article-meta-parentheses-017PLA7VD5umZPn5H1KqHQuT",
+      "message_body": "",
+      "author": "Gilad Barnea",
+      "date": "2025-11-17 23:37:24 +0200",
+      "total_files_changed": 2,
+      "total_additions": 6,
+      "total_deletions": 1,
+      "files": [
+        "tldr_adapter.py",
+        "client/src/components/ArticleCard.css"
+      ],
+      "file_stats": {
+        "tldr_adapter.py": {
+          "added": 1,
+          "deleted": 1
+        },
+        "client/src/components/ArticleCard.css": {
+          "added": 5,
+          "deleted": 0
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 1,
+      "py_core": 0,
+      "py_adapters": 1,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 0,
+      "config_files": 0,
+      "test_files": 0,
+      "other_files": 0,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    },
+    {
+      "commit_hash": "72437d9be11cecf248929ab46a37eb9206072dca",
+      "commit_hash_short": "72437d9b",
+      "message_subject": "Merge pull request #251 from giladbarnea/claude/fix-tldr-bold-text-01DqyMVYtYUNGXsBUBHZrtzZ",
+      "message_body": "Fix bold text line breaking in TLDR",
+      "author": "Gilad Barnea",
+      "date": "2025-11-17 23:03:53 +0200",
+      "total_files_changed": 2,
+      "total_additions": 1,
+      "total_deletions": 1,
+      "files": [
+        "bold-span-takes-up-whole-line.png",
+        "client/src/components/ArticleCard.css"
+      ],
+      "file_stats": {
+        "bold-span-takes-up-whole-line.png": {
+          "added": 0,
+          "deleted": 0
+        },
+        "client/src/components/ArticleCard.css": {
+          "added": 1,
+          "deleted": 1
+        }
+      },
+      "architecture_changed": false,
+      "architecture_body_changed": false,
+      "architecture_frontmatter_only": false,
+      "jsx_components": 0,
+      "jsx_non_component": 0,
+      "js_hooks": 0,
+      "js_lib": 0,
+      "css_files": 1,
+      "py_core": 0,
+      "py_adapters": 0,
+      "py_scripts": 0,
+      "py_other": 0,
+      "md_docs": 0,
+      "config_files": 0,
+      "test_files": 0,
+      "other_files": 1,
+      "has_app_jsx": false,
+      "has_serve_py": false,
+      "has_scraper_js": false,
+      "has_storage_api": false,
+      "has_supabase_client": false,
+      "has_state_hooks": false,
+      "msg_feat": false,
+      "msg_fix": false,
+      "msg_refactor": false,
+      "msg_docs": false,
+      "msg_chore": false,
+      "msg_test": false,
+      "msg_new_feature": false,
+      "msg_behavior_change": false,
+      "msg_flow_change": false,
+      "msg_component_change": false,
+      "msg_state_change": false,
+      "msg_ui_change": false,
+      "msg_architecture": false,
+      "should_have_updated": null,
+      "updated_in_later_commit": null,
+      "commits_until_update": null
+    }
+  ]
+}
