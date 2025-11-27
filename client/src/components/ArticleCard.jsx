@@ -9,7 +9,7 @@ function ArticleCard({ article }) {
     article.url
   )
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
-  const { isAvailable } = tldr
+  const { isAvailable, toggleVisibility } = tldr
 
   const fullUrl = useMemo(() => {
     const url = article.url
@@ -17,20 +17,25 @@ function ArticleCard({ article }) {
     return `https://${url}`
   }, [article.url])
 
+  const toggleTldrWithTracking = (toggleFn) => {
+    const wasExpanded = tldr.expanded
+    toggleFn()
+
+    if (wasExpanded) {
+      markTldrHidden()
+    } else {
+      unmarkTldrHidden()
+    }
+  }
+
   const handleExpand = async (e) => {
     e.stopPropagation();
     if (isRemoved) return;
 
-    const wasExpanded = tldr.expanded
-    tldr.toggle()
+    toggleTldrWithTracking(() => tldr.toggle())
 
     if (!isRead && !tldr.expanded) {
        toggleRead()
-    }
-     if (wasExpanded && !tldr.expanded) {
-      markTldrHidden()
-    } else if (tldr.expanded) {
-      unmarkTldrHidden()
     }
   };
 
@@ -44,6 +49,11 @@ function ArticleCard({ article }) {
     if (isRemoved) {
       e.preventDefault();
       toggleRemove();
+      return;
+    }
+
+    if (isAvailable) {
+      toggleTldrWithTracking(toggleVisibility)
     }
   };
 
@@ -59,6 +69,7 @@ function ArticleCard({ article }) {
             ? 'opacity-50 grayscale scale-[0.98] bg-slate-50 border-transparent cursor-pointer hover:opacity-60'
             : 'bg-white/80 backdrop-blur-xl border-white/40 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5'}
         ${tldr.expanded && !stateLoading ? 'mb-6 ring-1 ring-brand-100 shadow-md bg-white' : 'mb-3'}
+        ${!isRemoved && isAvailable ? 'cursor-pointer' : ''}
       `}
     >
       <div className="p-5 flex flex-col gap-2">
@@ -69,7 +80,7 @@ function ArticleCard({ article }) {
            rel={isRemoved ? undefined : "noopener noreferrer"}
            className={`
              text-[17px] font-display font-semibold leading-snug text-slate-900
-             group-hover:text-brand-600 transition-colors duration-200 block tracking-tight
+             hover:text-brand-600 transition-colors duration-200 block tracking-tight
              ${isRead ? 'text-slate-500 font-normal' : ''}
              ${isRemoved ? 'pointer-events-none' : ''}
            `}
@@ -78,6 +89,7 @@ function ArticleCard({ article }) {
                e.preventDefault();
                return;
              }
+             e.stopPropagation();
              if (!isRead) toggleRead();
            }}
          >
