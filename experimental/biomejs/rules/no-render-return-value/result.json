@@ -1,0 +1,5 @@
+{
+  "rule": "correctness/noRenderReturnValue",
+  "matchCount": 0,
+  "status": "success"
+}

@@ -1,0 +1,5 @@
+{
+  "rule": "correctness/noReactPropAssignments",
+  "matchCount": 0,
+  "status": "success"
+}

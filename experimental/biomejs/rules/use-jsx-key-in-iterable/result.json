@@ -1,0 +1,5 @@
+{
+  "rule": "correctness/useJsxKeyInIterable",
+  "matchCount": 0,
+  "status": "success"
+}

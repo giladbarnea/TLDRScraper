@@ -1,0 +1,5 @@
+{
+  "rule": "correctness/useHookAtTopLevel",
+  "matchCount": 0,
+  "status": "success"
+}

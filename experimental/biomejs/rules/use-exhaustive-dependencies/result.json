@@ -1,0 +1,5 @@
+{
+  "rule": "correctness/useExhaustiveDependencies",
+  "matchCount": 3,
+  "status": "success"
+}
