@@ -1,7 +1,7 @@
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
-import NewsletterDay from './NewsletterDay'
 import FoldableContainer from './FoldableContainer'
+import NewsletterDay from './NewsletterDay'
 
 function CalendarDay({ payload }) {
   const [livePayload, , , { loading }] = useSupabaseStorage(

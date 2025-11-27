@@ -4,14 +4,13 @@
  */
 
 import * as storageApi from './storageApi'
-import { getNewsletterScrapeKey } from './storageKeys'
 
 function computeDateRange(startDate, endDate) {
   const dates = []
   const start = new Date(startDate)
   const end = new Date(endDate)
 
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
     return []
   }
 
@@ -67,7 +66,7 @@ function normalizeIsoDate(value) {
   const trimmed = value.trim()
   if (!trimmed) return null
   const date = new Date(trimmed)
-  if (isNaN(date.getTime())) return null
+  if (Number.isNaN(date.getTime())) return null
   return date.toISOString().split('T')[0]
 }
 
