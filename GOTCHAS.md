@@ -1,9 +1,19 @@
 ---
-last_updated: 2025-11-24 19:04, c120e94
+last_updated: 2025-11-27 20:15, 7f72ea8
 ---
 # Gotchas
 
 This document catalogs recurring pitfalls in various topics, including managing client-side state persistence and reactivity, surprising design decisions, and so on.
+
+---
+
+#### 2025-11-27 `7f72ea8`: Base layer styles overridden by Typography plugin
+
+**Desired behavior that didn't work**: Add margin-top: 0.8em and margin-bottom: 0.6em to h1 elements via base layer styles.
+
+**What actually happened and falsified original thesis**: No visual change. h1 elements inside prose-wrapped content kept the Typography plugin's default margins. We had wrongly assumed base layer `h1` selectors would override plugin styles.
+
+**Cause & Fix**: The `@tailwindcss/typography` plugin's `.prose :where(h1)` and `.prose-sm :where(h1)` selectors have higher specificity and cascade priority than base layer styles. The fix was to target `.prose h1` and `.prose-sm h1` specifically, placed outside of `@layer` for highest priority.
 
 ---
 
