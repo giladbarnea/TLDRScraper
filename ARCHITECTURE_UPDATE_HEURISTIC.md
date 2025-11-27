@@ -225,12 +225,35 @@ Based on historical data:
 1. **Use as a CI check** that warns but doesn't block
 2. **Combine with manual review** for edge cases (result = None)
 3. **Track false positives/negatives** over time to refine heuristic
-4. **Consider LLM-based approach** for higher accuracy (can read diffs + commit messages)
+4. **Measure performance** against improved training data (see `IMPROVING_TRAINING_DATA.md`)
+
+## Comparison with LLM Approach
+
+This string-based heuristic is designed to be **fast, deterministic, and cheap**. For comparison purposes, an LLM-based classifier can serve as an independent prediction method:
+
+### String Heuristic (This Approach)
+- **Speed**: Milliseconds per commit
+- **Cost**: Free
+- **Deterministic**: Same input → same output
+- **Performance**: ~0.82-0.85 F1 (estimated)
+
+### LLM Classifier (Alternative Approach)
+- **Speed**: Seconds per commit
+- **Cost**: API calls ($$$)
+- **Non-deterministic**: May vary between runs
+- **Performance**: Unknown (to be measured)
+
+**Key Point:** These are independent prediction methods, not validator and validatee. Both should be evaluated against ground truth labels (from manual review + lookahead analysis), then compared to determine:
+- Does the simple heuristic perform well enough?
+- Is the LLM's extra accuracy worth the cost?
+- Should we use a hybrid approach?
+
+See `IMPROVING_TRAINING_DATA.md` for details on training data quality and evaluation strategy.
 
 ## Next Steps
 
-If naive heuristic isn't sufficient, consider:
-
-1. **Light ML approach**: Train a simple classifier on commit features
-2. **LLM-based approach**: Use GPT-4 to read diffs and decide
-3. **Hybrid approach**: Naive heuristic for obvious cases + LLM for edge cases
+1. **Deploy heuristic** as pre-push hook or CI check
+2. **Expand training dataset** to 100+ commits (currently 18)
+3. **Implement LLM classifier** as independent comparison baseline
+4. **Evaluate both approaches** on held-out test set
+5. **Refine heuristic** based on real-world false positives/negatives
