@@ -1,3 +1,6 @@
+---
+last_updated: 2025-11-27 08:24, dfc3062
+---
 # Architecture Update Heuristic
 
 **Goal:** Automatically determine when `ARCHITECTURE.md` should be updated based on code changes.
