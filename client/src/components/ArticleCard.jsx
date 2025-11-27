@@ -17,20 +17,25 @@ function ArticleCard({ article, index }) {
     return `https://${url}`
   }, [article.url])
 
+  const toggleTldrWithTracking = (toggleFn) => {
+    const wasExpanded = tldr.expanded
+    toggleFn()
+
+    if (wasExpanded) {
+      markTldrHidden()
+    } else {
+      unmarkTldrHidden()
+    }
+  }
+
   const handleExpand = async (e) => {
     e.stopPropagation();
     if (isRemoved) return;
 
-    const wasExpanded = tldr.expanded
-    tldr.toggle()
+    toggleTldrWithTracking(() => tldr.toggle())
 
     if (!isRead && !tldr.expanded) {
        toggleRead()
-    }
-     if (wasExpanded && !tldr.expanded) {
-      markTldrHidden()
-    } else if (tldr.expanded) {
-      unmarkTldrHidden()
     }
   };
 
@@ -48,14 +53,7 @@ function ArticleCard({ article, index }) {
     }
 
     if (isAvailable) {
-      const wasExpanded = tldr.expanded;
-      toggleVisibility();
-
-      if (wasExpanded) {
-        markTldrHidden();
-      } else {
-        unmarkTldrHidden();
-      }
+      toggleTldrWithTracking(toggleVisibility)
     }
   };
 
