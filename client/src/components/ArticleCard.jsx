@@ -71,6 +71,7 @@ function ArticleCard({ article, index }) {
             ? 'opacity-50 grayscale scale-[0.98] bg-slate-50 border-transparent cursor-pointer hover:opacity-60'
             : 'bg-white/80 backdrop-blur-xl border-white/40 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5'}
         ${tldr.expanded && !stateLoading ? 'mb-6 ring-1 ring-brand-100 shadow-md bg-white' : 'mb-3'}
+        ${!isRemoved && isAvailable ? 'cursor-pointer' : ''}
       `}
     >
       <div className="p-5 flex flex-col gap-2">
@@ -81,7 +82,7 @@ function ArticleCard({ article, index }) {
            rel={isRemoved ? undefined : "noopener noreferrer"}
            className={`
              text-[17px] font-display font-semibold leading-snug text-slate-900
-             group-hover:text-brand-600 transition-colors duration-200 block tracking-tight
+             hover:text-brand-600 transition-colors duration-200 block tracking-tight
              ${isRead ? 'text-slate-500 font-normal' : ''}
              ${isRemoved ? 'pointer-events-none' : ''}
            `}
