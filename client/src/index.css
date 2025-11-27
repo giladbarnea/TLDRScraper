@@ -24,9 +24,10 @@
   body {
     @apply bg-slate-50 text-slate-900 antialiased;
   }
+}
 
-  h1 {
-    margin-top: 0.8em;
-    margin-bottom: 0.6em;
-  }
+.prose h1,
+.prose-sm h1 {
+  margin-top: 0.8em;
+  margin-bottom: 0.6em;
 }
