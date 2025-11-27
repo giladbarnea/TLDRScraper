@@ -21,6 +21,18 @@ git config core.hooksPath .githooks
 
 ## Available Hooks
 
+### pre-commit
+
+Runs biome lint on staged client files before allowing commit. Prevents commits with linting errors.
+
+**Requirements:**
+- Node.js and npm (for npx)
+
+**Behavior:**
+- Only runs if `client/` files are staged
+- Uses `DRY_RUN=1` mode (no file modifications)
+- Exits non-zero to block commit if linting fails
+
 ### pre-merge-commit
 
 Automatically generates `PROJECT_STRUCTURE.md` using `eza` before merge commits so the working tree stays in sync.
