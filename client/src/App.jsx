@@ -1,4 +1,4 @@
-import { Calendar, RefreshCw, Settings, Zap } from 'lucide-react'
+import { Calendar, Zap } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Feed from './components/Feed'
 import ScrapeForm from './components/ScrapeForm'

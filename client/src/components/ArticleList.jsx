@@ -59,7 +59,6 @@ function ArticleList({ articles, showSectionHeaders = true }) {
           <ArticleCard
             key={item.key}
             article={item.article}
-            index={item.index}
           />
         )
       ))}

@@ -138,6 +138,7 @@ export function useSupabaseStorage(key, defaultValue) {
   const [error, setError] = useState(null)
   const valueRef = useRef(defaultValue)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: defaultValue is intentionally omitted - it's an initial/fallback value, not a reactive dependency. Adding it would cause infinite loops if callers pass inline objects.
   useEffect(() => {
     let cancelled = false
 
@@ -162,6 +163,7 @@ export function useSupabaseStorage(key, defaultValue) {
     }
   }, [key])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: defaultValue is intentionally omitted - subscription should only re-establish when key changes, not when fallback value changes.
   useEffect(() => {
     const handleChange = () => {
       readValue(key, defaultValue).then(newValue => {

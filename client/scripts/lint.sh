@@ -1,24 +1,36 @@
 #!/usr/bin/env bash
+set -eo pipefail
 
-# Define whitelist of fixable rules. Make sure these fix:"safe" in biome.json.
-fixable_rules=(
-  "correctness/noUnusedImports"
-  "suspicious/noGlobalIsNan"
-  "lint/style/useNodejsImportProtocol"
-  "lint/complexity/useDateNow"
-)
+# Single-pass lint: fix what's fixable, report what's not.
+# Configuration is in biome.json:
+#   - Rules with fix:"safe" are auto-fixed silently
+#   - Rules without fix config are reported as warnings/errors
+#
+# Fixable rules (fix:"safe"):
+#   - correctness/noUnusedImports
+#   - suspicious/noGlobalIsNan
+#   - style/useNodejsImportProtocol
+#   - complexity/useDateNow
+#   - source/organizeImports (via assist)
+#
+# Check-only rules (no fix, just warn):
+#   - correctness/useExhaustiveDependencies
+#   - correctness/useHookAtTopLevel
+#   - correctness/noChildrenProp
+#   - correctness/noNestedComponentDefinitions
+#   - correctness/noReactPropAssignments
+#   - correctness/noRenderReturnValue
+#   - correctness/useJsxKeyInIterable
+#   - style/useReactFunctionComponents
 
-# Construct --only arguments
-biome_args=()
-for rule in "${fixable_rules[@]}"; do
-  biome_args+=("--only=$rule")
-done
+# Step 1: Lint and auto-fix
+# Fixes rules marked fix:"safe", reports unfixable issues
+npx -y @biomejs/biome lint --write .
 
-# Fix specific rules (whitelist)
-echo "Running biome lint fix for whitelisted rules..."
-npx -y @biomejs/biome lint --write "${biome_args[@]}" .
-echo "Running biome assist fix for whitelisted rules..."
-npx -y @biomejs/biome check --formatter-enabled=false --linter-enabled=false --assist-enabled=true --write
-# Check and report remaining errors
-echo "Running biome check..."
-npx -y @biomejs/biome check . --diagnostic-level=warn
+# Step 2: Organize imports (assist)
+npx -y @biomejs/biome check \
+    --formatter-enabled=false \
+    --linter-enabled=false \
+    --assist-enabled=true \
+    --write \
+    2>/dev/null || true

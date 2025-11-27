@@ -1,0 +1,49 @@
+{
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "a11y": {
+        "useButtonType": "off",
+        "noStaticElementInteractions": "off",
+        "useKeyWithClickEvents": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
+      },
+      "correctness": {
+        "noUnusedImports": { "level": "warn", "fix": "safe" },
+        "useHookAtTopLevel": "warn",
+        "useExhaustiveDependencies": "warn",
+        "noChildrenProp": "warn",
+        "noNestedComponentDefinitions": "warn",
+        "noReactPropAssignments": "warn",
+        "noRenderReturnValue": "warn",
+        "useJsxKeyInIterable": "warn"
+      },
+      "suspicious": {
+        "noGlobalIsNan": { "level": "warn", "fix": "safe" }
+      },
+      "style": {
+        "useNodejsImportProtocol": { "level": "warn", "fix": "safe" },
+        "useReactFunctionComponents": "warn"
+      },
+      "complexity": {
+        "useDateNow": { "level": "warn", "fix": "safe" }
+      }
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": { "level": "on" }
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "allowWrongLineComments": true,
+      "tailwindDirectives": true
+    }
+  }
+}

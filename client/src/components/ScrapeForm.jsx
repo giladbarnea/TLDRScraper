@@ -18,7 +18,7 @@ function ScrapeForm({ onResults }) {
   }, [])
 
   const [state, formAction, isPending] = useActionState(
-    async (previousState, formData) => {
+    async (_previousState, formData) => {
       const start = formData.get('start_date')
       const end = formData.get('end_date')
 
