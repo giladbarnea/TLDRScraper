@@ -311,11 +311,11 @@ def should_update_architecture(commit_hash):
     return False
 ```
 
-**Estimated Precision/Recall** (from historical data):
-- True Positives: Would catch all 3 recent architecture updates
-- False Positives: Might flag ~20-30% of changes unnecessarily
-- False Negatives: Might miss edge cases (pure documentation updates)
-- F1 Score estimate: ~0.7-0.8
+**Estimated Performance** (on 18-commit sample, may be overfit):
+- Historical updates matched: Would catch all 3 recent architecture updates
+- Historical non-updates flagged: Might flag ~20-30% of changes unnecessarily
+- Potentially missed: Edge cases (pure documentation updates)
+- F1 Score estimate: ~0.7-0.8 (needs validation on larger, independent dataset)
 
 This heuristic prioritizes **recall** over precision - it's better to suggest
 an architecture update that's not needed than to miss one that is needed.
