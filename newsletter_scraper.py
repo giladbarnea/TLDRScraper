@@ -376,9 +376,10 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
 
     for date in dates:
         date_str = util.format_date_for_url(date)
-        date_articles: list[dict] = []
-        date_url_set: set[str] = set()
+        raw_articles: list[dict] = []
+        raw_url_set: set[str] = set()
 
+        # A. Scrape Raw Candidates (Super-Set candidates from web)
         for source_id in source_ids:
             if source_id not in NEWSLETTER_CONFIGS:
                 logger.warning(
@@ -395,32 +396,50 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
                 date_str,
                 processed_count,
                 total_count,
-                date_url_set,
-                date_articles,
+                raw_url_set,
+                raw_articles,
                 issue_metadata_by_key,
                 excluded_urls,
             )
             network_fetches += network_increment
 
-        logger.info(f"[newsletter_scraper] Collected {len(date_articles)} articles for {date_str}, applying limits")
+        logger.info(f"[newsletter_scraper] Scraped {len(raw_articles)} raw articles for {date_str}")
 
+        # B. Load Context (Existing DB State)
         cached_payload = storage_service.get_daily_payload(date_str)
-        removed_urls = _extract_removed_urls(cached_payload)
+        existing_articles = cached_payload.get('articles', []) if cached_payload else []
 
+        # C. Merge (Raw + Existing) - preserves user state (read, removed, tldr)
+        merged_articles = util.merge_article_lists(existing_articles, raw_articles)
+        logger.info(f"[newsletter_scraper] Merged to {len(merged_articles)} articles (existing: {len(existing_articles)}, raw: {len(raw_articles)})")
+
+        # D. Save Super-Set to DB
+        super_set_payload = {
+            'date': date_str,
+            'articles': merged_articles,
+            'issues': [
+                issue for (d, s, c), issue in issue_metadata_by_key.items()
+                if d == date_str
+            ],
+        }
+        storage_service.set_daily_payload(date_str, super_set_payload)
+        logger.info(f"[newsletter_scraper] Saved super-set ({len(merged_articles)} articles) to DB for {date_str}")
+
+        # E. Filter for Display (exclude removed articles)
         active_candidates = [
-            article for article in date_articles
-            if article['url'] not in removed_urls
+            article for article in merged_articles
+            if not article.get('removed', False)
         ]
+        logger.info(f"[newsletter_scraper] {len(active_candidates)} active candidates after filtering removed")
 
-        logger.info(f"[newsletter_scraper] {len(active_candidates)} articles after filtering removed items")
-
+        # F. Calculate Quotas (Max-Min Fairness)
         candidates_by_source = _group_articles_by_source(active_candidates)
-        source_counts = {source: len(articles) for source, articles in candidates_by_source.items()}
+        source_counts = util.count_articles_by_source(active_candidates)
 
         quotas = newsletter_limiter.calculate_quotas(source_counts, DEFAULT_DAILY_LIMIT)
-
         logger.info(f"[newsletter_scraper] Calculated quotas for {date_str}: {quotas}")
 
+        # G. Trim (Create Sub-Set for display)
         limited_articles = []
         for source_id, articles in candidates_by_source.items():
             limit = quotas.get(source_id, 0)
@@ -429,6 +448,7 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
             if len(articles) > limit:
                 logger.info(f"[newsletter_scraper] Limited {source_id} from {len(articles)} to {limit} articles")
 
+        # H. Add to final response
         for article in limited_articles:
             canonical_url = article['url']
             if canonical_url not in url_set:

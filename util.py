@@ -149,3 +149,45 @@ def get_domain_name(url) -> str:
 
     except Exception:
         return "Unknown"
+
+
+def merge_article_lists(existing_articles: list[dict], new_articles: list[dict]) -> list[dict]:
+    """
+    Merges two lists of articles, prioritizing existing state.
+
+    Existing articles take precedence to preserve user state (read, removed, tldr flags).
+    New articles are added only if their URL doesn't already exist.
+
+    >>> existing = [{'url': 'a.com', 'removed': True}, {'url': 'b.com', 'read': True}]
+    >>> new = [{'url': 'a.com', 'title': 'New Title'}, {'url': 'c.com'}]
+    >>> result = merge_article_lists(existing, new)
+    >>> len(result) == 3
+    True
+    >>> [a for a in result if a['url'] == 'a.com'][0].get('removed')
+    True
+    """
+    url_map = {canonicalize_url(a['url']): a for a in existing_articles}
+
+    for article in new_articles:
+        url = canonicalize_url(article['url'])
+        if url not in url_map:
+            url_map[url] = article
+
+    return list(url_map.values())
+
+
+def count_articles_by_source(articles: list[dict]) -> dict[str, int]:
+    """
+    Count articles grouped by source_id.
+
+    >>> articles = [{'source_id': 'hn'}, {'source_id': 'tldr'}, {'source_id': 'hn'}]
+    >>> counts = count_articles_by_source(articles)
+    >>> counts['hn'] == 2 and counts['tldr'] == 1
+    True
+    """
+    counts = {}
+    for article in articles:
+        source = article.get('source_id')
+        if source:
+            counts[source] = counts.get(source, 0) + 1
+    return counts
