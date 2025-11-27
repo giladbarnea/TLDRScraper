@@ -1,0 +1,6 @@
+{
+  "rule": "nursery/noLeakedRender",
+  "matchCount": 0,
+  "status": "error",
+  "error": "Rule does not exist. Tested formats: nursery/noLeakedRender, nursery/no-leaked-render, react/noLeakedRender. The rule may not be available in Biome 2.3.7 or may have a different name."
+}

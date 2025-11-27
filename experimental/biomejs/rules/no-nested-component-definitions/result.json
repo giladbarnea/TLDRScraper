@@ -1,0 +1,5 @@
+{
+  "rule": "correctness/noNestedComponentDefinitions",
+  "matchCount": 0,
+  "status": "success"
+}

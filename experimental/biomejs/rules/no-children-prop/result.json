@@ -1,0 +1,5 @@
+{
+  "rule": "correctness/noChildrenProp",
+  "matchCount": 0,
+  "status": "success"
+}
