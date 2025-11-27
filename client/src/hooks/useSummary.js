@@ -39,7 +39,7 @@ export function useSummary(date, url, type = 'tldr') {
     if (isAvailable) return 'Available'
     if (isError) return 'Retry'
     return 'TLDR'
-  }, [isLoading, expanded, isAvailable, isError, type])
+  }, [isLoading, expanded, isAvailable, isError])
 
   const fetch = useCallback(async (summaryEffort = effort) => {
     if (!article) return

@@ -1,9 +1,9 @@
 import { CheckCircle, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, } from 'react'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
 
-function ArticleCard({ article, index }) {
+function ArticleCard({ article }) {
   const { isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
