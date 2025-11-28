@@ -3,7 +3,7 @@ import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import { useSupabaseStorage } from './useSupabaseStorage'
 
 export function useArticleState(date, url) {
-  const storageKey = getNewsletterScrapeKey(date)
+  const storageKey = date ? getNewsletterScrapeKey(date) : null
   const [payload, setPayload, , { loading, error }] = useSupabaseStorage(storageKey, null)
 
   const article = useMemo(() => {

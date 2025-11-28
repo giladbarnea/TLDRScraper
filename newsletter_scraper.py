@@ -106,6 +106,7 @@ def _normalize_article_payload(article: dict) -> dict:
         "title": article["title"],
         "article_meta": article.get("article_meta", ""),
         "date": article["date"],
+        "issueDate": article["date"],
         "category": article["category"],
         "removed": bool(article.get("removed", False)),
     }
