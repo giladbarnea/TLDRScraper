@@ -63,3 +63,5 @@ ps -p 89176
 # View tunnel URL
 grep "trycloudflare.com" ~/.cache/cloudflared/tunnel.log
 ```
+
+Note: may give good results https://github.com/ultrafunkamsterdam/undetected-chromedriver
