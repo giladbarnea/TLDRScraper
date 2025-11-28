@@ -165,17 +165,32 @@ async function mergeWithCache(payloads) {
 }
 
 export async function loadFromCache(startDate, endDate) {
-  const payloads = await storageApi.getDailyPayloadsRange(startDate, endDate)
+  const response = await window.fetch('/api/articles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      start_date: startDate,
+      end_date: endDate
+    })
+  })
 
-  if (!payloads || payloads.length === 0) {
+  const data = await response.json()
+
+  if (!data.success) {
+    throw new Error(data.error || 'Failed to load from cache')
+  }
+
+  if (!data.articles || data.articles.length === 0) {
     return null
   }
+
+  const payloads = buildDailyPayloadsFromScrape(data)
 
   return {
     success: true,
     payloads,
-    source: 'local cache',
-    stats: buildStatsFromPayloads(payloads)
+    source: 'cache',
+    stats: data.stats
   }
 }
 

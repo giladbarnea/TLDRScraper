@@ -269,6 +269,45 @@ def _group_articles_by_source(articles: list[dict]) -> dict[str, list[dict]]:
     return grouped
 
 
+def apply_daily_limits(articles: list[dict], date_str: str = None) -> list[dict]:
+    """
+    Apply daily article limits using Max-Min Fairness algorithm.
+
+    This is the core limiting logic used by both /api/scrape and /api/articles.
+    Filters removed articles and applies quotas transparently.
+
+    Args:
+        articles: List of articles (may include removed ones)
+        date_str: Optional date string for logging
+
+    Returns:
+        Limited subset of articles (removed articles filtered out, quotas applied)
+    """
+    log_prefix = f"[{date_str}]" if date_str else ""
+
+    active_candidates = [
+        article for article in articles
+        if not article.get('removed', False)
+    ]
+    logger.info(f"{log_prefix} {len(active_candidates)} active candidates after filtering removed")
+
+    candidates_by_source = _group_articles_by_source(active_candidates)
+    source_counts = util.count_articles_by_source(active_candidates)
+
+    quotas = newsletter_limiter.calculate_quotas(source_counts, DEFAULT_DAILY_LIMIT)
+    logger.info(f"{log_prefix} Calculated quotas: {quotas}")
+
+    limited_articles = []
+    for source_id, articles_from_source in candidates_by_source.items():
+        limit = quotas.get(source_id, 0)
+        selected = articles_from_source[:limit]
+        limited_articles.extend(selected)
+        if len(articles_from_source) > limit:
+            logger.info(f"{log_prefix} Limited {source_id} from {len(articles_from_source)} to {limit} articles")
+
+    return limited_articles
+
+
 def _collect_newsletters_for_date_from_source(
     source_id,
     config,
@@ -425,28 +464,8 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
         storage_service.set_daily_payload(date_str, super_set_payload)
         logger.info(f"[newsletter_scraper] Saved super-set ({len(merged_articles)} articles) to DB for {date_str}")
 
-        # E. Filter for Display (exclude removed articles)
-        active_candidates = [
-            article for article in merged_articles
-            if not article.get('removed', False)
-        ]
-        logger.info(f"[newsletter_scraper] {len(active_candidates)} active candidates after filtering removed")
-
-        # F. Calculate Quotas (Max-Min Fairness)
-        candidates_by_source = _group_articles_by_source(active_candidates)
-        source_counts = util.count_articles_by_source(active_candidates)
-
-        quotas = newsletter_limiter.calculate_quotas(source_counts, DEFAULT_DAILY_LIMIT)
-        logger.info(f"[newsletter_scraper] Calculated quotas for {date_str}: {quotas}")
-
-        # G. Trim (Create Sub-Set for display)
-        limited_articles = []
-        for source_id, articles in candidates_by_source.items():
-            limit = quotas.get(source_id, 0)
-            selected = articles[:limit]
-            limited_articles.extend(selected)
-            if len(articles) > limit:
-                logger.info(f"[newsletter_scraper] Limited {source_id} from {len(articles)} to {limit} articles")
+        # E-G. Apply Daily Limits (filter removed + calculate quotas + trim)
+        limited_articles = apply_daily_limits(merged_articles, date_str)
 
         # H. Add to final response
         for article in limited_articles:
