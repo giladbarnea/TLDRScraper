@@ -39,6 +39,24 @@ env | grep -E -o '^[A-Z_]+' | grep -e TLDR -e TOKEN -e API -e KEY | sort -u  # S
 
 This is true both for local and production environments.
 
+## SessionStart Hooks
+
+The project uses Claude Code SessionStart hooks to provide context at session initialization:
+
+**Main sessions** (startup, resume, compact):
+- Runs full `setup.sh` (installs dependencies, builds client, configures environment)
+- Outputs all root markdown files (AGENTS.md, ARCHITECTURE.md, etc.) via `scripts/print_root_markdown_files.sh`
+
+**Subagent sessions** (Task tool invocations):
+- Skips heavy setup to reduce initialization time
+- Only outputs root markdown files for documentation context
+
+The hook wrapper script at `scripts/session_start_hook.sh` detects subagent sessions by examining:
+- Transcript path patterns (contains "task", "subagent", "/agents/", "claude-agent")
+- Environment variable `CLAUDE_TASK_ID` (if set by Claude Code for Task invocations)
+
+Configuration: `.claude/settings.json`
+
 ## Development & Setup
 
 ### Running the server and logs watchdog

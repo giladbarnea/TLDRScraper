@@ -22,7 +22,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'cd \"$CLAUDE_PROJECT_DIR\" && source setup.sh 2>&1 && scripts/print_root_markdown_files.sh --quiet=false'"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/session_start_hook.sh\""
           }
         ]
       },
@@ -31,7 +31,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'cd \"$CLAUDE_PROJECT_DIR\" && source setup.sh 2>&1 && scripts/print_root_markdown_files.sh --quiet=false'"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/session_start_hook.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/session_start_hook.sh\""
           }
         ]
       }
