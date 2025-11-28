@@ -65,3 +65,5 @@ grep "trycloudflare.com" ~/.cache/cloudflared/tunnel.log
 ```
 
 Note: may give good results https://github.com/ultrafunkamsterdam/undetected-chromedriver
+
+this is also interesting: https://github.com/coder/agentapi
