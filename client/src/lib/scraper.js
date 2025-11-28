@@ -25,27 +25,6 @@ function computeDateRange(startDate, endDate) {
   return dates
 }
 
-function buildStatsFromPayloads(payloads) {
-  const uniqueUrls = new Set()
-  let totalArticles = 0
-
-  payloads.forEach(payload => {
-    if (payload.articles) {
-      payload.articles.forEach(article => {
-        uniqueUrls.add(article.url)
-        totalArticles++
-      })
-    }
-  })
-
-  return {
-    total_articles: totalArticles,
-    unique_urls: uniqueUrls.size,
-    dates_processed: payloads.length,
-    dates_with_content: payloads.filter(p => p.articles?.length > 0).length
-  }
-}
-
 async function isRangeCached(startDate, endDate, cacheEnabled) {
   if (!cacheEnabled) return false
 
