@@ -14,7 +14,7 @@ export default defineConfig({
   server: {
     port: 3000,
     allowedHosts: [
-      '.trycloudflare.com'
+      'handy-waters-diary-liz.trycloudflare.com'
     ],
     proxy: {
       '/api': {
