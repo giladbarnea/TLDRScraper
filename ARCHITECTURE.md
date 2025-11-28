@@ -56,6 +56,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │                         serve.py (Routes)                         │  │
 │  │  POST /api/scrape             POST /api/tldr-url                 │  │
+│  │  POST /api/articles                                              │  │
 │  │  GET/POST /api/storage/setting/<key>                             │  │
 │  │  GET/POST /api/storage/daily/<date>                              │  │
 │  │  POST /api/storage/daily-range                                   │  │
@@ -229,9 +230,9 @@ idle
   │    │    │
   │    │    ├─ Fully cached & cache enabled
   │    │    │    ↓
-  │    │    │  loading_cache (GET /api/storage/daily-range)
+  │    │    │  loading_cache (POST /api/articles)
   │    │    │    ↓
-  │    │    │  complete (load from Supabase)
+  │    │    │  complete (load from Supabase with limits applied)
   │    │    │
   │    │    └─ Not fully cached OR cache disabled
   │    │         ↓
@@ -450,11 +451,11 @@ User clicks "Scrape Newsletters"
   │                   │    │
   │                   │    └─ scraper.js loadFromCache()
   │                   │         │
-  │                   │         ├─ POST /api/storage/daily-range
-  │                   │         ├─ Build stats: buildStatsFromPayloads()
+  │                   │         ├─ POST /api/articles
+  │                   │         ├─ Build payloads from response
   │                   │         ├─ Update progress state
   │                   │         │
-  │                   │         └─ Return cached results
+  │                   │         └─ Return cached results (with limits applied)
        │                   │
        │                   └─ If NOT fully cached OR cache disabled
        │                        │
@@ -862,8 +863,8 @@ sequenceDiagram
     alt Cache enabled & fully cached
         useScraper->>Supabase: GET /api/storage/is-cached/{date} (for each date)
         Supabase-->>useScraper: All dates cached
-        useScraper->>Supabase: POST /api/storage/daily-range
-        Supabase-->>useScraper: Return cached payloads
+        useScraper->>Flask: POST /api/articles
+        Flask-->>useScraper: Return limited payloads
         useScraper-->>ScrapeForm: Return cached results
     else Not fully cached
         useScraper->>Flask: POST /api/scrape {start_date, end_date}
@@ -1028,7 +1029,7 @@ CREATE TABLE daily_cache (
 ### Storage Flow
 
 1. **Initial Scrape**: API response → Build payloads → POST /api/storage/daily/{date} → Supabase upsert
-2. **Cache Hit**: GET /api/storage/daily-range → Read from Supabase → Skip scrape API call
+2. **Cache Hit**: POST /api/articles → Load from Supabase with limits applied → Skip scrape API call
 3. **User Interaction**: Modify article state → POST /api/storage/daily/{date} → Supabase upsert → Dispatches 'supabase-storage-change' event
 4. **Summary/TLDR**: Fetch from API → Update article → POST /api/storage/daily/{date} → Supabase upsert
 
