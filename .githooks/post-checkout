@@ -1,8 +1,48 @@
 #!/bin/bash
 set -euo pipefail
 
+# Paths to sync from external .claude repo
+SYNC_PATHS=(
+    "skills/conversations"
+    # Add more paths here as needed
+)
+
+EXTERNAL_REPO="https://github.com/giladbarnea/.claude.git"
+
 git config --local merge.ours.driver true
 
 if command -v eza &> /dev/null; then
   eza --classify --icons --tree --git-ignore --all . > PROJECT_STRUCTURE.md
+fi
+
+# Only run on branch checkouts (not file checkouts)
+if [ "$3" = "1" ]; then
+    echo "[post-checkout] Syncing external .claude subdirectories..."
+
+    TEMP_DIR="/tmp/.claude-external-$$"
+
+    git clone --filter=blob:none --sparse "$EXTERNAL_REPO" "$TEMP_DIR" 2>/dev/null || {
+        echo "[post-checkout] Failed to clone external .claude repo"
+        exit 0
+    }
+
+    cd "$TEMP_DIR" || exit 0
+    git sparse-checkout init --cone
+
+    # Add all paths to sparse checkout
+    for path in "${SYNC_PATHS[@]}"; do
+        git sparse-checkout add "$path"
+    done
+
+    cd - > /dev/null || exit 0
+
+    # Copy all paths
+    for path in "${SYNC_PATHS[@]}"; do
+        mkdir -p ".claude/$(dirname "$path")"
+        cp -r "$TEMP_DIR/$path" ".claude/$path" 2>/dev/null
+        echo "[post-checkout] Synced $path"
+    done
+
+    rm -rf "$TEMP_DIR"
+    echo "[post-checkout] Done syncing external .claude subdirectories"
 fi
