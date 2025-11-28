@@ -4,7 +4,7 @@ import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
 
 function ArticleCard({ article }) {
-  const { isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
+  const { article: stateArticle, isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
   )
@@ -111,11 +111,11 @@ function ArticleCard({ article }) {
            <div className="flex items-center justify-between pt-3">
               <button
                 onClick={handleExpand}
-                disabled={tldr.loading}
+                disabled={tldr.loading || !stateArticle}
                 className={`
                   flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300
-                  ${tldr.loading
-                    ? 'bg-slate-50 text-slate-400'
+                  ${tldr.loading || !stateArticle
+                    ? 'bg-slate-50 text-slate-400 cursor-not-allowed'
                     : tldr.expanded
                         ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         : isAvailable
@@ -134,8 +134,8 @@ function ArticleCard({ article }) {
               <div className="flex gap-2">
                   <button
                     onClick={handleRemove}
-                    disabled={stateLoading}
-                    className={`p-1.5 rounded-full transition-colors ${stateLoading ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
+                    disabled={stateLoading || !stateArticle}
+                    className={`p-1.5 rounded-full transition-colors ${stateLoading || !stateArticle ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
                   >
                      <Trash2 size={14} />
                   </button>
