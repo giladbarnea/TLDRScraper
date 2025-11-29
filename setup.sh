@@ -427,6 +427,7 @@ function main() {
   [[ "$quiet" == false ]] && message "[$0] Configuring git hooks..."
   if [[ -d "$workdir/.githooks" ]]; then
     if git config core.hooksPath .githooks; then
+      chmod +x "$workdir/.githooks/"* 2>/dev/null
       [[ "$quiet" == false ]] && message "[$0] Git hooks configured to use .githooks directory"
       
       
