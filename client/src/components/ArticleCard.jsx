@@ -2,6 +2,7 @@ import { CheckCircle, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
 import { useMemo, } from 'react'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
+import { cn } from '../lib/utils'
 
 function ArticleCard({ article }) {
   const issueDate = article.issueDate || article.date
@@ -24,15 +25,11 @@ function ArticleCard({ article }) {
     return null
   }
 
-  const toggleTldrWithTracking = (toggleFn) => {
-    toggleFn()
-  }
-
   const handleExpand = async (e) => {
     e.stopPropagation();
     if (isRemoved) return;
 
-    toggleTldrWithTracking(() => tldr.toggle())
+    tldr.toggle();
 
     if (!isRead && !tldr.expanded) {
        toggleRead()
@@ -53,7 +50,7 @@ function ArticleCard({ article }) {
     }
 
     if (isAvailable) {
-      toggleTldrWithTracking(toggleVisibility)
+      toggleVisibility()
     }
   };
 
@@ -61,17 +58,24 @@ function ArticleCard({ article }) {
     <div
       onClick={handleCardClick}
       data-testid={`article-card-${article.url}`}
-      className={`
-        group relative transition-all duration-300 ease-out
-        rounded-[20px] border
-        ${stateLoading
-          ? 'opacity-40 grayscale pointer-events-none bg-slate-50 border-slate-200'
-          : isRemoved
-            ? 'opacity-50 grayscale scale-[0.98] bg-slate-50 border-transparent cursor-pointer hover:opacity-60'
-            : 'bg-white/80 backdrop-blur-xl border-white/40 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5'}
-        ${tldr.expanded && !stateLoading ? 'mb-6 ring-1 ring-brand-100 shadow-md bg-white' : 'mb-3'}
-        ${!isRemoved && isAvailable ? 'cursor-pointer' : ''}
-      `}
+      className={cn(
+        "group relative transition-all duration-300 ease-out rounded-[20px] border",
+        
+        // Base state (Default)
+        "bg-white/80 backdrop-blur-xl border-white/40 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 mb-3",
+
+        // Loading state
+        stateLoading && "opacity-40 grayscale pointer-events-none bg-slate-50 border-slate-200",
+
+        // Removed state
+        isRemoved && "opacity-50 grayscale scale-[0.98] bg-slate-50 border-transparent cursor-pointer hover:opacity-60",
+
+        // Expanded state
+        tldr.expanded && !stateLoading && "mb-6 ring-1 ring-brand-100 shadow-md bg-white",
+
+        // Interactive cursor
+        !isRemoved && isAvailable && "cursor-pointer"
+      )}
     >
       <div className="p-5 flex flex-col gap-2">
          {/* Title */}
@@ -114,19 +118,21 @@ function ArticleCard({ article }) {
               <button
                 onClick={handleExpand}
                 disabled={tldr.loading}
-                className={`
-                  flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300
-                  ${tldr.loading
-                    ? 'bg-slate-50 text-slate-400'
-                    : tldr.expanded
-                        ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        : isAvailable
-                            /* STATE: Available (Magic Tint) */
-                            ? 'bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-200/50 hover:bg-indigo-100'
-                            /* STATE: Default (Invite) */
-                            : 'bg-slate-50 text-slate-500 hover:bg-brand-50 hover:text-brand-600'
-                  }
-                `}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300",
+                  
+                  // Default (Invite)
+                  "bg-slate-50 text-slate-500 hover:bg-brand-50 hover:text-brand-600",
+
+                  // Available (Magic Tint)
+                  !tldr.loading && !tldr.expanded && isAvailable && "bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-200/50 hover:bg-indigo-100",
+
+                  // Expanded
+                  !tldr.loading && tldr.expanded && "bg-slate-100 text-slate-600 hover:bg-slate-200",
+
+                  // Loading
+                  tldr.loading && "bg-slate-50 text-slate-400"
+                )}
               >
                  {tldr.loading ? <Loader2 size={14} className="animate-spin" /> :
                   tldr.expanded ? <><Minus size={14} /> Close</> : <><Sparkles size={14} /> TLDR</>
