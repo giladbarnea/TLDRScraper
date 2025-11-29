@@ -1,17 +1,12 @@
 import { CheckCircle, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
-import { useMemo, useEffect } from 'react'
+import { useMemo, } from 'react'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
 
 function ArticleCard({ article }) {
-  if (!article.issueDate && !article.date) {
-    console.error('ArticleCard: Missing date field', article)
-    return null
-  }
-
   const issueDate = article.issueDate || article.date
 
-  const { isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
+  const { isRead, isRemoved, toggleRead, toggleRemove, loading: stateLoading } = useArticleState(
     issueDate,
     article.url
   )
@@ -24,15 +19,13 @@ function ArticleCard({ article }) {
     return `https://${url}`
   }, [article.url])
 
-  const toggleTldrWithTracking = (toggleFn) => {
-    const wasExpanded = tldr.expanded
-    toggleFn()
+  if (!article.issueDate && !article.date) {
+    console.error('ArticleCard: Missing date field', article)
+    return null
+  }
 
-    // if (wasExpanded) {
-    //   markTldrHidden()
-    // } else {
-    //   unmarkTldrHidden()
-    // }
+  const toggleTldrWithTracking = (toggleFn) => {
+    toggleFn()
   }
 
   const handleExpand = async (e) => {
