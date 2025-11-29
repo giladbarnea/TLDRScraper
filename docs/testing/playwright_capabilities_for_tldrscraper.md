@@ -3,6 +3,21 @@ last_updated: 2025-11-14 16:24, 722a1a0
 ---
 # Playwright Capabilities for TLDRScraper Testing
 
+## ArticleCard Data Attributes
+
+Each ArticleCard has these data attributes for stable, semantic selection:
+
+- `data-article-title` - Full article title
+- `data-article-url` - Canonical article URL
+- `data-article-date` - Issue date (YYYY-MM-DD)
+- `data-article-category` - Category name (e.g., "TLDR Tech", "HackerNews")
+- `data-article-source` - Source ID (e.g., "tldr_tech", "hackernews")
+- `data-article-state` - Current state: "unread" | "read" | "removed"
+- `data-tldr-status` - TLDR status: "unknown" | "creating" | "available" | "error"
+- `data-tldr-expanded` - TLDR expanded state: "true" | "false"
+
+---
+
 ## YES to Everything You Asked! ✅
 
 Playwright can absolutely do **all** of the following:
