@@ -12,6 +12,8 @@ export function useArticleState(date, url) {
 
   const isRead = article?.read?.isRead ?? false
   const isRemoved = Boolean(article?.removed)
+
+  console.log('[useArticleState] State for', url?.slice(0, 40), ':', { isRead, isRemoved, hasArticle: !!article, removed: article?.removed });
   const isTldrHidden = Boolean(article?.tldrHidden)
 
   const state = !article ? 0
@@ -57,7 +59,9 @@ export function useArticleState(date, url) {
   }, [updateArticle])
 
   const toggleRemove = useCallback(() => {
+    console.log('[useArticleState] toggleRemove called', { isRemoved, willSetTo: !isRemoved });
     setRemoved(!isRemoved)
+    console.log('[useArticleState] setRemoved called with:', !isRemoved);
   }, [isRemoved, setRemoved])
 
   const setTldrHidden = useCallback((hidden) => {

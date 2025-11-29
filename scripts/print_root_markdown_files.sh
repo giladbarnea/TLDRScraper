@@ -42,7 +42,7 @@ function read_root_markdown_files() {
       echo
     fi
   done
-  echo "Further reading: docs/SCREENSHOTTING_APP.md — detailed guide on using Playwright on a remote machine to take screenshots of the client GUI and moving them to own machine to view."
+  echo "Further reading: docs/testing/headless_playwright_guide.md — comprehensive guide on browser emulation, client interactions, state management, and UI testing in headless/sandboxed environments."
 }
 
 read_root_markdown_files "$@"

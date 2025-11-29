@@ -2,13 +2,16 @@ import { CheckCircle, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
 import { useMemo, } from 'react'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
+import { cn } from '../lib/utils'
 
 function ArticleCard({ article }) {
-  const { isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
-    article.issueDate,
+  const issueDate = article.issueDate || article.date
+
+  const { isRead, isRemoved, toggleRead, toggleRemove, loading: stateLoading } = useArticleState(
+    issueDate,
     article.url
   )
-  const tldr = useSummary(article.issueDate, article.url, 'tldr')
+  const tldr = useSummary(issueDate, article.url, 'tldr')
   const { isAvailable, toggleVisibility } = tldr
 
   const fullUrl = useMemo(() => {
@@ -17,22 +20,16 @@ function ArticleCard({ article }) {
     return `https://${url}`
   }, [article.url])
 
-  const toggleTldrWithTracking = (toggleFn) => {
-    const wasExpanded = tldr.expanded
-    toggleFn()
-
-    if (wasExpanded) {
-      markTldrHidden()
-    } else {
-      unmarkTldrHidden()
-    }
+  if (!article.issueDate && !article.date) {
+    console.error('ArticleCard: Missing date field', article)
+    return null
   }
 
   const handleExpand = async (e) => {
     e.stopPropagation();
     if (isRemoved) return;
 
-    toggleTldrWithTracking(() => tldr.toggle())
+    tldr.toggle();
 
     if (!isRead && !tldr.expanded) {
        toggleRead()
@@ -53,29 +50,38 @@ function ArticleCard({ article }) {
     }
 
     if (isAvailable) {
-      toggleTldrWithTracking(toggleVisibility)
+      toggleVisibility()
     }
   };
 
   return (
     <div
       onClick={handleCardClick}
-      className={`
-        group relative transition-all duration-300 ease-out
-        rounded-[20px] border
-        ${stateLoading
-          ? 'opacity-40 grayscale pointer-events-none bg-slate-50 border-slate-200'
-          : isRemoved
-            ? 'opacity-50 grayscale scale-[0.98] bg-slate-50 border-transparent cursor-pointer hover:opacity-60'
-            : 'bg-white/80 backdrop-blur-xl border-white/40 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5'}
-        ${tldr.expanded && !stateLoading ? 'mb-6 ring-1 ring-brand-100 shadow-md bg-white' : 'mb-3'}
-        ${!isRemoved && isAvailable ? 'cursor-pointer' : ''}
-      `}
+      data-testid={`article-card-${article.url}`}
+      className={cn(
+        "group relative transition-all duration-300 ease-out rounded-[20px] border",
+        
+        // Base state (Default)
+        "bg-white/80 backdrop-blur-xl border-white/40 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 mb-3",
+
+        // Loading state
+        stateLoading && "opacity-40 grayscale pointer-events-none bg-slate-50 border-slate-200",
+
+        // Removed state
+        isRemoved && "opacity-50 grayscale scale-[0.98] bg-slate-50 border-transparent cursor-pointer hover:opacity-60",
+
+        // Expanded state
+        tldr.expanded && !stateLoading && "mb-6 ring-1 ring-brand-100 shadow-md bg-white",
+
+        // Interactive cursor
+        !isRemoved && isAvailable && "cursor-pointer"
+      )}
     >
       <div className="p-5 flex flex-col gap-2">
          {/* Title */}
          <a
            href={isRemoved ? undefined : fullUrl}
+           data-testid={`article-title-${article.url}`}
            target={isRemoved ? undefined : "_blank"}
            rel={isRemoved ? undefined : "noopener noreferrer"}
            className={`
@@ -112,19 +118,21 @@ function ArticleCard({ article }) {
               <button
                 onClick={handleExpand}
                 disabled={tldr.loading}
-                className={`
-                  flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300
-                  ${tldr.loading
-                    ? 'bg-slate-50 text-slate-400'
-                    : tldr.expanded
-                        ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        : isAvailable
-                            /* STATE: Available (Magic Tint) */
-                            ? 'bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-200/50 hover:bg-indigo-100'
-                            /* STATE: Default (Invite) */
-                            : 'bg-slate-50 text-slate-500 hover:bg-brand-50 hover:text-brand-600'
-                  }
-                `}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300",
+                  
+                  // Default (Invite)
+                  "bg-slate-50 text-slate-500 hover:bg-brand-50 hover:text-brand-600",
+
+                  // Available (Magic Tint)
+                  !tldr.loading && !tldr.expanded && isAvailable && "bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-200/50 hover:bg-indigo-100",
+
+                  // Expanded
+                  !tldr.loading && tldr.expanded && "bg-slate-100 text-slate-600 hover:bg-slate-200",
+
+                  // Loading
+                  tldr.loading && "bg-slate-50 text-slate-400"
+                )}
               >
                  {tldr.loading ? <Loader2 size={14} className="animate-spin" /> :
                   tldr.expanded ? <><Minus size={14} /> Close</> : <><Sparkles size={14} /> TLDR</>
@@ -134,6 +142,7 @@ function ArticleCard({ article }) {
               <div className="flex gap-2">
                   <button
                     onClick={handleRemove}
+                    data-testid={`remove-button-${article.url}`}
                     disabled={stateLoading}
                     className={`p-1.5 rounded-full transition-colors ${stateLoading ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
                   >
@@ -148,7 +157,7 @@ function ArticleCard({ article }) {
            <div
               className={`
                 transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
-                ${tldr.expanded && tldr.html ? 'opacity-100 mt-4 border-t border-slate-100 pt-5' : 'max-h-0 opacity-0 overflow-hidden -mt-3'}
+                ${tldr.expanded && tldr.html ? 'opacity-100 mt-4 border-t border-slate-100 pt-5' : 'max-h-0 opacity-0 overflow-hidden -mt-3 invisible'}
               `}
            >
               {/* -mt-3 cancels parent's gap-3 to eliminate spacing when collapsed */}

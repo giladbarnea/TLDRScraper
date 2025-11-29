@@ -103,7 +103,8 @@ function CalendarDay({ payload }) {
              
              {/* Handle articles that don't belong to any issue */}
              {articles.some(a => !issues.find(i => i.category === a.category)) && (
-                <NewsletterDay 
+                <NewsletterDay
+                  date={date}
                   title="Other"
                   articles={articles.filter(a => !issues.find(i => i.category === a.category))}
                 />

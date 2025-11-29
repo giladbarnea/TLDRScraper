@@ -1,0 +1,1 @@
+curl GET /help endpoint
