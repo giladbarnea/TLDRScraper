@@ -14,7 +14,14 @@ export async function getDailyPayload(date) {
   const data = await response.json()
 
   if (data.success) {
-    return data.payload
+    const payload = data.payload
+    return {
+      ...payload,
+      articles: payload.articles?.map(article => ({
+        ...article,
+        issueDate: article.issueDate || article.date
+      })) || []
+    }
   }
 
   return null
@@ -46,7 +53,13 @@ export async function getDailyPayloadsRange(startDate, endDate) {
   const data = await response.json()
 
   if (data.success) {
-    return data.payloads
+    return data.payloads.map(payload => ({
+      ...payload,
+      articles: payload.articles?.map(article => ({
+        ...article,
+        issueDate: article.issueDate || article.date
+      })) || []
+    }))
   }
 
   throw new Error(data.error || 'Failed to load payloads')
