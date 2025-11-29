@@ -88,7 +88,7 @@ function buildDailyPayloadsFromScrape(data) {
 
   if (Array.isArray(data.articles)) {
     data.articles.forEach(article => {
-      const date = normalizeIsoDate(article.date)
+      const date = normalizeIsoDate(article.issue_date)
       if (!date) return
 
       const articleData = {
@@ -171,19 +171,11 @@ export async function loadFromCache(startDate, endDate) {
     return null
   }
 
-  const normalizedPayloads = payloads.map(payload => ({
-    ...payload,
-    articles: payload.articles?.map(article => ({
-      ...article,
-      issueDate: article.issueDate || article.date
-    })) || []
-  }))
-
   return {
     success: true,
-    payloads: normalizedPayloads,
+    payloads,
     source: 'local cache',
-    stats: buildStatsFromPayloads(normalizedPayloads)
+    stats: buildStatsFromPayloads(payloads)
   }
 }
 

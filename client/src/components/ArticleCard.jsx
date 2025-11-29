@@ -5,7 +5,7 @@ import { useSummary } from '../hooks/useSummary'
 import { cn } from '../lib/utils'
 
 function ArticleCard({ article }) {
-  const issueDate = article.issueDate || article.date
+  const issueDate = article.issueDate
 
   const { isRead, isRemoved, toggleRead, toggleRemove, loading: stateLoading } = useArticleState(
     issueDate,
@@ -20,8 +20,8 @@ function ArticleCard({ article }) {
     return `https://${url}`
   }, [article.url])
 
-  if (!article.issueDate && !article.date) {
-    console.error('ArticleCard: Missing date field', article)
+  if (!issueDate) {
+    console.error('ArticleCard: Missing issueDate field', article)
     return null
   }
 
