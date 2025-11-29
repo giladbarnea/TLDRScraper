@@ -60,6 +60,14 @@ function ArticleCard({ article }) {
   return (
     <div
       onClick={handleCardClick}
+      data-article-title={article.title}
+      data-article-url={article.url}
+      data-article-date={article.issueDate}
+      data-article-category={article.category}
+      data-article-source={article.sourceId}
+      data-article-state={isRemoved ? 'removed' : isRead ? 'read' : 'unread'}
+      data-tldr-status={tldr.status}
+      data-tldr-expanded={tldr.expanded}
       className={`
         group relative transition-all duration-300 ease-out
         rounded-[20px] border
