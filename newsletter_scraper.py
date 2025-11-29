@@ -6,10 +6,14 @@ from datetime import datetime
 from newsletter_config import NEWSLETTER_CONFIGS
 from adapters.tldr_adapter import TLDRAdapter
 from newsletter_merger import build_markdown_output
+import newsletter_limiter
+import storage_service
 
 import util
 
 logger = logging.getLogger("newsletter_scraper")
+
+DEFAULT_DAILY_LIMIT = 50
 
 
 def _get_adapter_for_source(config):
@@ -228,6 +232,82 @@ def _build_scrape_response(
 
 
 
+def _extract_removed_urls(cached_payload: dict | None) -> set[str]:
+    """Extract set of removed article URLs from cached payload.
+
+    >>> payload = {'articles': [{'url': 'a.com', 'removed': True}, {'url': 'b.com', 'removed': False}]}
+    >>> result = _extract_removed_urls(payload)
+    >>> 'a.com' in result and 'b.com' not in result
+    True
+    """
+    if not cached_payload or 'articles' not in cached_payload:
+        return set()
+
+    return {
+        article['url']
+        for article in cached_payload['articles']
+        if article.get('removed', False)
+    }
+
+
+def _group_articles_by_source(articles: list[dict]) -> dict[str, list[dict]]:
+    """Group articles by source_id, preserving order within each source.
+
+    >>> articles = [
+    ...     {'source_id': 'hn', 'title': '1'},
+    ...     {'source_id': 'tldr', 'title': '2'},
+    ...     {'source_id': 'hn', 'title': '3'}
+    ... ]
+    >>> result = _group_articles_by_source(articles)
+    >>> len(result['hn']) == 2 and len(result['tldr']) == 1
+    True
+    """
+    grouped = {}
+    for article in articles:
+        source_id = article.get('source_id', 'unknown')
+        grouped.setdefault(source_id, []).append(article)
+    return grouped
+
+
+def apply_daily_limits(articles: list[dict], date_str: str = None) -> list[dict]:
+    """
+    Apply daily article limits using Max-Min Fairness algorithm.
+
+    This is the core limiting logic used by both /api/scrape and /api/articles.
+    Filters removed articles and applies quotas transparently.
+
+    Args:
+        articles: List of articles (may include removed ones)
+        date_str: Optional date string for logging
+
+    Returns:
+        Limited subset of articles (removed articles filtered out, quotas applied)
+    """
+    log_prefix = f"[{date_str}]" if date_str else ""
+
+    active_candidates = [
+        article for article in articles
+        if not article.get('removed', False)
+    ]
+    logger.info(f"{log_prefix} {len(active_candidates)} active candidates after filtering removed")
+
+    candidates_by_source = _group_articles_by_source(active_candidates)
+    source_counts = util.count_articles_by_source(active_candidates)
+
+    quotas = newsletter_limiter.calculate_quotas(source_counts, DEFAULT_DAILY_LIMIT)
+    logger.info(f"{log_prefix} Calculated quotas: {quotas}")
+
+    limited_articles = []
+    for source_id, articles_from_source in candidates_by_source.items():
+        limit = quotas.get(source_id, 0)
+        selected = articles_from_source[:limit]
+        limited_articles.extend(selected)
+        if len(articles_from_source) > limit:
+            logger.info(f"{log_prefix} Limited {source_id} from {len(articles_from_source)} to {limit} articles")
+
+    return limited_articles
+
+
 def _collect_newsletters_for_date_from_source(
     source_id,
     config,
@@ -335,7 +415,10 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
 
     for date in dates:
         date_str = util.format_date_for_url(date)
+        raw_articles: list[dict] = []
+        raw_url_set: set[str] = set()
 
+        # A. Scrape Raw Candidates (Super-Set candidates from web)
         for source_id in source_ids:
             if source_id not in NEWSLETTER_CONFIGS:
                 logger.warning(
@@ -352,12 +435,44 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
                 date_str,
                 processed_count,
                 total_count,
-                url_set,
-                all_articles,
+                raw_url_set,
+                raw_articles,
                 issue_metadata_by_key,
                 excluded_urls,
             )
             network_fetches += network_increment
+
+        logger.info(f"[newsletter_scraper] Scraped {len(raw_articles)} raw articles for {date_str}")
+
+        # B. Load Context (Existing DB State)
+        cached_payload = storage_service.get_daily_payload(date_str)
+        existing_articles = cached_payload.get('articles', []) if cached_payload else []
+
+        # C. Merge (Raw + Existing) - preserves user state (read, removed, tldr)
+        merged_articles = util.merge_article_lists(existing_articles, raw_articles)
+        logger.info(f"[newsletter_scraper] Merged to {len(merged_articles)} articles (existing: {len(existing_articles)}, raw: {len(raw_articles)})")
+
+        # D. Save Super-Set to DB
+        super_set_payload = {
+            'date': date_str,
+            'articles': merged_articles,
+            'issues': [
+                issue for (d, s, c), issue in issue_metadata_by_key.items()
+                if d == date_str
+            ],
+        }
+        storage_service.set_daily_payload(date_str, super_set_payload)
+        logger.info(f"[newsletter_scraper] Saved super-set ({len(merged_articles)} articles) to DB for {date_str}")
+
+        # E-G. Apply Daily Limits (filter removed + calculate quotas + trim)
+        limited_articles = apply_daily_limits(merged_articles, date_str)
+
+        # H. Add to final response
+        for article in limited_articles:
+            canonical_url = article['url']
+            if canonical_url not in url_set:
+                url_set.add(canonical_url)
+                all_articles.append(article)
 
     # Ensure all articles have removed field
     for article in all_articles:

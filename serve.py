@@ -9,10 +9,12 @@ import requests
 import os
 import subprocess
 import pathlib
+from datetime import datetime
 
 import util
 import tldr_app
 import storage_service
+import newsletter_scraper
 from summarizer import DEFAULT_MODEL, DEFAULT_TLDR_REASONING_EFFORT
 
 # Configure Flask to serve React build output
@@ -190,6 +192,66 @@ def get_storage_daily_range():
     except Exception as e:
         logger.error(
             "[serve.get_storage_daily_range] error error=%s",
+            repr(e),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+@app.route("/api/articles", methods=["POST"])
+def get_articles():
+    """Get limited articles from cache (no web scraping)."""
+    try:
+        data = request.get_json()
+        start_date_str = data['start_date']
+        end_date_str = data['end_date']
+
+        start_date = datetime.fromisoformat(start_date_str)
+        end_date = datetime.fromisoformat(end_date_str)
+
+        dates = util.get_date_range(start_date, end_date)
+        all_articles = []
+        all_issues = []
+        url_set = set()
+
+        for date in dates:
+            date_str = util.format_date_for_url(date)
+            payload = storage_service.get_daily_payload(date_str)
+            if not payload:
+                continue
+
+            articles = payload.get('articles', [])
+            if articles:
+                limited_articles = newsletter_scraper.apply_daily_limits(articles, date_str)
+
+                for article in limited_articles:
+                    canonical_url = article['url']
+                    if canonical_url not in url_set:
+                        url_set.add(canonical_url)
+                        all_articles.append(article)
+
+            issues = payload.get('issues', [])
+            all_issues.extend(issues)
+
+        for article in all_articles:
+            article.setdefault("removed", False)
+
+        stats = {
+            'total_articles': len(all_articles),
+            'unique_urls': len(url_set),
+            'dates_processed': len(dates),
+            'network_fetches': 0
+        }
+
+        return jsonify({
+            "success": True,
+            "articles": all_articles,
+            "issues": all_issues,
+            "stats": stats
+        })
+
+    except Exception as e:
+        logger.error(
+            "[serve.get_articles] error error=%s",
             repr(e),
             exc_info=True,
         )
