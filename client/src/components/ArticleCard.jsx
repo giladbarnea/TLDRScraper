@@ -1,14 +1,21 @@
 import { CheckCircle, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
-import { useMemo, } from 'react'
+import { useMemo, useEffect } from 'react'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
 
 function ArticleCard({ article }) {
+  if (!article.issueDate && !article.date) {
+    console.error('ArticleCard: Missing date field', article)
+    return null
+  }
+
+  const issueDate = article.issueDate || article.date
+
   const { isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
-    article.issueDate,
+    issueDate,
     article.url
   )
-  const tldr = useSummary(article.issueDate, article.url, 'tldr')
+  const tldr = useSummary(issueDate, article.url, 'tldr')
   const { isAvailable, toggleVisibility } = tldr
 
   const fullUrl = useMemo(() => {
@@ -21,11 +28,11 @@ function ArticleCard({ article }) {
     const wasExpanded = tldr.expanded
     toggleFn()
 
-    if (wasExpanded) {
-      markTldrHidden()
-    } else {
-      unmarkTldrHidden()
-    }
+    // if (wasExpanded) {
+    //   markTldrHidden()
+    // } else {
+    //   unmarkTldrHidden()
+    // }
   }
 
   const handleExpand = async (e) => {
@@ -60,6 +67,7 @@ function ArticleCard({ article }) {
   return (
     <div
       onClick={handleCardClick}
+      data-testid={`article-card-${article.url}`}
       className={`
         group relative transition-all duration-300 ease-out
         rounded-[20px] border
@@ -76,6 +84,7 @@ function ArticleCard({ article }) {
          {/* Title */}
          <a
            href={isRemoved ? undefined : fullUrl}
+           data-testid={`article-title-${article.url}`}
            target={isRemoved ? undefined : "_blank"}
            rel={isRemoved ? undefined : "noopener noreferrer"}
            className={`
@@ -134,6 +143,7 @@ function ArticleCard({ article }) {
               <div className="flex gap-2">
                   <button
                     onClick={handleRemove}
+                    data-testid={`remove-button-${article.url}`}
                     disabled={stateLoading}
                     className={`p-1.5 rounded-full transition-colors ${stateLoading ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
                   >
@@ -148,7 +158,7 @@ function ArticleCard({ article }) {
            <div
               className={`
                 transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
-                ${tldr.expanded && tldr.html ? 'opacity-100 mt-4 border-t border-slate-100 pt-5' : 'max-h-0 opacity-0 overflow-hidden -mt-3'}
+                ${tldr.expanded && tldr.html ? 'opacity-100 mt-4 border-t border-slate-100 pt-5' : 'max-h-0 opacity-0 overflow-hidden -mt-3 invisible'}
               `}
            >
               {/* -mt-3 cancels parent's gap-3 to eliminate spacing when collapsed */}

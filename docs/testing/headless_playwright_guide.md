@@ -83,29 +83,24 @@ pkill -f vite
 
 ## 3. The Golden Rules of Sandboxed Automation
 
-### Rule #1: Trust JS Execution (`page.evaluate`) Over UI Interactions
-Direct DOM manipulation is 100% reliable. Simulated pointer events are flaky in headless mode due to missing layout engines or overlay interception.
+### Rule #1: Visibility Matters
+Playwright's visibility checks are strict. Visual-only hiding (e.g., `opacity: 0`, `height: 0`) is often insufficient for `expect(locator).not_to_be_visible()` assertions or ensuring elements are removed from the accessibility tree.
+*   **Best Practice:** Always pair transitions with `visibility: hidden` or `display: none` for the final collapsed state.
+*   **Interaction:** Standard `.click()` works reliably if the element is truly visible and not covered. `force=True` should be a last resort for known overlays, not a default fix.
+
+### Rule #2: Use Stable Selectors
+In dynamic applications where lists re-render or re-sort, index-based selectors (e.g., `.nth(0)`) become stale instantly.
+*   **Best Practice:** Instrument components with data-driven attributes like `data-testid="article-${id}"` to ensure tests target the correct element regardless of DOM order.
+
+### Rule #3: Trust JS Execution for Setup
+For setting up test state (e.g., seeding `localStorage`, bypassing lengthy UI flows), direct execution is faster and cleaner.
 
 ```python
-# ❌ FLAKY: Might hit an overlay or miscalculate position
-page.locator("#submit-btn").click()
-
-# ✅ RELIABLE: Direct JS execution
-page.evaluate("document.querySelector('#submit-btn').click()")
-
 # ✅ RELIABLE: Direct localStorage manipulation
 page.evaluate("localStorage.setItem('user-settings', JSON.stringify({theme: 'dark'}))")
 ```
 
-### Rule #2: If You Must Click, Use Force
-If you need Playwright's specific event dispatching, always bypass visibility/overlay checks.
-
-```python
-# ✅ RELIABLE
-page.locator(".btn").click(force=True)
-```
-
-### Rule #3: Forget Video & Drag-n-Drop
+### Rule #4: Forget Video & Drag-n-Drop
 Tested limitations in sandboxed environments:
 *   **Video Recording:** Fails silently (directory created, but empty).
 *   **Drag & Drop:** Causes the browser target to crash immediately.
@@ -119,7 +114,7 @@ Tested limitations in sandboxed environments:
 | **Screenshots** | ✅ **Stable** | Works for full page and specific elements. |
 | **Network Mocking** | ✅ **Stable** | `page.route` and `page.on("request")` work perfectly. |
 | **Form Fill** | ✅ **Stable** | `fill()` and `type()` work reliably. |
-| **Clicking** | ⚠️ **Caveats** | Requires `force=True` to avoid overlay errors. |
+| **Clicking** | ✅ **Stable** | Standard clicks work if DOM visibility is handled correctly. |
 | **Video Record** | ❌ **Broken** | Does not produce output files. |
 | **Drag & Drop** | ❌ **Broken** | Crashes the browser tab. |
 
@@ -153,28 +148,48 @@ ps -p $(cat script.pid)
 tail -f output.log
 ```
 
-## 5. Retrieving Artifacts (Screenshots)
 
-If direct file transfer (scp, sftp) or upload services (transfer.sh) are blocked/broken: **Use Git.**
+## 6. Practical Recipes & Patterns
 
-1.  **Snapshot:** Save screenshot to repo folder.
+### How to Handle Collapsible Content (Visibility)
+If `expect(locator).not_to_be_visible()` fails for a collapsed element:
+1.  **Check CSS:** Ensure the element has `visibility: hidden` (Tailwind `invisible`) or `display: none` (`hidden`).
+2.  **Avoid:** Relying solely on `opacity: 0` or `height: 0`. These hide the element visually but leave it in the DOM/accessibility tree, causing test assertions to fail.
+3.  **Pattern:**
+    ```jsx
+    // React Component
+    <div className={`transition-all ... ${expanded ? 'opacity-100' : 'opacity-0 invisible'}`}>
+      {content}
+    </div>
+    ```
+
+### How to Select Elements in Dynamic Lists
+If your tests fail with "element detached" or "element not visible" after modifying a list (e.g., removing an item):
+1.  **Stop:** Do not use index-based selectors like `.first`, `.nth(0)`, or `.locator('div').first`.
+2.  **Start:** Add stable `data-testid` attributes to your components.
+    ```jsx
+    // React Component
+    <div data-testid={`article-card-${article.url}`}>...</div>
+    ```
+3.  **Test:**
     ```python
-    page.screenshot(path="debug_screenshots/state_01.png")
+    # Playwright
+    card = page.locator(f'div[data-testid="article-card-{url}"]')
     ```
-2.  **Push:**
+
+### How to Ensure Clean Test Runs
+If tests fail randomly due to previous state:
+1.  **Script It:** Create a transient cleanup script (e.g., `clean_today.py`) that connects to the database and wipes relevant rows.
+2.  **Run It:** Execute this script *before* your test command in the pipeline or shell.
     ```bash
-    git checkout -b debug-$(date +%s)
-    git add debug_screenshots/
-    git commit -m "chore: add debug screenshots"
-    git push origin HEAD
+    uv run python3 clean_today.py && uv run --with=playwright python3 test_my_feature.py
     ```
-3.  **View:** Browse the branch on GitHub/GitLab to view the image.
 
----
-
-**Obsolete/Superseded Docs:**
-*   `docs/testing/playwright-sandboxed-environment-results.md` (Merged)
-*   `docs/testing/playwright_capabilities_for_tldrscraper.md` (Merged, inaccuracies removed)
-*   `docs/testing/overcoming-sandboxed-playwright-limitations.md` (Merged)
-*   `docs/cloudflared_tunnel.md` (Merged)
-*   `docs/SCREENSHOTTING_APP.md` (Merged)
+### How to Debug "Invisible" Interactions
+If an interaction (click) seems to happen but the UI doesn't update:
+1.  **Trace Lifecycle:** Add `console.log` to the component's render and event handlers.
+2.  **Listen:** In your Playwright script, pipe console logs to stdout:
+    ```python
+    page.on("console", lambda msg: print(f"BROWSER: {msg.text}"))
+    ```
+3.  **Verify:** Check if the event handler actually fired. If yes, the issue is likely CSS/Rendering (see "Visibility"). If no, the issue is likely the selector or overlay (see "Golden Rule #1").

@@ -171,11 +171,19 @@ export async function loadFromCache(startDate, endDate) {
     return null
   }
 
+  const normalizedPayloads = payloads.map(payload => ({
+    ...payload,
+    articles: payload.articles?.map(article => ({
+      ...article,
+      issueDate: article.issueDate || article.date
+    })) || []
+  }))
+
   return {
     success: true,
-    payloads,
+    payloads: normalizedPayloads,
     source: 'local cache',
-    stats: buildStatsFromPayloads(payloads)
+    stats: buildStatsFromPayloads(normalizedPayloads)
   }
 }
 
