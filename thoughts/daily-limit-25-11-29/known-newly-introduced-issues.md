@@ -1,3 +1,6 @@
+---
+last_updated: 2025-11-29 20:21, 364ae8f
+---
 # Known Newly Introduced Issues in `fix/tldr-remove-btns-not-responsing` branch
 
 - TLDR visibility state is no longer persisted. ArticleCard dropped the calls to markTldrHidden / unmarkTldrHidden, so toggling a summary now only flips the
