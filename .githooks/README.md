@@ -1,0 +1,79 @@
+---
+last_updated: 2025-11-27 11:06, 0bcbc9a
+---
+# Git Hooks
+
+This directory contains git hooks for the repository.
+
+## Setup
+
+To enable these hooks locally, run:
+
+```bash
+./setup-hooks.sh
+```
+
+Or manually:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+## Available Hooks
+
+### pre-commit
+
+Runs biome lint on staged client files before allowing commit. Prevents commits with linting errors.
+
+**Requirements:**
+- Node.js and npm (for npx)
+
+**Behavior:**
+- Only runs if `client/` files are staged
+- Uses `DRY_RUN=1` mode (no file modifications)
+- Exits non-zero to block commit if linting fails
+
+### pre-merge-commit
+
+Automatically generates `PROJECT_STRUCTURE.md` using `eza` before merge commits so the working tree stays in sync.
+
+**Requirements:**
+- `eza` must be installed ([installation guide](https://github.com/eza-community/eza))
+
+The hook will attempt to auto-install `eza` on Ubuntu/Debian systems.
+
+### post-checkout
+
+Ensures the local clone has the `merge.ours` driver configured so Git respects the `PROJECT_STRUCTURE.md merge=ours` rule from `.gitattributes`.
+
+Also regenerates `PROJECT_STRUCTURE.md` using `eza` to ensure the file is present and up-to-date when switching branches.
+
+### post-merge, post-rewrite
+
+These hooks ensure the local clone always has the `merge.ours` driver configured so Git respects the `PROJECT_STRUCTURE.md merge=ours` rule from `.gitattributes`.
+
+## GitHub Actions
+
+Documentation maintenance runs automatically via a single consolidated workflow with explicit sequential dependencies to prevent race conditions:
+
+**Workflow:** `.github/workflows/maintain-documentation.yml`
+
+**Sequential Job Execution:**
+
+1. **update-frontmatter** (runs first):
+   - Updates YAML frontmatter in modified `*.md` files with timestamp and commit hash
+   - Commits and pushes changes
+   - Outputs list of modified files for downstream jobs
+
+2. **sync-agents-to-claude** (depends on job 1):
+   - Only runs if `AGENTS.md` was modified in job 1
+   - Copies `AGENTS.md` to `CLAUDE.md` (after frontmatter updates)
+   - Commits and pushes changes
+   - Prevents race condition by running sequentially
+
+3. **generate-structure-preview** (depends on job 2):
+   - Generates `PROJECT_STRUCTURE.md` preview in workflow logs
+   - Runs after all mutations complete
+   - File is not committed to git
+
+This design eliminates the race condition that occurred when parallel workflows (`update-doc-frontmatter.yml`, `copy-agents-to-claude.yml`) both modified and pushed changes simultaneously.
