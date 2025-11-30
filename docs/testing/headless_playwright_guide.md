@@ -93,23 +93,25 @@ Avoid "reverse engineering" an element's true state and the data it represents w
 -   **Rule of Thumb:** If what you're probing for about an HTML element is important, has to do with state, or required repeated trial and error to infer, it should have a dedicated data attribute that makes it easy to debug.
 
 ### Rule #2: Accessibility facilitates headless debugging
+
 This ties directly to `Rule #1`.
 *   **Best Practice:** Apply Rule #1, and in general, be empathic to future headless debugging sessions, optimizing ease of state inspection. This correlates with good accessibility practices.
 *   **Interaction:** Standard `.click()` works reliably if the element is truly visible and not covered. `force=True` should be a last resort for known overlays, not a default fix. If a click confusingly doesn't work, take a step back to think what might (potentially mistakenly) overlay it.
 *   Visibility: Playwright's visibility checks are strict. Surface-only hiding (e.g., `opacity: 0`, `height: 0`) is often insufficient for `expect(locator).not_to_be_visible()` assertions or ensuring elements are removed from the accessibility tree. 
 
-### Rule #3: Trust JS Execution for Setup
+### Rule #3: Be Aware of Storage State when Testing
+
 Be mindful and intentional about test state setup. Supabase data and localStorage data need to serve the current test's setup needs. Concrete examples: surgically clear up storage before testing empty state flows.
 
+### Rule #4: Don’t Lie To Yourself with Shortcuts — Avoid Reward Hacking
 
-For setting up test state (e.g., seeding `localStorage`, bypassing lengthy UI flows), direct execution is faster and cleaner.
+A common trap to avoid: <avoid>
+having failed to transition the app to a desired state  via standard user flows UI interactions, the agent mutates the storage's state to "jump ahead" then asserts that very state.
+</avoid>. This is a circular assuming the conclusion and not only is it meaningless but worse, it's misleading.
+Instead, don't make presuppositions, and if a necessary capability doesn't work, make it work before moving on.
 
-```python
-# ✅ RELIABLE: Direct localStorage manipulation
-page.evaluate("localStorage.setItem('user-settings', JSON.stringify({theme: 'dark'}))")
-```
 
-### Rule #4: Forget Video & Drag-n-Drop
+### Rule #5: Forget Video & Drag-n-Drop
 Tested limitations in sandboxed environments:
 *   **Video Recording:** Fails silently (directory created, but empty).
 *   **Drag & Drop:** Causes the browser target to crash immediately.
