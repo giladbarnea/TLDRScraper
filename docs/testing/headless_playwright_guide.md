@@ -169,12 +169,3 @@ If direct file transfer (scp, sftp) or upload services (transfer.sh) are blocked
     git push origin HEAD
     ```
 3.  **View:** Browse the branch on GitHub/GitLab to view the image.
-
----
-
-**Obsolete/Superseded Docs:**
-*   `docs/testing/playwright-sandboxed-environment-results.md` (Merged)
-*   `docs/testing/playwright_capabilities_for_tldrscraper.md` (Merged, inaccuracies removed)
-*   `docs/testing/overcoming-sandboxed-playwright-limitations.md` (Merged)
-*   `docs/cloudflared_tunnel.md` (Merged)
-*   `docs/SCREENSHOTTING_APP.md` (Merged)
