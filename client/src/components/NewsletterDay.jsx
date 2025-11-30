@@ -2,29 +2,23 @@ import ArticleList from './ArticleList'
 import FoldableContainer from './FoldableContainer'
 
 function NewsletterDay({ date, title, issue, articles }) {
-  // Logic to determine if all articles in this newsletter are removed
   const allRemoved = articles.length > 0 && articles.every(a => a.removed)
+  const hasSections = articles.some(a => a.section)
 
-  // Group articles by section (Category)
-  const sections = articles.reduce((acc, article) => {
-    const sectionKey = article.section || 'Other'
+  const sections = hasSections ? articles.reduce((acc, article) => {
+    const sectionKey = article.section
     if (!acc[sectionKey]) {
       acc[sectionKey] = []
     }
     acc[sectionKey].push(article)
     return acc
-  }, {})
+  }, {}) : {}
 
-  // Maintain order of sections based on sectionOrder
-  const sortedSections = Object.keys(sections).sort((a, b) => {
-    if (a === 'Other') return 1
-    if (b === 'Other') return -1
-    
+  const sortedSections = hasSections ? Object.keys(sections).sort((a, b) => {
     const articleA = sections[a][0]
     const articleB = sections[b][0]
-    
     return (articleA.sectionOrder ?? 0) - (articleB.sectionOrder ?? 0)
-  })
+  }) : []
 
   return (
     <FoldableContainer
@@ -49,39 +43,43 @@ function NewsletterDay({ date, title, issue, articles }) {
           </div>
         )}
 
-        {sortedSections.map((sectionKey) => {
-          const sectionArticles = sections[sectionKey]
-          const sectionAllRemoved = sectionArticles.every(a => a.removed)
-          
-          const firstArticle = sectionArticles[0]
-          const sectionEmoji = firstArticle.sectionEmoji
-          const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
+        {hasSections ? (
+          sortedSections.map((sectionKey) => {
+            const sectionArticles = sections[sectionKey]
+            const sectionAllRemoved = sectionArticles.every(a => a.removed)
+            
+            const firstArticle = sectionArticles[0]
+            const sectionEmoji = firstArticle.sectionEmoji
+            const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
 
-          const SectionTitle = (
-             <div className="flex items-center gap-3">
-               <h4 className="font-display font-bold text-lg text-slate-700">
-                 {displayTitle}
-               </h4>
-             </div>
-          )
-
-          return (
-            <FoldableContainer
-              key={`${title}-${sectionKey}`}
-              id={`section-${date}-${title}-${sectionKey}`}
-              title={SectionTitle}
-              defaultFolded={sectionAllRemoved}
-              className="mb-4"
-            >
-               <div className="space-y-4 mt-2">
-                  <ArticleList 
-                    articles={sectionArticles} 
-                    showSectionHeaders={false} 
-                  />
+            const SectionTitle = (
+               <div className="flex items-center gap-3">
+                 <h4 className="font-display font-bold text-lg text-slate-700">
+                   {displayTitle}
+                 </h4>
                </div>
-            </FoldableContainer>
-          )
-        })}
+            )
+
+            return (
+              <FoldableContainer
+                key={`${title}-${sectionKey}`}
+                id={`section-${date}-${title}-${sectionKey}`}
+                title={SectionTitle}
+                defaultFolded={sectionAllRemoved}
+                className="mb-4"
+              >
+                 <div className="space-y-4 mt-2">
+                    <ArticleList 
+                      articles={sectionArticles} 
+                      showSectionHeaders={false} 
+                    />
+                 </div>
+              </FoldableContainer>
+            )
+          })
+        ) : (
+          <ArticleList articles={articles} showSectionHeaders={false} />
+        )}
       </div>
     </FoldableContainer>
   )
