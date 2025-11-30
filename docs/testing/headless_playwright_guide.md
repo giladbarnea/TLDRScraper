@@ -92,12 +92,16 @@ Avoid "reverse engineering" an element's true state and the data it represents w
 -   **Best Practice:** Use existing or otherwise instrument component HTML elements with data attributes that always reflect that component's current state as well as the data it contains (mirroring the shape of the datastructures that was used to build it for consistency and minimum surprise) to make it trivial to find that component and inspect its state in a headless Playwright session.
 -   **Rule of Thumb:** If what you're probing for about an HTML element is important, has to do with state, or required repeated trial and error to infer, it should have a dedicated data attribute that makes it easy to debug.
 
-### Rule #2: Visibility Matters
-Playwright's visibility checks are strict. Surface-only hiding (e.g., `opacity: 0`, `height: 0`) is often insufficient for `expect(locator).not_to_be_visible()` assertions or ensuring elements are removed from the accessibility tree. This tight directly to `Rule #1`.
+### Rule #2: Accessibility facilitates headless debugging
+This ties directly to `Rule #1`.
 *   **Best Practice:** Apply Rule #1, and in general, be empathic to future headless debugging sessions, optimizing ease of state inspection. This correlates with good accessibility practices.
 *   **Interaction:** Standard `.click()` works reliably if the element is truly visible and not covered. `force=True` should be a last resort for known overlays, not a default fix. If a click confusingly doesn't work, take a step back to think what might (potentially mistakenly) overlay it.
+*   Visibility: Playwright's visibility checks are strict. Surface-only hiding (e.g., `opacity: 0`, `height: 0`) is often insufficient for `expect(locator).not_to_be_visible()` assertions or ensuring elements are removed from the accessibility tree. 
 
 ### Rule #3: Trust JS Execution for Setup
+Be mindful and intentional about test state setup. Supabase data and localStorage data need to serve the current test's setup needs. Concrete examples: surgically clear up storage before testing empty state flows.
+
+
 For setting up test state (e.g., seeding `localStorage`, bypassing lengthy UI flows), direct execution is faster and cleaner.
 
 ```python
