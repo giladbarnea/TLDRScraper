@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-11-21 07:35, afaa731
+last_updated: 2025-11-30 21:17, b19d703
 ---
 # Agents Guide
 
@@ -81,6 +81,8 @@ npm run dev
 This runs Vite dev server on port 3000 with API proxy to localhost:5001.
 
 #### Testing Client With Playwright
+
+See [docs/testing/headless_playwright_guide.md](docs/testing/headless_playwright_guide.md) for the definitive guide on configuration, stable patterns, and environment management.
 
 1. Use this browser configuration:
 ```python
