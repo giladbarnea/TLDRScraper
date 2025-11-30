@@ -88,9 +88,10 @@ Playwright's visibility checks are strict. Visual-only hiding (e.g., `opacity: 0
 *   **Best Practice:** Always pair transitions with `visibility: hidden` or `display: none` for the final collapsed state.
 *   **Interaction:** Standard `.click()` works reliably if the element is truly visible and not covered. `force=True` should be a last resort for known overlays, not a default fix.
 
-### Rule #2: Use Stable Selectors
-In dynamic applications where lists re-render or re-sort, index-based selectors (e.g., `.nth(0)`) become stale instantly.
-*   **Best Practice:** Instrument components with data-driven attributes like `data-testid="article-${id}"` to ensure tests target the correct element regardless of DOM order.
+### Rule #2: Use Or Create Stable Selectors
+In dynamic situations (for example, when lists re-render or re-sort), avoid "reverse engineering" the element's true state with convoluted CSS selector (in the resorted list case, a bad example is index-based selectors) because they become stale instantly.
+-   **Best Practice:** Use existing or otherwise instrument component HTML elements with data attributes that always reflect that component's current state as well as the data it contains (mirroring the shape of the data that was used to build it for least surprise) to make it trivial to find that component and inspect its state in a headless Playwright session.
+-   **Rule of Thumb:** If what you're probing for about an HTML element is important, has to do with state, or involves trial and error to infer, it should have a dedicated data attribute that makes it easy to debug.
 
 ### Rule #3: Trust JS Execution for Setup
 For setting up test state (e.g., seeding `localStorage`, bypassing lengthy UI flows), direct execution is faster and cleaner.
