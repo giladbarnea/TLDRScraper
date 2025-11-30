@@ -5,9 +5,8 @@ function NewsletterDay({ date, title, issue, articles }) {
   const allRemoved = articles.length > 0 && articles.every(a => a.removed)
   const hasSections = articles.some(a => a.section)
 
-  // Only compute section grouping if articles have sections
   const sections = hasSections ? articles.reduce((acc, article) => {
-    const sectionKey = article.section || 'Other'
+    const sectionKey = article.section
     if (!acc[sectionKey]) {
       acc[sectionKey] = []
     }
@@ -16,12 +15,8 @@ function NewsletterDay({ date, title, issue, articles }) {
   }, {}) : {}
 
   const sortedSections = hasSections ? Object.keys(sections).sort((a, b) => {
-    if (a === 'Other') return 1
-    if (b === 'Other') return -1
-    
     const articleA = sections[a][0]
     const articleB = sections[b][0]
-    
     return (articleA.sectionOrder ?? 0) - (articleB.sectionOrder ?? 0)
   }) : []
 
