@@ -46,12 +46,15 @@ pgrep -fal vite
 ```
 
 ### Manual Startup (Fallback)
+
+// TODO: align the redirected log files with how the functions in setup.sh do it
+
 If `setup.sh` helper functions (like `start_server_and_watchdog`) fail or you need more control, run the services manually in the background.
 
 **Backend (Flask):**
 ```bash
 (
-  cd $(git rev-parse --show-toplevel)
+  builtin cd $(git rev-parse --show-toplevel)
   uv run python3 serve.py >> flask_server.log 2>&1 &
   echo $! > flask_server.pid
   wait
@@ -61,7 +64,7 @@ If `setup.sh` helper functions (like `start_server_and_watchdog`) fail or you ne
 **Frontend (Vite):**
 ```bash
 (
-  cd $(git rev-parse --show-toplevel)/client
+  builtin cd $(git rev-parse --show-toplevel)/client
   npm run dev -- --host >> vite_client.log 2>&1 &
   echo $! > vite_client.pid
   wait
@@ -83,15 +86,16 @@ pkill -f vite
 
 ## 3. The Golden Rules of Sandboxed Automation
 
-### Rule #1: Visibility Matters
-Playwright's visibility checks are strict. Visual-only hiding (e.g., `opacity: 0`, `height: 0`) is often insufficient for `expect(locator).not_to_be_visible()` assertions or ensuring elements are removed from the accessibility tree.
-*   **Best Practice:** Always pair transitions with `visibility: hidden` or `display: none` for the final collapsed state.
-*   **Interaction:** Standard `.click()` works reliably if the element is truly visible and not covered. `force=True` should be a last resort for known overlays, not a default fix.
+### Rule #1: Use Or Create Stable Data Selectors
 
-### Rule #2: Use Or Create Stable Selectors
-In dynamic situations (for example, when lists re-render or re-sort), avoid "reverse engineering" the element's true state with convoluted CSS selector (in the resorted list case, a bad example is index-based selectors) because they become stale instantly.
--   **Best Practice:** Use existing or otherwise instrument component HTML elements with data attributes that always reflect that component's current state as well as the data it contains (mirroring the shape of the data that was used to build it for least surprise) to make it trivial to find that component and inspect its state in a headless Playwright session.
--   **Rule of Thumb:** If what you're probing for about an HTML element is important, has to do with state, or involves trial and error to infer, it should have a dedicated data attribute that makes it easy to debug.
+Avoid "reverse engineering" an element's true state and the data it represents with convoluted CSS selectors guesswork. Instead, rely on component data atrributes. If the  existing data attributes are don't provide you with what you need, add them to the component. This is universally true but especially so in dynamic situations and regarding state transitions.
+-   **Best Practice:** Use existing or otherwise instrument component HTML elements with data attributes that always reflect that component's current state as well as the data it contains (mirroring the shape of the datastructures that was used to build it for consistency and minimum surprise) to make it trivial to find that component and inspect its state in a headless Playwright session.
+-   **Rule of Thumb:** If what you're probing for about an HTML element is important, has to do with state, or required repeated trial and error to infer, it should have a dedicated data attribute that makes it easy to debug.
+
+### Rule #2: Visibility Matters
+Playwright's visibility checks are strict. Surface-only hiding (e.g., `opacity: 0`, `height: 0`) is often insufficient for `expect(locator).not_to_be_visible()` assertions or ensuring elements are removed from the accessibility tree. This tight directly to `Rule #1`.
+*   **Best Practice:** Apply Rule #1, and in general, be empathic to future headless debugging sessions, optimizing ease of state inspection. This correlates with good accessibility practices.
+*   **Interaction:** Standard `.click()` works reliably if the element is truly visible and not covered. `force=True` should be a last resort for known overlays, not a default fix. If a click confusingly doesn't work, take a step back to think what might (potentially mistakenly) overlay it.
 
 ### Rule #3: Trust JS Execution for Setup
 For setting up test state (e.g., seeding `localStorage`, bypassing lengthy UI flows), direct execution is faster and cleaner.
