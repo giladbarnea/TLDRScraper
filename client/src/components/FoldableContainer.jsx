@@ -33,16 +33,10 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
       </div>
 
       <div className={`
-        overflow-hidden transition-all duration-500 ease-in-out
-        ${isFolded ? 'max-h-0 opacity-0' : 'max-h-[5000px] opacity-100'}
+        grid transition-all duration-500 ease-in-out
+        ${isFolded ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'}
       `}>
-        {/* 
-          We use display: none (via hidden class or similar logic if needed for strict unmounting) 
-          or just reliance on max-h-0 and overflow-hidden for the "roll" effect.
-          However, to ensure "passive" state preservation, we must keep the children mounted.
-          The CSS transition above keeps them mounted but hidden.
-        */}
-        <div className={`${isFolded ? 'invisible' : 'visible'} ${contentClassName}`}>
+        <div className={`overflow-hidden ${contentClassName}`}>
            {children}
         </div>
       </div>
