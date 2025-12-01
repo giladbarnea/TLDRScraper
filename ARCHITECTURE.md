@@ -1,7 +1,7 @@
 ---
 last_updated: 2025-12-01 08:00, 75606fc
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. style: Behavioral and declarative.
-scope: Strictly high level, no implementation details. Intra-layer relationships.
+scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships.
 ---
 # TLDRScraper Architecture Documentation
 
