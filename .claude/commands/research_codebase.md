@@ -54,7 +54,7 @@ Then wait for the user's research query.
    **For thoughts directory:**
 
    **For web research (only if user explicitly asks):**
-   - Use the **web-search-researcher** agent for external documentation and resources
+   - Use the **web-deep-researcher** agent for external documentation and resources
    - IF you use web-research agents, instruct them to return LINKS with their findings, and please INCLUDE those links in your final report
 
    The key is to use these agents intelligently:
