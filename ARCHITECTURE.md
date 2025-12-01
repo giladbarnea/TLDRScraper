@@ -25,7 +25,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - Jina Reader API (web scraping fallback)
 - Firecrawl API (web scraping fallback, optional)
 - MarkItDown (HTML → Markdown conversion)
-- OpenAI GPT-5 (AI TLDRs)
+- Gemini 3 Pro Preview (AI TLDRs)
 
 ## Architecture Diagram
 
@@ -69,7 +69,6 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │                       tldr_app.py (App Logic)                     │  │
 │  │  - scrape_newsletters()    - tldr_url()                           │  │
-│  │  - get_tldr_prompt_template()                                    │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                    │                                     │
 │                                    ▼                                     │
@@ -108,7 +107,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  - daily_cache table (JSONB payloads by date)                    │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────┐   │
-│  │  TLDR News   │  │ HackerNews   │  │  OpenAI GPT-5 API          │   │
+│  │  TLDR News   │  │ HackerNews   │  │  Gemini 3 Pro Preview API  │   │
 │  │  Newsletter  │  │  API         │  │  (Summaries & TLDRs)       │   │
 │  │  Archives    │  │              │  │                            │   │
 │  └──────────────┘  └──────────────┘  └────────────────────────────┘   │
@@ -672,7 +671,7 @@ User clicks "TLDR" button OR clicks article card body
   │    │                        │                   └─ Call LLM:
   │    │                        │                        │
   │    │                        │                        └─ _call_llm(prompt, summary_effort)
-  │    │                        │                             (calls OpenAI GPT-5 API)
+       │    │                        │                             (calls Gemini 3 Pro Preview API)
   │    │                        │
   │    │                        └─ Return { success, tldr_markdown, canonical_url, summary_effort }
   │    │
@@ -1123,7 +1122,7 @@ Three-tier cache strategy in `useSupabaseStorage`:
    - URL canonicalization (prevents cache poisoning)
 
 4. **API Key Management**
-   - OpenAI API key server-side only
+   - Gemini API key server-side only
    - GitHub token for private repos (optional)
    - Firecrawl API key for hard-to-scrape sites (optional)
 
@@ -1234,6 +1233,6 @@ TLDRScraper is a full-stack newsletter aggregator with sophisticated client-side
 - **Flask routes** provide clean REST endpoints (scraping + storage)
 - **Service/adapter layers** abstract data sources and database operations
 - **Supabase PostgreSQL** provides server-side persistence with JSONB storage
-- **OpenAI integration** enhances content with AI-powered summaries
+- **Gemini integration** enhances content with AI-powered summaries
 
 The system is designed for extensibility (new newsletter sources via adapters), performance (database caching with cache-first scraping), and user experience (reactive UI with async loading states).
