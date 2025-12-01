@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-11-30 21:17, b19d703
+last_updated: 2025-12-01 11:28, 29def14
 ---
 # Agents Guide
 
@@ -11,7 +11,7 @@ Newsletter aggregator that scrapes tech newsletters from multiple sources, displ
    * Python: Flask backend, serverless on Vercel
    * React 19 + Vite (frontend) (in `client/`)
    * Supabase PostgreSQL for all data persistence
-   * OpenAI GPT-5 for TLDRs
+   * Gemini 3 Pro Preview for TLDRs
 - Storage: Project uses Supabase Database (PostgreSQL) for all data persistence (newsletters, article states, settings, scrape results). Data is stored server-side with client hooks managing async operations.
 - Cache mechanism: Server-side storage with cache-first scraping behavior. Daily payloads stored as JSONB in PostgreSQL. 
 
@@ -19,38 +19,44 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions do
 
 ## Environment
 
+*Note*: The `source setup.sh` command is mentioned multiple times in this document with different described effects. This is intentional: sourcing it triggers a chain of idempotent setup operations.
+
 The single source of truth for what is available locally is the output of:
 
 ```bash
-env | grep -E -o '^[A-Z_]+' | grep -e TLDR -e TOKEN -e API -e KEY | sort -u  # Should print the names of all environment variables without values on a need-to-know basis.
+env | grep -E -o '^[A-Z_]+' | grep -e TOKEN -e API -e KEY -e SUPABASE -e VERCEL | sort -u  # Should print the names of all environment variables without values on a need-to-know basis.
 ```
 
 **Run `source ./setup.sh` first thing to install all server and client dependencies and tooling, build the client, verify your environment and provide you with convenience functions and crucial context for the project.**
 
-### Expected Environment Variables for AI Agents **besides Cursor Background Agents** (for Claude, Codex, etc.)
+### Expected Environment Variables for AI Agents (Claude, Codex, Gemini, etc.)
 
 - FIRECRAWL_API_KEY
+- GEMINI_API_KEY
 - GITHUB_API_TOKEN
-- OPENAI_API_KEY
+- OPENAI_API_KEY (Optional; unused currently)
 - SUPABASE_API_KEY
 - SUPABASE_DATABASE_PASSWORD
 - SUPABASE_SERVICE_KEY
 - SUPABASE_URL
+- VERCEL_PROD_DEPLOYMENT_URL
+- VERCEL_PROJECT_ID
+- VERCEL_TOKEN
 
 This is true both for local and production environments.
 
 ## Development & Setup
 
-### Running the server and logs watchdog
+### Running the server and logs watchdog in a background process
 ```bash
 # Verify the environment and dependencies are set up correctly.
 source ./setup.sh
 
 # Start the server and watchdog in the background. Logs output to file.
-start_server_and_watchdog
+source ./setup.sh && start_server_and_watchdog
 
 # Verify the server is running.
-print_server_and_watchdog_pids
+source ./setup.sh && print_server_and_watchdog_pids
 
 # Exercise the API with curl requests.
 curl http://localhost:5001/api/scrape
@@ -58,11 +64,11 @@ curl http://localhost:5001/api/tldr-url
 curl ...additional endpoints that may be relevant...
 
 # Stop the server and watchdog.
-kill_server_and_watchdog
+source ./setup.sh && kill_server_and_watchdog
 ```
 
 
-## Client setup
+### Client setup
 
 Builds client:
 ```bash
@@ -71,55 +77,17 @@ source setup.sh
 
 ### Frontend development
 
-For frontend development with hot reload:
+For frontend development with hot reload in a background process:
 
 ```bash
-cd client
-npm run dev
+builtin cd client && CI=1 npm run dev
 ```
 
 This runs Vite dev server on port 3000 with API proxy to localhost:5001.
 
-#### Testing Client With Playwright
+#### Testing Client UI With Playwright
 
 See [docs/testing/headless_playwright_guide.md](docs/testing/headless_playwright_guide.md) for the definitive guide on configuration, stable patterns, and environment management.
-
-1. Use this browser configuration:
-```python
-launch_options = {
-    'headless': True,
-    'args': [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu',
-        '--disable-software-rasterizer',
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process',
-        '--disable-blink-features=AutomationControlled',
-    ]
-}
-browser = p.chromium.launch(**launch_options)
-context = browser.new_context(
-    viewport={"width": 1920, "height": 1080},
-    ignore_https_errors=True,
-    bypass_csp=True,
-)
-page = context.new_page()
-```
-
-2. Take, download and view screenshots yourself to assess visuals
-3. Utilize event monitoring (on "console", "request", "pageerror", ...)
-4. Lean on testing real user flows
-5. Wait intelligently
-    - `wait_until="domcontentloaded"`, not "networkidle"
-    - `page.wait_for_selector('body', state="visible")`
-    - time.sleep(2~3) for React hydration
-6. Leverage CSS classes as distinguishers
-
 
 ### `uv` installation and usage
 
@@ -154,6 +122,68 @@ PY
 - Verify every new behavior, fix or modification you make by utilizing your shell and Playwright. If possible, execute the modified flow to ensure nothing is broken.
 - Make note of the various sub agents available to you (.claude/agents/) and use them in the circumstances they describe.
 
+
+## Dispatching AI Sub-Agents
+
+Delegating exploration and research tasks to sub agents leads to improved results and is context-efficient. A sub-agent dives into a specific problem area with its own fresh context window, then returns a concise summary of its findings to you. This keeps you focused on the task and keeps your main context window from ballooning. 
+Deploy multiple sub-agents in parallel when your task spans multiple broad domains. A classic case: The codebase needs to be investigated across the entire call graph for any reason -> Run 3-4 parallel scouting agents, one for each of the project's subsystems. Reasons range from finding where a functionality is implemented (needle in a haystack) to gathering detailed information of multiple domains (map out the entire haystack). 
+
+Use multiple sub-agents in parallel when a task spans several domains. For example, if you need to inspect the codebase across the full call graph, launch 3–4 scouting agents—one per subsystem. A squad of agents is optimal for handling anything from pinpointing a specific implementation (“needle in a haystack”) to mapping out wide-spanning contexts (“the entire haystack”).
+
+### How to Run Sub-Agents
+1. Either you have a built in function to run sub agents (e.g. Claude Code’s `Task`), or you don’t.
+2. If you do not have such a built in function, you can install and run a sub-agent ad hoc:
+
+```sh
+# Google Gemini:
+npm i -g @google/gemini-cli && {
+    gemini -m gemini-3-pro-preview --yolo --prompt '<tailored prompt for this agent’s subtask>' ;
+}
+```
+
+It is also possible to use one of the pre-made agents or commands:
+```sh
+# OpenAI Codex:
+npm i -g @openai/codex && {
+    printenv OPENAI_API_KEY \
+    | codex login --with-api-key \
+    && codex --model=gpt-5.1-codex-max --ask-for-approval=never exec --config='model_reasoning_effort=high' --skip-git-repo-check --sandbox workspace-write \
+"
+$(cat .claude/agents/your-agent-of-choice.md)
+---
+<tailored prompt for this agent’s subtask>
+"
+;
+}
+```
+
+And trivially, you can parallelize agents:
+```sh
+npm i -g @openai/codex;
+printenv OPENAI_API_KEY | codex login --with-api-key;
+COMMON_CONTEXT='<wider context to include in every agent’s prompt>';
+function agent(){
+  codex --model=gpt-5.1-codex-max --ask-for-approval=never exec --config='model_reasoning_effort=high' --skip-git-repo-check --sandbox workspace-write "$@"
+}
+declare -a domains=(
+  'scraping subsystem'
+  'web server endpoints'
+  'client state management vs user interactions'
+  'client rendering vs state management'
+)
+
+for domain in "${domains[@]}"; do
+(
+agent "$COMMON_CONTEXT
+---
+Focus only on the ${domain}." >> "${domain// /-}.md" 2>&1
+) &
+done
+
+wait
+```
+
+Then read all new findings docs.
 
 ## Development Conventions
 
