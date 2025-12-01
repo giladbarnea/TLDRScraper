@@ -137,7 +137,7 @@ Use multiple sub-agents in parallel when a task spans several domains. For examp
 ```sh
 # Google Gemini:
 npm i -g @google/gemini-cli && {
-    gemini -m gemini-3-pro-preview --prompt '<tailored prompt for this agent’s subtask>' ;
+    gemini -m gemini-3-pro-preview --yolo --prompt '<tailored prompt for this agent’s subtask>' ;
 }
 ```
 
@@ -147,7 +147,7 @@ It is also possible to use one of the pre-made agents or commands:
 npm i -g @openai/codex && {
     printenv OPENAI_API_KEY \
     | codex login --with-api-key \
-    && codex --model=gpt-5.1-codex-max --ask-for-approval=never exec --skip-git-repo-check --sandbox read-only \
+    && codex --model=gpt-5.1-codex-max --ask-for-approval=never exec --skip-git-repo-check --sandbox workspace-write \
 "
 $(cat .claude/agents/your-agent-of-choice.md)
 ---
@@ -163,7 +163,7 @@ npm i -g @openai/codex;
 printenv OPENAI_API_KEY | codex login --with-api-key;
 COMMON_CONTEXT='<wider context to include in every agent’s prompt>';
 function agent(){
-  codex --model=gpt-5.1-codex-max --ask-for-approval=never exec --skip-git-repo-check --sandbox read-only "$@"
+  codex --model=gpt-5.1-codex-max --ask-for-approval=never exec --skip-git-repo-check --sandbox workspace-write "$@"
 }
 declare -a domains=(
   'scraping subsystem'
