@@ -136,35 +136,28 @@ Use multiple sub-agents in parallel when a task spans several domains. For examp
 
 ```sh
 # Google Gemini:
-npm i -g @google/gemini-cli && {
-    gemini -m gemini-3-pro-preview --yolo --prompt '<tailored prompt for this agent’s subtask>' ;
-}
+./scripts/install-gemini-cli.sh
+prompt_file=$(mktemp)
+echo '<tailored prompt for this agent’s subtask>' > "$prompt_file"
+./scripts/run-gemini.sh "$prompt_file"
+rm "$prompt_file" 
 ```
 
 It is also possible to use one of the pre-made agents or commands:
 ```sh
 # OpenAI Codex:
-npm i -g @openai/codex && {
-    printenv OPENAI_API_KEY \
-    | codex login --with-api-key \
-    && codex --model=gpt-5.1-codex-max --ask-for-approval=never exec --config='model_reasoning_effort=high' --skip-git-repo-check --sandbox workspace-write \
-"
-$(cat .claude/agents/your-agent-of-choice.md)
----
-<tailored prompt for this agent’s subtask>
-"
-;
-}
+./scripts/install-codex-cli.sh
+prompt_file=$(mktemp)
+cat .claude/agents/your-agent-of-choice.md > "$prompt_file"
+echo -e "\n---\n<tailored prompt for this agent’s subtask>" >> "$prompt_file"
+./scripts/run-codex.sh "$prompt_file"
+rm "$prompt_file" 
 ```
 
 And trivially, you can parallelize agents:
 ```sh
-npm i -g @openai/codex;
-printenv OPENAI_API_KEY | codex login --with-api-key;
-COMMON_CONTEXT='<wider context to include in every agent’s prompt>';
-function agent(){
-  codex --model=gpt-5.1-codex-max --ask-for-approval=never exec --config='model_reasoning_effort=high' --skip-git-repo-check --sandbox workspace-write "$@"
-}
+./scripts/install-codex-cli.sh
+COMMON_CONTEXT='<wider context to include in every agent’s prompt>'
 declare -a domains=(
   'scraping subsystem'
   'web server endpoints'
@@ -174,9 +167,11 @@ declare -a domains=(
 
 for domain in "${domains[@]}"; do
 (
-agent "$COMMON_CONTEXT
----
-Focus only on the ${domain}." >> "${domain// /-}.md" 2>&1
+  prompt_file=$(mktemp)
+  echo "$COMMON_CONTEXT" > "$prompt_file"
+  echo -e "\n---\nFocus only on the ${domain}." >> "$prompt_file"
+  ./scripts/run-codex.sh "$prompt_file" >> "${domain// /-}.md" 2>&1
+  rm "$prompt_file"
 ) &
 done
 
