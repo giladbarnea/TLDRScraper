@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-01 10:06, 457b391
+last_updated: 2025-12-01 10:24, 8d805cf
 ---
 # Agents Guide
 
@@ -121,6 +121,14 @@ PY
 - Run `source ./setup.sh` to verify the environment and dependencies are set up correctly. Use `source setup.sh && start_server_and_watchdog` and `source setup.sh && print_server_and_watchdog_pids` to confirm the local server is running. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/tldr-url`) throughout the development process to catch regressions early. Use `source setup.sh && kill_server_and_watchdog` for cleanup.
 - Verify every new behavior, fix or modification you make by utilizing your shell and Playwright. If possible, execute the modified flow to ensure nothing is broken.
 - Make note of the various sub agents available to you (.claude/agents/) and use them in the circumstances they describe.
+
+
+## Dispatching AI Sub-Agents
+
+Delegating exploration and research tasks to sub agents leads to improved results and is context-efficient. A sub-agent dives into a specific problem area with its own fresh context window, then returns a concise summary of its findings to you. This keeps you focused on the task and keeps your main context window from ballooning. 
+Deploy multiple sub-agents in parallel when your task spans multiple broad domains. A classic case: The codebase needs to be investigated across the entire call graph for any reason -> Run 3-4 parallel scouting agents, one for each of the project's subsystems. Reasons range from finding where a functionality is implemented (needle in a haystack) to gathering detailed information of multiple domains (map out the entire haystack). 
+
+Use multiple sub-agents in parallel when a task spans several domains. For example, if you need to inspect the codebase across the full call graph, launch 3–4 scouting agents—one per subsystem. A squad of agents is optimal for handling anything from pinpointing a specific implementation (“needle in a haystack”) to mapping out wide-spanning contexts (“the entire haystack”).
 
 
 ## Development Conventions
