@@ -14,4 +14,4 @@ if [[ ! -f "$prompt_file" ]]; then
     exit 1
 fi
 
-codex --model=gpt-5.1-codex-max --ask-for-approval=never exec --config='model_reasoning_effort=high' --skip-git-repo-check --sandbox workspace-write "$(cat "$prompt_file")"
+codex --model=gpt-5.1-codex-max --ask-for-approval=never exec --config='model_reasoning_effort=high' --skip-git-repo-check --sandbox danger-full-access "$(cat "$prompt_file")"
