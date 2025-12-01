@@ -1,7 +1,7 @@
 ---
 description: Document codebase as-is with thoughts directory for historical context
 model: sonnet
-last_updated: 2025-11-15 21:17, cb51025
+last_updated: 2025-12-01 19:36, a0f0d6f
 ---
 # Research Codebase
 
