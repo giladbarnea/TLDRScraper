@@ -1,5 +1,6 @@
 ---
-name: "ARCHITECTURE.md: Create document"
+name: architecture-create
+description: Create ARCHITECTURE.md document
 last_updated: 2025-11-17 11:34, 1ff58bd
 ---
 ## Purpose

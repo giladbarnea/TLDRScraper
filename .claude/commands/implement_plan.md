@@ -3,6 +3,7 @@ description: Implement technical plans from ${arg1} with verification
 model: sonnet
 argument-hint: plan_file_path
 last_updated: 2025-11-15 21:17, cb51025
+name: implement-plan
 ---
 # Implement Plan
 
