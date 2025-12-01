@@ -21,6 +21,10 @@ function ensure_codex_installed(){
     return 1
 }
 
+function run_codex(){
+    codex --model=gpt-5.1-codex-max --ask-for-approval=never exec --config='model_reasoning_effort=high' --skip-git-repo-check --sandbox danger-full-access "$@"
+}
+
 function main(){
     if [[ $# -ne 1 ]]; then
         echo "Usage: $0 <prompt-file-path>" >&2
@@ -35,7 +39,14 @@ function main(){
         return 1
     fi
     
-    codex --model=gpt-5.1-codex-max --ask-for-approval=never exec --config='model_reasoning_effort=high' --skip-git-repo-check --sandbox danger-full-access "$(cat "$prompt_file")"
+    prompt_contents="$(
+        cat "$prompt_file"
+    )"
+
+    run_codex -- "$prompt_contents" && return 0
+    run_codex "$(printf "%s" "$prompt_contents")" && return 0
+    run_codex "$(echo "$prompt_contents")" && return 0
+    run_codex "$(echo -e "$prompt_contents")"
 }
 
 main "${@}"
