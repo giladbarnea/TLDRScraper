@@ -1,7 +1,7 @@
 ---
 description: Document codebase as-is with thoughts directory for historical context
 model: sonnet
-last_updated: 2025-11-15 21:17, cb51025
+last_updated: 2025-12-01 19:36, a0f0d6f
 ---
 # Research Codebase
 
@@ -54,7 +54,7 @@ Then wait for the user's research query.
    **For thoughts directory:**
 
    **For web research (only if user explicitly asks):**
-   - Use the **web-search-researcher** agent for external documentation and resources
+   - Use the **web-deep-researcher** agent for external documentation and resources
    - IF you use web-research agents, instruct them to return LINKS with their findings, and please INCLUDE those links in your final report
 
    The key is to use these agents intelligently:
