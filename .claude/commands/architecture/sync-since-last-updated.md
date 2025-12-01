@@ -1,7 +1,7 @@
 ---
 name: architecture-sync-since-last-updated
 description: Sync ARCHITECTURE.md with changes since it was last updated
-last_updated: 2025-12-01 19:50, f629483
+last_updated: 2025-12-01 19:51, 4d0cb1d
 ---
 `ARCHITECTURE.md` was written at some point in time. It was a very good representation of the project at that time. Since then, the project has evolved, therefore `ARCHITECTURE.md` is outdated in some aspects. Your task is to make it as good a representation of the project in it's current state. For context:
 
