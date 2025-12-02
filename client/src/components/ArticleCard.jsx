@@ -124,6 +124,10 @@ function ArticleCard({ article }) {
       data-article-state={isRemoved ? 'removed' : isRead ? 'read' : 'unread'}
       data-tldr-status={tldr.status}
       data-tldr-expanded={tldr.expanded}
+      data-removed={isRemoved}
+      data-read={isRead}
+      data-tldr-available={isAvailable}
+      data-expanded={tldr.expanded}
       className={`
         group relative transition-all duration-300 ease-out
         rounded-[20px] border
