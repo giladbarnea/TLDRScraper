@@ -276,4 +276,4 @@ The following points are close to my heart:
 ## Documentation
 
 1. YAML frontmatter is automatically updated in CI. Do not manually update it.
-2. CLAUDE.md is a read-only exact copy of AGENTS.md. It is generated automatically in CI. It is read-only for you. Any updates should be made in AGENTS.md and not CLAUDE.md.
+2. CLAUDE.md, GEMINI.md, and CODEX.md are read-only exact copies of AGENTS.md. They are generated automatically in CI. They are read-only for you. Any updates should be made in AGENTS.md and not in these files.
