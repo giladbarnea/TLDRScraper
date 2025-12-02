@@ -14,6 +14,8 @@ function read_root_markdown_files() {
 
   local -a exclude=(
     CLAUDE.md # Auto-generated from AGENTS.md
+    GEMINI.md # Auto-generated from AGENTS.md
+    CODEX.md  # Auto-generated from AGENTS.md
   )
 
   function _is_excluded() {
