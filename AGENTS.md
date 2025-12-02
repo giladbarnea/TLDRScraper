@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-02 06:36, 7e6957d
+last_updated: 2025-12-01 15:01, d695f22
 description: light overview over the project
 ---
 # Agents Guide
@@ -132,11 +132,15 @@ Deploy multiple sub-agents in parallel when your task spans multiple broad domai
 Use multiple sub-agents in parallel when a task spans several domains. For example, if you need to inspect the codebase across the full call graph, launch 3–4 scouting agents—one per subsystem. A squad of agents is optimal for handling anything from pinpointing a specific implementation (“needle in a haystack”) to mapping out wide-spanning contexts (“the entire haystack”).
 
 ### How to Run Sub-Agents
-1. Either you have a built in function to run sub agents (e.g. Claude Code’s `Task`), or you don’t.
-2. If you do not have such a built in function, you can install and run a sub-agent ad hoc:
+
+**Claude agents**: skip this section. If you're a Claude, use your built in `Task(agent_type=..., model=sonnet)` instead of the manual techniques outlined here.
+
+**Codex and Gemini**: read and apply this section.
+
+Installed and run a sub-agent ad hoc:
 
 ```sh
-# Google Gemini:
+# Google Gemini:.
 ./scripts/install-gemini-cli.sh
 prompt_file=$(mktemp)
 echo '<tailored prompt for this agent’s subtask>' > "$prompt_file"
