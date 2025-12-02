@@ -20,7 +20,11 @@ function CalendarDay({ payload }) {
   const niceDate = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const isToday = new Date().toDateString() === dateObj.toDateString()
 
-  const allArticlesRemoved = articles.length > 0 && articles.every(a => a.removed)
+  const newsletterDaysAllRemoved = issues.map(issue => {
+    const newsletterArticles = articles.filter(a => a.category === issue.category)
+    return newsletterArticles.length > 0 && newsletterArticles.every(a => a.removed)
+  })
+  const allNewsletterDaysRemoved = newsletterDaysAllRemoved.length > 0 && newsletterDaysAllRemoved.every(removed => removed)
 
   const Title = (
     <div className="flex items-baseline gap-3 py-4">
@@ -32,12 +36,12 @@ function CalendarDay({ payload }) {
   )
 
   return (
-    <section className="animate-slide-up mb-12">
+    <section className="animate-slide-up mb-12" data-all-removed={allNewsletterDaysRemoved}>
       <FoldableContainer
         id={`calendar-${date}`}
         title={Title}
-        defaultFolded={allArticlesRemoved}
-        headerClassName="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/60"
+        defaultFolded={allNewsletterDaysRemoved}
+        headerClassName={`sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm border-b transition-all duration-300 ${allNewsletterDaysRemoved ? 'border-slate-200/40 opacity-50' : 'border-slate-200/60'}`}
         contentClassName="mt-4"
       >
           <div className="space-y-8">

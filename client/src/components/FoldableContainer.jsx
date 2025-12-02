@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 
-function FoldableContainer({ id, title, children, defaultFolded = false, className = '', headerClassName = '', contentClassName = '' }) {
+function FoldableContainer({ id, title, children, defaultFolded = false, className = '', headerClassName = '', contentClassName = '', 'data-all-removed': dataAllRemoved }) {
   const [isFolded, setIsFolded] = useLocalStorage(id, defaultFolded)
   const prevDefaultFolded = useRef(defaultFolded)
 
@@ -14,7 +14,7 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
   }, [defaultFolded, setIsFolded])
 
   return (
-    <div className={`transition-all duration-300 ${className}`}>
+    <div className={`transition-all duration-300 ${className}`} data-all-removed={dataAllRemoved}>
       <div 
         onClick={() => setIsFolded(!isFolded)}
         className={`cursor-pointer group select-none flex items-center ${headerClassName}`}

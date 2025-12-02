@@ -31,6 +31,7 @@ function NewsletterDay({ date, title, issue, articles }) {
       }
       defaultFolded={allRemoved}
       className="mb-8"
+      data-all-removed={allRemoved}
     >
       <div className="pl-4 space-y-6 mt-2 border-l-2 border-slate-100 ml-2">
         {/* Issue Title & Subtitle Display */}
@@ -68,6 +69,7 @@ function NewsletterDay({ date, title, issue, articles }) {
                 headerClassName={`transition-all duration-300 ${sectionAllRemoved ? 'opacity-50' : ''}`}
                 defaultFolded={sectionAllRemoved}
                 className="mb-4"
+                data-all-removed={sectionAllRemoved}
               >
                  <div className={`space-y-4 mt-2 transition-all duration-300 ${sectionAllRemoved ? 'opacity-50' : ''}`}>
                     <ArticleList 
