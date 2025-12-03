@@ -1,7 +1,7 @@
 ---
 name: architecture-sync-since-last-updated
-description: Sync ARCHITECTURE.md with changes since it was last updated
-last_updated: 2025-12-01 19:51, 4d0cb1d
+description: "Sync ARCHITECTURE.md with changes since it was last updated"
+last_updated: 2025-12-03 18:47, 3220070
 ---
 `ARCHITECTURE.md` was written at some point in time. It was a very good representation of the project at that time. Since then, the project has evolved, therefore `ARCHITECTURE.md` is outdated in some aspects. Your task is to make it as good a representation of the project in it's current state. For context:
 
@@ -33,7 +33,8 @@ Roughly, here are the passes you should perform:
 <real-task-from-user>
 
 ## Real Task
-read ARCHITECTURE.md in full. Given the changes since it was written, does ARCHITECTURE.md now have any hard false positives or false negatives? by false positives i mean details that are unequivocally false — misinformation; by false negatives i mean omitting crucial details. i am not interested in "soft" issues like style or emphasizing any particular aspect in the doc (e.g. not interested in matters of degree), but only in real informational bugs.
+
+Read ARCHITECTURE.md in full. Use its `last_updated` frontmatter field as an anchor in time to understand what has changed in the codebase’s architecture since. Given your sharp understanding of the codebase’s changes, does ARCHITECTURE.md now contain any hard false positives or false negatives? By false positives, I mean information that is unequivocally wrong — misinformation. By false negatives, I mean omitting crucial information. The keyword is “crucial”: I am not interested in “soft” issues like style or how strongly something is emphasized (I’m not interested in matters of degree), but only in real informational errors — information whose absence would leave ARCHITECTURE.md fundamentally incomplete.
 
 ## How to perform the real task
 
@@ -41,5 +42,5 @@ Make sure you have a solid grip of the changes that have been made.
 
 Leverage the `codebase-locator` to perform pass #1 ("Investigate the major features..."). Then, delegate passes #2-to-#4 to `codebase-analyzer-narrow` agent with the files `codebase-locator` has come up with. `codebase-analyzer-narrow`'s final answer will provide you with all the information you need to perform the real task (`## Real Task` section above dealing with detecting and fixing false positives and false negatives).
 
-If and only if there are any hard false positives or false negatives, update ARCHITECTURE.md accordingly. Be very surgical; do not emphasize your changes. Your only goal is to make ARCHITECTURE.md accurate again.
+If and only if there are any hard false positives or false negatives, update ARCHITECTURE.md accordingly. Be very surgical; update only what's required. Do not emphasize your changes.  Any update needs to take up no more space than its significance proportional to the entire project's architecture. Your only goal is to make ARCHITECTURE.md truthful again.
 </real-task-from-user>
