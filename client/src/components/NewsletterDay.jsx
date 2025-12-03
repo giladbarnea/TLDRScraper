@@ -65,10 +65,11 @@ function NewsletterDay({ date, title, issue, articles }) {
                 key={`${title}-${sectionKey}`}
                 id={`section-${date}-${title}-${sectionKey}`}
                 title={SectionTitle}
+                headerClassName={`transition-all duration-300 ${sectionAllRemoved ? 'opacity-50' : ''}`}
                 defaultFolded={sectionAllRemoved}
                 className="mb-4"
               >
-                 <div className="space-y-4 mt-2">
+                 <div className={`space-y-4 mt-2 transition-all duration-300 ${sectionAllRemoved ? 'opacity-50' : ''}`}>
                     <ArticleList 
                       articles={sectionArticles} 
                       showSectionHeaders={false} 
