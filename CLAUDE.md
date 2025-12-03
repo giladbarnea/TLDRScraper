@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-02 07:11, 185d77e
+last_updated: 2025-12-03 18:47, 3220070
 description: light overview over the project
 ---
 # Agents Guide

@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-02 07:12, 8b2aed2
+last_updated: 2025-12-03 18:47, 3220070
 ---
 This is a fantastic example because your current component is juggling two separate hooks (useArticleState and useSummary) that actually depend on each other. This is exactly where bugs happen—when useArticleState thinks it's "removed" but useSummary is still "loading."
 Here is how we consolidate all that logic into a single Robot3 machine.
