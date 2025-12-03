@@ -3,7 +3,7 @@ description: Create detailed implementation plans with thorough research and ite
 model: sonnet
 argument-hint: [optional_requirements_file_path_and_additional_instructions]
 name: create-plan
-last_updated: 2025-12-03 18:47, 3220070
+last_updated: 2025-12-03 18:48, 6b1b307
 ---
 # Implementation Plan
 
