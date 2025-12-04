@@ -200,6 +200,51 @@ function ensure_local_bin_path(){
     [[ "$quiet" == false ]] && message "[$0] Added \$HOME/.local/bin to PATH"
 }
 
+# find_writable_path_dir
+# Finds the first writable directory from PATH that's suitable for installing binaries.
+# Returns the parent directory (without /bin suffix) suitable for UV_INSTALL_DIR.
+# Prefers $HOME/.local/bin if it's in PATH, otherwise finds the first writable non-system directory.
+function find_writable_path_dir(){
+    local system_dirs=("/usr/bin" "/usr/sbin" "/bin" "/sbin" "/usr/local/bin" "/usr/local/sbin")
+    local path_dir
+    
+    if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
+        if [[ -w "$HOME/.local/bin" ]] 2>/dev/null || (mkdir -p "$HOME/.local/bin" 2>/dev/null && [[ -w "$HOME/.local/bin" ]] 2>/dev/null); then
+            echo "$HOME/.local"
+            return 0
+        fi
+    fi
+    
+    while IFS= read -r path_dir; do
+        [[ -z "$path_dir" ]] && continue
+        
+        local is_system=false
+        for sys_dir in "${system_dirs[@]}"; do
+            if [[ "$path_dir" == "$sys_dir" ]]; then
+                is_system=true
+                break
+            fi
+        done
+        
+        if [[ "$is_system" == "true" ]]; then
+            continue
+        fi
+        
+        if [[ -w "$path_dir" ]] 2>/dev/null; then
+            local parent_dir="$(dirname "$path_dir")"
+            echo "$parent_dir"
+            return 0
+        fi
+    done <<< "$(echo "$PATH" | tr ':' '\n')"
+    
+    if mkdir -p "$HOME/.local/bin" 2>/dev/null; then
+        echo "$HOME/.local"
+        return 0
+    fi
+    
+    return 1
+}
+
 # :ensure_tool [-q,-quiet] <TOOL> <INSTALL_EXPRESSION>
 # Private function: idempotent installation of TOOL.
 function :ensure_tool(){
@@ -255,7 +300,51 @@ function :ensure_tool(){
 # ensure_uv [-q,-quiet]
 # Idempotent installation of uv.
 function ensure_uv(){
-  :ensure_tool uv "curl -LsSf https://astral.sh/uv/install.sh | sh" "$@"
+  local quiet=false
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --quiet|--quiet=true|-q)
+        quiet=true
+        ;;
+      --quiet=false)
+        quiet=false
+        ;;
+    esac
+    shift
+  done
+  [[ "$SETUP_QUIET" == "true" ]] && quiet=true
+  
+  if isdefined uv; then
+    [[ "$quiet" == false ]] && message "[ensure_uv] uv is installed and in PATH"
+    return 0
+  fi
+  
+  local install_dir
+  if ! install_dir="$(find_writable_path_dir)"; then
+    error "[ensure_uv] Failed to find a writable directory from PATH for uv installation"
+    return 1
+  fi
+  
+  [[ "$quiet" == false ]] && message "[ensure_uv] Installing uv to $install_dir/bin (using UV_INSTALL_DIR=$install_dir)"
+  
+  local bin_dir="$install_dir/bin"
+  if [[ ":$PATH:" != *":$bin_dir:"* ]]; then
+    export PATH="$bin_dir:$PATH"
+    [[ "$quiet" == false ]] && message "[ensure_uv] Added $bin_dir to PATH"
+  fi
+  
+  if ! UV_INSTALL_DIR="$install_dir" curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null 2>&1; then
+    error "[ensure_uv] Failed to install uv"
+    return 1
+  fi
+  
+  if ! isdefined uv; then
+    error "[ensure_uv] After installing uv, 'command -v uv' returned a non-zero exit code. uv is probably installed but not in PATH."
+    return 1
+  fi
+  
+  [[ "$quiet" == false ]] && message "[ensure_uv] uv installed and in the PATH"
+  return 0
 }
 
 # uv_sync [-q,-quiet]
