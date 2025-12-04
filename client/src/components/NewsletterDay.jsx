@@ -31,7 +31,6 @@ function NewsletterDay({ date, title, issue, articles }) {
       }
       defaultFolded={allRemoved}
       className="mb-8"
-      dataAttributes={{ 'data-has-sections': hasSections }}
     >
       <div className="pl-4 space-y-6 mt-2 border-l-2 border-slate-100 ml-2">
         {/* Issue Title & Subtitle Display */}
