@@ -1,7 +1,53 @@
-import { CheckCircle, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
-import { useMemo, } from 'react'
+import { CheckCircle, Loader2, Minus, Sparkles, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
+
+function ZenModeOverlay({ title, html, onClose }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [onClose])
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-start justify-center">
+      <div 
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+        onClick={onClose}
+      />
+      <div className="relative z-10 w-full max-w-3xl mx-4 my-8 max-h-[calc(100vh-4rem)] flex flex-col animate-zen-enter">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-full">
+          <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/80 shrink-0">
+            <h2 className="font-display font-semibold text-lg text-slate-800 pr-4 line-clamp-2">
+              {title}
+            </h2>
+            <button
+              onClick={onClose}
+              className="shrink-0 p-2 rounded-full hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <div className="overflow-y-auto p-6 md:p-8 bg-white">
+            <div
+              className="prose prose-slate max-w-none font-sans text-slate-700 leading-relaxed text-base prose-p:my-3 prose-headings:text-slate-900"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
 
 function ArticleCard({ article }) {
   const { isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
@@ -151,26 +197,20 @@ function ArticleCard({ article }) {
            </div>
          )}
 
-         {/* TLDR Content */}
-         {!isRemoved && (
-           <div
-              className={`
-                transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
-                ${tldr.expanded && tldr.html ? 'opacity-100 mt-4 border-t border-slate-100 pt-5' : 'max-h-0 opacity-0 overflow-hidden -mt-3'}
-              `}
-           >
-              {/* -mt-3 cancels parent's gap-3 to eliminate spacing when collapsed */}
-              {tldr.status === 'error' ? (
-                 <div className="text-xs text-red-500 bg-red-50 p-3 rounded-lg">{tldr.errorMessage || 'Failed to load summary.'}</div>
-              ) : (
-                 <div className="animate-fade-in">
-                    <div
-                      className="prose prose-sm prose-slate max-w-none font-sans text-slate-600 leading-relaxed text-[15px] prose-p:my-2"
-                      dangerouslySetInnerHTML={{ __html: tldr.html }}
-                    />
-                 </div>
-              )}
+         {/* TLDR Error State (inline) */}
+         {!isRemoved && tldr.status === 'error' && (
+           <div className="mt-4 text-xs text-red-500 bg-red-50 p-3 rounded-lg">
+             {tldr.errorMessage || 'Failed to load summary.'}
            </div>
+         )}
+
+         {/* Zen Mode Overlay for TLDR Content */}
+         {!isRemoved && tldr.expanded && tldr.html && (
+           <ZenModeOverlay
+             title={article.title}
+             html={tldr.html}
+             onClose={() => toggleTldrWithTracking(() => tldr.collapse())}
+           />
          )}
       </div>
     </div>
