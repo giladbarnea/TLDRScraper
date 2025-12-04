@@ -2,7 +2,7 @@
 name: research-codebase-without-thoughts-dir
 description: Document codebase as-is
 model: sonnet
-last_updated: 2025-12-03 18:48, 6b1b307
+last_updated: 2025-12-04 09:21, 7640e3c
 ---
 # Research Codebase (excluding thoughts/ directory)
 
