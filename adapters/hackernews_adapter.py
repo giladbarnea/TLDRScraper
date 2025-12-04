@@ -12,7 +12,7 @@ Benefits over previous haxor library approach:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, date
 import requests
 
 from adapters.newsletter_adapter import NewsletterAdapter
@@ -37,6 +37,7 @@ class HackerNewsAdapter(NewsletterAdapter):
 
         # Quality thresholds for filtering
         # These ensure we only get high-quality, engaging posts
+        # Note: For same-day scraping, stories may not have reached these thresholds yet
         self.min_points = 30
         self.min_comments = 5
         self.max_stories = 50  # Fetch up to 50 pre-filtered stories
@@ -61,7 +62,7 @@ class HackerNewsAdapter(NewsletterAdapter):
         # Parse target date and get timestamp range
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
         start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_of_day = target_date.replace(hour=23, minute=59, second=59, microsecond=0)
+        end_of_day = target_date.replace(hour=23, minute=59, second=59, microsecond=999999)
 
         start_timestamp = int(start_of_day.timestamp())
         end_timestamp = int(end_of_day.timestamp())
@@ -79,6 +80,31 @@ class HackerNewsAdapter(NewsletterAdapter):
             )
 
             logger.info(f"[hackernews_adapter.scrape_date] Fetched {len(stories)} pre-filtered stories for {date}")
+
+            # For same-day scraping, if we get very few results, try with lower thresholds
+            # Stories need time to accumulate points and comments
+            target_date_obj = datetime.fromisoformat(util.format_date_for_url(date)).date()
+            today = date.today()
+            
+            if target_date_obj == today and len(stories) < 10:
+                logger.info(f"[hackernews_adapter.scrape_date] Few results for today ({len(stories)}), trying with lower thresholds")
+                stories_lower = self._fetch_stories_algolia(
+                    start_timestamp=start_timestamp,
+                    end_timestamp=end_timestamp,
+                    min_points=10,
+                    min_comments=1,
+                    limit=self.max_stories
+                )
+                logger.info(f"[hackernews_adapter.scrape_date] Fetched {len(stories_lower)} stories with lower thresholds")
+                
+                # Merge results, keeping higher-scoring stories first
+                story_ids = {s.get('objectID') for s in stories}
+                for story in stories_lower:
+                    if story.get('objectID') not in story_ids:
+                        stories.append(story)
+                        story_ids.add(story.get('objectID'))
+                
+                logger.info(f"[hackernews_adapter.scrape_date] Total stories after merge: {len(stories)}")
 
             # Filter out excluded URLs before scoring
             filtered_stories = []
@@ -158,7 +184,7 @@ class HackerNewsAdapter(NewsletterAdapter):
         # This includes story, ask_hn, and show_hn in a single request
         params = {
             "tags": "(story,ask_hn,show_hn)",
-            "numericFilters": f"created_at_i>{start_timestamp},created_at_i<{end_timestamp},points>={min_points},num_comments>={min_comments}",
+            "numericFilters": f"created_at_i>={start_timestamp},created_at_i<={end_timestamp},points>={min_points},num_comments>={min_comments}",
             "hitsPerPage": limit
         }
 
