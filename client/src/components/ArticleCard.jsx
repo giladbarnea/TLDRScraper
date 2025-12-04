@@ -17,6 +17,16 @@ function ArticleCard({ article }) {
     return `https://${url}`
   }, [article.url])
 
+  const domain = useMemo(() => {
+    try {
+      const urlObj = new URL(fullUrl)
+      const hostname = urlObj.hostname
+      return hostname.replace(/^www\./, '').split('.')[0].toLowerCase()
+    } catch {
+      return null
+    }
+  }, [fullUrl])
+
   const toggleTldrWithTracking = (toggleFn) => {
     const wasExpanded = tldr.expanded
     toggleFn()
@@ -108,7 +118,9 @@ function ArticleCard({ article }) {
          {!isRemoved && (
            <div className="mb-1">
                <span className="text-[11px] font-medium text-slate-400">
-                  {article.articleMeta || 'Today'}
+                  {domain && domain}
+                  {domain && article.articleMeta && ' │ '}
+                  {article.articleMeta}
                </span>
                {isRead && <CheckCircle size={14} className="text-slate-300 inline ml-2" />}
            </div>
