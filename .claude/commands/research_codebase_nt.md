@@ -80,7 +80,7 @@ Then wait for the user's research query.
        - YY-MM-DD is today's date
        - ENG-XXXX is the ticket number
        - description is a brief kebab-case description of the research topic
-     - Example: `thoughts/2025-01-08-ENG-1478/research/parent-child-tracking.md`
+     - Example: `thoughts/25-01-08-ENG-1478/research/parent-child-tracking.md`
 
 6. **Generate research document:**
    - Use the metadata gathered in step 4

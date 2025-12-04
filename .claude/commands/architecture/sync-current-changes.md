@@ -35,7 +35,8 @@ Roughly, here are the passes you should perform:
 
 <real-task-from-user>
 ## Real Task
-read ARCHITECTURE.md in full. Given your changes, does ARCHITECTURE.md now have any hard false positives or false negatives? by false positives i mean details that are unequivocally false — misinformation; by false negatives i mean omitting crucial details. i am not interested in “soft” issues like style or emphasizing any particular aspect in the doc (e.g. not interested in matters of degree), but only in real informational bugs.
+
+Read ARCHITECTURE.md in full. Given your changes, does ARCHITECTURE.md now contain any hard false positives or false negatives? By false positives, I mean information that is unequivocally wrong — misinformation. By false negatives, I mean omitting crucial information. The keyword is “crucial”: I am not interested in “soft” issues like style or how strongly something is emphasized (I’m not interested in matters of degree), but only in real informational errors — information whose absence would leave ARCHITECTURE.md fundamentally incomplete.
 
 ## How to perform the real task
 
