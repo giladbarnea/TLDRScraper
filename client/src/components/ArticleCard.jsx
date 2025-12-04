@@ -20,7 +20,7 @@ function ZenModeOverlay({ title, html, onClose }) {
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-start justify-center">
       <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-zen-enter"
         onClick={onClose}
       />
       <div className="relative z-10 w-full max-w-3xl mx-4 my-8 max-h-[calc(100vh-4rem)] flex flex-col animate-zen-enter">

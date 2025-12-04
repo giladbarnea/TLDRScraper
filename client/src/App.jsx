@@ -91,7 +91,7 @@ function App() {
             ${scrolled ? 'opacity-0 h-0 -mt-4 overflow-hidden' : 'opacity-100 h-auto'}
         `}>
           {results?.stats && (
-             <div className="bg-white rounded-2xl p-4 shadow-soft border border-slate-50 flex items-start gap-3 animate-fade-in">
+             <div className="bg-white rounded-2xl p-4 shadow-soft border border-slate-50 flex items-start gap-3 animate-zen-enter">
                <div className="mt-1 bg-brand-50 p-1.5 rounded-lg">
                  <Zap size={16} className="text-brand-600" />
                </div>
