@@ -121,7 +121,9 @@ function ArticleCard({ article }) {
       data-article-date={article.issueDate}
       data-article-category={article.category}
       data-article-source={article.sourceId}
-      data-article-state={isRemoved ? 'removed' : isRead ? 'read' : 'unread'}
+      data-read={isRead}
+      data-removed={isRemoved}
+      data-state-loading={stateLoading}
       data-tldr-status={tldr.status}
       data-tldr-expanded={tldr.expanded}
       className={`
