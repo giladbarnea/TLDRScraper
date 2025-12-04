@@ -49,9 +49,9 @@
 }
 
 @utility animate-fade-in {
-  animation: fade-in 550ms ease-out forwards;
+  animation: fade-in 300ms ease-out forwards;
 }
 
 @utility animate-zen-enter {
-  animation: zen-enter 550ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: zen-enter 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
