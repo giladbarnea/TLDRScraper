@@ -36,7 +36,7 @@ function ZenModeOverlay({ title, html, onClose }) {
           </h2>
         </div>
         <div
-          className="h-0.5 bg-purple-500 origin-left transition-transform duration-150 ease-out"
+          className="h-0.5 bg-purple-500 origin-left transition-transform duration-100"
           style={{ transform: `scaleX(${progress})` }}
         />
         <div ref={scrollRef} className="overflow-y-auto flex-1 p-6 md:p-8 bg-white">
