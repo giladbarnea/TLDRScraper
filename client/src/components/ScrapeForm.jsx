@@ -11,10 +11,10 @@ function ScrapeForm({ onResults }) {
 
   useEffect(() => {
     const today = new Date()
-    const threeDaysAgo = new Date(today)
-    threeDaysAgo.setDate(today.getDate() - 3)
+    const twoDaysAgo = new Date(today)
+    twoDaysAgo.setDate(today.getDate() - 2)
     setEndDate(today.toISOString().split('T')[0])
-    setStartDate(threeDaysAgo.toISOString().split('T')[0])
+    setStartDate(twoDaysAgo.toISOString().split('T')[0])
   }, [])
 
   const [state, formAction, isPending] = useActionState(
