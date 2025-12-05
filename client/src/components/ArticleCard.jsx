@@ -1,4 +1,4 @@
-import { CheckCircle, Loader2, Minus, Sparkles, Trash2, X } from 'lucide-react'
+import { CheckCircle, ChevronLeft, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useArticleState } from '../hooks/useArticleState'
@@ -18,25 +18,21 @@ function ZenModeOverlay({ title, html, onClose }) {
   }, [onClose])
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-start justify-center">
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-zen-enter"
-        onClick={onClose}
-      />
-      <div className="relative z-10 w-full max-w-3xl mx-4 my-8 max-h-[calc(100vh-4rem)] flex flex-col animate-zen-enter">
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-full">
-          <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/80 shrink-0">
-            <h2 className="font-display font-semibold text-lg text-slate-800 pr-4">
-              {title}
-            </h2>
-            <button
-              onClick={onClose}
-              className="shrink-0 p-2 rounded-full hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
-          <div className="overflow-y-auto p-6 md:p-8 bg-white">
+    <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm animate-zen-enter">
+      <div className="w-full h-full bg-white flex flex-col animate-zen-enter">
+        <div className="flex items-center gap-3 p-5 border-b border-slate-100 bg-slate-50/80 shrink-0">
+          <button
+            onClick={onClose}
+            className="shrink-0 p-2 rounded-full hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <h2 className="font-display font-semibold text-lg text-slate-800">
+            {title}
+          </h2>
+        </div>
+        <div className="overflow-y-auto flex-1 p-6 md:p-8 bg-white">
+          <div className="max-w-3xl mx-auto">
             <div
               className="prose prose-slate max-w-none font-sans text-slate-700 leading-relaxed text-base prose-p:my-3 prose-headings:text-slate-900"
               dangerouslySetInnerHTML={{ __html: html }}
