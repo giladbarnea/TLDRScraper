@@ -10,11 +10,11 @@ function App() {
 
   useEffect(() => {
     const today = new Date()
-    const threeDaysAgo = new Date(today)
-    threeDaysAgo.setDate(today.getDate() - 3)
+    const twoDaysAgo = new Date(today)
+    twoDaysAgo.setDate(today.getDate() - 2)
 
     const endDate = today.toISOString().split('T')[0]
-    const startDate = threeDaysAgo.toISOString().split('T')[0]
+    const startDate = twoDaysAgo.toISOString().split('T')[0]
 
     loadFromCache(startDate, endDate)
       .then(cached => {
