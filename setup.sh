@@ -213,9 +213,9 @@ function ensure_local_bin_path(){
     [[ "$quiet" == false ]] && message "[$0] Added \$HOME/.local/bin to PATH"
 }
 
-# :ensure_tool [-q,-quiet] <TOOL> <INSTALL_EXPRESSION>
+# _ensure_tool [-q,-quiet] <TOOL> <INSTALL_EXPRESSION>
 # Private function: idempotent installation of TOOL.
-function :ensure_tool(){
+function _ensure_tool(){
   local quiet=false
   local tool=""
   local install_expression=""
@@ -268,7 +268,7 @@ function :ensure_tool(){
 # ensure_uv [-q,-quiet]
 # Idempotent installation of uv.
 function ensure_uv(){
-  :ensure_tool uv "curl -LsSf https://astral.sh/uv/install.sh | sh" "$@"
+  _ensure_tool uv "curl -LsSf https://astral.sh/uv/install.sh | sh" "$@"
 }
 
 # uv_sync [-q,-quiet]
@@ -298,7 +298,7 @@ function uv_sync(){
 
 # # ensure_eza [-q,--quiet]
 function ensure_eza(){
-  :ensure_tool 'eza' 'apt install -y eza' "$@"
+  _ensure_tool 'eza' 'apt install -y eza' "$@"
 }
 # function ensure_claude_settings(){
 #     local quiet=false
@@ -415,6 +415,7 @@ function main() {
   mkdir -p "$run_dir"
 
   [[ "$quiet" == false ]] && message "[$0] Ensuring dependencies..."
+  ensure_local_bin_path --quiet="$quiet"
   local ensure_uv_success=true uv_sync_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
