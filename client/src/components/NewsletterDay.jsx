@@ -34,12 +34,10 @@ function NewsletterDay({ date, title, issue, articles }) {
     >
       <div className="pl-4 space-y-6 mt-2 border-l-2 border-slate-100 ml-2">
         {/* Issue Title & Subtitle Display */}
-        {issue && (issue.title || issue.subtitle) && (
-          <div className={`p-4 rounded-xl border mb-6 transition-all duration-300 ${allRemoved ? 'bg-slate-50 border-slate-200 opacity-50' : 'bg-white border-slate-100 shadow-sm'}`}>
-            {issue.title && <div className="font-semibold text-lg text-slate-900">{issue.title}</div>}
-            {issue.subtitle && issue.subtitle !== issue.title && (
-              <div className="text-sm mt-1 text-slate-500">{issue.subtitle}</div>
-            )}
+        {/* Issue Title & Subtitle Display */}
+        {issue && issue.subtitle && issue.subtitle !== issue.title && (
+          <div className={`mb-6 text-xs text-slate-400 tracking-wide transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
+            <span>{issue.subtitle}</span>
           </div>
         )}
 
