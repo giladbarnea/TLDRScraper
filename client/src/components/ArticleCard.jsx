@@ -1,10 +1,14 @@
 import { CheckCircle, ChevronLeft, Loader2, Minus, Sparkles, Trash2 } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useArticleState } from '../hooks/useArticleState'
+import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
 
 function ZenModeOverlay({ title, html, onClose }) {
+  const scrollRef = useRef(null)
+  const progress = useScrollProgress(scrollRef)
+
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     const handleEscape = (e) => {
@@ -31,7 +35,11 @@ function ZenModeOverlay({ title, html, onClose }) {
             {title}
           </h2>
         </div>
-        <div className="overflow-y-auto flex-1 p-6 md:p-8 bg-white">
+        <div
+          className="h-0.5 bg-purple-500 origin-left transition-transform duration-100"
+          style={{ transform: `scaleX(${progress})` }}
+        />
+        <div ref={scrollRef} className="overflow-y-auto flex-1 p-6 md:p-8 bg-white">
           <div className="max-w-3xl mx-auto">
             <div
               className="prose prose-slate max-w-none font-sans text-slate-700 leading-relaxed text-base prose-p:my-3 prose-headings:text-slate-900"
