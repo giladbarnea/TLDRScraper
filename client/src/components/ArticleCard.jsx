@@ -26,7 +26,7 @@ function ZenModeOverlay({ title, html, onClose }) {
       <div className="relative z-10 w-full max-w-3xl mx-4 my-8 max-h-[calc(100vh-4rem)] flex flex-col animate-zen-enter">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-full">
           <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/80 shrink-0">
-            <h2 className="font-display font-semibold text-lg text-slate-800 pr-4 line-clamp-2">
+            <h2 className="font-display font-semibold text-lg text-slate-800 pr-4">
               {title}
             </h2>
             <button
