@@ -35,7 +35,7 @@ function NewsletterDay({ date, title, issue, articles }) {
       <div className="pl-4 space-y-6 mt-2 border-l-2 border-slate-100 ml-2">
         {/* Issue Title & Subtitle Display */}
         {/* Issue Title & Subtitle Display */}
-        {issue && issue.subtitle && issue.subtitle !== issue.title && (
+        {issue?.subtitle && issue.subtitle !== issue.title && (
           <div className={`mb-6 text-xs text-slate-400 tracking-wide transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
             <span>{issue.subtitle}</span>
           </div>

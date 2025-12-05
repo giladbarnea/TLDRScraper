@@ -42,7 +42,7 @@ function ZenModeOverlay({ title, html, onClose }) {
         <div ref={scrollRef} className="overflow-y-auto flex-1 p-6 md:p-8 bg-white">
           <div className="max-w-3xl mx-auto">
             <div
-              className="prose prose-slate max-w-none font-sans text-slate-700 leading-relaxed text-base prose-p:my-3 prose-headings:text-slate-900"
+              className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           </div>
