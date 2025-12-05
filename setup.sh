@@ -415,6 +415,7 @@ function main() {
   mkdir -p "$run_dir"
 
   [[ "$quiet" == false ]] && message "[$0] Ensuring dependencies..."
+  ensure_local_bin_path --quiet="$quiet"
   local ensure_uv_success=true uv_sync_success=true
   ensure_uv --quiet="$quiet" || ensure_uv_success=false
   uv_sync --quiet="$quiet" || uv_sync_success=false
