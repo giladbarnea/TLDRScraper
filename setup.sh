@@ -191,6 +191,19 @@ function message(){
 function ensure_local_bin_path(){
     local quiet="${1:-false}"
     [[ "$SETUP_QUIET" == "true" ]] && quiet=true
+    
+    # Cursor web agent installs to /home/ubuntu/.local/bin.
+    if [[ -d "/home/ubuntu" ]]; then
+        if [[ ":$PATH:" == *":/home/ubuntu/.local/bin:"* ]]; then
+            [[ "$quiet" == false ]] && message "[$0] /home/ubuntu/.local/bin already present in PATH"
+            return 0
+        fi
+        export PATH="/home/ubuntu/.local/bin:$PATH"
+        [[ "$quiet" == false ]] && message "[$0] Added /home/ubuntu/.local/bin to PATH"
+        return 0
+    fi
+    
+    # The default path for local bin is $HOME/.local/bin.
     if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
         [[ "$quiet" == false ]] && message "[$0] \$HOME/.local/bin already present in PATH"
         return 0
