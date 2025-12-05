@@ -269,7 +269,7 @@ def _collect_newsletters_for_date_from_source(
     try:
         # Get adapter and scrape
         adapter = _get_adapter_for_source(config)
-        result = adapter.scrape_date(date, excluded_urls)
+        result = adapter.scrape_date(date_str, excluded_urls)
 
         # Process articles from response
         for article in result.get("articles", []):
