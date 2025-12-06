@@ -14,16 +14,17 @@ import sys
 from typing import List, Set
 
 COMMON_EXCLUDES = {
-    'node_modules', '__pycache__', 'dist', 'build', '.venv', 'venv', 'env'
+    'node_modules', '__pycache__', 'dist', 'build', '.venv', 'venv', 'env',
+    'CLAUDE.md', 'GEMINI.md', 'CODEX.md'
 }
 
 SERVER_EXCLUDES = COMMON_EXCLUDES | {
-    'CLAUDE.md', 'thoughts', '.claude', '.git', '.github', '.githooks',
+    'thoughts', '.claude', '.git', '.github', '.githooks',
     'experimental', 'docs', 'tests', 'scripts', 'api', 'static', 'client'
 }
 
 DOCS_EXCLUDES = COMMON_EXCLUDES | {
-    'CLAUDE.md', 'thoughts', '.claude', '.git', '.github',
+    'thoughts', '.claude', '.git', '.github',
     'experimental', 'docs', 'tests', 'scripts'
 }
 
