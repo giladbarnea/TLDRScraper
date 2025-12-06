@@ -38,15 +38,9 @@
 
 .prose ul,
 .prose-sm ul {
-  list-style-position: inside;
-  padding-left: 0;
+  list-style-position: outside;
+  padding-left: 1.25em;
   margin-left: 0;
-}
-
-.prose ul li,
-.prose-sm ul li {
-  padding-left: 1.5em;
-  text-indent: -1.5em;
 }
 
 @keyframes zen-enter {
