@@ -38,7 +38,7 @@
 
 .prose ul,
 .prose-sm ul {
-  list-style-position: outside;
+  list-style-position: inside;
   padding-left: 0;
 }
 
