@@ -46,26 +46,20 @@ We're trying to achieve 0-indented list bullets that align perfectly with regula
 
 ---
 
+**There have been two additional attempts since; the fourth got the bullet indent right but not the wrapped text; the last got the wrapped text right but not the bullet indentation. See the git history to map the screenshot files to the attempts.**
+
+---
+
 ## Git Reference
 You can examine the commit history with:
 ```bash
 git log --oneline client/src/index.css
 ```
 
-## Current State
-```css
-.prose ul,
-.prose-sm ul {
-  list-style-position: inside;
-  padding-left: 0;
-}
-```
 
 ## Request
-We've tried three different approaches and we're clearly missing something fundamental. Please:
+We've tried five different approaches and we're clearly missing something fundamental. Please:
 
 1. **Rethink the problem from first principles** - What controls bullet positioning in Tailwind Typography's prose classes?
 2. **Identify what we're missing** - Is there another CSS property at play? Container margins? Text-indent? Tailwind prose defaults we need to override?
-3. **Propose a solution** that will align bullets exactly with the regular text content (the vertical line in IMG_5338.jpeg)
-
-The fact that `inside` positioning with 0 padding still leaves a gap suggests there's something else controlling the positioning that we haven't accounted for. What is it?
+3. **Propose a solution** that will align bullets exactly with the regular text content AND the wrapped text with the text in the first visual line of the bullet.
