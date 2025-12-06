@@ -27,10 +27,9 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
           {title}
         </div>
         
-        {/* Chevron - only visible when folded */}
         <div className={`
           text-slate-400 transition-all duration-300 transform ml-4
-          ${isFolded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none'}
+          ${isFolded ? '' : 'rotate-90'}
         `}>
           <ChevronRight size={20} />
         </div>
