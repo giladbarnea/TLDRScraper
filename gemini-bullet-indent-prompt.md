@@ -4,7 +4,7 @@ last_updated: 2025-12-06 11:54, cd89722
 # CSS List Bullet Indentation Problem - Need Fresh Perspective
 
 ## Problem Statement
-We're trying to achieve 0-indented list bullets that align perfectly with regular text content. The bullets should be vertically aligned with where normal paragraph text starts (the "0 indent" line).
+We're trying to achieve 0-indented list bullets that align perfectly with regular text content. The bullets should be vertically aligned with where normal paragraph text starts (the "0 indent" line), and wrapped text of a bullet item should be vertically aligned with the first word of the bullet item, which naturally has a slight gap between it and the bullet symbol.
 
 ## Context
 - Project: React 19 + Vite frontend using Tailwind CSS v4 with @tailwindcss/typography plugin
