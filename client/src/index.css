@@ -39,7 +39,7 @@
 .prose ul,
 .prose-sm ul {
   list-style-position: outside;
-  padding-left: 1.25em;
+  padding-left: 0;
 }
 
 @keyframes zen-enter {
