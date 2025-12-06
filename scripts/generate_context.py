@@ -151,18 +151,13 @@ def generate_client_context(root_dir: pathlib.Path) -> str:
 
 
 def find_markdown_files(root_dir: pathlib.Path, excludes: Set[str]) -> List[pathlib.Path]:
-    """Find all markdown files in root and client directories."""
-    root_md_files = find_files(root_dir, '*.md', excludes)
-    
-    client_md_files = []
-    client_dir = root_dir / 'client'
-    if client_dir.exists():
-        for path in client_dir.rglob('*.md'):
-            rel_to_root = path.relative_to(root_dir)
-            if not should_exclude(rel_to_root, COMMON_EXCLUDES):
-                client_md_files.append(path)
-    
-    return root_md_files + client_md_files
+    """Find all markdown files recursively, excluding specified directories."""
+    md_files = []
+    for path in root_dir.rglob('*.md'):
+        rel_to_root = path.relative_to(root_dir)
+        if not should_exclude(rel_to_root, excludes):
+            md_files.append(path)
+    return md_files
 
 
 def generate_docs_context(root_dir: pathlib.Path) -> str:
