@@ -3,7 +3,7 @@
 TLDR Newsletter Scraper backend with a proxy.
 """
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, make_response
 import logging
 import requests
 import os
@@ -210,13 +210,10 @@ def check_storage_is_cached(date):
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
-@app.route("/api/generate-context", methods=["POST"])
-def generate_context():
-    """Generate context for server, client, docs, or all."""
+@app.route("/api/generate-context/<context_type>", methods=["GET"])
+def generate_context(context_type):
+    """Generate context for server, client, docs, or all and trigger file download."""
     try:
-        data = request.get_json()
-        context_type = data.get('context_type')
-
         if context_type not in ['server', 'client', 'docs', 'all']:
             return jsonify({"success": False, "error": "Invalid context_type. Must be 'server', 'client', 'docs', or 'all'"}), 400
 
@@ -242,7 +239,7 @@ def generate_context():
                 contents.append(result.stdout)
 
             combined_content = '\n\n'.join(contents)
-            return jsonify({"success": True, "content": combined_content})
+            filename = 'context-all.txt'
         else:
             cmd = ['python3', str(script_path), context_type]
 
@@ -260,7 +257,13 @@ def generate_context():
                 )
                 return jsonify({"success": False, "error": result.stderr}), 500
 
-            return jsonify({"success": True, "content": result.stdout})
+            combined_content = result.stdout
+            filename = f'context-{context_type}.txt'
+
+        response = make_response(combined_content)
+        response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 
     except Exception as e:
         logger.error(
