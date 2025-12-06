@@ -210,6 +210,96 @@ def check_storage_is_cached(date):
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
+def run_context_script(context_types):
+    """Run generate_context.py script for one or more context types."""
+    root_dir = pathlib.Path(__file__).parent
+    script_path = root_dir / 'scripts' / 'generate_context.py'
+    contents = []
+    
+    for ctx in context_types:
+        cmd = ['python3', str(script_path), ctx]
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=root_dir
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"Failed to generate {ctx} context: {result.stderr}")
+        contents.append(result.stdout)
+    
+    return '\n\n'.join(contents)
+
+
+@app.route("/api/generate-context", methods=["GET"])
+def generate_context_ui():
+    """Serve simple HTML interface for generating context files."""
+    html = """<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Context</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        h1 { margin-bottom: 30px; }
+        .checkbox-group { margin: 20px 0; }
+        label { display: block; padding: 8px 0; cursor: pointer; }
+        input[type="checkbox"] { margin-right: 10px; }
+        button { margin-top: 20px; padding: 12px 24px; font-size: 16px; 
+                 background: #007bff; color: white; border: none; 
+                 border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <h1>Generate Context</h1>
+    <form id="contextForm">
+        <div class="checkbox-group">
+            <label><input type="checkbox" name="context" value="docs"> Documentation</label>
+            <label><input type="checkbox" name="context" value="server"> Server (Python)</label>
+            <label><input type="checkbox" name="context" value="client"> Client (React)</label>
+        </div>
+        <button type="submit">Download Context</button>
+    </form>
+    <script>
+        document.getElementById('contextForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const checked = Array.from(document.querySelectorAll('input[name="context"]:checked'))
+                .map(cb => cb.value);
+            
+            if (checked.length === 0) {
+                alert('Please select at least one context type');
+                return;
+            }
+            
+            const form = new FormData();
+            form.append('context_types', JSON.stringify(checked));
+            
+            const response = await fetch('/api/generate-context/download', {
+                method: 'POST',
+                body: form
+            });
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = response.headers.get('Content-Disposition').match(/filename="(.+)"/)[1];
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                alert('Failed to generate context');
+            }
+        });
+    </script>
+</body>
+</html>"""
+    return html
+
+
 @app.route("/api/generate-context", methods=["POST"])
 def generate_context_json():
     """Generate context for server, client, docs, or all. Returns JSON."""
@@ -220,47 +310,10 @@ def generate_context_json():
         if context_type not in ['server', 'client', 'docs', 'all']:
             return jsonify({"success": False, "error": "Invalid context_type. Must be 'server', 'client', 'docs', or 'all'"}), 400
 
-        root_dir = pathlib.Path(__file__).parent
-        script_path = root_dir / 'scripts' / 'generate_context.py'
-
-        if context_type == 'all':
-            contents = []
-            for ctx in ['docs', 'server', 'client']:
-                cmd = ['python3', str(script_path), ctx]
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    cwd=root_dir
-                )
-                if result.returncode != 0:
-                    logger.error(
-                        "[serve.generate_context_json] script failed for %s stderr=%s",
-                        ctx, result.stderr
-                    )
-                    return jsonify({"success": False, "error": f"Failed to generate {ctx} context: {result.stderr}"}), 500
-                contents.append(result.stdout)
-
-            combined_content = '\n\n'.join(contents)
-            return jsonify({"success": True, "content": combined_content})
-        else:
-            cmd = ['python3', str(script_path), context_type]
-
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                cwd=root_dir
-            )
-
-            if result.returncode != 0:
-                logger.error(
-                    "[serve.generate_context_json] script failed stderr=%s",
-                    result.stderr
-                )
-                return jsonify({"success": False, "error": result.stderr}), 500
-
-            return jsonify({"success": True, "content": result.stdout})
+        context_types = ['docs', 'server', 'client'] if context_type == 'all' else [context_type]
+        combined_content = run_context_script(context_types)
+        
+        return jsonify({"success": True, "content": combined_content})
 
     except Exception as e:
         logger.error(
@@ -271,55 +324,47 @@ def generate_context_json():
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
+@app.route("/api/generate-context/download", methods=["POST"])
+def generate_context_download_post():
+    """Generate context for selected types and trigger download."""
+    try:
+        context_types = request.form.get('context_types')
+        if not context_types:
+            return jsonify({"success": False, "error": "Missing context_types"}), 400
+        
+        import json
+        context_types = json.loads(context_types)
+        
+        if not context_types or not all(ct in ['server', 'client', 'docs'] for ct in context_types):
+            return jsonify({"success": False, "error": "Invalid context_types"}), 400
+        
+        combined_content = run_context_script(context_types)
+        filename = f"context-{'-'.join(context_types)}.txt"
+        
+        response = make_response(combined_content)
+        response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+    except Exception as e:
+        logger.error(
+            "[serve.generate_context_download_post] error error=%s",
+            repr(e),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
 @app.route("/api/generate-context/<context_type>", methods=["GET"])
-def generate_context_download(context_type):
+def generate_context_download_get(context_type):
     """Generate context for server, client, docs, or all. Triggers browser download."""
     try:
         if context_type not in ['server', 'client', 'docs', 'all']:
             return jsonify({"success": False, "error": "Invalid context_type. Must be 'server', 'client', 'docs', or 'all'"}), 400
 
-        root_dir = pathlib.Path(__file__).parent
-        script_path = root_dir / 'scripts' / 'generate_context.py'
-
-        if context_type == 'all':
-            contents = []
-            for ctx in ['docs', 'server', 'client']:
-                cmd = ['python3', str(script_path), ctx]
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    cwd=root_dir
-                )
-                if result.returncode != 0:
-                    logger.error(
-                        "[serve.generate_context_download] script failed for %s stderr=%s",
-                        ctx, result.stderr
-                    )
-                    return jsonify({"success": False, "error": f"Failed to generate {ctx} context: {result.stderr}"}), 500
-                contents.append(result.stdout)
-
-            combined_content = '\n\n'.join(contents)
-            filename = 'context-all.txt'
-        else:
-            cmd = ['python3', str(script_path), context_type]
-
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                cwd=root_dir
-            )
-
-            if result.returncode != 0:
-                logger.error(
-                    "[serve.generate_context_download] script failed stderr=%s",
-                    result.stderr
-                )
-                return jsonify({"success": False, "error": result.stderr}), 500
-
-            combined_content = result.stdout
-            filename = f'context-{context_type}.txt'
+        context_types = ['docs', 'server', 'client'] if context_type == 'all' else [context_type]
+        combined_content = run_context_script(context_types)
+        filename = f'context-{context_type}.txt'
 
         response = make_response(combined_content)
         response.headers['Content-Type'] = 'text/plain; charset=utf-8'
@@ -328,7 +373,7 @@ def generate_context_download(context_type):
 
     except Exception as e:
         logger.error(
-            "[serve.generate_context_download] error error=%s",
+            "[serve.generate_context_download_get] error error=%s",
             repr(e),
             exc_info=True,
         )
