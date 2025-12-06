@@ -72,7 +72,7 @@ function ArticleTitle({ href, isRemoved, isRead, title, onLinkClick }) {
   )
 }
 
-function ArticleMeta({ domain, articleMeta, isRead, tldrLoading }) {
+function ArticleMeta({ domain, articleMeta, isRead, tldrLoading, onRemove, removeDisabled }) {
   return (
     <div className="mb-1 flex items-center justify-between">
       <div className="flex items-center gap-2">
@@ -83,24 +83,20 @@ function ArticleMeta({ domain, articleMeta, isRead, tldrLoading }) {
         </span>
         {isRead && <CheckCircle size={14} className="text-slate-300" />}
       </div>
-      {tldrLoading && <Loader2 size={14} className="animate-spin text-brand-500" />}
+      <div className="flex items-center gap-2">
+        {tldrLoading && <Loader2 size={14} className="animate-spin text-brand-500" />}
+        <button
+          onClick={onRemove}
+          disabled={removeDisabled}
+          className={`p-1.5 rounded-full transition-colors ${removeDisabled ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
     </div>
   )
 }
 
-function RemoveButton({ onClick, disabled }) {
-  return (
-    <div className="flex items-center justify-end pt-2">
-      <button
-        onClick={onClick}
-        disabled={disabled}
-        className={`p-1.5 rounded-full transition-colors ${disabled ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
-      >
-        <Trash2 size={14} />
-      </button>
-    </div>
-  )
-}
 
 function TldrError({ message }) {
   return (
@@ -214,11 +210,9 @@ function ArticleCard({ article }) {
             articleMeta={article.articleMeta}
             isRead={isRead}
             tldrLoading={tldr.loading}
+            onRemove={handleRemove}
+            removeDisabled={stateLoading}
           />
-        )}
-
-        {!isRemoved && (
-          <RemoveButton onClick={handleRemove} disabled={stateLoading} />
         )}
 
         {!isRemoved && tldr.status === 'error' && (
