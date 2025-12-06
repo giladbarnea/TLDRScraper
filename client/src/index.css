@@ -40,6 +40,13 @@
 .prose-sm ul {
   list-style-position: inside;
   padding-left: 0;
+  margin-left: 0;
+}
+
+.prose ul li,
+.prose-sm ul li {
+  text-indent: 0;
+  padding-left: 0;
 }
 
 @keyframes zen-enter {
