@@ -62,7 +62,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  GET/POST /api/storage/daily/<date>                              │  │
 │  │  POST /api/storage/daily-range                                   │  │
 │  │  GET /api/storage/is-cached/<date>                               │  │
-│  │  POST /api/generate-context                                      │  │
+│  │  GET/POST /api/source                                            │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                    │                                     │
 │                                    ▼                                     │
@@ -181,7 +181,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - Collapsible debug logs
 
 ### 6. Context Generation (Development Tool)
-**User Action:** Call POST /api/generate-context endpoint
+**User Action:** Browse to GET /api/source or call POST /api/source endpoint
 
 **Available Modes:**
 - `server`: Extract Python server code with optional AST-only mode
