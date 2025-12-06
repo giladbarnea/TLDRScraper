@@ -36,6 +36,12 @@
   margin-bottom: 0.6em;
 }
 
+.prose ul,
+.prose-sm ul {
+  list-style-position: outside;
+  padding-left: 1.25em;
+}
+
 @keyframes zen-enter {
   from {
     opacity: 0;
