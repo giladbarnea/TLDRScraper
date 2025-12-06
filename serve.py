@@ -231,8 +231,8 @@ def run_context_script(context_types):
     return '\n\n'.join(contents)
 
 
-@app.route("/api/generate-context", methods=["GET"])
-def generate_context_ui():
+@app.route("/api/source", methods=["GET"])
+def source_ui():
     """Serve simple HTML interface for generating context files."""
     html = """<!DOCTYPE html>
 <html>
@@ -275,7 +275,7 @@ def generate_context_ui():
             const form = new FormData();
             form.append('context_types', JSON.stringify(checked));
             
-            const response = await fetch('/api/generate-context/download', {
+            const response = await fetch('/api/source/download', {
                 method: 'POST',
                 body: form
             });
@@ -300,8 +300,8 @@ def generate_context_ui():
     return html
 
 
-@app.route("/api/generate-context", methods=["POST"])
-def generate_context_json():
+@app.route("/api/source", methods=["POST"])
+def source_json():
     """Generate context for server, client, docs, or all. Returns JSON."""
     try:
         data = request.get_json()
@@ -317,15 +317,15 @@ def generate_context_json():
 
     except Exception as e:
         logger.error(
-            "[serve.generate_context_json] error error=%s",
+            "[serve.source_json] error error=%s",
             repr(e),
             exc_info=True,
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
-@app.route("/api/generate-context/download", methods=["POST"])
-def generate_context_download_post():
+@app.route("/api/source/download", methods=["POST"])
+def source_download_post():
     """Generate context for selected types and trigger download."""
     try:
         context_types = request.form.get('context_types')
@@ -348,15 +348,15 @@ def generate_context_download_post():
 
     except Exception as e:
         logger.error(
-            "[serve.generate_context_download_post] error error=%s",
+            "[serve.source_download_post] error error=%s",
             repr(e),
             exc_info=True,
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
-@app.route("/api/generate-context/<context_type>", methods=["GET"])
-def generate_context_download_get(context_type):
+@app.route("/api/source/<context_type>", methods=["GET"])
+def source_download_get(context_type):
     """Generate context for server, client, docs, or all. Triggers browser download."""
     try:
         if context_type not in ['server', 'client', 'docs', 'all']:
@@ -373,7 +373,7 @@ def generate_context_download_get(context_type):
 
     except Exception as e:
         logger.error(
-            "[serve.generate_context_download_get] error error=%s",
+            "[serve.source_download_get] error error=%s",
             repr(e),
             exc_info=True,
         )
