@@ -38,9 +38,23 @@
 
 .prose ul,
 .prose-sm ul {
-  list-style-position: outside;
-  padding-left: 1.25em;
+  list-style-type: none;
+  padding-left: 0;
   margin-left: 0;
+}
+
+.prose ul > li,
+.prose-sm ul > li {
+  display: flex;
+  padding-left: 0;
+}
+
+.prose ul > li::before,
+.prose-sm ul > li::before {
+  content: "•";
+  width: 1.25em;
+  flex-shrink: 0;
+  color: #94a3b8; /* slate-400 */
 }
 
 @keyframes zen-enter {
