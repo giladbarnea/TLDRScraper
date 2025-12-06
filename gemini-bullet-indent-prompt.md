@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-06 11:54, cd89722
+last_updated: 2025-12-06 13:47, 7a65a2a
 ---
 # CSS List Bullet Indentation Problem - Need Fresh Perspective
 
