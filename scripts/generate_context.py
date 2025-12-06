@@ -25,7 +25,7 @@ SERVER_EXCLUDES = COMMON_EXCLUDES | {
 
 DOCS_EXCLUDES = COMMON_EXCLUDES | {
     'thoughts', '.claude', '.git', '.github',
-    'experimental', 'tests', 'scripts'
+    'experimental', 'docs', 'tests', 'scripts'
 }
 
 CONFIG_FILES = {
