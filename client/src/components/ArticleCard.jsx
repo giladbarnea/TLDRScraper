@@ -53,6 +53,63 @@ function ZenModeOverlay({ title, html, onClose }) {
   )
 }
 
+function ArticleTitle({ href, isRemoved, isRead, title, onLinkClick }) {
+  return (
+    <a
+      href={isRemoved ? undefined : href}
+      target={isRemoved ? undefined : "_blank"}
+      rel={isRemoved ? undefined : "noopener noreferrer"}
+      className={`
+        text-[17px] font-display font-semibold leading-snug text-slate-900
+        hover:text-brand-600 transition-colors duration-200 block tracking-tight
+        ${isRead ? 'text-slate-500 font-normal' : ''}
+        ${isRemoved ? 'pointer-events-none' : ''}
+      `}
+      onClick={onLinkClick}
+    >
+      {title}
+    </a>
+  )
+}
+
+function ArticleMeta({ domain, articleMeta, isRead, tldrLoading }) {
+  return (
+    <div className="mb-1 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-medium text-slate-400">
+          {domain && domain}
+          {domain && articleMeta && ' │ '}
+          {articleMeta}
+        </span>
+        {isRead && <CheckCircle size={14} className="text-slate-300" />}
+      </div>
+      {tldrLoading && <Loader2 size={14} className="animate-spin text-brand-500" />}
+    </div>
+  )
+}
+
+function RemoveButton({ onClick, disabled }) {
+  return (
+    <div className="flex items-center justify-end pt-2">
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`p-1.5 rounded-full transition-colors ${disabled ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
+  )
+}
+
+function TldrError({ message }) {
+  return (
+    <div className="mt-4 text-xs text-red-500 bg-red-50 p-3 rounded-lg">
+      {message || 'Failed to load summary.'}
+    </div>
+  )
+}
+
 function ArticleCard({ article }) {
   const { isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
     article.issueDate,
@@ -136,18 +193,12 @@ function ArticleCard({ article }) {
       `}
     >
       <div className="p-5 flex flex-col gap-2">
-        {/* Title */}
-        <a
-          href={isRemoved ? undefined : fullUrl}
-          target={isRemoved ? undefined : "_blank"}
-          rel={isRemoved ? undefined : "noopener noreferrer"}
-          className={`
-            text-[17px] font-display font-semibold leading-snug text-slate-900
-            hover:text-brand-600 transition-colors duration-200 block tracking-tight
-            ${isRead ? 'text-slate-500 font-normal' : ''}
-            ${isRemoved ? 'pointer-events-none' : ''}
-          `}
-          onClick={(e) => {
+        <ArticleTitle
+          href={fullUrl}
+          isRemoved={isRemoved}
+          isRead={isRead}
+          title={article.title}
+          onLinkClick={(e) => {
             if (isRemoved) {
               e.preventDefault();
               return;
@@ -155,57 +206,32 @@ function ArticleCard({ article }) {
             e.stopPropagation();
             if (!isRead) toggleRead();
           }}
-        >
-          {article.title}
-        </a>
+        />
 
-        {/* Header */}
         {!isRemoved && (
-          <div className="mb-1 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-slate-400">
-                  {domain && domain}
-                  {domain && article.articleMeta && ' │ '}
-                  {article.articleMeta}
-              </span>
-              {isRead && <CheckCircle size={14} className="text-slate-300" />}
-              </div>
-              
-              {/* Loading Indicator or Status Icon could go here if needed, but keeping it clean for now */}
-              {tldr.loading && <Loader2 size={14} className="animate-spin text-brand-500" />}
-          </div>
+          <ArticleMeta
+            domain={domain}
+            articleMeta={article.articleMeta}
+            isRead={isRead}
+            tldrLoading={tldr.loading}
+          />
         )}
 
-        {/* Actions - Just the delete button now, positioned absolutely or bottom right? 
-            The original design had a row. Let's keep the row but simplified.
-        */}
         {!isRemoved && (
-          <div className="flex items-center justify-end pt-2">
-              <button
-                onClick={handleRemove}
-                disabled={stateLoading}
-                className={`p-1.5 rounded-full transition-colors ${stateLoading ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
-              >
-                <Trash2 size={14} />
-              </button>
-          </div>
+          <RemoveButton onClick={handleRemove} disabled={stateLoading} />
         )}
 
-         {/* TLDR Error State (inline) */}
-         {!isRemoved && tldr.status === 'error' && (
-           <div className="mt-4 text-xs text-red-500 bg-red-50 p-3 rounded-lg">
-             {tldr.errorMessage || 'Failed to load summary.'}
-           </div>
-         )}
+        {!isRemoved && tldr.status === 'error' && (
+          <TldrError message={tldr.errorMessage} />
+        )}
 
-         {/* Zen Mode Overlay for TLDR Content */}
-         {!isRemoved && tldr.expanded && tldr.html && (
-           <ZenModeOverlay
-             title={article.title}
-             html={tldr.html}
-             onClose={() => toggleTldrWithTracking(() => tldr.collapse())}
-           />
-         )}
+        {!isRemoved && tldr.expanded && tldr.html && (
+          <ZenModeOverlay
+            title={article.title}
+            html={tldr.html}
+            onClose={() => toggleTldrWithTracking(() => tldr.collapse())}
+          />
+        )}
       </div>
     </div>
   )
