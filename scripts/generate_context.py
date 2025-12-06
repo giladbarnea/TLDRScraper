@@ -25,7 +25,7 @@ SERVER_EXCLUDES = COMMON_EXCLUDES | {
 
 DOCS_EXCLUDES = COMMON_EXCLUDES | {
     'thoughts', '.claude', '.git', '.github',
-    'experimental', 'docs', 'tests', 'scripts'
+    'experimental', 'tests', 'scripts'
 }
 
 CONFIG_FILES = {
@@ -151,8 +151,16 @@ def generate_client_context(root_dir: pathlib.Path) -> str:
 
 
 def find_markdown_files(root_dir: pathlib.Path, excludes: Set[str]) -> List[pathlib.Path]:
-    """Find all markdown files in root and client directories."""
+    """Find all markdown files in root, docs, and client directories."""
     root_md_files = find_files(root_dir, '*.md', excludes)
+    
+    docs_md_files = []
+    docs_dir = root_dir / 'docs'
+    if docs_dir.exists():
+        for path in docs_dir.rglob('*.md'):
+            rel_to_root = path.relative_to(root_dir)
+            if not should_exclude(rel_to_root, excludes):
+                docs_md_files.append(path)
     
     client_md_files = []
     client_dir = root_dir / 'client'
@@ -162,7 +170,7 @@ def find_markdown_files(root_dir: pathlib.Path, excludes: Set[str]) -> List[path
             if not should_exclude(rel_to_root, COMMON_EXCLUDES):
                 client_md_files.append(path)
     
-    return root_md_files + client_md_files
+    return root_md_files + docs_md_files + client_md_files
 
 
 def generate_docs_context(root_dir: pathlib.Path) -> str:
