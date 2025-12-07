@@ -1,10 +1,26 @@
-import { CheckCircle, ChevronLeft, Loader2, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useRef } from 'react'
+import { CheckCircle, ChevronLeft, Loader2, Trash2, AlertCircle } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { m, useAnimation, LazyMotion, domAnimation } from 'framer-motion'
+import { motion, useAnimation } from 'framer-motion'
 import { useArticleState } from '../hooks/useArticleState'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
+
+function ErrorToast({ message, onDismiss }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 5000)
+    return () => clearTimeout(timer)
+  }, [onDismiss])
+
+  return createPortal(
+    <div className="fixed bottom-4 left-4 right-4 z-[200] bg-red-600 text-white p-4 rounded-xl shadow-lg flex items-start gap-3">
+      <AlertCircle size={20} className="shrink-0 mt-0.5" />
+      <div className="flex-1 text-sm font-medium break-all">{message}</div>
+      <button onClick={onDismiss} className="shrink-0 text-white/80 hover:text-white">✕</button>
+    </div>,
+    document.body
+  )
+}
 
 function ZenModeOverlay({ title, html, onClose }) {
   const scrollRef = useRef(null)
@@ -114,6 +130,8 @@ function ArticleCard({ article }) {
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
   const { isAvailable } = tldr
 
+  const [dragError, setDragError] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
   const controls = useAnimation()
 
   const fullUrl = useMemo(() => {
@@ -157,23 +175,37 @@ function ArticleCard({ article }) {
     })
   }, [isRemoved, stateLoading, controls])
 
-  const handleDragEnd = async (event, { offset, velocity }) => {
-    const swipeThreshold = -100
-    const velocityThreshold = -300
+  const handleDragStart = () => {
+    setIsDragging(true)
+    setDragError(null)
+  }
 
-    if (offset.x < swipeThreshold || velocity.x < velocityThreshold) {
-      await controls.start({
-        x: -window.innerWidth,
-        opacity: 0,
-        transition: { duration: 0.2, ease: "easeOut" }
-      })
-      handleSwipeComplete()
-    } else {
+  const handleDragEnd = async (event, info) => {
+    setIsDragging(false)
+    try {
+      const { offset, velocity } = info
+      const swipeThreshold = -100
+      const velocityThreshold = -300
+
+      if (offset.x < swipeThreshold || velocity.x < velocityThreshold) {
+        await controls.start({
+          x: -window.innerWidth,
+          opacity: 0,
+          transition: { duration: 0.2, ease: "easeOut" }
+        })
+        handleSwipeComplete()
+      } else {
+        controls.start({ x: 0 })
+      }
+    } catch (error) {
+      setDragError(`Drag error: ${error.message}`)
       controls.start({ x: 0 })
     }
   }
 
   const handleCardClick = (e) => {
+    if (isDragging) return
+    
     if (isRemoved) {
       e.preventDefault()
       toggleRemove()
@@ -186,28 +218,33 @@ function ArticleCard({ article }) {
     toggleTldrWithTracking(() => tldr.toggle())
   }
 
+  const canDrag = !isRemoved && !stateLoading
+
   return (
-    <LazyMotion features={domAnimation}>
-      <m.div
+    <>
+      <motion.div
         layout
         className={`relative ${tldr.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
       >
-        <div className="absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8">
+        <div className={`absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8 transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
           <Trash2 className="text-red-400" size={20} />
         </div>
 
-        <m.div
-          drag={!isRemoved && !stateLoading ? "x" : false}
+        <motion.div
+          drag={canDrag ? "x" : false}
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={{ left: 0.5, right: 0.1 }}
+          dragMomentum={false}
+          dragListener={canDrag}
           animate={controls}
           initial={{ opacity: 1, filter: 'grayscale(0%)', scale: 1, x: 0 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
-          whileHover={!isRemoved && !stateLoading ? { scale: 1.005 } : undefined}
-          whileTap={!isRemoved && !stateLoading ? { scale: 0.99 } : undefined}
+          whileHover={canDrag ? { scale: 1.005 } : undefined}
+          whileTap={canDrag ? { scale: 0.99 } : undefined}
           onClick={handleCardClick}
-          style={{ touchAction: "pan-y" }}
+          style={{ touchAction: canDrag ? "pan-y" : "auto" }}
           data-article-title={article.title}
           data-article-url={article.url}
           data-article-date={article.issueDate}
@@ -219,6 +256,8 @@ function ArticleCard({ article }) {
           data-tldr-status={tldr.status}
           data-tldr-expanded={tldr.expanded}
           data-tldr-available={isAvailable}
+          data-dragging={isDragging}
+          data-can-drag={canDrag}
           className={`
             relative z-10
             rounded-[20px] border border-white/40
@@ -230,38 +269,34 @@ function ArticleCard({ article }) {
             ${tldr.expanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
           `}
         >
-          <div className="p-5 flex flex-col gap-2 pointer-events-none">
-            <div className="pointer-events-auto">
-              <ArticleTitle
-                href={fullUrl}
-                isRemoved={isRemoved}
-                isRead={isRead}
-                title={article.title}
-                onLinkClick={(e) => {
-                  if (isRemoved) {
-                    e.preventDefault()
-                    return
-                  }
-                  e.stopPropagation()
-                  if (!isRead) toggleRead()
-                }}
-              />
-            </div>
+          <div className="p-5 flex flex-col gap-2">
+            <ArticleTitle
+              href={fullUrl}
+              isRemoved={isRemoved}
+              isRead={isRead}
+              title={article.title}
+              onLinkClick={(e) => {
+                if (isDragging || isRemoved) {
+                  e.preventDefault()
+                  return
+                }
+                e.stopPropagation()
+                if (!isRead) toggleRead()
+              }}
+            />
 
             {!isRemoved && (
-              <div className="pointer-events-auto">
-                <ArticleMeta
-                  domain={domain}
-                  articleMeta={article.articleMeta}
-                  isRead={isRead}
-                  tldrLoading={tldr.loading}
-                  onRemove={(e) => {
-                    e.stopPropagation()
-                    handleSwipeComplete()
-                  }}
-                  removeDisabled={stateLoading}
-                />
-              </div>
+              <ArticleMeta
+                domain={domain}
+                articleMeta={article.articleMeta}
+                isRead={isRead}
+                tldrLoading={tldr.loading}
+                onRemove={(e) => {
+                  e.stopPropagation()
+                  handleSwipeComplete()
+                }}
+                removeDisabled={stateLoading}
+              />
             )}
 
             {!isRemoved && tldr.status === 'error' && (
@@ -269,18 +304,18 @@ function ArticleCard({ article }) {
             )}
 
             {!isRemoved && tldr.expanded && tldr.html && (
-              <div className="pointer-events-auto">
-                <ZenModeOverlay
-                  title={article.title}
-                  html={tldr.html}
-                  onClose={() => toggleTldrWithTracking(() => tldr.collapse())}
-                />
-              </div>
+              <ZenModeOverlay
+                title={article.title}
+                html={tldr.html}
+                onClose={() => toggleTldrWithTracking(() => tldr.collapse())}
+              />
             )}
           </div>
-        </m.div>
-      </m.div>
-    </LazyMotion>
+        </motion.div>
+      </motion.div>
+      
+      {dragError && <ErrorToast message={dragError} onDismiss={() => setDragError(null)} />}
+    </>
   )
 }
 
