@@ -36,6 +36,17 @@
   margin-bottom: 0.6em;
 }
 
+/* 0-indent list overrides */
+.prose ul,
+.prose ol {
+  padding-left: 1.2em; /* Aligns bullet with regular text (p) start */
+}
+
+.prose li {
+  padding-left: 0;
+  margin-left: 0;
+}
+
 @keyframes zen-enter {
   from {
     opacity: 0;
