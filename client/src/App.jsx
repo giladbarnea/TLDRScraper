@@ -43,9 +43,11 @@ function App() {
         <header className="relative z-40 px-6 py-6 bg-transparent">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="font-display text-3xl font-extrabold tracking-tight text-slate-900">
-                TLDR<span className="text-brand-500">.</span>
-              </h1>
+              <a href="/api/source" className="inline-block">
+                <h1 className="font-display text-3xl font-extrabold tracking-tight text-slate-900 hover:text-brand-600 transition-colors cursor-pointer">
+                  TLDR<span className="text-brand-500">.</span>
+                </h1>
+              </a>
               <p className="text-sm font-medium text-slate-500 mt-1">
                 {currentDate}
               </p>
