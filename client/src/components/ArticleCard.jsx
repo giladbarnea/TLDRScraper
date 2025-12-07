@@ -1,6 +1,7 @@
 import { CheckCircle, ChevronLeft, Loader2, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { m, useAnimation, LazyMotion, domAnimation } from 'framer-motion'
 import { useArticleState } from '../hooks/useArticleState'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
@@ -97,7 +98,6 @@ function ArticleMeta({ domain, articleMeta, isRead, tldrLoading, onRemove, remov
   )
 }
 
-
 function TldrError({ message }) {
   return (
     <div className="mt-4 text-xs text-red-500 bg-red-50 p-3 rounded-lg">
@@ -112,7 +112,9 @@ function ArticleCard({ article }) {
     article.url
   )
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
-  const { isAvailable, toggleVisibility } = tldr
+  const { isAvailable } = tldr
+
+  const controls = useAnimation()
 
   const fullUrl = useMemo(() => {
     const url = article.url
@@ -141,93 +143,144 @@ function ArticleCard({ article }) {
     }
   }
 
+  const handleSwipeComplete = () => {
+    if (!isRemoved && tldr.expanded) tldr.collapse()
+    toggleRemove()
+  }
 
+  useEffect(() => {
+    controls.start({
+      opacity: stateLoading ? 0.4 : isRemoved ? 0.5 : 1,
+      filter: stateLoading || isRemoved ? 'grayscale(100%)' : 'grayscale(0%)',
+      scale: isRemoved ? 0.98 : 1,
+      x: 0,
+    })
+  }, [isRemoved, stateLoading, controls])
 
-  const handleRemove = (e) => {
-    e.stopPropagation();
-    if (!isRemoved && tldr.expanded) tldr.collapse();
-    toggleRemove();
-  };
+  const handleDragEnd = async (event, { offset, velocity }) => {
+    const swipeThreshold = -100
+    const velocityThreshold = -300
+
+    if (offset.x < swipeThreshold || velocity.x < velocityThreshold) {
+      await controls.start({
+        x: -window.innerWidth,
+        opacity: 0,
+        transition: { duration: 0.2, ease: "easeOut" }
+      })
+      handleSwipeComplete()
+    } else {
+      controls.start({ x: 0 })
+    }
+  }
 
   const handleCardClick = (e) => {
     if (isRemoved) {
-      e.preventDefault();
-      toggleRemove();
-      return;
+      e.preventDefault()
+      toggleRemove()
+      return
     }
 
-    // If text is selected, don't trigger the click
-    const selection = window.getSelection();
-    if (selection.toString().length > 0) return;
+    const selection = window.getSelection()
+    if (selection.toString().length > 0) return
 
-    toggleTldrWithTracking(() => tldr.toggle());
-  };
+    toggleTldrWithTracking(() => tldr.toggle())
+  }
 
   return (
-    <div
-      onClick={handleCardClick}
-      data-article-title={article.title}
-      data-article-url={article.url}
-      data-article-date={article.issueDate}
-      data-article-category={article.category}
-      data-article-source={article.sourceId}
-      data-read={isRead}
-      data-removed={isRemoved}
-      data-state-loading={stateLoading}
-      data-tldr-status={tldr.status}
-      data-tldr-expanded={tldr.expanded}
-      data-tldr-available={isAvailable}
-      className={`
-        group relative transition-all duration-300 ease-out
-        rounded-[20px] border
-        ${stateLoading
-          ? 'opacity-40 grayscale pointer-events-none bg-slate-50 border-slate-200'
-          : isRemoved
-            ? 'opacity-50 grayscale scale-[0.98] bg-slate-50 border-transparent cursor-pointer hover:opacity-60'
-            : 'bg-white/80 backdrop-blur-xl border-white/40 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 cursor-pointer'}
-        ${tldr.expanded && !stateLoading ? 'mb-6 ring-1 ring-brand-100 shadow-md bg-white' : 'mb-3'}
-      `}
-    >
-      <div className="p-5 flex flex-col gap-2">
-        <ArticleTitle
-          href={fullUrl}
-          isRemoved={isRemoved}
-          isRead={isRead}
-          title={article.title}
-          onLinkClick={(e) => {
-            if (isRemoved) {
-              e.preventDefault();
-              return;
-            }
-            e.stopPropagation();
-            if (!isRead) toggleRead();
-          }}
-        />
+    <LazyMotion features={domAnimation}>
+      <m.div
+        layout
+        className={`relative ${tldr.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
+      >
+        <div className="absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8">
+          <Trash2 className="text-red-400" size={20} />
+        </div>
 
-        {!isRemoved && (
-          <ArticleMeta
-            domain={domain}
-            articleMeta={article.articleMeta}
-            isRead={isRead}
-            tldrLoading={tldr.loading}
-            onRemove={handleRemove}
-            removeDisabled={stateLoading}
-          />
-        )}
+        <m.div
+          drag={!isRemoved && !stateLoading ? "x" : false}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={{ left: 0.5, right: 0.1 }}
+          animate={controls}
+          initial={{ opacity: 1, filter: 'grayscale(0%)', scale: 1, x: 0 }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          onDragEnd={handleDragEnd}
+          whileHover={!isRemoved && !stateLoading ? { scale: 1.005 } : undefined}
+          whileTap={!isRemoved && !stateLoading ? { scale: 0.99 } : undefined}
+          onClick={handleCardClick}
+          style={{ touchAction: "pan-y" }}
+          data-article-title={article.title}
+          data-article-url={article.url}
+          data-article-date={article.issueDate}
+          data-article-category={article.category}
+          data-article-source={article.sourceId}
+          data-read={isRead}
+          data-removed={isRemoved}
+          data-state-loading={stateLoading}
+          data-tldr-status={tldr.status}
+          data-tldr-expanded={tldr.expanded}
+          data-tldr-available={isAvailable}
+          className={`
+            relative z-10
+            rounded-[20px] border border-white/40
+            shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)]
+            backdrop-blur-xl
+            cursor-pointer select-none
+            ${isRemoved ? 'bg-slate-50' : 'bg-white'}
+            ${stateLoading ? 'pointer-events-none' : ''}
+            ${tldr.expanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
+          `}
+        >
+          <div className="p-5 flex flex-col gap-2 pointer-events-none">
+            <div className="pointer-events-auto">
+              <ArticleTitle
+                href={fullUrl}
+                isRemoved={isRemoved}
+                isRead={isRead}
+                title={article.title}
+                onLinkClick={(e) => {
+                  if (isRemoved) {
+                    e.preventDefault()
+                    return
+                  }
+                  e.stopPropagation()
+                  if (!isRead) toggleRead()
+                }}
+              />
+            </div>
 
-        {!isRemoved && tldr.status === 'error' && (
-          <TldrError message={tldr.errorMessage} />
-        )}
+            {!isRemoved && (
+              <div className="pointer-events-auto">
+                <ArticleMeta
+                  domain={domain}
+                  articleMeta={article.articleMeta}
+                  isRead={isRead}
+                  tldrLoading={tldr.loading}
+                  onRemove={(e) => {
+                    e.stopPropagation()
+                    handleSwipeComplete()
+                  }}
+                  removeDisabled={stateLoading}
+                />
+              </div>
+            )}
 
-        {!isRemoved && tldr.expanded && tldr.html && (
-          <ZenModeOverlay
-            title={article.title}
-            html={tldr.html}
-            onClose={() => toggleTldrWithTracking(() => tldr.collapse())}
-          />
-        )}
-      </div>
-    </div>
+            {!isRemoved && tldr.status === 'error' && (
+              <TldrError message={tldr.errorMessage} />
+            )}
+
+            {!isRemoved && tldr.expanded && tldr.html && (
+              <div className="pointer-events-auto">
+                <ZenModeOverlay
+                  title={article.title}
+                  html={tldr.html}
+                  onClose={() => toggleTldrWithTracking(() => tldr.collapse())}
+                />
+              </div>
+            )}
+          </div>
+        </m.div>
+      </m.div>
+    </LazyMotion>
   )
 }
 
