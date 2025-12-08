@@ -1,10 +1,11 @@
 import { CheckCircle, ChevronLeft, Loader2, Trash2, AlertCircle } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, useAnimation } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useArticleState } from '../hooks/useArticleState'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
+import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
 
 function ErrorToast({ message, onDismiss }) {
   useEffect(() => {
@@ -130,9 +131,16 @@ function ArticleCard({ article }) {
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
   const { isAvailable } = tldr
 
-  const [dragError, setDragError] = useState(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const controls = useAnimation()
+  const handleSwipeComplete = () => {
+    if (!isRemoved && tldr.expanded) tldr.collapse()
+    toggleRemove()
+  }
+
+  const { isDragging, dragError, clearDragError, controls, canDrag, handleDragStart, handleDragEnd } = useSwipeToRemove({
+    isRemoved,
+    stateLoading,
+    onSwipeComplete: handleSwipeComplete,
+  })
 
   const fullUrl = useMemo(() => {
     const url = article.url
@@ -161,48 +169,6 @@ function ArticleCard({ article }) {
     }
   }
 
-  const handleSwipeComplete = () => {
-    if (!isRemoved && tldr.expanded) tldr.collapse()
-    toggleRemove()
-  }
-
-  useEffect(() => {
-    controls.start({
-      opacity: stateLoading ? 0.4 : isRemoved ? 0.5 : 1,
-      filter: stateLoading || isRemoved ? 'grayscale(100%)' : 'grayscale(0%)',
-      scale: isRemoved ? 0.98 : 1,
-      x: 0,
-    })
-  }, [isRemoved, stateLoading, controls])
-
-  const handleDragStart = () => {
-    setIsDragging(true)
-    setDragError(null)
-  }
-
-  const handleDragEnd = async (event, info) => {
-    setIsDragging(false)
-    try {
-      const { offset, velocity } = info
-      const swipeThreshold = -100
-      const velocityThreshold = -300
-
-      if (offset.x < swipeThreshold || velocity.x < velocityThreshold) {
-        await controls.start({
-          x: -window.innerWidth,
-          opacity: 0,
-          transition: { duration: 0.2, ease: "easeOut" }
-        })
-        handleSwipeComplete()
-      } else {
-        controls.start({ x: 0 })
-      }
-    } catch (error) {
-      setDragError(`Drag error: ${error.message}`)
-      controls.start({ x: 0 })
-    }
-  }
-
   const handleCardClick = (e) => {
     if (isDragging) return
     
@@ -217,8 +183,6 @@ function ArticleCard({ article }) {
 
     toggleTldrWithTracking(() => tldr.toggle())
   }
-
-  const canDrag = !isRemoved && !stateLoading
 
   return (
     <>
@@ -314,7 +278,7 @@ function ArticleCard({ article }) {
         </motion.div>
       </motion.div>
       
-      {dragError && <ErrorToast message={dragError} onDismiss={() => setDragError(null)} />}
+      {dragError && <ErrorToast message={dragError} onDismiss={clearDragError} />}
     </>
   )
 }
