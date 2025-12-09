@@ -90,7 +90,7 @@ function ArticleTitle({ href, isRemoved, isRead, title, onLinkClick }) {
   )
 }
 
-function ArticleMeta({ domain, articleMeta, isRead, tldrLoading, onRemove, removeDisabled }) {
+function ArticleMeta({ domain, articleMeta, isRead, tldrLoading }) {
   return (
     <div className="mb-1 flex items-center justify-between">
       <div className="flex items-center gap-2">
@@ -101,16 +101,7 @@ function ArticleMeta({ domain, articleMeta, isRead, tldrLoading, onRemove, remov
         </span>
         {isRead && <CheckCircle size={14} className="text-slate-300" />}
       </div>
-      <div className="flex items-center gap-2">
-        {tldrLoading && <Loader2 size={14} className="animate-spin text-brand-500" />}
-        <button
-          onClick={onRemove}
-          disabled={removeDisabled}
-          className={`p-1.5 rounded-full transition-colors ${removeDisabled ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
-        >
-          <Trash2 size={14} />
-        </button>
-      </div>
+      {tldrLoading && <Loader2 size={14} className="animate-spin text-brand-500" />}
     </div>
   )
 }
@@ -255,11 +246,6 @@ function ArticleCard({ article }) {
                 articleMeta={article.articleMeta}
                 isRead={isRead}
                 tldrLoading={tldr.loading}
-                onRemove={(e) => {
-                  e.stopPropagation()
-                  handleSwipeComplete()
-                }}
-                removeDisabled={stateLoading}
               />
             )}
 
