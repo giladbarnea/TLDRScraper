@@ -9,6 +9,8 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
+
     const today = new Date()
     const twoDaysAgo = new Date(today)
     twoDaysAgo.setDate(today.getDate() - 2)
@@ -18,6 +20,7 @@ function App() {
 
     loadFromCache(startDate, endDate)
       .then(cached => {
+        if (cancelled) return
         if (cached) {
           setResults(cached)
         } else {
@@ -25,8 +28,13 @@ function App() {
         }
       })
       .catch(err => {
+        if (cancelled) return
         console.error('Failed to load cached results:', err)
       })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const currentDate = new Date().toLocaleDateString('en-US', {
