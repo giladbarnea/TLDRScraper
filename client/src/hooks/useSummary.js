@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useArticleState } from './useArticleState'
 
 export function useSummary(date, url, type = 'tldr') {
@@ -12,6 +12,7 @@ export function useSummary(date, url, type = 'tldr') {
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [effort, setEffort] = useState('low')
+  const abortControllerRef = useRef(null)
 
   const data = article?.[type]
   const status = data?.status || 'unknown'
@@ -44,6 +45,12 @@ export function useSummary(date, url, type = 'tldr') {
   const fetch = useCallback(async (summaryEffort = effort) => {
     if (!article) return
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     setLoading(true)
     setEffort(summaryEffort)
 
@@ -56,7 +63,8 @@ export function useSummary(date, url, type = 'tldr') {
         body: JSON.stringify({
           url,
           summary_effort: summaryEffort
-        })
+        }),
+        signal: controller.signal
       })
 
       const result = await response.json()
@@ -82,6 +90,7 @@ export function useSummary(date, url, type = 'tldr') {
         }))
       }
     } catch (error) {
+      if (error.name === 'AbortError') return
       updateArticle((current) => ({
         [type]: {
           ...(current[type] || {}),
@@ -91,7 +100,9 @@ export function useSummary(date, url, type = 'tldr') {
       }))
       console.error(`Failed to fetch ${type}:`, error)
     } finally {
-      setLoading(false)
+      if (!controller.signal.aborted) {
+        setLoading(false)
+      }
     }
   }, [article, url, type, effort, updateArticle])
 
