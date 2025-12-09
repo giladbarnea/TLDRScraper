@@ -97,51 +97,9 @@ This syncs the `defaultFolded` prop to state when it changes from false to true.
 
 #### B1.4. Component Definition Inside Component
 
-**Finding:** DETECTED - Critical instances
+**Finding:** NOT DETECTED
 
-| File | Line(s) | Inner Component | Severity |
-|------|---------|-----------------|----------|
-| `TLDRScraper/client/src/components/ArticleCard.jsx` | 10-24 | `ErrorToast` | High |
-| `TLDRScraper/client/src/components/ArticleCard.jsx` | 26-72 | `ZenModeOverlay` | High |
-| `TLDRScraper/client/src/components/ArticleCard.jsx` | 74-91 | `ArticleTitle` | High |
-| `TLDRScraper/client/src/components/ArticleCard.jsx` | 93-116 | `ArticleMeta` | High |
-| `TLDRScraper/client/src/components/ArticleCard.jsx` | 118-124 | `TldrError` | High |
-| `TLDRScraper/client/src/components/ResultsDisplay.jsx` | 51-104 | `DailyResults` | High |
-
-**Details:**
-
-In `TLDRScraper/client/src/components/ArticleCard.jsx`, five helper components are defined at module scope BUT the file structure suggests they could be in the same file as the main component. However, looking closely:
-
-```javascript
-// Line 10-24
-function ErrorToast({ message, onDismiss }) {
-  useEffect(() => {
-    const timer = setTimeout(onDismiss, 5000)
-    return () => clearTimeout(timer)
-  }, [onDismiss])
-  // ...
-}
-
-// Line 26-72
-function ZenModeOverlay({ title, html, onClose }) {
-  // ...
-}
-```
-
-These ARE defined at file/module scope (good), not inside `ArticleCard`. **Upon closer inspection, these are NOT antipatterns** - they are correctly defined at module scope.
-
-**However, in `TLDRScraper/client/src/components/ResultsDisplay.jsx`:**
-
-```javascript
-// Line 51
-function DailyResults({ payload }) {
-  // ...
-}
-```
-
-This is also at module scope (good), not inside `ResultsDisplay`.
-
-**Revised Finding:** No component-inside-component antipattern detected. All helper components are correctly defined at module scope.
+All helper components are correctly defined at module scope, not nested inside other components.
 
 ---
 
@@ -443,6 +401,112 @@ The codebase is relatively clean with good practices around key usage and compon
 3. **React Compiler not enabled** - once enabled, significant boilerplate memoization can be removed
 
 The codebase already uses `useActionState` in ScrapeForm.jsx, demonstrating awareness of React 19 patterns. Extending this modernization to data fetching and enabling the compiler would bring the codebase fully up to date with React 19 best practices.
+
+---
+
+## Implementation Tasks
+
+The following tasks address the audit findings, sorted by impact × low-effort ratio:
+
+### Task 1: Add AbortController to async operations
+**Impact:** High (prevents race conditions and state updates on unmounted components)  
+**Effort:** Low (focused changes in 3 locations)  
+**Priority:** Immediate
+
+**Scope:**
+- `App.jsx:11-30` - Add AbortController to `loadFromCache` useEffect
+- `useSupabaseStorage.js:142-178` - Add AbortController to both `readValue` effect and subscription refetch
+- `useSummary.js:44-96` - Add AbortController to fetch callback with concurrent call handling
+
+**Implementation notes:**
+- Create AbortController in effect/callback, pass signal to fetch
+- Clean up by calling `controller.abort()` in return function
+- Handle AbortError gracefully (ignore or log)
+
+### Task 2: Fix lazy useState initialization in ScrapeForm
+**Impact:** Low (minor code quality improvement)  
+**Effort:** Very low (single function change)  
+**Priority:** Quick win
+
+**Scope:**
+- `ScrapeForm.jsx:12-18` - Move date computation from useEffect to lazy useState initializer
+
+**Implementation:**
+```javascript
+// Before: useEffect initializing dates
+useEffect(() => {
+  const today = new Date()
+  const twoDaysAgo = new Date(today)
+  twoDaysAgo.setDate(today.getDate() - 2)
+  setEndDate(today.toISOString().split('T')[0])
+  setStartDate(twoDaysAgo.toISOString().split('T')[0])
+}, [])
+
+// After: lazy initialization
+const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0])
+const [startDate, setStartDate] = useState(() => {
+  const twoDaysAgo = new Date()
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
+  return twoDaysAgo.toISOString().split('T')[0]
+})
+```
+
+### Task 3: Migrate data fetching to use(Promise) pattern
+**Impact:** Medium-high (modernizes to React 19 patterns, improves UX with Suspense)  
+**Effort:** Medium (requires Suspense boundaries and error boundaries)  
+**Priority:** After Task 1
+
+**Scope:**
+- `App.jsx:11-30` - Refactor initial cache loading to use(Promise) with Suspense
+- `useSupabaseStorage.js:142-164` - Refactor async read pattern to Suspense-compatible approach
+
+**Implementation notes:**
+- Requires adding `<Suspense>` boundaries in App.jsx
+- Consider `<ErrorBoundary>` for error handling
+- May need to lift promise creation outside of components
+- Test that loading states work correctly with Suspense
+
+**Out of scope:**
+- Subscription patterns (Lines 167-178 in useSupabaseStorage) - these remain as useEffect
+
+### Task 4: Migrate loading states to useTransition
+**Impact:** Medium (cleaner code, built-in loading states)  
+**Effort:** Medium (2 hooks to refactor)  
+**Priority:** After Task 3
+
+**Scope:**
+- `useSupabaseStorage.js:137` - Replace manual loading state with useTransition for `setValueAsync`
+- `useSummary.js:12` - Replace manual loading state with useTransition for fetch operations
+
+**Implementation notes:**
+- Use `const [isPending, startTransition] = useTransition()`
+- Wrap state updates in `startTransition(() => { ... })`
+- Remove manual `useState(false)` for loading
+- Ensure isPending is returned from hooks for consumer components
+
+### Task 5: Enable React Compiler
+**Impact:** High (removes manual memoization boilerplate across 5 files)  
+**Effort:** High (requires configuration, testing, and validation)  
+**Priority:** Final modernization step
+
+**Scope:**
+- Configure `babel-plugin-react-compiler` in `vite.config.js`
+- Remove manual memoization once compiler is verified working:
+  - `ArticleList.jsx:5-45` - Remove useMemo for sorting/sectioning
+  - `ArticleCard.jsx:145-159` - Remove useMemo for URL/domain
+  - `useArticleState.js:9-73` - Remove useMemo and useCallback
+  - `useSummary.js:20-118` - Remove useMemo and useCallback
+  - `useSupabaseStorage.js:180-210` - Remove useCallback
+
+**Implementation notes:**
+- Install `babel-plugin-react-compiler` as dev dependency
+- Configure compiler in vite.config.js with appropriate options
+- Run full test suite to verify no regressions
+- Remove memoization incrementally, one file at a time, testing between each
+- Monitor for any performance regressions (unlikely but possible)
+
+**Out of scope:**
+- Do not remove memoization before compiler is enabled and verified working
 </agent>
 
 ---
