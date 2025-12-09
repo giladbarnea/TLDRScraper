@@ -61,3 +61,4 @@ This checklist classifies antipatterns into two categories: **(A) Issues the Rea
 
 ### Being Effective
 
+If you need an integrated understanding of several subsystems or contexts in the codebase to do your task well, feel free to use `SlashCommand(research-codebase)` to get a deep and precise report on the investigation area you specify.
