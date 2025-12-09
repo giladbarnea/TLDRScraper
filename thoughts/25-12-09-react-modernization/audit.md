@@ -319,6 +319,16 @@ useEffect(() => {
 ```
 This could be refactored to a Suspense-compatible data loading pattern.
 
+**Note:** The `use(Promise)` refactor recommendation is **not appropriate** for this codebase. This is a Vite client-only app without React Server Components. The React 19 documentation explicitly warns against using `use()` with client-created promises:
+
+> "Promises created in Client Components are recreated on every render. Promises passed from a Server Component to a Client Component are stable across re-renders." — [react.dev/reference/react/use](https://react.dev/reference/react/use)
+
+> "`use` does not support promises created in render. If you try to pass a promise created in render to `use`, React will warn: *A component was suspended by an uncached promise. Creating promises inside a Client Component or hook is not yet supported, except via a Suspense-compatible library or framework.*" — [react.dev/blog/2024/12/05/react-19](https://react.dev/blog/2024/12/05/react-19)
+
+> "To fix, you need to pass a promise from a Suspense powered library or framework that supports caching for promises." — [react.dev/reference/react/use](https://react.dev/reference/react/use)
+
+Without Server Components or a Suspense-compatible caching layer (e.g., React Query, SWR), the standard `useEffect` + cleanup pattern remains the correct approach. The high-priority fix is adding proper cancellation (AbortController or cancelled flags) — not refactoring to `use(Promise)`.
+
 ---
 
 #### B2.11. Optimistic UI Rollbacks
@@ -419,9 +429,7 @@ These are standard patterns and do not require `useLayoutEffect`.
    - Add `babel-plugin-react-compiler` to `vite.config.js`
    - Once enabled, manual memoization in A1 instances can be removed
 
-3. **Refactor to use(Promise) pattern:**
-   - `TLDRScraper/client/src/App.jsx` initial data loading
-   - `TLDRScraper/client/src/hooks/useSupabaseStorage.js` async read pattern
+3. ~~**Refactor to use(Promise) pattern:**~~ **NOT APPLICABLE** — See note in B2.10. This is a client-only app without Server Components or a Suspense-compatible caching layer. The `use(Promise)` pattern requires stable promises (from Server Components or caching libraries like React Query/SWR).
 
 ### Low Priority (Minor Improvements)
 
@@ -438,8 +446,8 @@ These are standard patterns and do not require `useLayoutEffect`.
 
 The codebase is relatively clean with good practices around key usage and component organization. The primary concerns are:
 
-1. **Async race conditions** in data fetching hooks that lack proper AbortController cleanup
-2. **useEffect-based data fetching** that could benefit from React 19's `use(Promise)` pattern
+1. **Async race conditions** in data fetching hooks that lack proper AbortController cleanup ✅ **FIXED**
+2. ~~**useEffect-based data fetching** that could benefit from React 19's `use(Promise)` pattern~~ — Not applicable for this client-only app (see B2.10 note)
 3. **React Compiler not enabled** - once enabled, significant boilerplate memoization can be removed
 
 The codebase already uses `useActionState` in ScrapeForm.jsx, demonstrating awareness of React 19 patterns. Extending this modernization to data fetching and enabling the compiler would bring the codebase fully up to date with React 19 best practices.

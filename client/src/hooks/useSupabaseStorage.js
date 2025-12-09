@@ -165,16 +165,25 @@ export function useSupabaseStorage(key, defaultValue) {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: defaultValue is intentionally omitted - subscription should only re-establish when key changes, not when fallback value changes.
   useEffect(() => {
+    let cancelled = false
+
     const handleChange = () => {
       readValue(key, defaultValue).then(newValue => {
+        if (cancelled) return
         setValue(newValue)
         valueRef.current = newValue
       }).catch(err => {
+        if (cancelled) return
         console.error(`Failed to reload storage value for ${key}:`, err)
       })
     }
 
-    return subscribe(key, handleChange)
+    const unsubscribe = subscribe(key, handleChange)
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
   }, [key])
 
   const setValueAsync = useCallback(async (nextValue) => {
