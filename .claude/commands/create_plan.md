@@ -52,7 +52,7 @@ Then wait for the user's input.
    Before asking the user any questions, use specialized agents to research in parallel:
 
    - Use the **codebase-locator** agent to find all files related to the task
-   - Use the **codebase-analyzer** agent to understand how the current implementation works
+   - Use the **codebase-analyzer:multiple-subsystems** agent to understand how the current implementation works
 
    These agents will:
    - Find relevant source files, configs, and tests
@@ -105,7 +105,7 @@ After getting initial clarifications:
 
    **For deeper investigation:**
    - **codebase-locator** - To find more specific files (e.g., "find all files that handle [specific component]")
-   - **codebase-analyzer** - To understand implementation details (e.g., "analyze how [system] works")
+   - **codebase-analyzer:multiple-subsystems** - To understand implementation details (e.g., "analyze how [system] works")
    - **codebase-pattern-finder** - To find similar features we can model after
 
    **For historical context:**

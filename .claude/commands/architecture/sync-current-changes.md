@@ -43,7 +43,7 @@ Read ARCHITECTURE.md in full. Given your changes, does ARCHITECTURE.md now conta
 Make sure you have a solid grip of the changes you made.
 
 <read-this-only-if-changes-are-wide otherwise="skip">
-Make sure you have a solid grip of the changes you made. Leverage the `codebase-locator` agent to perform pass #1 ("Investigate the major features..."). Then, delegate passes #2-to-#4 to `codebase-analyzer-narrow` agent with the files `codebase-locator` has come up with. `codebase-analyzer-narrow`'s final answer will provide you with all the information you need to perform the real task (`## Real Task` section above dealing with detecting and fixing false positives and false negatives).
+Make sure you have a solid grip of the changes you made. Leverage the `codebase-locator` agent to perform pass #1 ("Investigate the major features..."). Then, delegate passes #2-to-#4 to `codebase-analyzer:single-subsystem` agent with the files `codebase-locator` has come up with. `codebase-analyzer:single-subsystem`'s final answer will provide you with all the information you need to perform the real task (`## Real Task` section above dealing with detecting and fixing false positives and false negatives).
 </read-this-only-if-changes-are-wide>
 
 If and only if there are any hard false positives or false negatives, update ARCHITECTURE.md accordingly. Be very surgical; update only what's required. do not emphasize your changes.  Any update needs to take up no more space than its significance proportional to the entire project's architecture. Your only goal is to make ARCHITECTURE.md truthful again.
