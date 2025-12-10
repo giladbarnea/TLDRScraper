@@ -6,12 +6,6 @@ created: "2025-12-09 16:07"
 modified: "2025-12-09 16:11"
 messages: 2
 ---
-<agent i="5" agent_id="4e97017a" subagent_type="react-antipattern-auditor">
-# Agent
-
-Now I have a complete picture of the codebase. Let me compile the comprehensive audit report.
-
----
 
 # React Antipattern Audit Report: `client/` Source Code
 
@@ -274,63 +268,6 @@ This is a modern React 19 pattern.
 
 ---
 
-#### B2.10. Basic Data Fetching with useEffect
-
-**Finding:** DETECTED - Multiple instances suitable for `use(Promise)` refactor
-
-| File | Line(s) | Pattern | Refactor Candidate |
-|------|---------|---------|-------------------|
-| `TLDRScraper/client/src/App.jsx` | 11-30 | `useEffect` + fetch + setState | Yes |
-| `TLDRScraper/client/src/hooks/useSupabaseStorage.js` | 142-164 | `useEffect` + async read + setState | Yes |
-| `TLDRScraper/client/src/hooks/useScrollProgress.js` | 6-20 | `useEffect` for DOM event | No (DOM subscription) |
-
-**Details:**
-
-**App.jsx** fetches initial data on mount:
-```javascript
-useEffect(() => {
-  // compute dates...
-  loadFromCache(startDate, endDate)
-    .then(cached => {
-      if (cached) {
-        setResults(cached)
-      } else {
-        setResults({ payloads: [], stats: null })
-      }
-    })
-  // ...
-}, [])
-```
-This is a classic data-fetching-on-mount pattern that could be refactored to use `use(Promise)` with Suspense boundaries.
-
-**useSupabaseStorage.js** performs async reads on mount:
-```javascript
-useEffect(() => {
-  let cancelled = false
-
-  readValue(key, defaultValue).then(loadedValue => {
-    if (!cancelled) {
-      setValue(loadedValue)
-      // ...
-    }
-  })
-  // ...
-}, [key])
-```
-This could be refactored to a Suspense-compatible data loading pattern.
-
-**Note:** The `use(Promise)` refactor recommendation is **not appropriate** for this codebase. This is a Vite client-only app without React Server Components. The React 19 documentation explicitly warns against using `use()` with client-created promises:
-
-> "Promises created in Client Components are recreated on every render. Promises passed from a Server Component to a Client Component are stable across re-renders." — [react.dev/reference/react/use](https://react.dev/reference/react/use)
-
-> "`use` does not support promises created in render. If you try to pass a promise created in render to `use`, React will warn: *A component was suspended by an uncached promise. Creating promises inside a Client Component or hook is not yet supported, except via a Suspense-compatible library or framework.*" — [react.dev/blog/2024/12/05/react-19](https://react.dev/blog/2024/12/05/react-19)
-
-> "To fix, you need to pass a promise from a Suspense powered library or framework that supports caching for promises." — [react.dev/reference/react/use](https://react.dev/reference/react/use)
-
-Without Server Components or a Suspense-compatible caching layer (e.g., React Query, SWR), the standard `useEffect` + cleanup pattern remains the correct approach. The high-priority fix is adding proper cancellation (AbortController or cancelled flags) — not refactoring to `use(Promise)`.
-
----
-
 #### B2.11. Optimistic UI Rollbacks
 
 **Finding:** NOT APPLICABLE
@@ -365,7 +302,6 @@ These are standard patterns and do not require `useLayoutEffect`.
 | B7 | forwardRef Wrapper | B (Modernize) | No | - | - |
 | B8 | Context.Provider Syntax | B (Modernize) | No | - | - |
 | B9 | Manual Loading States | B (Modernize) | Partial | Low | 2 files |
-| B10 | useEffect Data Fetching | B (Modernize) | Yes | Medium | 2 files |
 | B11 | Optimistic UI Rollbacks | B (Modernize) | No | - | - |
 | B12 | DOM Layout Cleanups | B (Modernize) | No | - | - |
 
@@ -378,7 +314,6 @@ These are standard patterns and do not require `useLayoutEffect`.
 ### `TLDRScraper/client/src/App.jsx`
 
 1. **B6 - Async Race Condition (Lines 11-30):** Data fetching in `useEffect` without AbortController
-2. **B10 - useEffect Data Fetching (Lines 11-30):** Candidate for `use(Promise)` refactor
 
 ### `TLDRScraper/client/src/components/ScrapeForm.jsx`
 
@@ -393,7 +328,6 @@ These are standard patterns and do not require `useLayoutEffect`.
 
 1. **B6 - Async Race Condition (Lines 142-164, 167-178):** Uses boolean flag but no AbortController
 2. **B9 - Manual Loading State (Line 137):** Manual `useState(true)` for loading
-3. **B10 - useEffect Data Fetching (Lines 142-164):** Candidate for Suspense refactor
 
 ### `TLDRScraper/client/src/hooks/useSummary.js`
 
@@ -429,14 +363,12 @@ These are standard patterns and do not require `useLayoutEffect`.
    - Add `babel-plugin-react-compiler` to `vite.config.js`
    - Once enabled, manual memoization in A1 instances can be removed
 
-3. ~~**Refactor to use(Promise) pattern:**~~ **NOT APPLICABLE** — See note in B2.10. This is a client-only app without Server Components or a Suspense-compatible caching layer. The `use(Promise)` pattern requires stable promises (from Server Components or caching libraries like React Query/SWR).
-
 ### Low Priority (Minor Improvements)
 
-4. **Refactor date initialization in ScrapeForm.jsx:**
+3. **Refactor date initialization in ScrapeForm.jsx:**
    - Move date computation to lazy `useState` initializer instead of `useEffect`
 
-5. **Consider useTransition for loading states:**
+4. **Consider useTransition for loading states:**
    - `TLDRScraper/client/src/hooks/useSupabaseStorage.js`
    - `TLDRScraper/client/src/hooks/useSummary.js`
 
@@ -446,19 +378,12 @@ These are standard patterns and do not require `useLayoutEffect`.
 
 The codebase is relatively clean with good practices around key usage and component organization. The primary concerns are:
 
-1. **Async race conditions** in data fetching hooks that lack proper AbortController cleanup ✅ **FIXED**
-2. ~~**useEffect-based data fetching** that could benefit from React 19's `use(Promise)` pattern~~ — Not applicable for this client-only app (see B2.10 note)
-3. **React Compiler not enabled** - once enabled, significant boilerplate memoization can be removed
+1. ✔ **Async race conditions** in data fetching hooks that lack proper AbortController cleanup ✔ **FIXED**
+2. **React Compiler not enabled** - once enabled, significant boilerplate memoization can be removed ← TODO
 
 The codebase already uses `useActionState` in ScrapeForm.jsx, demonstrating awareness of React 19 patterns. Extending this modernization to data fetching and enabling the compiler would bring the codebase fully up to date with React 19 best practices.
-</agent>
 
 ---
-
-<assistant-response i="6">
-# Assistant
-
-The react-antipattern-auditor agent has completed a comprehensive audit of your React codebase. Here are the key findings:
 
 ## Critical Findings
 
@@ -476,7 +401,6 @@ These could cause state updates on unmounted components and race conditions.
 ## Medium Priority
 
 1. **Enable React Compiler** - Once enabled, you can remove manual memoization from 5 files
-2. **Modernize data fetching** - Refactor `useEffect`-based data loading to React 19's `use(Promise)` pattern in `App.jsx` and `useSupabaseStorage.js`
 
 ## Low Priority
 
@@ -492,4 +416,93 @@ These could cause state updates on unmounted components and race conditions.
 ✅ Clean component organization  
 
 The full detailed report with file paths, line numbers, and code examples is available above. Would you like me to start fixing the high-priority async race conditions?
-</assistant-response>
+
+---
+
+## Implementation Tasks
+
+The following tasks address the audit findings, sorted by impact × low-effort ratio:
+
+### Task 1: Add AbortController to async operations
+**Impact:** High (prevents race conditions and state updates on unmounted components)  
+**Effort:** Low (focused changes in 3 locations)  
+**Priority:** Immediate
+**Status:** ✔ DONE
+
+**Scope:**
+- `App.jsx:11-30` - Add AbortController to `loadFromCache` useEffect
+- `useSupabaseStorage.js:142-178` - Add AbortController to both `readValue` effect and subscription refetch
+- `useSummary.js:44-96` - Add AbortController to fetch callback with concurrent call handling
+
+**Implementation notes:**
+- Create AbortController in effect/callback, pass signal to fetch
+- Clean up by calling `controller.abort()` in return function
+- Handle AbortError gracefully (ignore or log)
+
+### Task 2: Fix lazy useState initialization in ScrapeForm
+**Impact:** Low (minor code quality improvement)  
+**Effort:** Very low (single function change)  
+**Priority:** Quick win
+
+**Scope:**
+- `ScrapeForm.jsx:12-18` - Move date computation from useEffect to lazy useState initializer
+
+**Implementation:**
+```javascript
+// Before: useEffect initializing dates
+useEffect(() => {
+  const today = new Date()
+  const twoDaysAgo = new Date(today)
+  twoDaysAgo.setDate(today.getDate() - 2)
+  setEndDate(today.toISOString().split('T')[0])
+  setStartDate(twoDaysAgo.toISOString().split('T')[0])
+}, [])
+
+// After: lazy initialization
+const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0])
+const [startDate, setStartDate] = useState(() => {
+  const twoDaysAgo = new Date()
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
+  return twoDaysAgo.toISOString().split('T')[0]
+})
+```
+
+
+### Task 3: Migrate loading states to useTransition
+**Impact:** Medium (cleaner code, built-in loading states)  
+**Effort:** Medium (2 hooks to refactor)  
+**Priority:** After Task 2
+
+**Scope:**
+- `useSupabaseStorage.js:137` - Replace manual loading state with useTransition for `setValueAsync`
+- `useSummary.js:12` - Replace manual loading state with useTransition for fetch operations
+
+**Implementation notes:**
+- Use `const [isPending, startTransition] = useTransition()`
+- Wrap state updates in `startTransition(() => { ... })`
+- Remove manual `useState(false)` for loading
+- Ensure isPending is returned from hooks for consumer components
+
+### Task 4: Enable React Compiler
+**Impact:** High (removes manual memoization boilerplate across 5 files)  
+**Effort:** High (requires configuration, testing, and validation)  
+**Priority:** Final modernization step
+
+**Scope:**
+- Configure `babel-plugin-react-compiler` in `vite.config.js`
+- Remove manual memoization once compiler is verified working:
+  - `ArticleList.jsx:5-45` - Remove useMemo for sorting/sectioning
+  - `ArticleCard.jsx:145-159` - Remove useMemo for URL/domain
+  - `useArticleState.js:9-73` - Remove useMemo and useCallback
+  - `useSummary.js:20-118` - Remove useMemo and useCallback
+  - `useSupabaseStorage.js:180-210` - Remove useCallback
+
+**Implementation notes:**
+- Install `babel-plugin-react-compiler` as dev dependency
+- Configure compiler in vite.config.js with appropriate options
+- Run full test suite to verify no regressions
+- Remove memoization incrementally, one file at a time, testing between each
+- Monitor for any performance regressions (unlikely but possible)
+
+**Out of scope:**
+- Do not remove memoization before compiler is enabled and verified working

@@ -1,6 +1,6 @@
 ---
 name: codebase-analyzer:multiple-subsystems
-description: Explores and analyzes wide {word similar to "swathes"} of the codebase. Call this codebase-analyzer:multiple-subsystems agent when you need to deeply investigate a large swathe of the codebase encompassing many aspects, features, components or subsystems. Spawns multiple codebase-analyzer:single-subsystem agents in parallel to take the search space with very high precision and recall.
+description: Explores and analyzes wide regions of the codebase. Call this codebase-analyzer:multiple-subsystems agent when you need to deeply investigate a large swathe of the codebase encompassing many aspects, features, components or subsystems. Spawns multiple codebase-analyzer:single-subsystem agents in parallel to take the search space with very high precision and recall.
 model: inherit
 color: purple
 last_updated: 2025-11-23 21:33, ff52382
