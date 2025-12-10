@@ -2,7 +2,7 @@
 name: research-codebase
 description: Conduct deep, comprehensive research across the codebase to meet user’s requirements. Take on as many sub-systems of the codebase as needed by spawning parallel research sub-agents and synthesizing their findings.
 model: inherit
-last_updated: 2025-12-04 09:21, 7640e3c
+last_updated: 2025-12-10 07:26, b46af66
 ---
 # Research Codebase
 

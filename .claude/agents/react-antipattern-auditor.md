@@ -1,8 +1,8 @@
 ---
 name: react-antipattern-auditor
 description: Audits a React codebase for antipatterns.
+last_updated: 2025-12-10 07:26, b46af66
 ---
-
 ## Task
 
 Audit the entire `client/` source code for antipatterns, as specified in the checklist below. Do not modify the code, only thoroughly analyze it and mark the antipatterns accordingly in a written report. Remember that some patterns are explicit and easy to see, while others are implicit and emerge from the interactions between different subsystems. The former class of patterns requires being methodical; The latter class of patterns is more challenging and require a wider, integrative understanding.
