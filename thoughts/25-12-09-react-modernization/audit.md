@@ -459,28 +459,10 @@ const [startDate, setStartDate] = useState(() => {
 })
 ```
 
-### Task 3: Migrate data fetching to use(Promise) pattern
-**Impact:** Medium-high (modernizes to React 19 patterns, improves UX with Suspense)  
-**Effort:** Medium (requires Suspense boundaries and error boundaries)  
+### Task 3: Migrate loading states to useTransition
+**Impact:** Medium (cleaner code, built-in loading states)
+**Effort:** Medium (2 hooks to refactor)
 **Priority:** After Task 1
-
-**Scope:**
-- `App.jsx:11-30` - Refactor initial cache loading to use(Promise) with Suspense
-- `useSupabaseStorage.js:142-164` - Refactor async read pattern to Suspense-compatible approach
-
-**Implementation notes:**
-- Requires adding `<Suspense>` boundaries in App.jsx
-- Consider `<ErrorBoundary>` for error handling
-- May need to lift promise creation outside of components
-- Test that loading states work correctly with Suspense
-
-**Out of scope:**
-- Subscription patterns (Lines 167-178 in useSupabaseStorage) - these remain as useEffect
-
-### Task 4: Migrate loading states to useTransition
-**Impact:** Medium (cleaner code, built-in loading states)  
-**Effort:** Medium (2 hooks to refactor)  
-**Priority:** After Task 3
 
 **Scope:**
 - `useSupabaseStorage.js:137` - Replace manual loading state with useTransition for `setValueAsync`
@@ -492,7 +474,7 @@ const [startDate, setStartDate] = useState(() => {
 - Remove manual `useState(false)` for loading
 - Ensure isPending is returned from hooks for consumer components
 
-### Task 5: Enable React Compiler
+### Task 4: Enable React Compiler
 **Impact:** High (removes manual memoization boilerplate across 5 files)  
 **Effort:** High (requires configuration, testing, and validation)  
 **Priority:** Final modernization step
