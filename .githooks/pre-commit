@@ -1,18 +1,37 @@
 #!/bin/bash
 #
-# Pre-commit hook that runs biome lint on staged client files
-# Prevents commits with linting errors
+# Pre-commit hook:
+# 1. Updates last_updated frontmatter in staged markdown files
+# 2. Runs biome lint on staged client files
 
-# Check if any client files are staged
-if ! git diff --cached --name-only | grep -q '^client/'; then
-  # No client files staged, skip linting
-  exit 0
+# --- Frontmatter update for staged .md files ---
+staged_md=$(git diff --cached --name-only --diff-filter=ACM | grep '\.md$' || true)
+
+if [ -n "$staged_md" ]; then
+  echo "Updating frontmatter in staged markdown files..."
+
+  timestamp=$(date -u +"%Y-%m-%d %H:%M")
+
+  for file in $staged_md; do
+    if [ -f "$file" ]; then
+      uv run python3 - "$file" "$timestamp" <<'PY'
+import sys
+sys.path.insert(0, 'scripts')
+import markdown_frontmatter
+file_path, timestamp = sys.argv[1], sys.argv[2]
+markdown_frontmatter.update(file_path, {'last_updated': timestamp})
+print(f"  {file_path}")
+PY
+      git add "$file"
+    fi
+  done
 fi
 
-echo "Running biome lint on staged client files..."
+# --- Biome lint for staged client files ---
+if git diff --cached --name-only | grep -q '^client/'; then
+  echo "Running biome lint on staged client files..."
+  cd client && DRY_RUN=1 bash scripts/lint.sh
+  exit $?
+fi
 
-# Run lint in check mode (DRY_RUN=1 prevents file modifications)
-cd client && DRY_RUN=1 bash scripts/lint.sh
-
-# Exit with lint status (non-zero prevents commit)
-exit $?
+exit 0

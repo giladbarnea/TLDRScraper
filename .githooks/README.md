@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-11-30 21:17, b19d703
+last_updated: 2025-12-10 18:53
 ---
 # Git Hooks
 
@@ -23,14 +23,17 @@ git config core.hooksPath .githooks
 
 ### pre-commit
 
-Runs biome lint on staged client files before allowing commit. Prevents commits with linting errors.
+Performs two tasks:
+1. Updates `last_updated` frontmatter in staged markdown files (timestamp only).
+2. Runs biome lint on staged client files.
 
 **Requirements:**
+- `uv` (for Python script execution)
 - Node.js and npm (for npx)
 
 **Behavior:**
-- Only runs if `client/` files are staged
-- Uses `DRY_RUN=1` mode (no file modifications)
+- Updates timestamp in `last_updated` frontmatter for staged `*.md` files and adds them to the commit
+- Runs biome lint if `client/` files are staged (no file modifications)
 - Exits non-zero to block commit if linting fails
 
 ### pre-merge-commit
@@ -55,6 +58,17 @@ These hooks ensure the local clone always has the `merge.ours` driver configured
 ## GitHub Actions
 
 Documentation maintenance runs automatically via a single consolidated workflow with explicit sequential dependencies to prevent race conditions:
+
+```
+Feature branch:
+  commit README.md
+    ↓ pre-commit
+  last_updated: 2025-12-10 15:30  (timestamp only)
+    ↓ push
+  no CI
+    ↓ merge to main
+  CI runs → last_updated: 2025-12-10 15:35, abc1234  (completes it)
+```
 
 **Workflow:** `.github/workflows/maintain-documentation.yml`
 
