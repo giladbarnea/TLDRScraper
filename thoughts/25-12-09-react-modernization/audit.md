@@ -5,9 +5,8 @@ history_path: ~/.claude/projects/-Users-giladbarnea-dev-TLDRScraper/ff4cc62c-381
 created: "2025-12-09 16:07"
 modified: "2025-12-09 16:11"
 messages: 2
-last_updated: 2025-12-10 07:26, b46af66
+last_updated: 2025-12-10 16:22, 102aa09
 ---
-
 # React Antipattern Audit Report: `client/` Source Code
 
 **Project:** TLDRScraper  
