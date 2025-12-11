@@ -9,7 +9,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
-    let cancelled = false
+    const controller = new AbortController()
 
     const today = new Date()
     const twoDaysAgo = new Date(today)
@@ -18,9 +18,8 @@ function App() {
     const endDate = today.toISOString().split('T')[0]
     const startDate = twoDaysAgo.toISOString().split('T')[0]
 
-    loadFromCache(startDate, endDate)
+    loadFromCache(startDate, endDate, controller.signal)
       .then(cached => {
-        if (cancelled) return
         if (cached) {
           setResults(cached)
         } else {
@@ -28,12 +27,12 @@ function App() {
         }
       })
       .catch(err => {
-        if (cancelled) return
+        if (err.name === 'AbortError') return
         console.error('Failed to load cached results:', err)
       })
 
     return () => {
-      cancelled = true
+      controller.abort()
     }
   }, [])
 

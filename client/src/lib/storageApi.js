@@ -36,11 +36,12 @@ export async function setDailyPayload(date, payload) {
   return data.data
 }
 
-export async function getDailyPayloadsRange(startDate, endDate) {
+export async function getDailyPayloadsRange(startDate, endDate, signal) {
   const response = await window.fetch('/api/storage/daily-range', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ start_date: startDate, end_date: endDate })
+    body: JSON.stringify({ start_date: startDate, end_date: endDate }),
+    signal
   })
 
   const data = await response.json()
