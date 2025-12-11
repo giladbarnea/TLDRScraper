@@ -1,4 +1,3 @@
-import { useCallback, useMemo } from 'react'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import { useSupabaseStorage } from './useSupabaseStorage'
 
@@ -6,9 +5,7 @@ export function useArticleState(date, url) {
   const storageKey = getNewsletterScrapeKey(date)
   const [payload, setPayload, , { loading, error }] = useSupabaseStorage(storageKey, null)
 
-  const article = useMemo(() => {
-    return payload?.articles?.find(a => a.url === url) || null
-  }, [payload, url])
+  const article = payload?.articles?.find(a => a.url === url) || null
 
   const isRead = article?.read?.isRead ?? false
   const isRemoved = Boolean(article?.removed)
@@ -20,7 +17,7 @@ export function useArticleState(date, url) {
     : article.read?.isRead ? 1
     : 0
 
-  const updateArticle = useCallback((updater) => {
+  const updateArticle = (updater) => {
     if (!article) return
 
     setPayload(current => {
@@ -33,44 +30,44 @@ export function useArticleState(date, url) {
         )
       }
     })
-  }, [article, url, setPayload])
+  }
 
-  const markAsRead = useCallback(() => {
+  const markAsRead = () => {
     updateArticle(() => ({
       read: { isRead: true, markedAt: new Date().toISOString() }
     }))
-  }, [updateArticle])
+  }
 
-  const markAsUnread = useCallback(() => {
+  const markAsUnread = () => {
     updateArticle(() => ({
       read: { isRead: false, markedAt: null }
     }))
-  }, [updateArticle])
+  }
 
-  const toggleRead = useCallback(() => {
+  const toggleRead = () => {
     if (isRead) markAsUnread()
     else markAsRead()
-  }, [isRead, markAsRead, markAsUnread])
+  }
 
-  const setRemoved = useCallback((removed) => {
+  const setRemoved = (removed) => {
     updateArticle(() => ({ removed: Boolean(removed) }))
-  }, [updateArticle])
+  }
 
-  const toggleRemove = useCallback(() => {
+  const toggleRemove = () => {
     setRemoved(!isRemoved)
-  }, [isRemoved, setRemoved])
+  }
 
-  const setTldrHidden = useCallback((hidden) => {
+  const setTldrHidden = (hidden) => {
     updateArticle(() => ({ tldrHidden: Boolean(hidden) }))
-  }, [updateArticle])
+  }
 
-  const markTldrHidden = useCallback(() => {
+  const markTldrHidden = () => {
     setTldrHidden(true)
-  }, [setTldrHidden])
+  }
 
-  const unmarkTldrHidden = useCallback(() => {
+  const unmarkTldrHidden = () => {
     setTldrHidden(false)
-  }, [setTldrHidden])
+  }
 
   return {
     article,
