@@ -1,7 +1,7 @@
 ---
 name: react-antipattern-auditor
 description: Audits a React codebase for antipatterns.
-last_updated: 2025-12-10 07:26, b46af66
+last_updated: 2025-12-11 14:59
 ---
 ## Task
 
@@ -48,10 +48,12 @@ This checklist classifies antipatterns into two categories: **(A) Issues the Rea
     * **Refactor:** Removal of `forwardRef`. Accessing `ref` directly as `props.ref`.
 8.  **Context Provider Syntax**
     * **Refactor:** Renaming `<Context.Provider>` to `<Context>`.
-9.  **Manual Loading States**
-    * **Refactor:** Replacing manual `useState` toggles (isPending) with **`useActionState`**.
-10. **Basic Data Fetching**
-    * **Refactor:** Replacing `useEffect` fetching with the **`use(Promise)`** API.
+9.  **Manual Loading States for Form Actions**
+    * **Refactor:** Replacing manual `useState` toggles for **form submissions** with **`useActionState`**.
+    * **Note:** This only applies to form actions. General async operations (data fetching, API calls outside forms) still require manual `useState` loading states. `useTransition` is NOT a replacement—it tracks synchronous state transitions, not async operations.
+10. **Basic Data Fetching (with Suspense infrastructure)**
+    * **Refactor:** Replacing `useEffect` fetching with the **`use(Promise)`** API **only when using a caching/deduplication layer** (React Query, SWR, Next.js, etc.).
+    * **Warning:** Do NOT call `use(fetch(...))` directly in components—this causes infinite re-renders. The `use()` hook requires Suspense boundaries and a framework-provided caching layer. Without this infrastructure, `useEffect` fetching remains the correct pattern.
 11. **Optimistic UI Rollbacks**
     * **Refactor:** Replacing manual state rollback logic with **`useOptimistic`**.
 12. **DOM Layout Cleanups**
