@@ -440,9 +440,10 @@ The following tasks address the audit findings, sorted by impact × low-effort r
 - Handle AbortError gracefully (ignore or log)
 
 ### Task 2: Fix lazy useState initialization in ScrapeForm
-**Impact:** Low (minor code quality improvement)  
-**Effort:** Very low (single function change)  
+**Impact:** Low (minor code quality improvement)
+**Effort:** Very low (single function change)
 **Priority:** Quick win
+**Status:** ✔ DONE
 
 **Scope:**
 - `ScrapeForm.jsx:12-18` - Move date computation from useEffect to lazy useState initializer

@@ -1,21 +1,17 @@
 import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react'
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useState } from 'react'
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 import { scrapeNewsletters } from '../lib/scraper'
 
 function ScrapeForm({ onResults }) {
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [startDate, setStartDate] = useState(() => {
+    const twoDaysAgo = new Date()
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
+    return twoDaysAgo.toISOString().split('T')[0]
+  })
   const [cacheEnabled] = useSupabaseStorage('cache:enabled', true)
   const [progress, setProgress] = useState(0)
-
-  useEffect(() => {
-    const today = new Date()
-    const twoDaysAgo = new Date(today)
-    twoDaysAgo.setDate(today.getDate() - 2)
-    setEndDate(today.toISOString().split('T')[0])
-    setStartDate(twoDaysAgo.toISOString().split('T')[0])
-  }, [])
 
   const [state, formAction, isPending] = useActionState(
     async (_previousState, formData) => {

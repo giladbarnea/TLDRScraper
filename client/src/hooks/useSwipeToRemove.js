@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
 import { useAnimation } from 'framer-motion'
+import { useEffect, useState } from 'react'
 
 export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete }) {
   const [isDragging, setIsDragging] = useState(false)
@@ -22,7 +22,7 @@ export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete }) {
     setDragError(null)
   }
 
-  const handleDragEnd = async (event, info) => {
+  const handleDragEnd = async (_event, info) => {
     setIsDragging(false)
     try {
       const { offset, velocity } = info
