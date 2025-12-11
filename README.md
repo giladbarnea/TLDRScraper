@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-11-14 16:24, 722a1a0
+last_updated: 2025-12-11 15:05, 05f0d95
 description: light overview over the project
 ---
 # TLDRScraper
