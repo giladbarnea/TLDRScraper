@@ -164,8 +164,8 @@ async function mergeWithCache(payloads) {
   return merged
 }
 
-export async function loadFromCache(startDate, endDate) {
-  const payloads = await storageApi.getDailyPayloadsRange(startDate, endDate)
+export async function loadFromCache(startDate, endDate, signal) {
+  const payloads = await storageApi.getDailyPayloadsRange(startDate, endDate, signal)
 
   if (!payloads || payloads.length === 0) {
     return null

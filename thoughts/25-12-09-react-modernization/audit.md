@@ -293,19 +293,17 @@ These are standard patterns and do not require `useLayoutEffect`.
 
 | ID | Antipattern | Category | Found | Severity | Files Affected |
 |----|------------|----------|-------|----------|----------------|
-| A1 | Manual Memoization | A (Compiler) | Yes | N/A* | 5 files |
+| A1 | Manual Memoization | A (Compiler) | ✅ FIXED | N/A | Removed from 5 files |
 | A2 | Context Value Instability | A (Compiler) | No | - | - |
 | B3 | Syncing Props to State | B (Manual) | Yes | Low-Medium | 2 files |
 | B4 | Component Inside Component | B (Manual) | No | - | - |
 | B5 | Index as Key | B (Manual) | No | - | - |
-| B6 | Async Race Conditions | B (Manual) | Yes | Medium | 4 files |
+| B6 | Async Race Conditions | B (Manual) | ✅ FIXED | - | 3 files |
 | B7 | forwardRef Wrapper | B (Modernize) | No | - | - |
 | B8 | Context.Provider Syntax | B (Modernize) | No | - | - |
 | B9 | Manual Loading States | B (Modernize) | N/A | - | Correct pattern for async |
 | B11 | Optimistic UI Rollbacks | B (Modernize) | No | - | - |
 | B12 | DOM Layout Cleanups | B (Modernize) | No | - | - |
-
-*N/A because React Compiler is not enabled; memoization is currently necessary.
 
 ---
 
@@ -313,7 +311,7 @@ These are standard patterns and do not require `useLayoutEffect`.
 
 ### `TLDRScraper/client/src/App.jsx`
 
-1. **B6 - Async Race Condition (Lines 11-30):** Data fetching in `useEffect` without AbortController
+1. **B6 - Async Race Condition (Lines 11-30):** ✅ FIXED - AbortController implemented
 
 ### `TLDRScraper/client/src/components/ScrapeForm.jsx`
 
@@ -326,8 +324,8 @@ These are standard patterns and do not require `useLayoutEffect`.
 
 ### `TLDRScraper/client/src/hooks/useSupabaseStorage.js`
 
-1. **B6 - Async Race Condition (Lines 142-164, 167-178):** Uses boolean flag but no AbortController
-2. **B9 - Manual Loading State (Line 137):** Manual `useState(true)` for loading
+1. **B6 - Async Race Condition (Lines 142-164, 167-178):** ✅ FIXED - `cancelled` flag is architecturally correct due to `inflightReads` deduplication
+2. **B9 - Manual Loading State (Line 137):** Manual `useState(true)` for loading (correct pattern for async tracking)
 
 ### `TLDRScraper/client/src/hooks/useSummary.js`
 
@@ -352,10 +350,12 @@ These are standard patterns and do not require `useLayoutEffect`.
 
 ### High Priority (Category B Critical Fixes)
 
-1. **Add AbortController to async operations:** ⚠️ PARTIALLY DONE
-   - `TLDRScraper/client/src/App.jsx` Lines 11-38 - ⚠️ Has `cancelled` flag only
-   - `TLDRScraper/client/src/hooks/useSupabaseStorage.js` Lines 142-184 - ⚠️ Has `cancelled` flag only
-   - `TLDRScraper/client/src/hooks/useSummary.js` Lines 43-99 - ✅ Done
+1. **Add AbortController to async operations:** ✔ DONE
+   - `TLDRScraper/client/src/App.jsx` Lines 11-38 - ✅ AbortController implemented
+   - `TLDRScraper/client/src/hooks/useSupabaseStorage.js` Lines 142-184 - ✅ `cancelled` flag is architecturally correct (see note below)
+   - `TLDRScraper/client/src/hooks/useSummary.js` Lines 43-99 - ✅ AbortController implemented
+
+   **Note on useSupabaseStorage.js:** The `cancelled` flag is the correct architectural choice here due to the `inflightReads` deduplication mechanism. Multiple hooks using the same key share a single promise. If AbortController were used and one component unmounted, aborting would reject the shared promise for ALL callers - worse than the flag approach. The `cancelled` flag prevents state updates on unmounted components while allowing the network request to complete and cache its result, which benefits other components.
 
 ### Medium Priority (Modernization)
 
@@ -378,7 +378,7 @@ These are standard patterns and do not require `useLayoutEffect`.
 
 The codebase is relatively clean with good practices around key usage and component organization. The primary concerns are:
 
-1. ⚠️ **Async race conditions** in data fetching hooks that lack proper AbortController cleanup - **PARTIALLY FIXED** (1/3 files completed: useSummary.js ✅, App.jsx ⚠️, useSupabaseStorage.js ⚠️)
+1. ✔ **Async race conditions** - **FIXED** (useSummary.js ✅ AbortController, App.jsx ✅ AbortController, useSupabaseStorage.js ✅ `cancelled` flag is architecturally correct)
 2. ✔ **React Compiler** enabled and manual memoization removed from 5 files ✔ **DONE**
 
 The codebase already uses `useActionState` in ScrapeForm.jsx, demonstrating awareness of React 19 patterns. Extending this modernization to data fetching and enabling the compiler would bring the codebase fully up to date with React 19 best practices.
@@ -391,7 +391,7 @@ The codebase already uses `useActionState` in ScrapeForm.jsx, demonstrating awar
 
 ## High Priority Issues
 
-⚠️ **Async Race Conditions** - Partially fixed in Task 1 (1/3 files: useSummary.js ✅, App.jsx ⚠️, useSupabaseStorage.js ⚠️)
+✔ **Async Race Conditions** - FIXED (useSummary.js ✅, App.jsx ✅, useSupabaseStorage.js ✅ architecturally correct)
 
 ## Medium Priority
 
@@ -422,22 +422,24 @@ The following tasks address the audit findings, sorted by impact × low-effort r
 **Impact:** High (prevents race conditions and state updates on unmounted components)
 **Effort:** Low (focused changes in 3 locations)
 **Priority:** Immediate
-**Status:** ⚠️ PARTIALLY DONE (1/3 files completed)
+**Status:** ✔ DONE
 
 **Scope:**
-- `App.jsx:11-38` - ⚠️ Has `cancelled` flag only, needs AbortController
-- `useSupabaseStorage.js:142-184` - ⚠️ Has `cancelled` flag only, needs AbortController
-- `useSummary.js:43-99` - ✅ Has proper AbortController implementation
+- `App.jsx:11-38` - ✅ AbortController implemented, signal passed through loadFromCache → storageApi.getDailyPayloadsRange
+- `useSupabaseStorage.js:142-184` - ✅ `cancelled` flag is architecturally correct (see note)
+- `useSummary.js:43-99` - ✅ AbortController implemented
 
-**Implementation notes:**
-- Create AbortController in effect/callback, pass signal to fetch
-- Clean up by calling `controller.abort()` in return function
-- Handle AbortError gracefully (ignore or log)
+**Note on useSupabaseStorage.js:**
+The `cancelled` flag is the correct choice here due to the `inflightReads` deduplication mechanism. This module-level Map ensures that concurrent calls for the same key share a single network request. If AbortController were used:
+- Component A and B both request key X
+- A's request starts, promise stored in inflightReads
+- B arrives, gets same promise (A's signal)
+- A unmounts, aborts → promise rejects for BOTH A and B
 
-**Current status details:**
-- `App.jsx` and `useSupabaseStorage.js` have `cancelled` flag which prevents state updates on unmounted components, but doesn't cancel the network requests
-- AbortController is better because it cancels both the HTTP request AND prevents state updates
-- `useSummary.js` already has the proper implementation (see lines 46-50, 65, 91)
+The `cancelled` flag approach:
+- Prevents state updates on unmounted components ✅
+- Network request completes and caches result (benefits other callers) ✅
+- No cross-component interference ✅
 
 ### Task 2: Fix lazy useState initialization in ScrapeForm
 **Impact:** Low (minor code quality improvement)
