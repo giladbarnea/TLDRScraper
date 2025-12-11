@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { AlertCircle, CheckCircle, ChevronLeft, Loader2, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useArticleState } from '../hooks/useArticleState'
 import { useScrollProgress } from '../hooks/useScrollProgress'
@@ -133,21 +133,18 @@ function ArticleCard({ article }) {
     onSwipeComplete: handleSwipeComplete,
   })
 
-  const fullUrl = useMemo(() => {
-    const url = article.url
-    if (url.startsWith('http://') || url.startsWith('https://')) return url
-    return `https://${url}`
-  }, [article.url])
+  const fullUrl = article.url.startsWith('http://') || article.url.startsWith('https://')
+    ? article.url
+    : `https://${article.url}`
 
-  const domain = useMemo(() => {
+  const domain = (() => {
     try {
       const urlObj = new URL(fullUrl)
-      const hostname = urlObj.hostname
-      return hostname.replace(/^www\./, '').split('.')[0].toLowerCase()
+      return urlObj.hostname.replace(/^www\./, '').split('.')[0].toLowerCase()
     } catch {
       return null
     }
-  }, [fullUrl])
+  })()
 
   const toggleTldrWithTracking = (toggleFn) => {
     const wasExpanded = tldr.expanded

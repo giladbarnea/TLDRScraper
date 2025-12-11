@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const changeListenersByKey = new Map()
 const readCache = new Map()
@@ -186,7 +186,7 @@ export function useSupabaseStorage(key, defaultValue) {
     }
   }, [key])
 
-  const setValueAsync = useCallback(async (nextValue) => {
+  const setValueAsync = async (nextValue) => {
     if (typeof window === 'undefined') return
 
     setLoading(true)
@@ -212,11 +212,11 @@ export function useSupabaseStorage(key, defaultValue) {
       setLoading(false)
       throw err
     }
-  }, [key])
+  }
 
-  const remove = useCallback(async () => {
+  const remove = async () => {
     await setValueAsync(undefined)
-  }, [setValueAsync])
+  }
 
   return [value, setValueAsync, remove, { loading, error }]
 }

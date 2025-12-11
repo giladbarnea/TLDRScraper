@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useArticleState } from './useArticleState'
 
 export function useSummary(date, url, type = 'tldr') {
@@ -18,7 +18,7 @@ export function useSummary(date, url, type = 'tldr') {
   const status = data?.status || 'unknown'
   const markdown = data?.markdown || ''
 
-  const html = useMemo(() => {
+  const html = (() => {
     if (!markdown) return ''
     try {
       const rawHtml = marked.parse(markdown)
@@ -27,22 +27,20 @@ export function useSummary(date, url, type = 'tldr') {
       console.error('Failed to parse markdown:', error)
       return ''
     }
-  }, [markdown])
+  })()
 
   const errorMessage = data?.errorMessage || null
   const isAvailable = status === 'available' && markdown
   const isLoading = status === 'creating' || loading
   const isError = status === 'error'
 
-  const buttonLabel = useMemo(() => {
-    if (isLoading) return 'Loading...'
-    if (expanded) return 'Hide'
-    if (isAvailable) return 'Available'
-    if (isError) return 'Retry'
-    return 'TLDR'
-  }, [isLoading, expanded, isAvailable, isError])
+  const buttonLabel = isLoading ? 'Loading...'
+    : expanded ? 'Hide'
+    : isAvailable ? 'Available'
+    : isError ? 'Retry'
+    : 'TLDR'
 
-  const fetch = useCallback(async (summaryEffort = effort) => {
+  const fetchTldr = async (summaryEffort = effort) => {
     if (!article) return
 
     if (abortControllerRef.current) {
@@ -104,29 +102,29 @@ export function useSummary(date, url, type = 'tldr') {
         setLoading(false)
       }
     }
-  }, [article, url, type, effort, updateArticle])
+  }
 
-  const toggle = useCallback((summaryEffort) => {
+  const toggle = (summaryEffort) => {
     if (isAvailable) {
       setExpanded(!expanded)
     } else {
-      fetch(summaryEffort)
+      fetchTldr(summaryEffort)
     }
-  }, [isAvailable, expanded, fetch])
+  }
 
-  const collapse = useCallback(() => {
+  const collapse = () => {
     setExpanded(false)
-  }, [])
+  }
 
-  const expand = useCallback(() => {
+  const expand = () => {
     setExpanded(true)
-  }, [])
+  }
 
-  const toggleVisibility = useCallback(() => {
+  const toggleVisibility = () => {
     if (isAvailable) {
       setExpanded(!expanded)
     }
-  }, [isAvailable, expanded])
+  }
 
   return {
     data,
@@ -140,7 +138,7 @@ export function useSummary(date, url, type = 'tldr') {
     isAvailable,
     isError,
     buttonLabel,
-    fetch,
+    fetch: fetchTldr,
     toggle,
     collapse,
     expand,
