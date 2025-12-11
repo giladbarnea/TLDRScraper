@@ -5,7 +5,7 @@ history_path: ~/.claude/projects/-Users-giladbarnea-dev-TLDRScraper/ff4cc62c-381
 created: "2025-12-09 16:07"
 modified: "2025-12-09 16:11"
 messages: 2
-last_updated: 2025-12-11 07:50, 5d93a9a
+last_updated: 2025-12-11 15:12
 ---
 # React Antipattern Audit Report: `client/` Source Code
 
@@ -352,10 +352,10 @@ These are standard patterns and do not require `useLayoutEffect`.
 
 ### High Priority (Category B Critical Fixes)
 
-1. **Add AbortController to async operations:**
-   - `TLDRScraper/client/src/App.jsx` Lines 11-30
-   - `TLDRScraper/client/src/hooks/useSupabaseStorage.js` Lines 142-178
-   - `TLDRScraper/client/src/hooks/useSummary.js` Lines 44-96
+1. **Add AbortController to async operations:** ⚠️ PARTIALLY DONE
+   - `TLDRScraper/client/src/App.jsx` Lines 11-38 - ⚠️ Has `cancelled` flag only
+   - `TLDRScraper/client/src/hooks/useSupabaseStorage.js` Lines 142-184 - ⚠️ Has `cancelled` flag only
+   - `TLDRScraper/client/src/hooks/useSummary.js` Lines 43-99 - ✅ Done
 
 ### Medium Priority (Modernization)
 
@@ -378,7 +378,7 @@ These are standard patterns and do not require `useLayoutEffect`.
 
 The codebase is relatively clean with good practices around key usage and component organization. The primary concerns are:
 
-1. ✔ **Async race conditions** in data fetching hooks that lack proper AbortController cleanup ✔ **FIXED**
+1. ⚠️ **Async race conditions** in data fetching hooks that lack proper AbortController cleanup - **PARTIALLY FIXED** (1/3 files completed: useSummary.js ✅, App.jsx ⚠️, useSupabaseStorage.js ⚠️)
 2. ✔ **React Compiler** enabled and manual memoization removed from 5 files ✔ **DONE**
 
 The codebase already uses `useActionState` in ScrapeForm.jsx, demonstrating awareness of React 19 patterns. Extending this modernization to data fetching and enabling the compiler would bring the codebase fully up to date with React 19 best practices.
@@ -391,7 +391,7 @@ The codebase already uses `useActionState` in ScrapeForm.jsx, demonstrating awar
 
 ## High Priority Issues
 
-✔ **Async Race Conditions** - All fixed in Task 1
+⚠️ **Async Race Conditions** - Partially fixed in Task 1 (1/3 files: useSummary.js ✅, App.jsx ⚠️, useSupabaseStorage.js ⚠️)
 
 ## Medium Priority
 
@@ -419,20 +419,25 @@ The full detailed report with file paths, line numbers, and code examples is ava
 The following tasks address the audit findings, sorted by impact × low-effort ratio:
 
 ### Task 1: Add AbortController to async operations
-**Impact:** High (prevents race conditions and state updates on unmounted components)  
-**Effort:** Low (focused changes in 3 locations)  
+**Impact:** High (prevents race conditions and state updates on unmounted components)
+**Effort:** Low (focused changes in 3 locations)
 **Priority:** Immediate
-**Status:** ✔ DONE
+**Status:** ⚠️ PARTIALLY DONE (1/3 files completed)
 
 **Scope:**
-- `App.jsx:11-30` - Add AbortController to `loadFromCache` useEffect
-- `useSupabaseStorage.js:142-178` - Add AbortController to both `readValue` effect and subscription refetch
-- `useSummary.js:44-96` - Add AbortController to fetch callback with concurrent call handling
+- `App.jsx:11-38` - ⚠️ Has `cancelled` flag only, needs AbortController
+- `useSupabaseStorage.js:142-184` - ⚠️ Has `cancelled` flag only, needs AbortController
+- `useSummary.js:43-99` - ✅ Has proper AbortController implementation
 
 **Implementation notes:**
 - Create AbortController in effect/callback, pass signal to fetch
 - Clean up by calling `controller.abort()` in return function
 - Handle AbortError gracefully (ignore or log)
+
+**Current status details:**
+- `App.jsx` and `useSupabaseStorage.js` have `cancelled` flag which prevents state updates on unmounted components, but doesn't cancel the network requests
+- AbortController is better because it cancels both the HTTP request AND prevents state updates
+- `useSummary.js` already has the proper implementation (see lines 46-50, 65, 91)
 
 ### Task 2: Fix lazy useState initialization in ScrapeForm
 **Impact:** Low (minor code quality improvement)
