@@ -1,19 +1,16 @@
-import { useMemo } from 'react'
 import ArticleCard from './ArticleCard'
 
 function ArticleList({ articles, showSectionHeaders = true }) {
-  const sortedArticles = useMemo(() => {
-    return [...articles].sort((a, b) => {
-      const stateA = a.removed ? 1 : 0
-      const stateB = b.removed ? 1 : 0
+  const sortedArticles = [...articles].sort((a, b) => {
+    const stateA = a.removed ? 1 : 0
+    const stateB = b.removed ? 1 : 0
 
-      if (stateA !== stateB) return stateA - stateB
+    if (stateA !== stateB) return stateA - stateB
 
-      return (a.originalOrder ?? 0) - (b.originalOrder ?? 0)
-    })
-  }, [articles])
+    return (a.originalOrder ?? 0) - (b.originalOrder ?? 0)
+  })
 
-  const sectionsWithArticles = useMemo(() => {
+  const sectionsWithArticles = (() => {
     const sections = []
     let currentSection = null
 
@@ -42,7 +39,7 @@ function ArticleList({ articles, showSectionHeaders = true }) {
     })
 
     return sections
-  }, [sortedArticles])
+  })()
 
   return (
     <div className="space-y-4">
