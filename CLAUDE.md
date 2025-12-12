@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-11 15:04, 8ca4301
+last_updated: 2025-12-12 07:49, 3eec68e
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -247,7 +247,7 @@ for word in response.words or []:
 ```
 </Good: straightforward, confident, flatter code with fewer logical branches>
 
-## The Right Engineering Mindset
+## Core Engineering Tenets
 
 1. Avoid increasing complexity without a truly justified reason. Each new line of code or logical branch increases complexity. Complexity is the enemy of the project. In your decision-making, ask yourself how might you **REDUCE complexity** in your solution, rather than just solve the immediate problem ad-hoc. Oftentimes, reducing complexity means **removing code**, which is OK. If done right, removing code is beneficial similarly to how clearing Tetris blocks is beneficial — it simplifies and creates more space.
 2. Prefer declarative code design over imperative approaches. From a variable to an entire system, if it can be declaratively expressed upfront, do so. People understand things better when they can see the full picture instead of having to dive in. Difficulty arises when flow and logic are embedded implicitly in a sprawling implementation.
