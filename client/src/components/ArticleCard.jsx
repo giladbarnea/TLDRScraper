@@ -1,11 +1,39 @@
 import { motion } from 'framer-motion'
 import { AlertCircle, CheckCircle, ChevronLeft, Loader2, Trash2 } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { useArticleState } from '../hooks/useArticleState'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
+
+const zenModeStore = {
+  openKey: null,
+  listeners: new Set(),
+}
+
+function subscribeToZenModeStore(listener) {
+  zenModeStore.listeners.add(listener)
+  return () => {
+    zenModeStore.listeners.delete(listener)
+  }
+}
+
+function getZenModeOpenKeySnapshot() {
+  return zenModeStore.openKey
+}
+
+function setZenModeOpenKey(nextOpenKey) {
+  if (zenModeStore.openKey === nextOpenKey) return
+  zenModeStore.openKey = nextOpenKey
+  for (const listener of zenModeStore.listeners) {
+    listener()
+  }
+}
+
+function useZenModeOpenKey() {
+  return useSyncExternalStore(subscribeToZenModeStore, getZenModeOpenKeySnapshot, getZenModeOpenKeySnapshot)
+}
 
 function ErrorToast({ message, onDismiss }) {
   useEffect(() => {
@@ -121,9 +149,39 @@ function ArticleCard({ article }) {
   )
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
   const { isAvailable } = tldr
+  const zenModeOpenKey = useZenModeOpenKey()
+  const zenModeKey = `${article.issueDate}::${article.url}`
+  const isZenModeOpenForThisCard = zenModeOpenKey === zenModeKey
+
+  useEffect(() => {
+    return () => {
+      if (getZenModeOpenKeySnapshot() === zenModeKey) {
+        setZenModeOpenKey(null)
+      }
+    }
+  }, [zenModeKey])
+
+  const closeZenMode = () => {
+    if (getZenModeOpenKeySnapshot() === zenModeKey) {
+      setZenModeOpenKey(null)
+    }
+    if (tldr.expanded) {
+      tldr.collapse()
+      markTldrHidden()
+    }
+  }
+
+  const openZenModeIfAvailable = () => {
+    const currentlyOpenKey = getZenModeOpenKeySnapshot()
+    if (currentlyOpenKey && currentlyOpenKey !== zenModeKey) return false
+    setZenModeOpenKey(zenModeKey)
+    tldr.expand()
+    unmarkTldrHidden()
+    return true
+  }
 
   const handleSwipeComplete = () => {
-    if (!isRemoved && tldr.expanded) tldr.collapse()
+    if (!isRemoved) closeZenMode()
     toggleRemove()
   }
 
@@ -146,18 +204,7 @@ function ArticleCard({ article }) {
     }
   })()
 
-  const toggleTldrWithTracking = (toggleFn) => {
-    const wasExpanded = tldr.expanded
-    toggleFn()
-
-    if (wasExpanded) {
-      markTldrHidden()
-    } else {
-      unmarkTldrHidden()
-    }
-  }
-
-  const handleCardClick = (e) => {
+  const handleCardClick = async (e) => {
     if (isDragging) return
     
     if (isRemoved) {
@@ -169,7 +216,20 @@ function ArticleCard({ article }) {
     const selection = window.getSelection()
     if (selection.toString().length > 0) return
 
-    toggleTldrWithTracking(() => tldr.toggle())
+    if (tldr.expanded && isZenModeOpenForThisCard) {
+      closeZenMode()
+      return
+    }
+
+    if (isAvailable) {
+      openZenModeIfAvailable()
+      return
+    }
+
+    const didSucceed = await tldr.fetch()
+    if (!didSucceed) return
+
+    openZenModeIfAvailable()
   }
 
   return (
@@ -250,11 +310,11 @@ function ArticleCard({ article }) {
               <TldrError message={tldr.errorMessage} />
             )}
 
-            {!isRemoved && tldr.expanded && tldr.html && (
+            {!isRemoved && tldr.expanded && tldr.html && isZenModeOpenForThisCard && (
               <ZenModeOverlay
                 title={article.title}
                 html={tldr.html}
-                onClose={() => toggleTldrWithTracking(() => tldr.collapse())}
+                onClose={closeZenMode}
               />
             )}
           </div>

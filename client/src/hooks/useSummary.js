@@ -77,7 +77,7 @@ export function useSummary(date, url, type = 'tldr') {
             errorMessage: null
           }
         }))
-        setExpanded(true)
+        return true
       } else {
         updateArticle((current) => ({
           [type]: {
@@ -86,6 +86,7 @@ export function useSummary(date, url, type = 'tldr') {
             errorMessage: result.error || `Failed to fetch ${type}`
           }
         }))
+        return false
       }
     } catch (error) {
       if (error.name === 'AbortError') return
@@ -97,6 +98,7 @@ export function useSummary(date, url, type = 'tldr') {
         }
       }))
       console.error(`Failed to fetch ${type}:`, error)
+      return false
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false)
@@ -104,12 +106,12 @@ export function useSummary(date, url, type = 'tldr') {
     }
   }
 
-  const toggle = (summaryEffort) => {
+  const toggle = async (summaryEffort) => {
     if (isAvailable) {
       setExpanded(!expanded)
-    } else {
-      fetchTldr(summaryEffort)
+      return isAvailable
     }
+    return await fetchTldr(summaryEffort)
   }
 
   const collapse = () => {
