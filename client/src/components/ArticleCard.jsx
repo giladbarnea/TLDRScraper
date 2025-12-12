@@ -122,7 +122,7 @@ function ArticleCard({ article }) {
   )
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
   const { isAvailable } = tldr
-  const { openKey, setOpenKey } = useZenMode()
+  const { openKey, setOpenKey, openKeyRef } = useZenMode()
   const zenKey = `${article.issueDate}::${article.url}`
   const isExpanded = openKey === zenKey
 
@@ -186,7 +186,7 @@ function ArticleCard({ article }) {
     }
 
     const success = await tldr.fetch()
-    if (success) openZenMode()
+    if (success && openKeyRef.current === null) openZenMode()
   }
 
   return (
