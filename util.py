@@ -149,3 +149,45 @@ def get_domain_name(url) -> str:
 
     except Exception:
         return "Unknown"
+
+
+def parse_arxiv_url(value: str) -> tuple[str, str]:
+    """
+    Parse an arXiv URL (or bare arXiv id) into (arxiv_id, canonical_abs_url).
+
+    >>> parse_arxiv_url("https://arxiv.org/abs/2511.09030")
+    ('2511.09030', 'https://arxiv.org/abs/2511.09030')
+    >>> parse_arxiv_url("https://arxiv.org/pdf/2511.09030.pdf")
+    ('2511.09030', 'https://arxiv.org/abs/2511.09030')
+    >>> parse_arxiv_url("2511.09030v2")
+    ('2511.09030v2', 'https://arxiv.org/abs/2511.09030v2')
+    """
+    import urllib.parse as urlparse
+
+    raw = value.strip()
+    if not raw:
+        raise ValueError("Expected non-empty arXiv URL or id")
+
+    if raw.startswith(("http://", "https://")):
+        parsed = urlparse.urlparse(raw)
+        host = (parsed.hostname or "").lower()
+        if host != "arxiv.org":
+            raise ValueError(f"Expected arxiv.org host, got {host!r}")
+
+        path = (parsed.path or "").strip("/")
+        if path.startswith("abs/"):
+            arxiv_id = path.removeprefix("abs/").strip("/")
+        elif path.startswith("pdf/"):
+            arxiv_id = path.removeprefix("pdf/").strip("/")
+            if arxiv_id.endswith(".pdf"):
+                arxiv_id = arxiv_id[: -len(".pdf")]
+        else:
+            raise ValueError(f"Unsupported arXiv path: {parsed.path!r}")
+    else:
+        arxiv_id = raw
+
+    if not arxiv_id:
+        raise ValueError("Failed to extract arXiv id")
+
+    canonical_url = f"https://arxiv.org/abs/{arxiv_id}"
+    return arxiv_id, canonical_url

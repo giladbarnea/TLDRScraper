@@ -380,6 +380,64 @@ def source_download_get(context_type):
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
+@app.route("/admin", methods=["GET", "POST"])
+def admin():
+    if request.method == "GET":
+        html = """<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 48px auto; padding: 20px; }
+    label { display: block; margin: 16px 0 8px; font-weight: 600; }
+    input { width: 100%; padding: 10px 12px; font-size: 16px; }
+    button { margin-top: 12px; padding: 10px 14px; font-size: 16px; cursor: pointer; }
+    pre { margin-top: 16px; padding: 12px; background: #f6f8fa; overflow: auto; }
+  </style>
+  </head>
+  <body>
+    <h1>Admin</h1>
+    <form id="arxivForm">
+      <label for="url">arXiv URL (abs/pdf) or id</label>
+      <input id="url" name="url" type="text" placeholder="https://arxiv.org/abs/2511.09030" required />
+      <button type="submit">Add</button>
+    </form>
+    <pre id="out"></pre>
+    <script>
+      const form = document.getElementById('arxivForm');
+      const out = document.getElementById('out');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        out.textContent = 'Submitting...';
+        const url = document.getElementById('url').value;
+        const res = await fetch('/admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json().catch(() => ({ success: false, error: 'Invalid JSON response' }));
+        out.textContent = JSON.stringify(data, null, 2);
+      });
+    </script>
+  </body>
+</html>"""
+        return html
+
+    try:
+        data = request.get_json()
+        url = data["url"]
+        notes = data.get("notes")
+
+        arxiv_id, canonical_url = util.parse_arxiv_url(url)
+        result = storage_service.upsert_arxiv_paper(arxiv_id, url, canonical_url, notes=notes)
+        return jsonify({"success": True, "data": result})
+    except Exception as e:
+        logger.error("[serve.admin] error error=%s", repr(e), exc_info=True)
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
