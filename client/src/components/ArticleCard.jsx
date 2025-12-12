@@ -6,6 +6,7 @@ import { useArticleState } from '../hooks/useArticleState'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
+import { useZenMode } from './ZenModeContext'
 
 function ErrorToast({ message, onDismiss }) {
   useEffect(() => {
@@ -121,9 +122,15 @@ function ArticleCard({ article }) {
   )
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
   const { isAvailable } = tldr
+  const { openKey, setOpenKey } = useZenMode()
+  const zenKey = `${article.issueDate}::${article.url}`
+  const isExpanded = openKey === zenKey
 
   const handleSwipeComplete = () => {
-    if (!isRemoved && tldr.expanded) tldr.collapse()
+    if (!isRemoved && isExpanded) {
+      setOpenKey(null)
+      markTldrHidden()
+    }
     toggleRemove()
   }
 
@@ -146,18 +153,17 @@ function ArticleCard({ article }) {
     }
   })()
 
-  const toggleTldrWithTracking = (toggleFn) => {
-    const wasExpanded = tldr.expanded
-    toggleFn()
-
-    if (wasExpanded) {
-      markTldrHidden()
-    } else {
-      unmarkTldrHidden()
-    }
+  const openZenMode = () => {
+    setOpenKey(zenKey)
+    unmarkTldrHidden()
   }
 
-  const handleCardClick = (e) => {
+  const closeZenMode = () => {
+    setOpenKey(null)
+    markTldrHidden()
+  }
+
+  const handleCardClick = async (e) => {
     if (isDragging) return
     
     if (isRemoved) {
@@ -169,14 +175,25 @@ function ArticleCard({ article }) {
     const selection = window.getSelection()
     if (selection.toString().length > 0) return
 
-    toggleTldrWithTracking(() => tldr.toggle())
+    if (isExpanded) {
+      closeZenMode()
+      return
+    }
+
+    if (isAvailable) {
+      openZenMode()
+      return
+    }
+
+    const success = await tldr.fetch()
+    if (success) openZenMode()
   }
 
   return (
     <>
       <motion.div
         layout
-        className={`relative ${tldr.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
+        className={`relative ${isExpanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
       >
         <div className={`absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8 transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
           <Trash2 className="text-red-400" size={20} />
@@ -206,7 +223,7 @@ function ArticleCard({ article }) {
           data-removed={isRemoved}
           data-state-loading={stateLoading}
           data-tldr-status={tldr.status}
-          data-tldr-expanded={tldr.expanded}
+          data-tldr-expanded={isExpanded}
           data-tldr-available={isAvailable}
           data-dragging={isDragging}
           data-can-drag={canDrag}
@@ -218,7 +235,7 @@ function ArticleCard({ article }) {
             cursor-pointer select-none
             ${isRemoved ? 'bg-slate-50' : 'bg-white'}
             ${stateLoading ? 'pointer-events-none' : ''}
-            ${tldr.expanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
+            ${isExpanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
           `}
         >
           <div className="p-5 flex flex-col gap-2">
@@ -250,11 +267,11 @@ function ArticleCard({ article }) {
               <TldrError message={tldr.errorMessage} />
             )}
 
-            {!isRemoved && tldr.expanded && tldr.html && (
+            {!isRemoved && isExpanded && tldr.html && (
               <ZenModeOverlay
                 title={article.title}
                 html={tldr.html}
-                onClose={() => toggleTldrWithTracking(() => tldr.collapse())}
+                onClose={closeZenMode}
               />
             )}
           </div>

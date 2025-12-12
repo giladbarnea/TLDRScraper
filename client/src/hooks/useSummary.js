@@ -10,7 +10,6 @@ export function useSummary(date, url, type = 'tldr') {
 
   const { article, updateArticle } = useArticleState(date, url)
   const [loading, setLoading] = useState(false)
-  const [expanded, setExpanded] = useState(false)
   const [effort, setEffort] = useState('low')
   const abortControllerRef = useRef(null)
 
@@ -34,14 +33,8 @@ export function useSummary(date, url, type = 'tldr') {
   const isLoading = status === 'creating' || loading
   const isError = status === 'error'
 
-  const buttonLabel = isLoading ? 'Loading...'
-    : expanded ? 'Hide'
-    : isAvailable ? 'Available'
-    : isError ? 'Retry'
-    : 'TLDR'
-
   const fetchTldr = async (summaryEffort = effort) => {
-    if (!article) return
+    if (!article) return false
 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -77,7 +70,7 @@ export function useSummary(date, url, type = 'tldr') {
             errorMessage: null
           }
         }))
-        setExpanded(true)
+        return true
       } else {
         updateArticle((current) => ({
           [type]: {
@@ -86,9 +79,10 @@ export function useSummary(date, url, type = 'tldr') {
             errorMessage: result.error || `Failed to fetch ${type}`
           }
         }))
+        return false
       }
     } catch (error) {
-      if (error.name === 'AbortError') return
+      if (error.name === 'AbortError') return false
       updateArticle((current) => ({
         [type]: {
           ...(current[type] || {}),
@@ -97,32 +91,11 @@ export function useSummary(date, url, type = 'tldr') {
         }
       }))
       console.error(`Failed to fetch ${type}:`, error)
+      return false
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false)
       }
-    }
-  }
-
-  const toggle = (summaryEffort) => {
-    if (isAvailable) {
-      setExpanded(!expanded)
-    } else {
-      fetchTldr(summaryEffort)
-    }
-  }
-
-  const collapse = () => {
-    setExpanded(false)
-  }
-
-  const expand = () => {
-    setExpanded(true)
-  }
-
-  const toggleVisibility = () => {
-    if (isAvailable) {
-      setExpanded(!expanded)
     }
   }
 
@@ -133,15 +106,9 @@ export function useSummary(date, url, type = 'tldr') {
     html,
     errorMessage,
     loading: isLoading,
-    expanded,
     effort,
     isAvailable,
     isError,
-    buttonLabel,
     fetch: fetchTldr,
-    toggle,
-    collapse,
-    expand,
-    toggleVisibility
   }
 }
