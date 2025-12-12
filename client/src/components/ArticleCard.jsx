@@ -162,6 +162,12 @@ function ArticleCard({ article }) {
     }
   }, [zenModeKey])
 
+  useEffect(() => {
+    if (isZenModeOpenForThisCard && isRemoved) {
+      setZenModeOpenKey(null)
+    }
+  }, [isZenModeOpenForThisCard, isRemoved])
+
   const closeZenMode = () => {
     if (getZenModeOpenKeySnapshot() === zenModeKey) {
       setZenModeOpenKey(null)
