@@ -152,6 +152,7 @@ function ArticleCard({ article }) {
   const zenModeOpenKey = useZenModeOpenKey()
   const zenModeKey = `${article.issueDate}::${article.url}`
   const isZenModeOpenForThisCard = zenModeOpenKey === zenModeKey
+  const isExpanded = isZenModeOpenForThisCard
 
   useEffect(() => {
     return () => {
@@ -165,17 +166,13 @@ function ArticleCard({ article }) {
     if (getZenModeOpenKeySnapshot() === zenModeKey) {
       setZenModeOpenKey(null)
     }
-    if (tldr.expanded) {
-      tldr.collapse()
-      markTldrHidden()
-    }
+    markTldrHidden()
   }
 
   const openZenModeIfAvailable = () => {
     const currentlyOpenKey = getZenModeOpenKeySnapshot()
     if (currentlyOpenKey && currentlyOpenKey !== zenModeKey) return false
     setZenModeOpenKey(zenModeKey)
-    tldr.expand()
     unmarkTldrHidden()
     return true
   }
@@ -216,7 +213,7 @@ function ArticleCard({ article }) {
     const selection = window.getSelection()
     if (selection.toString().length > 0) return
 
-    if (tldr.expanded && isZenModeOpenForThisCard) {
+    if (isZenModeOpenForThisCard) {
       closeZenMode()
       return
     }
@@ -236,7 +233,7 @@ function ArticleCard({ article }) {
     <>
       <motion.div
         layout
-        className={`relative ${tldr.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
+        className={`relative ${isExpanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
       >
         <div className={`absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8 transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
           <Trash2 className="text-red-400" size={20} />
@@ -266,7 +263,7 @@ function ArticleCard({ article }) {
           data-removed={isRemoved}
           data-state-loading={stateLoading}
           data-tldr-status={tldr.status}
-          data-tldr-expanded={tldr.expanded}
+          data-tldr-expanded={isExpanded}
           data-tldr-available={isAvailable}
           data-dragging={isDragging}
           data-can-drag={canDrag}
@@ -278,7 +275,7 @@ function ArticleCard({ article }) {
             cursor-pointer select-none
             ${isRemoved ? 'bg-slate-50' : 'bg-white'}
             ${stateLoading ? 'pointer-events-none' : ''}
-            ${tldr.expanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
+            ${isExpanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
           `}
         >
           <div className="p-5 flex flex-col gap-2">
@@ -310,7 +307,7 @@ function ArticleCard({ article }) {
               <TldrError message={tldr.errorMessage} />
             )}
 
-            {!isRemoved && tldr.expanded && tldr.html && isZenModeOpenForThisCard && (
+            {!isRemoved && tldr.html && isZenModeOpenForThisCard && (
               <ZenModeOverlay
                 title={article.title}
                 html={tldr.html}
