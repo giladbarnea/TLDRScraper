@@ -128,6 +128,7 @@ function ArticleCard({ article }) {
 
   const handleSwipeComplete = () => {
     if (!isRemoved && isExpanded) {
+      openKeyRef.current = null
       setOpenKey(null)
       markTldrHidden()
     }
@@ -159,6 +160,7 @@ function ArticleCard({ article }) {
   }
 
   const closeZenMode = () => {
+    openKeyRef.current = null
     setOpenKey(null)
     markTldrHidden()
   }
