@@ -86,3 +86,15 @@ def is_date_cached(date):
     result = supabase.table('daily_cache').select('date').eq('date', date).execute()
 
     return len(result.data) > 0
+
+
+def upsert_arxiv_paper(arxiv_id: str, original_url: str, canonical_url: str, notes: str | None = None):
+    supabase = supabase_client.get_supabase_client()
+    row = {
+        "arxiv_id": arxiv_id,
+        "original_url": original_url,
+        "canonical_url": canonical_url,
+        "notes": notes,
+    }
+    result = supabase.table("arxiv_papers").upsert(row).execute()
+    return result.data[0] if result.data else None
