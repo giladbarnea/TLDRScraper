@@ -3,7 +3,7 @@
 # Pre-merge-commit hook that generates PROJECT_STRUCTURE.md
 # This runs before creating a merge commit
 
-source ./util.sh
+source ./.githooks/util.sh
 generate_project_structure
 
 exit 0
