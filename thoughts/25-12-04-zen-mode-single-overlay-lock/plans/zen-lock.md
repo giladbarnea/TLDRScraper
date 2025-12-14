@@ -1,4 +1,5 @@
 ---
+created: 2025-12-14 17:15
 last_updated: 2025-12-14 17:15
 ---
 # Zen Mode Single Overlay Lock - Implementation Plan
