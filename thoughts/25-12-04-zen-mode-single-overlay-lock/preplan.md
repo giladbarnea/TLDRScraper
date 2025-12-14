@@ -80,7 +80,7 @@ user taps expanded modal to close
 
 ## Key Constraints
 
-1. **Full-screen modal**: When a modal is open, the article list is occluded. User cannot tap other articles or scroll the list.
+1. **Full-screen modal**: When a modal is open, the article list is occluded. User cannot tap other articles or scroll the list. This is the reality of the app (no changes required.)
 2. **Lock acquisition timing**: Lock is acquired at display-attempt time (after request completes and content is ready), not at request initiation time.
 3. **Lock release timing**: Only when user explicitly closes the modal.
 4. **Caching unaffected**: All completed TLDRs are cached regardless of lock state. The lock only gates modal display.
