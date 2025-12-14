@@ -1,7 +1,23 @@
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useArticleState } from './useArticleState'
+
+let zenLockOwner = null
+
+function acquireZenLock(url) {
+  if (zenLockOwner === null) {
+    zenLockOwner = url
+    return true
+  }
+  return false
+}
+
+function releaseZenLock(url) {
+  if (zenLockOwner === url) {
+    zenLockOwner = null
+  }
+}
 
 export function useSummary(date, url, type = 'tldr') {
   if (type === 'summary') {
@@ -77,7 +93,9 @@ export function useSummary(date, url, type = 'tldr') {
             errorMessage: null
           }
         }))
-        setExpanded(true)
+        if (acquireZenLock(url)) {
+          setExpanded(true)
+        }
       } else {
         updateArticle((current) => ({
           [type]: {
@@ -106,25 +124,44 @@ export function useSummary(date, url, type = 'tldr') {
 
   const toggle = (summaryEffort) => {
     if (isAvailable) {
-      setExpanded(!expanded)
+      if (expanded) {
+        releaseZenLock(url)
+        setExpanded(false)
+      } else if (acquireZenLock(url)) {
+        setExpanded(true)
+      }
     } else {
       fetchTldr(summaryEffort)
     }
   }
 
   const collapse = () => {
+    releaseZenLock(url)
     setExpanded(false)
   }
 
   const expand = () => {
-    setExpanded(true)
+    if (acquireZenLock(url)) {
+      setExpanded(true)
+    }
   }
 
   const toggleVisibility = () => {
     if (isAvailable) {
-      setExpanded(!expanded)
+      if (expanded) {
+        releaseZenLock(url)
+        setExpanded(false)
+      } else if (acquireZenLock(url)) {
+        setExpanded(true)
+      }
     }
   }
+
+  useEffect(() => {
+    return () => {
+      releaseZenLock(url)
+    }
+  }, [url])
 
   return {
     data,
