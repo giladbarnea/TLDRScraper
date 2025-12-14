@@ -2,6 +2,7 @@
 name: to-done
 description: Move an effort from `thoughts/` to the `thoughts/done/` directory after completion
 argument-hint: thought-path
+last_updated: 2025-12-14 17:16, 3e74d8a
 ---
 Move $1 to `thoughts/done/<same-name>.md`, and aggressively compress it by at least 20x.
 
