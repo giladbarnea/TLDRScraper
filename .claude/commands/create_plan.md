@@ -1,6 +1,6 @@
 ---
 description: Create detailed implementation plans with thorough research and iteration
-model: sonnet
+model: inherit
 argument-hint: [optional_requirements_file_path_and_additional_instructions]
 name: create-plan
 last_updated: 2025-12-10 07:26, b46af66
