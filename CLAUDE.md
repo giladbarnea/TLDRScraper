@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-12 07:49, 3eec68e
+last_updated: 2025-12-15 16:23, 58c3b1e
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -36,9 +36,9 @@ env | grep -E -o '^[A-Z_]+' | grep -e TOKEN -e API -e KEY -e SUPABASE -e VERCEL 
 - GEMINI_API_KEY
 - GITHUB_API_TOKEN
 - OPENAI_API_KEY (Optional; unused currently)
-- SUPABASE_API_KEY
+- SUPABASE_PUBLISHABLE_KEY
 - SUPABASE_DATABASE_PASSWORD
-- SUPABASE_SERVICE_KEY
+- SUPABASE_SECRET_KEY
 - SUPABASE_URL
 - VERCEL_PROD_DEPLOYMENT_URL
 - VERCEL_PROJECT_ID
