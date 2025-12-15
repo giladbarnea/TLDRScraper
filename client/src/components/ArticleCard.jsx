@@ -23,7 +23,7 @@ function ErrorToast({ message, onDismiss }) {
   )
 }
 
-function ZenModeOverlay({ title, html, onClose }) {
+function ZenModeOverlay({ title, url, html, onClose }) {
   const scrollRef = useRef(null)
   const progress = useScrollProgress(scrollRef)
 
@@ -49,9 +49,14 @@ function ZenModeOverlay({ title, html, onClose }) {
           >
             <ChevronLeft size={20} />
           </button>
-          <h2 className="font-display font-semibold text-lg text-slate-800">
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-display font-semibold text-lg text-slate-800 hover:text-brand-600 transition-colors"
+          >
             {title}
-          </h2>
+          </a>
         </div>
         <div
           className="h-0.5 bg-purple-500 origin-left transition-transform duration-100"
@@ -71,22 +76,17 @@ function ZenModeOverlay({ title, html, onClose }) {
   )
 }
 
-function ArticleTitle({ href, isRemoved, isRead, title, onLinkClick }) {
+function ArticleTitle({ isRead, title }) {
   return (
-    <a
-      href={isRemoved ? undefined : href}
-      target={isRemoved ? undefined : "_blank"}
-      rel={isRemoved ? undefined : "noopener noreferrer"}
+    <span
       className={`
         text-[17px] font-display font-semibold leading-snug text-slate-900
-        hover:text-brand-600 transition-colors duration-200 block tracking-tight
+        block tracking-tight
         ${isRead ? 'text-slate-500 font-normal' : ''}
-        ${isRemoved ? 'pointer-events-none' : ''}
       `}
-      onClick={onLinkClick}
     >
       {title}
-    </a>
+    </span>
   )
 }
 
@@ -223,18 +223,8 @@ function ArticleCard({ article }) {
         >
           <div className="p-5 flex flex-col gap-2">
             <ArticleTitle
-              href={fullUrl}
-              isRemoved={isRemoved}
               isRead={isRead}
               title={article.title}
-              onLinkClick={(e) => {
-                if (isDragging || isRemoved) {
-                  e.preventDefault()
-                  return
-                }
-                e.stopPropagation()
-                if (!isRead) toggleRead()
-              }}
             />
 
             {!isRemoved && (
@@ -253,6 +243,7 @@ function ArticleCard({ article }) {
             {!isRemoved && tldr.expanded && tldr.html && (
               <ZenModeOverlay
                 title={article.title}
+                url={fullUrl}
                 html={tldr.html}
                 onClose={() => toggleTldrWithTracking(() => tldr.collapse())}
               />
