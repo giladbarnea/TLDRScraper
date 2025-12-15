@@ -25,7 +25,7 @@ jobs:
       - name: Delete old daily cache entries
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
           python3 - <<'PY'
           import os
@@ -33,7 +33,7 @@ jobs:
           from supabase import create_client
 
           url = os.environ["SUPABASE_URL"]
-          key = os.environ["SUPABASE_SERVICE_KEY"]
+          key = os.environ["SUPABASE_SECRET_KEY"]
           supabase = create_client(url, key)
 
           cutoff_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
