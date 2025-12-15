@@ -467,7 +467,7 @@ function main() {
     FIRECRAWL_API_KEY
     SUPABASE_API_KEY
     SUPABASE_DATABASE_PASSWORD
-    SUPABASE_SERVICE_KEY
+    SUPABASE_SECRET_KEY
     SUPABASE_URL
   )
   local pattern="($(IFS='|'; echo "${expected_env_vars[*]}"))"
