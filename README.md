@@ -10,7 +10,7 @@ Newsletter aggregator that scrapes tech newsletters from multiple sources, displ
 
 - **Frontend**: React 19 + Vite (in `client/`)
 - **Backend**: Flask + Python (serverless on Vercel)
-- **AI**: OpenAI GPT-5 for TLDRs
+- **AI**: Google Gemini 3 Pro for TLDRs
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
 
@@ -24,10 +24,10 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions do
 source ./setup.sh
 
 # Start the server and watchdog in the background. Logs output to file.
-start_server_and_watchdog
+source ./setup.sh && start_server_and_watchdog
 
 # Verify the server is running.
-print_server_and_watchdog_pids
+source ./setup.sh && print_server_and_watchdog_pids
 
 # Exercise the API with curl requests.
 curl http://localhost:5001/api/scrape
@@ -35,17 +35,15 @@ curl http://localhost:5001/api/tldr-url
 curl ...additional endpoints that may be relevant...
 
 # Stop the server and watchdog.
-kill_server_and_watchdog
+source ./setup.sh && kill_server_and_watchdog
 ```
 
 
 ## Client setup
 
 ```bash
-cd client
-npm install
-npm run build
-npm run dev
+source ./setup.sh && build_client
+# Alias for cd client && npm install && npm run build
 ```
 
 ### Frontend development
@@ -64,8 +62,7 @@ This runs Vite dev server on port 3000 with API proxy to localhost:5000.
 
 - Install `uv` and use Python via `uv`:
 ```bash
-source setup.sh
-ensure_uv
+source setup.sh  # This installs uv if needed
 uv --version
 ```
 
