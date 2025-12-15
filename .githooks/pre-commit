@@ -1,8 +1,32 @@
 #!/bin/bash
 #
 # Pre-commit hook:
-# 1. Updates last_updated frontmatter in staged markdown files
-# 2. Runs biome lint on staged client files
+# 1. Scans for secrets with gitleaks
+# 2. Updates last_updated frontmatter in staged markdown files
+# 3. Runs biome lint on staged client files
+
+# --- Gitleaks secret scanning ---
+echo "🔍 Scanning for secrets with gitleaks..."
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks protect --staged --verbose; then
+    echo ""
+    echo "❌ COMMIT REJECTED: Secrets detected!"
+    echo ""
+    echo "To fix this:"
+    echo "  1. Remove the secrets from your files"
+    echo "  2. Add sensitive files to .gitignore"
+    echo "  3. Try committing again"
+    echo ""
+    echo "To bypass this check (NOT RECOMMENDED):"
+    echo "  git commit --no-verify"
+    exit 1
+  fi
+  echo "✅ No secrets detected"
+else
+  echo "⚠️  gitleaks not installed, skipping secret scan"
+  echo "   Install with: brew install gitleaks"
+fi
+echo ""
 
 # --- Frontmatter update for staged .md files ---
 staged_md=$(git diff --cached --name-only --diff-filter=ACM | grep '\.md$' || true)
