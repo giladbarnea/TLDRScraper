@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-15 19:26, 04cd038
+last_updated: 2025-12-15 21:04
 ---
 # Component Refactoring Priority Analysis
 
@@ -11,17 +11,12 @@ Well-decomposed with MECE sub-components (ErrorToast, ZenModeOverlay, ArticleTit
 
 ## Priority Rankings
 
-### 1. CalendarDay.jsx - CRITICAL
+### 1. CalendarDay.jsx - ✅ DONE
 - **Core functionality**: 10/10 (Main daily display)
 - **Refactoring need**: 9/10
 - **Priority Score**: 90
 
-**Problems identified:**
-- Giant comment block (lines 44-87)
-- Inline date formatting with options
-- Inline article filtering inside map
-- Complex newsletter grouping in JSX
-- Mixed concerns throughout
+**Refactored:** Extracted `formatDateDisplay`, `CalendarDayTitle`, `NewsletterList` sub-components. Removed 43-line comment block. Reduced from 109 to 78 lines.
 
 ---
 
