@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-15 22:07, e986bc9
+last_updated: 2025-12-15 22:11
 ---
 # Component Refactoring Priority Analysis
 
@@ -20,16 +20,12 @@ Well-decomposed with MECE sub-components (ErrorToast, ZenModeOverlay, ArticleTit
 
 ---
 
-### 2. ScrapeForm.jsx - CRITICAL
+### 2. ScrapeForm.jsx - ✅ DONE
 - **Core functionality**: 10/10 (Primary user interaction)
 - **Refactoring need**: 8/10
 - **Priority Score**: 80
 
-**Problems identified:**
-- 50-line async formAction with mixed concerns
-- Inline validation logic
-- Scattered progress state updates
-- UI state, business logic, side effects intertwined
+**Refactored:** Extracted `validateDateRange` pure function, `CacheBadge`, `DateInput`, `SubmitButton`, `ProgressBar`, `ErrorMessage` sub-components. Main component reduced from 134 to 70 lines (94→164 total with helpers at top).
 
 ---
 
