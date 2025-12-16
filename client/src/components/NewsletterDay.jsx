@@ -1,24 +1,84 @@
 import ArticleList from './ArticleList'
 import FoldableContainer from './FoldableContainer'
 
-function NewsletterDay({ date, title, issue, articles }) {
-  const allRemoved = articles.length > 0 && articles.every(a => a.removed)
-  const hasSections = articles.some(a => a.section)
-
-  const sections = hasSections ? articles.reduce((acc, article) => {
+function groupArticlesBySection(articles) {
+  return articles.reduce((acc, article) => {
     const sectionKey = article.section
     if (!acc[sectionKey]) {
       acc[sectionKey] = []
     }
     acc[sectionKey].push(article)
     return acc
-  }, {}) : {}
+  }, {})
+}
 
-  const sortedSections = hasSections ? Object.keys(sections).sort((a, b) => {
+function getSortedSectionKeys(sections) {
+  return Object.keys(sections).sort((a, b) => {
     const articleA = sections[a][0]
     const articleB = sections[b][0]
     return (articleA.sectionOrder ?? 0) - (articleB.sectionOrder ?? 0)
-  }) : []
+  })
+}
+
+function IssueSubtitle({ issue, allRemoved }) {
+  if (!issue?.subtitle || issue.subtitle === issue.title) return null
+
+  return (
+    <div className={`mb-6 text-xs text-slate-400 tracking-wide transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
+      <span>{issue.subtitle}</span>
+    </div>
+  )
+}
+
+function SectionTitle({ sectionKey, sectionEmoji }) {
+  const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
+  return (
+    <div className="flex items-center gap-3">
+      <h4 className="font-display font-bold text-lg text-slate-700">
+        {displayTitle}
+      </h4>
+    </div>
+  )
+}
+
+function Section({ date, newsletterTitle, sectionKey, articles }) {
+  const allRemoved = articles.every(a => a.removed)
+  const sectionEmoji = articles[0].sectionEmoji
+
+  return (
+    <FoldableContainer
+      key={`${newsletterTitle}-${sectionKey}`}
+      id={`section-${date}-${newsletterTitle}-${sectionKey}`}
+      title={<SectionTitle sectionKey={sectionKey} sectionEmoji={sectionEmoji} />}
+      headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+      defaultFolded={allRemoved}
+      className="mb-4"
+    >
+      <div className={`space-y-4 mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
+        <ArticleList articles={articles} showSectionHeaders={false} />
+      </div>
+    </FoldableContainer>
+  )
+}
+
+function SectionsList({ date, title, sections, sortedSectionKeys }) {
+  return sortedSectionKeys.map(sectionKey => (
+    <Section
+      key={`${title}-${sectionKey}`}
+      date={date}
+      newsletterTitle={title}
+      sectionKey={sectionKey}
+      articles={sections[sectionKey]}
+    />
+  ))
+}
+
+function NewsletterDay({ date, title, issue, articles }) {
+  const allRemoved = articles.length > 0 && articles.every(a => a.removed)
+  const hasSections = articles.some(a => a.section)
+
+  const sections = hasSections ? groupArticlesBySection(articles) : {}
+  const sortedSectionKeys = hasSections ? getSortedSectionKeys(sections) : []
 
   return (
     <FoldableContainer
@@ -33,49 +93,15 @@ function NewsletterDay({ date, title, issue, articles }) {
       className="mb-8"
     >
       <div className="pl-4 space-y-6 mt-2 border-l-2 border-slate-100 ml-2">
-        {/* Issue Title & Subtitle Display */}
-        {/* Issue Title & Subtitle Display */}
-        {issue?.subtitle && issue.subtitle !== issue.title && (
-          <div className={`mb-6 text-xs text-slate-400 tracking-wide transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
-            <span>{issue.subtitle}</span>
-          </div>
-        )}
+        <IssueSubtitle issue={issue} allRemoved={allRemoved} />
 
         {hasSections ? (
-          sortedSections.map((sectionKey) => {
-            const sectionArticles = sections[sectionKey]
-            const sectionAllRemoved = sectionArticles.every(a => a.removed)
-            
-            const firstArticle = sectionArticles[0]
-            const sectionEmoji = firstArticle.sectionEmoji
-            const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
-
-            const SectionTitle = (
-               <div className="flex items-center gap-3">
-                 <h4 className="font-display font-bold text-lg text-slate-700">
-                   {displayTitle}
-                 </h4>
-               </div>
-            )
-
-            return (
-              <FoldableContainer
-                key={`${title}-${sectionKey}`}
-                id={`section-${date}-${title}-${sectionKey}`}
-                title={SectionTitle}
-                headerClassName={`transition-all duration-300 ${sectionAllRemoved ? 'opacity-50' : ''}`}
-                defaultFolded={sectionAllRemoved}
-                className="mb-4"
-              >
-                 <div className={`space-y-4 mt-2 transition-all duration-300 ${sectionAllRemoved ? 'opacity-50' : ''}`}>
-                    <ArticleList 
-                      articles={sectionArticles} 
-                      showSectionHeaders={false} 
-                    />
-                 </div>
-              </FoldableContainer>
-            )
-          })
+          <SectionsList
+            date={date}
+            title={title}
+            sections={sections}
+            sortedSectionKeys={sortedSectionKeys}
+          />
         ) : (
           <ArticleList articles={articles} showSectionHeaders={false} />
         )}
