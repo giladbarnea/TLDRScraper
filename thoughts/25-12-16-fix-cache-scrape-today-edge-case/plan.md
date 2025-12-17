@@ -1,6 +1,6 @@
 ---
 created: 2025-12-16
-last_updated: 2025-12-16 15:46, f0e7f3b
+last_updated: 2025-12-17 14:08
 ---
 # Fix Cache-Scrape Edge Case for Today
 
@@ -17,11 +17,11 @@ When a user scrapes today's date, the results are cached. If sources publish new
 
 ## Desired Behavior
 
-1. Scrape requests that include today always reach the server
-2. Server checks its own cache for today's existing URLs
-3. Server excludes cached URLs from external fetches (avoids redundant network calls)
-4. Server returns only new articles
-5. Client merges new articles with existing cache, preserving user state (read, removed, TLDR)
+1. Scrape requests that include today should reach the server
+2. Server would check its own cache for today's existing URLs
+3. Server could exclude cached URLs from external fetches (avoiding redundant network calls)
+4. Server would return only new articles
+5. Client would merge new articles with existing cache, preserving user state (read, removed, TLDR)
 
 ## Invariants
 
@@ -31,27 +31,27 @@ When a user scrapes today's date, the results are cached. If sources publish new
 - Past dates (not today) retain current cache-first behavior
 - Client remains unaware of URL-level caching — server handles it internally
 
-## What We're NOT Doing
+## What We're Suggesting Not Doing
 
 - No client-to-server round-trip of cached URLs
-- No changes to the merge logic (already correct)
+- No changes to the merge logic (appears to be already correct)
 - No changes to TLDR generation flow
 - No timestamp-based cache invalidation
 - No changes to past-date caching behavior
 
-## Changes Required
+## Proposed Changes
 
 ### Client: `client/src/lib/scraper.js`
 
 **Location**: `isRangeCached()` function
 
-**Behavior change**: If any date in the requested range is today, return `false` (forcing server call). All other logic unchanged.
+**Suggested behavior change**: If any date in the requested range is today, consider returning `false` (which would force a server call). All other logic would remain unchanged.
 
 ### Server: `tldr_service.py`
 
 **Location**: `scrape_newsletters_in_date_range()` function, before calling `scrape_date_range()`
 
-**Behavior change**: If today is within the requested date range, load today's cached payload from storage. Extract cached article URLs and merge them into `excluded_urls`. The existing `excluded_urls` parameter already threads through to adapters — no downstream changes needed.
+**Suggested behavior change**: If today is within the requested date range, one approach would be to load today's cached payload from storage. We could then extract cached article URLs and merge them into `excluded_urls`. The existing `excluded_urls` parameter already threads through to adapters — no downstream changes would be needed.
 
 ## Verification
 
