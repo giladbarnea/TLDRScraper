@@ -1,7 +1,6 @@
 ---
 name: architecture-sync-current-changes
 description: "Sync ARCHITECTURE.md with current changes"
-last_updated: 2025-12-10 07:26, b46af66
 ---
 `ARCHITECTURE.md` was a very good representation of the project before your changes. Given your changes, `ARCHITECTURE.md` is now outdated in some aspects. Your task is to make it as good a representation of the project in its current state. 
 

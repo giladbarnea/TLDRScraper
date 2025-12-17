@@ -3,7 +3,6 @@ description: Create detailed implementation plans with thorough research and ite
 model: inherit
 argument-hint: [optional_requirements_file_path_and_additional_instructions]
 name: create-plan
-last_updated: 2025-12-14 13:26, 6f81301
 ---
 # Implementation Plan
 
@@ -29,8 +28,8 @@ Please provide:
 
 I'll analyze this information and work with you to create a comprehensive plan.
 
-Tip: You can also invoke this command with a requirements file directly: `/create_plan_lite thoughts/yy-mm-dd-ENG-1234/ticket.md`
-For deeper analysis, try: `/create_plan_lite think deeply about thoughts/yy-mm-dd-ENG-1234/ticket.md`
+Tip: You can also invoke this command with a requirements file directly: `/create_plan thoughts/yy-mm-dd-ENG-1234/ticket.md`
+For deeper analysis, try: `/create_plan think deeply about thoughts/yy-mm-dd-ENG-1234/ticket.md`
 ```
 
 Then wait for the user's input.
@@ -156,6 +155,7 @@ Once aligned on approach:
 
    Does this phasing make sense? Should I adjust the order or granularity?
    ```
+   Note: can be any number of phases, in relation to the complexity of the task, as you see fit.
 
 2. **Get feedback on structure** before writing details
 
@@ -171,6 +171,7 @@ After structure approval:
    - Example: `thoughts/25-01-08-ENG-1478/plans/parent-child-tracking.md`
 2. **Use this template structure**:
 
+<plan-template>
 ````markdown
 # [Feature/Task Name] Implementation Plan
 
@@ -208,7 +209,7 @@ After structure approval:
 
 #### 1. [Component/File Group]
 **File**: `path/to/file.ext`
-**Changes**: [Summary of changes]
+**Changes**: [Declarative, behavioral description of changes]
 
 ```[language]
 // Specific code to add/modify
@@ -217,12 +218,14 @@ After structure approval:
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] Tests pass: [test command]
-- [ ] Hard errors checked: [appropriate verification command(s)]
+{% for check in existing_automated_means_for_verifying_and_testing_changes %}
+- [ ] {{ check }}
+{% endfor %}
 
 #### Manual Verification
 - [ ] Feature works as expected when tested via the user interface or API
 - [ ] Edge case handling verified manually
+- [ ] No regressions in rest of project's functionality
 
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for manual confirmation from the human that the manual testing was successful before proceeding to the next phase.
 
@@ -241,7 +244,7 @@ After structure approval:
 - [Key edge cases]
 
 ### Integration Tests:
-- [Verify important tech stack intersections]
+- [Verify integration points at the seams of major tech stack components]
 
 ### Manual Testing Steps:
 1. [Specific step to verify feature]
@@ -253,7 +256,8 @@ After structure approval:
 - Original ticket: `thoughts/yy-mm-dd-ENG-XXXX/ticket.md`
 - Related research: `thoughts/yy-mm-dd-ENG-1234/research/topic.md`
 - Similar implementation: `[file:line]`
-````
+```
+</plan-template>
 
 ### Step 5: Sync and Review
 
@@ -261,7 +265,7 @@ After structure approval:
    - This ensures the plan is properly indexed and available
 
 2. **Present the draft plan location**:
-   ```
+   ```markdown
    I've created the initial implementation plan at:
    `thoughts/YY-MM-DD-ENG-XXXX/plans/description.md`
 
@@ -316,34 +320,6 @@ After structure approval:
    - Do NOT write the plan with unresolved questions
    - The implementation plan must be complete and actionable
    - Every decision must be made before finalizing the plan
-
-## Success Criteria Guidelines
-
-**Always separate success criteria into two categories:**
-
-1. **Automated Verification** (can be run by execution agents):
-   - Commands that can be run: test commands, lint commands, etc.
-   - Rule out hard errors: syntax, reference, name errors, unbound local variables or import errors, etc.
-
-2. **Manual Verification** (requires human testing):
-   - UI/UX functionality
-   - Edge cases that are hard to automate
-   - User acceptance criteria
-
-**Format example:**
-```markdown
-### Success Criteria:
-
-#### Automated Verification:
-- [ ] Tests pass: [test command]
-- [ ] Hard errors checked: [appropriate verification command(s)]
-- [ ] API endpoint returns expected response: [curl command or test]
-
-#### Manual Verification:
-- [ ] New feature appears correctly in the UI
-- [ ] Error messages are user-friendly
-- [ ] Feature works correctly across different environments
-```
 
 ## Common Patterns
 
@@ -401,7 +377,7 @@ tasks = [
 ## Example Interaction Flow
 
 ```
-User: /create_plan_lite
+User: /create_plan
 Assistant: I'll help you create a detailed implementation plan...
 
 User: We need to add parent-child tracking for Claude sub-tasks. See thoughts/yy-mm-dd-ENG-1478/ticket.md

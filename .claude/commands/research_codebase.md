@@ -2,20 +2,12 @@
 name: research-codebase
 description: Conduct deep, comprehensive research across the codebase to meet user’s requirements. Take on as many sub-systems of the codebase as needed by spawning parallel research sub-agents and synthesizing their findings.
 model: inherit
-last_updated: 2025-12-10 07:26, b46af66
 ---
 # Research Codebase
 
 You are tasked with conducting deep, comprehensive research across the codebase to meet user’s requirements by spawning parallel research sub-agents and synthesizing their findings.
 
-## CRITICAL: YOUR ONLY JOB IS TO DOCUMENT AND EXPLAIN THE CODEBASE AS IT EXISTS TODAY
-- DO NOT suggest improvements or changes unless the user explicitly asks for them
-- DO NOT perform root cause analysis unless the user explicitly asks for them
-- DO NOT propose future enhancements unless the user explicitly asks for them
-- DO NOT critique the implementation or identify problems
-- DO NOT recommend refactoring, optimization, or architectural changes
-- ONLY describe what exists, where it exists, how it works, and how components interact
-- You are creating a technical map/documentation of the existing system
+Note: don’t critique or suggest improvements; just focus on what exists, where it exists, how it works, and how components interact.
 
 ## Initial Setup:
 
@@ -29,10 +21,7 @@ Then wait for the user's research query.
 ## Steps to follow after receiving the research query:
 
 1. **Read any directly mentioned files first:**
-   - If the user mentions specific files (tickets, docs, JSON), read them FULLY first
-   - **IMPORTANT**: Use the Read tool WITHOUT limit/offset parameters to read entire files
-   - **CRITICAL**: Read these files yourself in the main context before spawning any sub-tasks
-   - This ensures you have full context before decomposing the research
+   If the user mentions specific files (tickets, docs, JSON), read them FULLY before spawning any sub-tasks, to have full context before breaking down the research
 
 2. **Analyze and decompose the research question:**
    - Break down the user's query into composable research areas
@@ -47,22 +36,18 @@ Then wait for the user's research query.
 
    **For codebase research:**
    - Use the **codebase-locator** agent to find WHERE files and components live
-   - Use the **codebase-analyzer:multiple-subsystems** agent to understand HOW specific code works (without critiquing it)
-   - Use the **codebase-pattern-finder** agent to find examples of existing patterns (without evaluating them)
-
-   **IMPORTANT**: All agents are documentarians, not critics. They will describe what exists without suggesting improvements or identifying issues.
+   - Use the **codebase-analyzer:multiple-subsystems** agent to understand HOW the codebase works
+   - Use the **codebase-pattern-finder** agent to find examples of existing patterns
 
    **For web research (only if user explicitly asks):**
    - Use the **web-deep-researcher** agent for external documentation and resources
-   - IF you use web-research agents, instruct them to return LINKS with their findings, and please INCLUDE those links in your final report
+   - IF you use web-deep-researcher agents, instruct them to return LINKS with their findings, and please INCLUDE those links in your final report
 
    The key is to use these agents intelligently:
    - Start with locator agents to find what exists
-   - Then use analyzer agents on the most promising findings to document how they work
-   - Run multiple agents in parallel when they're searching for different things
+   - Then use analyzer agents on the most promising findings to understand how they work
+   - Run multiple agents in parallel when their tasks are independent
    - Each agent knows its job - just tell it what you're looking for
-   - Don't write detailed prompts about HOW to search - the agents already know
-   - Remind agents they are documenting, not evaluating or improving
 
 4. **Wait for all sub-agents to complete and synthesize findings:**
    - IMPORTANT: Wait for ALL sub-agent tasks to complete before proceeding
@@ -83,7 +68,7 @@ Then wait for the user's research query.
      - Example: `thoughts/25-01-08-ENG-1478/research/parent-child-tracking.md`
 
 6. **Generate research document:**
-   - Use the metadata gathered in step 4
+   - Use the gathered metadata
    - Structure the document with YAML frontmatter followed by content:
      ```markdown
      ---
@@ -137,19 +122,12 @@ Then wait for the user's research query.
      [Any areas that need further investigation]
      ```
 
-7. **Add GitHub permalinks (if applicable):**
-   - Check if on main branch or if commit is pushed: `git branch --show-current` and `git status`
-   - If on main/master or pushed, generate GitHub permalinks:
-     - Get repo info: `gh repo view --json owner,name`
-     - Create permalinks: `https://github.com/{owner}/{repo}/blob/{commit}/{file}#L{line}`
-   - Replace local file references with permalinks in the document
-
-8. **Present findings:**
+6. **Present findings:**
    - Present a concise summary of findings to the user
    - Include key file references for easy navigation
    - Ask if they have follow-up questions or need clarification
 
-9. **Handle follow-up questions:**
+7. **Handle follow-up questions:**
    - If the user has follow-up questions, append to the same research document
    - Update the frontmatter fields `last_updated` and `last_updated_by` to reflect the update
    - Add `last_updated_note: "Added follow-up research for [brief description]"` to frontmatter
@@ -158,28 +136,11 @@ Then wait for the user's research query.
    - Continue updating the document
 
 ## Important notes:
-- Always use parallel Task agents to maximize efficiency and minimize context usage
+- Use parallel Task agents to maximize efficiency and minimize context usage
 - Always run fresh codebase research - never rely solely on existing research documents
+- Pay attention to the dates, times, and commits of any documentation you read. Documentation becomes outdated quickly, so the older a doc is, the more you should take it with a grain of salt. Even if it’s only a few weeks old, it’s worth verifying the details against the source code and git history.
 - Focus on finding concrete file paths and line numbers for developer reference
 - Research documents should be self-contained with all necessary context
-- Each sub-agent prompt should be specific and focused on read-only documentation operations
 - Document cross-component connections and how systems interact
-- Include temporal context (when the research was conducted)
-- Link to GitHub when possible for permanent references
-- Keep the main agent focused on synthesis, not deep file reading
+- Include temporal context (when the research was conducted) - Keep the main agent focused on synthesis, not deep file reading
 - Have sub-agents document examples and usage patterns as they exist
-- **CRITICAL**: You and all sub-agents are documentarians, not evaluators
-- **REMEMBER**: Document what IS, not what SHOULD BE
-- **NO RECOMMENDATIONS**: Only describe the current state of the codebase
-- **File reading**: Always read mentioned files FULLY (no limit/offset) before spawning sub-tasks
-- **Critical ordering**: Follow the numbered steps exactly
-  - ALWAYS read mentioned files first before spawning sub-tasks (step 1)
-  - ALWAYS wait for all sub-agents to complete before synthesizing (step 4)
-  - ALWAYS gather metadata before writing the document (step 5 before step 6)
-  - NEVER write the research document with placeholder values
-- **Frontmatter consistency**:
-  - Always include frontmatter at the beginning of research documents
-  - Keep frontmatter fields consistent across all research documents
-  - Update frontmatter when adding follow-up research
-  - Use snake_case for multi-word field names (e.g., `last_updated`, `git_commit`)
-  - Tags should be relevant to the research topic and components studied
