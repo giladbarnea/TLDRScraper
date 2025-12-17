@@ -1,19 +1,19 @@
 ---
 created: 2025-12-16
-last_updated: 2025-12-17 11:37
+last_updated: 2025-12-17 14:08
 ---
 # Fix Cache-Scrape Edge Case for Today
 
 ## Problem
 
-When a user scrapes today's date, the results are cached. If sources publish new articles later that day and the user scrapes again, the new articles may not be detected. The client-side cache check prevents the server from being called at all.
+When a user scrapes today's date, the results are cached. If sources publish new articles later that day and the user scrapes again, the new articles are not detected. The client-side cache check prevents the server from being called at all.
 
 ## Current Behavior
 
 1. Client checks if date is cached via `isRangeCached()`
-2. If cached, returns stored data immediately — server is not called
+2. If cached, returns stored data immediately — server never called
 3. Cache check only verifies row existence, not freshness
-4. New intra-day articles could be invisible to the user
+4. New intra-day articles are invisible to the user
 
 ## Desired Behavior
 
@@ -25,11 +25,11 @@ When a user scrapes today's date, the results are cached. If sources publish new
 
 ## Invariants
 
-- If a URL is already cached, its content should not be re-fetched
-- If a TLDR is already generated, it should not be regenerated
-- User state (read, removed, tldrHidden) should not be lost on re-scrape
-- Past dates (not today) should retain current cache-first behavior
-- Client should remain unaware of URL-level caching — server would handle it internally
+- If a URL is already cached, its content is not re-fetched
+- If a TLDR is already generated, it is not regenerated
+- User state (read, removed, tldrHidden) is never lost on re-scrape
+- Past dates (not today) retain current cache-first behavior
+- Client remains unaware of URL-level caching — server handles it internally
 
 ## What We're Suggesting Not Doing
 
@@ -58,5 +58,5 @@ When a user scrapes today's date, the results are cached. If sources publish new
 1. Scrape today (fresh) — articles cached
 2. Manually note article count
 3. Wait for source to publish new content (or mock by clearing one URL from cache)
-4. Scrape today again — new articles should appear, existing articles should retain their state
-5. Scrape a past date — cache-first behavior should remain unchanged (no server call if cached)
+4. Scrape today again — new articles appear, existing articles retain their state
+5. Scrape a past date — cache-first behavior unchanged (no server call if cached)
