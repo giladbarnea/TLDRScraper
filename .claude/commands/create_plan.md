@@ -3,6 +3,7 @@ description: Create detailed implementation plans with thorough research and ite
 model: inherit
 argument-hint: [optional_requirements_file_path_and_additional_instructions]
 name: create-plan
+last_updated: 2025-12-17 07:42, 984bd6b
 ---
 # Implementation Plan
 

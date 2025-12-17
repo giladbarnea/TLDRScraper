@@ -1,6 +1,7 @@
 ---
 name: architecture-create
 description: Create ARCHITECTURE.md document
+last_updated: 2025-12-17 07:42, 984bd6b
 ---
 ## Purpose
 The purpose of the task at large is two-fold:

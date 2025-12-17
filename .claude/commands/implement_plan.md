@@ -3,6 +3,7 @@ description: Implement technical plans from ${arg1} with verification
 model: inherit
 argument-hint: plan_file_path
 name: implement-plan
+last_updated: 2025-12-17 07:42, 984bd6b
 ---
 # Implement Plan
 
