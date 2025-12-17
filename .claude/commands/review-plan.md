@@ -1,14 +1,17 @@
 ---
-last_updated: 2025-12-16 22:40
+description: Review an implementation plan for design flaws and blindspots
+model: inherit
+argument-hint: plan_file_path
+name: review-plan
 ---
 # Plan Review Task
 
-Your task is to critically review the implementation plan for fixing the cache-scrape edge case.
+Your task is to critically review an implementation plan.
 
 ## Instructions
 
 1. **Read and Understand the Plan**
-   - Read `thoughts/25-12-16-fix-cache-scrape-today-edge-case/plan.md` thoroughly
+   - Read `${1}` thoroughly
    - Understand the problem being solved and the proposed solution
 
 2. **Identify Knowledge Gaps**
@@ -43,7 +46,7 @@ Your task is to critically review the implementation plan for fixing the cache-s
    - Be honest and thorough
    - If you find issues, suggest concrete alternatives
    - If the plan is solid, explain why
-   - Write your conclusion to: `thoughts/25-12-16-fix-cache-scrape-today-edge-case/plan.review.md`
+   - Write your conclusion to: `${1%.md}.review.md` (same directory as the plan, with .review.md suffix)
 
 ## Output Format
 
