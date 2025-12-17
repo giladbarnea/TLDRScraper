@@ -1,9 +1,9 @@
 ---
-description: Create detailed implementation plans with thorough research and iteration
+description: Create detailed implementation plans based on thorough research and deep thinking
 model: inherit
 argument-hint: [optional_requirements_file_path_and_additional_instructions]
 name: plan
-last_updated: 2025-12-17 07:42, 984bd6b
+last_updated: 2025-12-17 07:52
 ---
 # Implementation Plan
 
@@ -28,9 +28,6 @@ Please provide:
 3. Links to related research or previous implementations
 
 I'll analyze this information and work with you to create a comprehensive plan.
-
-Tip: You can also invoke this command with a requirements file directly: `/create_plan thoughts/yy-mm-dd-ENG-1234/ticket.md`
-For deeper analysis, try: `/create_plan think deeply about thoughts/yy-mm-dd-ENG-1234/ticket.md`
 ```
 
 Then wait for the user's input.
@@ -378,7 +375,7 @@ tasks = [
 ## Example Interaction Flow
 
 ```
-User: /create_plan
+User: /plan
 Assistant: I'll help you create a detailed implementation plan...
 
 User: We need to add parent-child tracking for Claude sub-tasks. See thoughts/yy-mm-dd-ENG-1478/ticket.md
