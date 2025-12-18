@@ -27,7 +27,7 @@ function main(){
         return 1
     fi
 
-    ensure_gemini_installed
+    ensure_gemini_installed || return 1
     prompt_file="$1"
     
     if [[ ! -f "$prompt_file" ]]; then
