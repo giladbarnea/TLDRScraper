@@ -26,6 +26,11 @@ function main(){
         echo "Usage: $0 <prompt-file-path>" >&2
         return 1
     fi
+    
+    if [[ -z $GEMINI_API_KEY ]]; then
+        echo "ERROR: GEMINI_API_KEY env var is unset. Report to user." >&2
+        return 1
+    fi
 
     ensure_gemini_installed || return 1
     prompt_file="$1"
