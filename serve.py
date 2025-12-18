@@ -210,14 +210,20 @@ def check_storage_is_cached(date):
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
-def run_context_script(context_types):
-    """Run generate_context.py script for one or more context types."""
+def run_context_script(context_types, only_definitions=True):
+    """Run generate_context.py script for one or more context types.
+
+    >>> run_context_script(['docs']) # doctest: +SKIP
+    '<files>...</files>'
+    """
     root_dir = pathlib.Path(__file__).parent
     script_path = root_dir / 'scripts' / 'generate_context.py'
     contents = []
-    
+
     for ctx in context_types:
         cmd = ['python3', str(script_path), ctx]
+        if ctx == 'server' and only_definitions:
+            cmd.append('--no-body')
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -227,7 +233,7 @@ def run_context_script(context_types):
         if result.returncode != 0:
             raise RuntimeError(f"Failed to generate {ctx} context: {result.stderr}")
         contents.append(result.stdout)
-    
+
     return '\n\n'.join(contents)
 
 
@@ -259,6 +265,9 @@ def source_ui():
             <label><input type="checkbox" name="context" value="server"> Server (Python)</label>
             <label><input type="checkbox" name="context" value="client"> Client (React)</label>
         </div>
+        <div class="checkbox-group">
+            <label><input type="checkbox" name="only_definitions" id="onlyDefinitions"> Python: Only definitions (no function bodies)</label>
+        </div>
         <button type="submit">Download Context</button>
     </form>
     <script>
@@ -266,15 +275,18 @@ def source_ui():
             e.preventDefault();
             const checked = Array.from(document.querySelectorAll('input[name="context"]:checked'))
                 .map(cb => cb.value);
-            
+
             if (checked.length === 0) {
                 alert('Please select at least one context type');
                 return;
             }
-            
+
+            const onlyDefinitions = document.getElementById('onlyDefinitions').checked;
+
             const form = new FormData();
             form.append('context_types', JSON.stringify(checked));
-            
+            form.append('only_definitions', onlyDefinitions);
+
             const response = await fetch('/api/source/download', {
                 method: 'POST',
                 body: form
@@ -331,16 +343,18 @@ def source_download_post():
         context_types = request.form.get('context_types')
         if not context_types:
             return jsonify({"success": False, "error": "Missing context_types"}), 400
-        
+
         import json
         context_types = json.loads(context_types)
-        
+
         if not context_types or not all(ct in ['server', 'client', 'docs'] for ct in context_types):
             return jsonify({"success": False, "error": "Invalid context_types"}), 400
-        
-        combined_content = run_context_script(context_types)
+
+        only_definitions = request.form.get('only_definitions', 'false').lower() == 'true'
+
+        combined_content = run_context_script(context_types, only_definitions=only_definitions)
         filename = f"context-{'-'.join(context_types)}.txt"
-        
+
         response = make_response(combined_content)
         response.headers['Content-Type'] = 'text/plain; charset=utf-8'
         response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
