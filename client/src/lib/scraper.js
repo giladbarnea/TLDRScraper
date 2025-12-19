@@ -51,6 +51,12 @@ async function isRangeCached(startDate, endDate, cacheEnabled) {
 
   const dates = computeDateRange(startDate, endDate)
 
+  // Bypass cache if "today" is in range (server will handle union)
+  const todayStr = new Date().toISOString().split('T')[0]
+  if (dates.includes(todayStr)) {
+    return false
+  }
+
   for (const date of dates) {
     const isCached = await storageApi.isDateCached(date)
     if (!isCached) {

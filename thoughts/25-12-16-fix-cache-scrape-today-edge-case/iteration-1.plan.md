@@ -1,7 +1,7 @@
 ---
 created: 2025-12-16
 revised: 2025-12-19
-last_updated: 2025-12-19 00:12, 34e0003
+last_updated: 2025-12-19 00:27
 ---
 # Fix Cache-Scrape Edge Case for Today (Revised Plan)
 
@@ -43,7 +43,7 @@ The server becomes responsible for merging cached and new data, returning a comp
 
 ## Implementation
 
-### Phase 1: Server-Side Smart Scrape Orchestration
+### Phase 1: Server-Side Smart Scrape Orchestration ✓
 
 #### File: `tldr_service.py`
 
@@ -155,7 +155,7 @@ def scrape_newsletters_in_date_range(start_date_text, end_date_text, source_ids=
 
 ---
 
-### Phase 2: Client-Side Cache Bypass for Today
+### Phase 2: Client-Side Cache Bypass for Today ✓
 
 #### File: `client/src/lib/scraper.js`
 
