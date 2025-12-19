@@ -15,6 +15,19 @@ fi
 # Normalize SETUP_QUIET to true if it is not false or 0.
 [[ "${SETUP_QUIET:-false}" == "true" || "${SETUP_QUIET}" == "1" ]] && SETUP_QUIET=true
 
+# Source common utilities
+source "$SERVER_CONTEXT_WORKDIR/scripts/setup/common.sh"
+
+# Override message/error for setup.sh context (since this file is sourced, not executed)
+function error(){
+  echo "[setup.sh] ERROR: $*" >&2
+}
+
+function message(){
+	[[ "$SETUP_QUIET" != "true" ]] && echo "[setup.sh] $*" >&2
+	return 0
+}
+
 
 
 # resolve_server_context [--workdir=WORKDIR] [--run-dir=RUN_DIR] [--log-file=LOG_FILE] [--pid-file=SERVER_PID_FILE] [--watchdog-pid-file=WATCHDOG_PID_FILE] [--check-interval=CHECK_INTERVAL] [--port=PORT]
@@ -156,35 +169,22 @@ resolve_server_context() {
   return 0
 }
 
-isdefined(){
-    command -v "$1" 1>/dev/null 2>&1
-}
-
 decolor () {
     local text="${1:-$(cat /dev/stdin)}"
     # Remove ANSI color codes step by step using basic bash parameter expansion
     # Remove escape sequences like \033[0m, \033[31m, \033[1;31m, etc.
-    
+
     # Remove \033[*m patterns (any characters between [ and m)
     while [[ "$text" == *$'\033['*m* ]]; do
         text="${text//$'\033['*m/}"
     done
-    
+
     # Also handle \e[*m patterns (alternative escape sequence format)
     while [[ "$text" == *$'\e['*m* ]]; do
         text="${text//$'\e['*m/}"
     done
-    
+
     echo -n "$text"
-}
-
-function error(){
-  echo "[setup.sh] ERROR: $*" >&2
-}
-
-function message(){
-	[[ "$SETUP_QUIET" == "false" ]] && echo "[setup.sh] $*"
-	return 0
 }
 
 # # ensure_uv [-q,-quiet]
@@ -411,30 +411,17 @@ function main() {
 
 
   #region ----[ Install & Build Dependencies ]----
-  
+
   mkdir -p "$run_dir"
 
-  [[ "$quiet" == false ]] && message "[$0] Ensuring dependencies..."
+  [[ "$quiet" == false ]] && message "[$0] Starting background dependency installation..."
   ensure_local_bin_path --quiet="$quiet"
-  local ensure_uv_success=true uv_sync_success=true
-  ensure_uv --quiet="$quiet" || ensure_uv_success=false
-  uv_sync --quiet="$quiet" || uv_sync_success=false
 
-  # if [[ ! "${GITHUB_ACTIONS:-}" ]]; then
-  #   ensure_gh --quiet="$quiet" || ensure_gh_success=false
-  #   ensure_wrap_gh
-  # fi
+  # Launch UV install+sync and client build in parallel background processes
+  bash "$workdir/scripts/setup/ensure_uv_and_sync.sh" &
+  bash "$workdir/scripts/setup/build_client.sh" &
 
-  if ! "$ensure_uv_success" || ! "$uv_sync_success"; then
-    error "[$0] Failed to install dependencies. Please check the output above."
-    return 1
-  fi
-  
-  [[ "$quiet" == false ]] && message "[$0] Installing and building client dependencies..."
-  if ! build_client 1>/dev/null 2>&1; then
-    error "[$0] Failed to build client"
-    return 1
-  fi
+  [[ "$quiet" == false ]] && message "[$0] UV sync and client build running in background..."
   
   #region ----[ Prepare & Print Docs ]----
   
