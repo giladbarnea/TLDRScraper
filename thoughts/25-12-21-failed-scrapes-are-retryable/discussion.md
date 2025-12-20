@@ -1,7 +1,7 @@
 ---
-last_updated: 2025-12-19 18:35, 5b8699d
+last_updated: 2025-12-20 22:14
 ---
-# Iteration 2: Discussion — Incomplete Cache & Failed Source Tracking
+# Discussion — Incomplete Cache & Failed Source Tracking
 
 ## Problem Statement
 
@@ -11,7 +11,7 @@ Example: TLDR.tech times out on Dec 18's scrape, but HN succeeds. The HN article
 
 ---
 
-## Current Situation (Post Iteration-1)
+## Current Situation (Post `thoughts/done/25-12-16-fix-cache-scrape-today-edge-case/`)
 
 ### How cache-first works now
 
