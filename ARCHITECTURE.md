@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-11 15:03, ba0452f
+last_updated: 2025-12-20 16:56
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. style: Behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships.
 ---
@@ -696,13 +696,13 @@ User clicks "TLDR" button OR clicks article card body
        │
        ├─ ArticleCard.jsx onClick={handleCardClick}
        │    │
-       │    └─ useSummary hook toggleVisibility()
+       │    └─ useSummary hook toggle()
        │         │
-       │         ├─ Only acts if TLDR content already exists (isAvailable)
-       │         ├─ Toggles expanded state (no API call)
+       │         ├─ If TLDR exists (isAvailable): toggles expanded state (no API call)
+       │         ├─ If TLDR doesn't exist: fetches TLDR from server
        │         └─ Updates tldrHidden preference in storage
        │
-       └─ TLDR content shown/hidden (no server interaction)
+       └─ TLDR content shown/hidden or fetched
 ```
 
 ---

@@ -115,7 +115,7 @@ function TldrError({ message }) {
 }
 
 function ArticleCard({ article }) {
-  const { isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
+  const { isRead, isRemoved, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
   )

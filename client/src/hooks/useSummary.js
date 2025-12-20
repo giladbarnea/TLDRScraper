@@ -19,6 +19,17 @@ function releaseZenLock(url) {
   }
 }
 
+function markdownToHtml(markdown) {
+  if (!markdown) return ''
+  try {
+    const rawHtml = marked.parse(markdown)
+    return DOMPurify.sanitize(rawHtml)
+  } catch (error) {
+    console.error('Failed to parse markdown:', error)
+    return ''
+  }
+}
+
 export function useSummary(date, url, type = 'tldr') {
   if (type === 'summary') {
     throw new Error('Summary feature has been removed. Use type="tldr" instead.')
@@ -33,28 +44,12 @@ export function useSummary(date, url, type = 'tldr') {
   const data = article?.[type]
   const status = data?.status || 'unknown'
   const markdown = data?.markdown || ''
-
-  const html = (() => {
-    if (!markdown) return ''
-    try {
-      const rawHtml = marked.parse(markdown)
-      return DOMPurify.sanitize(rawHtml)
-    } catch (error) {
-      console.error('Failed to parse markdown:', error)
-      return ''
-    }
-  })()
+  const html = markdownToHtml(markdown)
 
   const errorMessage = data?.errorMessage || null
   const isAvailable = status === 'available' && markdown
   const isLoading = status === 'creating' || loading
   const isError = status === 'error'
-
-  const buttonLabel = isLoading ? 'Loading...'
-    : expanded ? 'Hide'
-    : isAvailable ? 'Available'
-    : isError ? 'Retry'
-    : 'TLDR'
 
   const fetchTldr = async (summaryEffort = effort) => {
     if (!article) return
@@ -118,6 +113,7 @@ export function useSummary(date, url, type = 'tldr') {
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false)
+        abortControllerRef.current = null
       }
     }
   }
@@ -146,19 +142,12 @@ export function useSummary(date, url, type = 'tldr') {
     }
   }
 
-  const toggleVisibility = () => {
-    if (isAvailable) {
-      if (expanded) {
-        releaseZenLock(url)
-        setExpanded(false)
-      } else if (acquireZenLock(url)) {
-        setExpanded(true)
-      }
-    }
-  }
-
   useEffect(() => {
     return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
       releaseZenLock(url)
     }
   }, [url])
@@ -174,11 +163,9 @@ export function useSummary(date, url, type = 'tldr') {
     effort,
     isAvailable,
     isError,
-    buttonLabel,
     fetch: fetchTldr,
     toggle,
     collapse,
-    expand,
-    toggleVisibility
+    expand
   }
 }
