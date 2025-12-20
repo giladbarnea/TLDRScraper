@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-15 16:23, 58c3b1e
+last_updated: 2025-12-20 22:11
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -121,69 +121,38 @@ PY
 - Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables.
 - Run `source ./setup.sh` to verify the environment and dependencies are set up correctly. Use `source setup.sh && start_server_and_watchdog` and `source setup.sh && print_server_and_watchdog_pids` to confirm the local server is running. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/tldr-url`) throughout the development process to catch regressions early. Use `source setup.sh && kill_server_and_watchdog` for cleanup.
 - Verify every new behavior, fix or modification you make by utilizing your shell and Playwright. If possible, execute the modified flow to ensure nothing is broken.
-- Make note of the various sub agents available to you (.claude/agents/) and use them in the circumstances they describe.
 
+## Using (Sub-)Agents
 
-## Dispatching AI Sub-Agents
+Make note of the multiple available agents (`.claude/agents/**/*.md`) and use them as they describe in their frontmatter.
 
-Delegating exploration and research tasks to sub agents leads to improved results and is context-efficient. A sub-agent dives into a specific problem area with its own fresh context window, then returns a concise summary of its findings to you. This keeps you focused on the task and keeps your main context window from ballooning. 
-Deploy multiple sub-agents in parallel when your task spans multiple broad domains. A classic case: The codebase needs to be investigated across the entire call graph for any reason -> Run 3-4 parallel scouting agents, one for each of the project's subsystems. Reasons range from finding where a functionality is implemented (needle in a haystack) to gathering detailed information of multiple domains (map out the entire haystack). 
+Dispatch an agent whenever you need to either:
+a) explore a particular system or a major domain within the codebase (`codebase-analyzer:single-subsystem`); or
+b) explore multiple systems or domains up to and including the entire codebase (`codebase-analyzer:multiple-subsystems`); or
+c) find where a feature or functionality is used or implemented (`codebase-locator`).
 
-Use multiple sub-agents in parallel when a task spans several domains. For example, if you need to inspect the codebase across the full call graph, launch 3–4 scouting agents—one per subsystem. A squad of agents is optimal for handling anything from pinpointing a specific implementation (“needle in a haystack”) to mapping out wide-spanning contexts (“the entire haystack”).
+Delegating exploration and research tasks to agents leads to improved results and is context-efficient. It keeps the main conversation’s context window from ballooning and your mind clear of noise.
 
-### How to Run Sub-Agents
+**A few goto agents:**
+- `codebase-locator` to find *where* something is in the codebase.
+- `codebase-analyzer:single-subsystem` to get a deep report on *how* a particular system or domain works.  
+- `codebase-analyzer:multiple-subsystems` when you need in-depth research across *multiple systems* and domains, plus an excellent *synthesis* of their connected flows, how they’re coupled, and so on.
 
-**Claude agents**: skip this section. If you're a Claude, use your built in `Task(agent_type=..., model=sonnet)` instead of the manual techniques outlined here.
+#### Common agent-driven workflows
 
-**Codex and Gemini**: read and apply this section.
+1) **Understanding the codebase-wide reach of a particular aspect, concept, feature, functionality, etc:**
+  codebase-locator("Find all contexts in the codebase that have to do with {thin lead}")    // Will provide a list of contexts.
+  -> codebase-analyzer:multiple-subsystems("Investigate {list of contexts}")
 
-Installed and run a sub-agent ad hoc:
+2) **Wide understanding of an entire codebase or any arbitrarily large scope:**
+  codebase-analyzer:multiple-subsystems("Investigate the {large scope}")    // Handles any compound set of domains, no matter how large or complex, by automatically creating as many `single-subsystem` agents as the scope requires.
+  
+3) **Deep understanding of a particular system or domain:**
+  codebase-analyzer:single-subsystem("Investigate the {system or domain}")    // Deep, narrow and thorough exploration of a system or domain.
 
-```sh
-# Google Gemini:.
-./scripts/install-gemini-cli.sh
-prompt_file=$(mktemp)
-echo '<tailored prompt for this agent’s subtask>' > "$prompt_file"
-./scripts/run-gemini.sh "$prompt_file"
-rm "$prompt_file" 
-```
+#### How to prompt an agent
 
-It is also possible to use one of the pre-made agents or commands:
-```sh
-# OpenAI Codex:
-./scripts/install-codex-cli.sh
-prompt_file=$(mktemp)
-cat .claude/agents/your-agent-of-choice.md > "$prompt_file"
-echo -e "\n---\n<tailored prompt for this agent’s subtask>" >> "$prompt_file"
-./scripts/run-codex.sh "$prompt_file"
-rm "$prompt_file" 
-```
-
-And trivially, you can parallelize agents:
-```sh
-./scripts/install-codex-cli.sh
-COMMON_CONTEXT='<wider context to include in every agent’s prompt>'
-declare -a domains=(
-  'scraping subsystem'
-  'web server endpoints'
-  'client state management vs user interactions'
-  'client rendering vs state management'
-)
-
-for domain in "${domains[@]}"; do
-(
-  prompt_file=$(mktemp)
-  echo "$COMMON_CONTEXT" > "$prompt_file"
-  echo -e "\n---\nFocus only on the ${domain}." >> "$prompt_file"
-  ./scripts/run-codex.sh "$prompt_file" >> "${domain// /-}.md" 2>&1
-  rm "$prompt_file"
-) &
-done
-
-wait
-```
-
-Then read all new findings docs.
+Be generous in giving the agent wider context—understanding *why* it's performing the task will boost its performance. Don't micromanage nor over-instruct it. The agent already has a highly detailed system prompt. Avoid prescribing instructions or giving it "how-to" examples; just declare what kind of understanding you're seeking.
 
 ## Development Conventions
 
