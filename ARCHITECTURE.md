@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-11 15:03, ba0452f
+last_updated: 2025-12-20 21:14
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. style: Behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships.
 ---
@@ -229,19 +229,29 @@ idle
   │    │    ↓
   │    │  checking_cache
   │    │    │
-  │    │    ├─ Fully cached & cache enabled
+  │    │    ├─ Today in range (regardless of cache state)
+  │    │    │    ↓
+  │    │    │  fetching_api (cache bypassed to allow server-side union)
+  │    │    │
+  │    │    ├─ All past dates fully cached & cache enabled
   │    │    │    ↓
   │    │    │  loading_cache (GET /api/storage/daily-range)
   │    │    │    ↓
-  │    │    │  complete (load from Supabase)
+  │    │    │  complete (load from client cache)
   │    │    │
   │    │    └─ Not fully cached OR cache disabled
   │    │         ↓
   │    │       fetching_api
+  │    │
+  │    │  fetching_api → Server-side per-date logic:
+  │    │    │
+  │    │    ├─ Past dates: cache-first (load from Supabase if cached, else scrape)
+  │    │    │
+  │    │    └─ Today: union logic (cached articles + newly scraped articles)
   │    │         │
   │    │         ├─ Success
   │    │         │    ↓
-  │    │         │  merging_cache (if cache enabled)
+  │    │         │  merging_cache (client preserves user state: tldr, read, removed)
   │    │         │    ↓ POST /api/storage/daily/{date}
   │    │         │  complete
   │    │         │
@@ -440,13 +450,15 @@ User clicks "Scrape Newsletters"
        │    │
   │    └─ scraper.js isRangeCached(startDate, endDate)
   │         │
-  │         ├─ Compute date range: computeDateRange()
+  │         ├─ If today is in range:
   │         │    │
-  │         │    └─ Returns: ['2024-01-03', '2024-01-02', '2024-01-01']
+  │         │    └─ Return false immediately (bypass cache to trigger server union)
+  │         │
+  │         ├─ Compute date range for past dates only
   │         │
   │         └─ Check each date in Supabase:
   │              │
-  │              └─ GET /api/storage/is-cached/2024-01-01
+  │              └─ GET /api/storage/is-cached/{date}
   │                   │
   │                   ├─ If ALL dates cached AND cacheEnabled = true
   │                   │    │
@@ -454,7 +466,6 @@ User clicks "Scrape Newsletters"
   │                   │         │
   │                   │         ├─ POST /api/storage/daily-range
   │                   │         ├─ Build stats: buildStatsFromPayloads()
-  │                   │         ├─ Update progress state
   │                   │         │
   │                   │         └─ Return cached results
        │                   │
@@ -480,35 +491,34 @@ User clicks "Scrape Newsletters"
        │              │    │    - end_date: "2024-01-03"
        │              │    │    - sources: null (optional)
        │              │    │
-       │              │    └─ tldr_app.py:9 scrape_newsletters(start_date, end_date, source_ids, excluded_urls=[])
+       │              │    └─ tldr_app.py scrape_newsletters(start_date, end_date, source_ids, excluded_urls=[])
        │              │         │
-       │              │         └─ tldr_service.py:43 scrape_newsletters_in_date_range()
+       │              │         └─ tldr_service.py scrape_newsletters_in_date_range()
        │              │              │
-       │              │              ├─ tldr_service.py:17 _parse_date_range()
-       │              │              │    │
-       │              │              │    ├─ Parse ISO dates
-       │              │              │    ├─ Validate: start <= end
-       │              │              │    ├─ Validate: range < 31 days
-       │              │              │    │
-       │              │              │    └─ Return (datetime, datetime)
+       │              │              ├─ Parse and validate date range (max 31 days)
        │              │              │
-       │              │              └─ newsletter_scraper.py:307 scrape_date_range(start_date, end_date, source_ids, excluded_urls)
+       │              │              └─ For each date in range (per-date cache logic):
        │              │                   │
-       │              │                   ├─ util.get_date_range(start, end)
+       │              │                   ├─ PAST DATE + CACHED:
        │              │                   │    │
-       │              │                   │    └─ Returns list of dates: [date1, date2, date3]
+       │              │                   │    └─ storage_service.get_daily_payload(date)
+       │              │                   │         → Use cached articles directly (no network)
        │              │                   │
-       │              │                   ├─ Default sources: NEWSLETTER_CONFIGS.keys()
-       │              │                   │    - ['tldr_tech', 'tldr_ai', 'hackernews', ...]
+       │              │                   ├─ PAST DATE + NOT CACHED:
+       │              │                   │    │
+       │              │                   │    └─ newsletter_scraper.scrape_date_range(date, date, ...)
+       │              │                   │         → Scrape from sources, add to response
        │              │                   │
-       │              │                   ├─ Initialize tracking:
-       │              │                   │    - all_articles = []
-       │              │                   │    - url_set = set()
-       │              │                   │    - issue_metadata_by_key = {}
-       │              │                   │
-       │              │                   └─ For each date in dates:
+       │              │                   └─ TODAY:
        │              │                        │
-       │              │                        └─ For each source_id in source_ids:
+       │              │                        ├─ Load cached articles from Supabase (if any)
+       │              │                        ├─ Extract cached URLs to exclusion set
+       │              │                        ├─ Scrape sources with cached URLs excluded
+       │              │                        └─ Union: cached articles + newly scraped articles
+       │              │
+       │              │              newsletter_scraper.scrape_date_range():
+       │              │                   │
+       │              │                   └─ For each source_id in source_ids:
        │              │                             │
        │              │                             ├─ newsletter_scraper.py:231 _collect_newsletters_for_date_from_source()
        │              │                             │    │
@@ -1090,8 +1100,9 @@ Three-tier cache strategy in `useSupabaseStorage`:
 
 1. **Caching Strategy**
    - Cache at daily granularity (not per-source)
-   - Merge strategy preserves user state and AI content
-   - Cache check before every API call
+   - Past dates: cache-first (skip network if cached)
+   - Today: server-side union (cached + new articles) to capture fresh content
+   - Client merge preserves user state (tldr, read, removed)
 
 2. **Rate Limiting**
    - 0.2s delay between source scrapes
