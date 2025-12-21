@@ -1,3 +1,6 @@
+---
+last_updated: 2025-12-21 07:54
+---
 # Documentation Maintenance Workflow
 
 This diagram illustrates the sequential job execution in `maintain-documentation.yml` that prevents race conditions.
@@ -140,3 +143,28 @@ git commit --amend
 4. **No Race Conditions**: Each job waits for previous job to complete and push
 5. **Idempotent Operations**: Each job can safely re-run without side effects
 6. **Clear Separation**: Local hooks handle local dev, GitHub Actions handle remote automation
+
+---
+
+# Weekly Branch & PR Cleanup Workflow
+
+This workflow runs every Sunday at 2 AM UTC to clean up stale branches and PRs.
+
+## Workflow Steps
+
+The workflow has three sequential steps:
+
+### 1. Delete branches for old merged/closed PRs (1 week threshold)
+- Gets all remote branches except main/master
+- For each branch with an associated PR, checks if the PR is merged or closed
+- Deletes the branch if the PR was completed more than 1 week ago
+
+### 2. Delete orphan branches older than 2 weeks
+- Skips branches that have any associated PR (those are handled by step 1)
+- For branches without PRs, checks the last commit date
+- Deletes if older than 2 weeks
+
+### 3. Close stale open PRs (1 week threshold)
+- Gets all open PRs in the repository
+- Checks each PR's creation date
+- Closes PR with an automated comment if created more than 1 week ago

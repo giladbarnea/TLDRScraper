@@ -81,6 +81,41 @@ jobs:
           echo ""
           echo "Deleted $deleted_count branch(es)"
 
+      - name: Delete orphan branches older than 2 weeks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Finding branches without PRs, older than 2 weeks..."
+
+          git fetch --all --prune
+          branches=$(git branch -r | grep -v 'HEAD\|main\|master' | sed 's/origin\///' | xargs)
+
+          two_weeks_ago=$(date -d '14 days ago' +%s)
+          deleted_count=0
+
+          for branch in $branches; do
+            # Check if branch has any associated PR
+            pr_number=$(gh pr list --state all --head "$branch" --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+            if [ -n "$pr_number" ]; then
+              # Has a PR, skip (handled by previous step)
+              continue
+            fi
+
+            # No PR - check last commit date
+            last_commit_epoch=$(git log -1 --format=%ct "origin/$branch" 2>/dev/null || echo "0")
+
+            if [ "$last_commit_epoch" -lt "$two_weeks_ago" ]; then
+              last_commit_human=$(git log -1 --format="%ar" "origin/$branch" 2>/dev/null || echo "unknown")
+              echo "  Deleting orphan branch: $branch (last commit: $last_commit_human)"
+              git push origin --delete "$branch" 2>/dev/null || echo "    Failed to delete $branch"
+              deleted_count=$((deleted_count + 1))
+            fi
+          done
+
+          echo ""
+          echo "Deleted $deleted_count orphan branch(es)"
+
       - name: Close stale open PRs
         env:
           GH_TOKEN: ${{ github.token }}
