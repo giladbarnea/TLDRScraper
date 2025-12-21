@@ -50,12 +50,6 @@ export function useSummary(date, url, type = 'tldr') {
   const isLoading = status === 'creating' || loading
   const isError = status === 'error'
 
-  const buttonLabel = isLoading ? 'Loading...'
-    : expanded ? 'Hide'
-    : isAvailable ? 'Available'
-    : isError ? 'Retry'
-    : 'TLDR'
-
   const fetchTldr = async (summaryEffort = effort) => {
     if (!article) return
 
@@ -116,6 +110,8 @@ export function useSummary(date, url, type = 'tldr') {
       }))
       console.error(`Failed to fetch ${type}:`, error)
     } finally {
+      // Only reset loading if this fetch wasn't aborted. In practice, abort only happens
+      // when a NEW fetch starts (line 56-57), so a successor fetch always completes and resets loading.
       if (!controller.signal.aborted) {
         setLoading(false)
       }
@@ -146,17 +142,6 @@ export function useSummary(date, url, type = 'tldr') {
     }
   }
 
-  const toggleVisibility = () => {
-    if (isAvailable) {
-      if (expanded) {
-        releaseZenLock(url)
-        setExpanded(false)
-      } else if (acquireZenLock(url)) {
-        setExpanded(true)
-      }
-    }
-  }
-
   useEffect(() => {
     return () => {
       releaseZenLock(url)
@@ -174,11 +159,9 @@ export function useSummary(date, url, type = 'tldr') {
     effort,
     isAvailable,
     isError,
-    buttonLabel,
     fetch: fetchTldr,
     toggle,
     collapse,
-    expand,
-    toggleVisibility
+    expand
   }
 }

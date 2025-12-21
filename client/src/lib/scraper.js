@@ -109,7 +109,6 @@ function buildDailyPayloadsFromScrape(data) {
         sectionOrder: article.section_order ?? null,
         newsletterType: article.newsletter_type || null,
         removed: Boolean(article.removed),
-        tldrHidden: false,
         tldr: { status: 'unknown', markdown: '', effort: 'low', checkedAt: null, errorMessage: null },
         read: { isRead: false, markedAt: null }
       }
@@ -151,8 +150,7 @@ async function mergeWithCache(payloads) {
               ...article,
               tldr: existingArticle.tldr || article.tldr,
               read: existingArticle.read || article.read,
-              removed: existingArticle.removed ?? article.removed,
-              tldrHidden: existingArticle.tldrHidden ?? article.tldrHidden
+              removed: existingArticle.removed ?? article.removed
             }
           }
           return article
