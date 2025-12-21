@@ -90,15 +90,29 @@ function ArticleTitle({ isRead, title }) {
   )
 }
 
-function ArticleMeta({ domain, articleMeta, isRead, tldrLoading }) {
+function ArticleMeta({ domain, hostname, articleMeta, isRead, tldrLoading }) {
   return (
     <div className="mb-1 flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <span className="text-[11px] font-medium text-slate-400">
-          {domain && domain}
-          {domain && articleMeta && ' │ '}
-          {articleMeta}
-        </span>
+        {hostname && (
+          <div className="w-[18px] h-[18px] rounded-full bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+            <img
+              src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
+              alt={domain}
+              className="w-full h-full object-cover"
+              onError={(e) => { e.target.style.display = 'none' }}
+            />
+          </div>
+        )}
+        <div className="flex items-baseline gap-2 text-xs leading-none">
+          <span className="font-medium text-slate-600">
+            {domain && domain}
+          </span>
+          <span className="text-slate-300">|</span>
+          <span className="font-normal text-slate-400">
+            {articleMeta}
+          </span>
+        </div>
         {isRead && <CheckCircle size={14} className="text-slate-300" />}
       </div>
       {tldrLoading && <Loader2 size={14} className="animate-spin text-brand-500" />}
@@ -137,12 +151,14 @@ function ArticleCard({ article }) {
     ? article.url
     : `https://${article.url}`
 
-  const domain = (() => {
+  const { displayDomain, hostname } = (() => {
     try {
       const urlObj = new URL(fullUrl)
-      return urlObj.hostname.replace(/^www\./, '').split('.')[0].toLowerCase()
+      const h = urlObj.hostname
+      const d = h.replace(/^www\./, '').split('.')[0].toLowerCase()
+      return { displayDomain: d, hostname: h }
     } catch {
-      return null
+      return { displayDomain: null, hostname: null }
     }
   })()
 
@@ -218,7 +234,8 @@ function ArticleCard({ article }) {
 
             {!isRemoved && (
               <ArticleMeta
-                domain={domain}
+                domain={displayDomain}
+                hostname={hostname}
                 articleMeta={article.articleMeta}
                 isRead={isRead}
                 tldrLoading={tldr.loading}
