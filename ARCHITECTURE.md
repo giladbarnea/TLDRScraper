@@ -1,7 +1,7 @@
 ---
-last_updated: 2025-12-20 21:16, 9672688
-description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. style: Behavioral and declarative.
-scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships.
+last_updated: 2025-12-21 06:26
+description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
+scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
 # TLDRScraper Architecture Documentation
 
@@ -1159,26 +1159,6 @@ Three-tier cache strategy in `useSupabaseStorage`:
 - User scrapes date range → Views results
 - User marks article as read → State persists
 - User generates summary → Summary displays and caches
-
----
-
-## Future Enhancements
-
-1. **Reasoning Effort Selector**
-   - Dropdown on summary button (minimal/low/medium/high)
-   - Currently hardcoded to "low"
-
-2. **Source Filtering**
-   - UI to select which newsletters to scrape
-   - Backend already supports `sources` parameter
-
-3. **Export Functionality**
-   - Export articles as markdown/JSON
-   - Bulk copy summaries
-
-4. **Search & Filter**
-   - Full-text search across articles
-   - Filter by category/source/state
 
 ---
 

@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-17 14:14, 8d9916c
+last_updated: 2025-12-21 06:26
 ---
 # Plan Review - Cache-Scrape Edge Case (Today)
 
@@ -15,3 +15,4 @@ Findings:
 - Excluded URL set should be canonicalized/deduped when combining cached URLs with any caller-provided `excluded_urls` to avoid misses and unbounded list growth. (util.canonicalize_url; newsletter_scraper.py:231-360)
 
 Recommendation: Consider revising the approach. We suggest updating the plan to keep cached articles/issues in the response (either union cached+new on the server and recompute stats, or make `mergeWithCache` union cached payloads and recalc stats) and to preserve cache-first for non-today dates while still forcing a fresh scrape for today. It might also be worth normalizing "today" checks to date-only values before bypassing the cache.
+> Note::This recommendation was rejected eventually.
