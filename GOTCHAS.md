@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-11-27 10:44, 115d611
+last_updated: 2025-12-21 08:45
 ---
 # Gotchas
 
@@ -23,11 +23,7 @@ session-id: 01UFCK16ngqZGTQNBXCogUbU
 
 **Feature removed**: Previously, when a user collapsed a TLDR, the article would be marked as `tldrHidden` and repositioned to a lower position in the list (below read articles, above removed articles). This "deprioritization" behavior has been removed.
 
-**Current behavior**: Articles now maintain their position when TLDRs are collapsed. The `tldrHidden` property is still tracked internally but no longer affects article sorting.
-
-**Changes made**:
-- `ArticleList.jsx:7-12` - Removed `tldrHidden` from sorting logic (3-state system now: unread→read→removed)
-- `ARCHITECTURE.md:154,167,868-881` - Updated documentation to remove references to deprioritization behavior
+**Update 2025-12-21**: The `tldrHidden` property was fully removed from the codebase. It had become vestigial (written but never read). TLDR expand/collapse is now purely local component state.
 
 **Historical context**: The deprioritization feature was originally implemented to help users move articles they'd finished reading to the bottom of their feed. However, this automatic repositioning was confusing and not desired. The feature existed from 2025-10-31 through 2025-11-24.
 

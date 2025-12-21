@@ -9,13 +9,6 @@ export function useArticleState(date, url) {
 
   const isRead = article?.read?.isRead ?? false
   const isRemoved = Boolean(article?.removed)
-  const isTldrHidden = Boolean(article?.tldrHidden)
-
-  const state = !article ? 0
-    : article.removed ? 3
-    : article.tldrHidden ? 2
-    : article.read?.isRead ? 1
-    : 0
 
   const updateArticle = (updater) => {
     if (!article) return
@@ -49,42 +42,20 @@ export function useArticleState(date, url) {
     else markAsRead()
   }
 
-  const setRemoved = (removed) => {
-    updateArticle(() => ({ removed: Boolean(removed) }))
-  }
-
   const toggleRemove = () => {
-    setRemoved(!isRemoved)
-  }
-
-  const setTldrHidden = (hidden) => {
-    updateArticle(() => ({ tldrHidden: Boolean(hidden) }))
-  }
-
-  const markTldrHidden = () => {
-    setTldrHidden(true)
-  }
-
-  const unmarkTldrHidden = () => {
-    setTldrHidden(false)
+    updateArticle(() => ({ removed: !isRemoved }))
   }
 
   return {
     article,
     isRead,
     isRemoved,
-    isTldrHidden,
-    state,
     loading,
     error,
     markAsRead,
     markAsUnread,
     toggleRead,
-    setRemoved,
     toggleRemove,
-    setTldrHidden,
-    markTldrHidden,
-    unmarkTldrHidden,
     updateArticle
   }
 }

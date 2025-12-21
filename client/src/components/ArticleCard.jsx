@@ -115,7 +115,7 @@ function TldrError({ message }) {
 }
 
 function ArticleCard({ article }) {
-  const { isRead, isRemoved, toggleRead, toggleRemove, markTldrHidden, unmarkTldrHidden, loading: stateLoading } = useArticleState(
+  const { isRead, isRemoved, toggleRemove, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
   )
@@ -146,17 +146,6 @@ function ArticleCard({ article }) {
     }
   })()
 
-  const toggleTldrWithTracking = (toggleFn) => {
-    const wasExpanded = tldr.expanded
-    toggleFn()
-
-    if (wasExpanded) {
-      markTldrHidden()
-    } else {
-      unmarkTldrHidden()
-    }
-  }
-
   const handleCardClick = (e) => {
     if (isDragging) return
     
@@ -169,7 +158,7 @@ function ArticleCard({ article }) {
     const selection = window.getSelection()
     if (selection.toString().length > 0) return
 
-    toggleTldrWithTracking(() => tldr.toggle())
+    tldr.toggle()
   }
 
   return (
@@ -245,7 +234,7 @@ function ArticleCard({ article }) {
                 title={article.title}
                 url={fullUrl}
                 html={tldr.html}
-                onClose={() => toggleTldrWithTracking(() => tldr.collapse())}
+                onClose={() => tldr.collapse()}
               />
             )}
           </div>

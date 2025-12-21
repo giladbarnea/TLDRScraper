@@ -64,7 +64,6 @@ def test_2_newsletter_scraping_cache_miss():
                 "issueDate": future_date,
                 "category": "Newsletter",
                 "removed": False,
-                "tldrHidden": False,
                 "read": {"isRead": False, "markedAt": None},
                 "tldr": {"status": "unknown", "markdown": ""}
             }
@@ -123,7 +122,6 @@ def test_4_mark_article_as_read():
                 "issueDate": test_date,
                 "category": "Newsletter",
                 "removed": False,
-                "tldrHidden": False,
                 "read": {"isRead": False, "markedAt": None},
                 "tldr": {"status": "unknown", "markdown": ""}
             }
@@ -168,7 +166,6 @@ def test_5_remove_article():
                 "issueDate": test_date,
                 "category": "Newsletter",
                 "removed": False,
-                "tldrHidden": False,
                 "read": {"isRead": False, "markedAt": None},
                 "tldr": {"status": "unknown", "markdown": ""}
             }
@@ -237,7 +234,6 @@ def test_7_generate_tldr():
                 "issueDate": test_date,
                 "category": "Newsletter",
                 "removed": False,
-                "tldrHidden": False,
                 "read": {"isRead": False, "markedAt": None},
                 "tldr": {"status": "unknown", "markdown": ""}
             }
@@ -269,63 +265,9 @@ def test_7_generate_tldr():
     print("✓ TLDR persisted across refresh")
 
 
-def test_8_hide_tldr():
-    """Test 8: Hide TLDR"""
-    print("\n=== Test 8: Hide TLDR ===")
-
-    test_date = (datetime.now() + timedelta(days=103)).strftime("%Y-%m-%d")
-
-    response = requests.get(f"{BASE_URL}/api/storage/daily/{test_date}")
-    payload = response.json()["payload"]
-
-    assert payload["articles"][0]["tldrHidden"] is False
-    print("✓ TLDR not hidden initially")
-
-    payload["articles"][0]["tldrHidden"] = True
-
-    response = requests.post(
-        f"{BASE_URL}/api/storage/daily/{test_date}",
-        json={"payload": payload}
-    )
-    assert response.status_code == 200
-    print("✓ TLDR hidden")
-
-    response = requests.get(f"{BASE_URL}/api/storage/daily/{test_date}")
-    data = response.json()
-    assert data["payload"]["articles"][0]["tldrHidden"] is True
-    print("✓ Hidden state persisted")
-
-
-def test_9_expand_hidden_tldr():
-    """Test 9: Expand Hidden TLDR"""
-    print("\n=== Test 9: Expand Hidden TLDR ===")
-
-    test_date = (datetime.now() + timedelta(days=103)).strftime("%Y-%m-%d")
-
-    response = requests.get(f"{BASE_URL}/api/storage/daily/{test_date}")
-    payload = response.json()["payload"]
-
-    assert payload["articles"][0]["tldrHidden"] is True
-    print("✓ TLDR is hidden (from Test 8)")
-
-    payload["articles"][0]["tldrHidden"] = False
-
-    response = requests.post(
-        f"{BASE_URL}/api/storage/daily/{test_date}",
-        json={"payload": payload}
-    )
-    assert response.status_code == 200
-    print("✓ TLDR expanded")
-
-    response = requests.get(f"{BASE_URL}/api/storage/daily/{test_date}")
-    data = response.json()
-    assert data["payload"]["articles"][0]["tldrHidden"] is False
-    print("✓ Expanded state persisted")
-
-
-def test_10_article_sorting_states():
-    """Test 10: Article Sorting Verification - All 4 States"""
-    print("\n=== Test 10: Article Sorting Verification ===")
+def test_8_article_sorting_states():
+    """Test 8: Article Sorting Verification - All 3 States"""
+    print("\n=== Test 8: Article Sorting Verification ===")
 
     test_date = (datetime.now() + timedelta(days=104)).strftime("%Y-%m-%d")
 
@@ -339,7 +281,6 @@ def test_10_article_sorting_states():
                 "issueDate": test_date,
                 "category": "Newsletter",
                 "removed": False,
-                "tldrHidden": False,
                 "read": {"isRead": False, "markedAt": None},
                 "tldr": {"status": "unknown", "markdown": ""}
             },
@@ -349,19 +290,8 @@ def test_10_article_sorting_states():
                 "issueDate": test_date,
                 "category": "Newsletter",
                 "removed": False,
-                "tldrHidden": False,
                 "read": {"isRead": True, "markedAt": datetime.now().isoformat()},
                 "tldr": {"status": "unknown", "markdown": ""}
-            },
-            {
-                "url": "https://example.com/tldr-hidden",
-                "title": "TLDR Hidden Article",
-                "issueDate": test_date,
-                "category": "Newsletter",
-                "removed": False,
-                "tldrHidden": True,
-                "read": {"isRead": True, "markedAt": datetime.now().isoformat()},
-                "tldr": {"status": "available", "markdown": "# Summary"}
             },
             {
                 "url": "https://example.com/removed",
@@ -369,7 +299,6 @@ def test_10_article_sorting_states():
                 "issueDate": test_date,
                 "category": "Newsletter",
                 "removed": True,
-                "tldrHidden": False,
                 "read": {"isRead": False, "markedAt": None},
                 "tldr": {"status": "unknown", "markdown": ""}
             }
@@ -382,7 +311,7 @@ def test_10_article_sorting_states():
         json={"payload": payload}
     )
     assert response.status_code == 200
-    print("✓ Created articles in all 4 states (unread, read, tldr-hidden, removed)")
+    print("✓ Created articles in all 3 states (unread, read, removed)")
 
     response = requests.get(f"{BASE_URL}/api/storage/daily/{test_date}")
     data = response.json()
@@ -390,24 +319,21 @@ def test_10_article_sorting_states():
 
     unread = next(a for a in articles if a["url"] == "https://example.com/unread")
     read = next(a for a in articles if a["url"] == "https://example.com/read")
-    hidden = next(a for a in articles if a["url"] == "https://example.com/tldr-hidden")
     removed = next(a for a in articles if a["url"] == "https://example.com/removed")
 
-    assert unread["read"]["isRead"] is False and not unread["removed"] and not unread["tldrHidden"]
-    assert read["read"]["isRead"] is True and not read["removed"] and not read["tldrHidden"]
-    assert hidden["tldrHidden"] is True and not hidden["removed"]
+    assert unread["read"]["isRead"] is False and not unread["removed"]
+    assert read["read"]["isRead"] is True and not read["removed"]
     assert removed["removed"] is True
 
     print("✓ All states persisted correctly")
-    print("  - Unread: State 0 (priority: top)")
-    print("  - Read: State 1")
-    print("  - TLDR Hidden: State 2")
-    print("  - Removed: State 3 (priority: bottom)")
+    print("  - Unread (priority: top)")
+    print("  - Read")
+    print("  - Removed (priority: bottom)")
 
 
-def test_11_scrape_with_existing_data():
-    """Test 11: Scrape with Existing Data - Merge Behavior"""
-    print("\n=== Test 11: Scrape with Existing Data ===")
+def test_9_scrape_with_existing_data():
+    """Test 9: Scrape with Existing Data - Merge Behavior"""
+    print("\n=== Test 9: Scrape with Existing Data ===")
 
     test_date = (datetime.now() + timedelta(days=105)).strftime("%Y-%m-%d")
 
@@ -421,7 +347,6 @@ def test_11_scrape_with_existing_data():
                 "issueDate": test_date,
                 "category": "Newsletter",
                 "removed": True,
-                "tldrHidden": False,
                 "read": {"isRead": True, "markedAt": datetime.now().isoformat()},
                 "tldr": {"status": "available", "markdown": "# Existing Summary"}
             }
@@ -445,7 +370,6 @@ def test_11_scrape_with_existing_data():
                 "issueDate": test_date,
                 "category": "Newsletter",
                 "removed": False,
-                "tldrHidden": False,
                 "read": {"isRead": False, "markedAt": None},
                 "tldr": {"status": "unknown", "markdown": ""}
             },
@@ -455,7 +379,6 @@ def test_11_scrape_with_existing_data():
                 "issueDate": test_date,
                 "category": "Newsletter",
                 "removed": False,
-                "tldrHidden": False,
                 "read": {"isRead": False, "markedAt": None},
                 "tldr": {"status": "unknown", "markdown": ""}
             }
@@ -478,8 +401,7 @@ def test_11_scrape_with_existing_data():
                 **fresh_article,
                 "tldr": existing_article.get("tldr", fresh_article["tldr"]),
                 "read": existing_article.get("read", fresh_article["read"]),
-                "removed": existing_article.get("removed", fresh_article["removed"]),
-                "tldrHidden": existing_article.get("tldrHidden", fresh_article["tldrHidden"])
+                "removed": existing_article.get("removed", fresh_article["removed"])
             })
         else:
             merged_articles.append(fresh_article)
@@ -512,9 +434,9 @@ def test_11_scrape_with_existing_data():
     print("✓ New article added with default state")
 
 
-def test_12_error_handling():
-    """Test 12: Error Handling - Non-existent Resources"""
-    print("\n=== Test 12: Error Handling ===")
+def test_10_error_handling():
+    """Test 10: Error Handling - Non-existent Resources"""
+    print("\n=== Test 10: Error Handling ===")
 
     response = requests.get(f"{BASE_URL}/api/storage/setting/nonexistent:key")
     assert response.status_code == 404
@@ -548,17 +470,15 @@ def run_all_tests():
         test_5_remove_article()
         test_6_restore_removed_article()
         test_7_generate_tldr()
-        test_8_hide_tldr()
-        test_9_expand_hidden_tldr()
-        test_10_article_sorting_states()
-        test_11_scrape_with_existing_data()
-        test_12_error_handling()
+        test_8_article_sorting_states()
+        test_9_scrape_with_existing_data()
+        test_10_error_handling()
 
         print("\n" + "="*60)
         print("ALL TESTS PASSED ✓")
         print("="*60)
         print("\nPhase 6 automated verification complete.")
-        print("All 12 test scenarios passed successfully.")
+        print("All 10 test scenarios passed successfully.")
         print("\nNext steps:")
         print("1. Frontend build verification: cd client && npm run build")
         print("2. Manual browser testing (see migration plan)")

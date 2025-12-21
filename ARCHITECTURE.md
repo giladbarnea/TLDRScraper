@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-21 06:26, 8efa1ad
+last_updated: 2025-12-21 08:45
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -601,7 +601,7 @@ User clicks "Scrape Newsletters"
   │              │    │
   │              │    ├─ If cached data exists:
   │              │    │    │
-  │              │    │    └─ Merge articles (preserve tldr, read, removed, tldrHidden)
+  │              │    │    └─ Merge articles (preserve tldr, read, removed)
   │              │    │
   │              │    └─ POST /api/storage/daily/{date} (save to Supabase)
   │              │
@@ -706,11 +706,10 @@ User clicks "TLDR" button OR clicks article card body
        │
        ├─ ArticleCard.jsx onClick={handleCardClick}
        │    │
-       │    └─ useSummary hook toggleVisibility()
+       │    └─ useSummary hook toggle()
        │         │
        │         ├─ Only acts if TLDR content already exists (isAvailable)
-       │         ├─ Toggles expanded state (no API call)
-       │         └─ Updates tldrHidden preference in storage
+       │         └─ Toggles expanded state (no API call)
        │
        └─ TLDR content shown/hidden (no server interaction)
 ```
@@ -747,7 +746,6 @@ User clicks "TLDR" button OR clicks article card body
 
   // User state
   removed: boolean,
-  tldrHidden: boolean,      // When user collapses TLDR after reading
   read: {
     isRead: boolean,
     markedAt: string | null  // ISO timestamp
@@ -959,14 +957,14 @@ async function mergeWithCache(payloads) {
     const existing = await storageApi.getDailyPayload(payload.date)
 
     if (existing) {
-      // Merge: preserve user state (read, removed, tldrHidden) and AI content (tldr)
+      // Merge: preserve user state (read, removed) and AI content (tldr)
       const mergedPayload = {
         ...payload,
         articles: payload.articles.map(article => {
           const existingArticle = existing.articles?.find(a => a.url === article.url)
           return existingArticle
             ? { ...article, tldr: existingArticle.tldr,
-                read: existingArticle.read, removed: existingArticle.removed, tldrHidden: existingArticle.tldrHidden }
+                read: existingArticle.read, removed: existingArticle.removed }
             : article
         })
       }
