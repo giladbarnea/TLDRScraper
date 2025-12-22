@@ -14,8 +14,8 @@ import sys
 from typing import List, Set
 
 COMMON_EXCLUDES = {
-    'node_modules', '__pycache__', 'dist', 'build', '.venv', 'venv', 'env', '_vendor',
-    'BUGS.md', 'GOTCHAS.md', 'CLAUDE.md', 'GEMINI.md', 'CODEX.md'
+    'node_modules', '__pycache__', 'dist', 'build', '.venv', 'venv', 'env', '_vendor', '.pytest_cache',
+    'BUGS.md', 'CLAUDE.md', 'GEMINI.md', 'CODEX.md'
 }
 
 SERVER_EXCLUDES = COMMON_EXCLUDES | {
