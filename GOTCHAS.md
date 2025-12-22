@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-21 09:54, 0cf4d39
+last_updated: 2025-12-22 18:34
 ---
 # Gotchas
 
@@ -17,38 +17,6 @@ This document catalogs recurring pitfalls in various topics, including managing 
 
 ---
 
-#### 2025-11-24: Removed article repositioning on TLDR collapse
-
-session-id: 01UFCK16ngqZGTQNBXCogUbU
-
-**Feature removed**: Previously, when a user collapsed a TLDR, the article would be marked as `tldrHidden` and repositioned to a lower position in the list (below read articles, above removed articles). This "deprioritization" behavior has been removed.
-
-**Update 2025-12-21**: The `tldrHidden` property was fully removed from the codebase. It had become vestigial (written but never read). TLDR expand/collapse is now purely local component state.
-
-**Historical context**: The deprioritization feature was originally implemented to help users move articles they'd finished reading to the bottom of their feed. However, this automatic repositioning was confusing and not desired. The feature existed from 2025-10-31 through 2025-11-24.
-
----
-
-#### 2025-11-24: Removed article repositioning on read/unread state changes
-
-session-id: 01UFCK16ngqZGTQNBXCogUbU
-
-**Feature removed**: Previously, articles were repositioned based on read/unread state. The sorting system used a 3-state priority: unread (top) → read (middle) → removed (bottom). When a user marked an article as read (by clicking the title or expanding TLDR), the article would move from the top section to the middle section.
-
-**Current behavior**: Articles maintain their original position when marked as read/unread. Only removed articles are repositioned (to bottom). The `read` property is still tracked and displayed visually (bold for unread, muted for read) but no longer affects article sorting.
-
-**Changes made**:
-- `ArticleList.jsx:7-8` - Simplified sorting to 2-state system (removed: 1, everything else: 0)
-- `ARCHITECTURE.md:167,868-881` - Updated documentation to reflect new sorting behavior
-
-**Rationale**: Automatic repositioning when reading articles was unexpected and disorienting. Users prefer articles to stay in their original order as they read through them. Removed articles still go to bottom as this is an explicit "hide this" action.
-
-**State transitions affected**:
-- Mark as read (click title, expand TLDR) - NO LONGER repositions
-- Toggle read/unread - NO LONGER repositions
-- Remove/restore - STILL repositions (moved to bottom / restored to original position)
-
----
 
 #### 2025-11-17: Child component bypassing state management layer causes infinite API hammering
 
@@ -100,14 +68,3 @@ session-id: 892fa714-0087-4c5a-9930-cffdfc5f5359
 
 **Cause & Fix**: The merge function wasn't transferring the new property from cached data. The fix was to add the missing property to the merge operation.
 
----
-
-#### 2025-10-31 `16bd653`: Component not reactive to storage changes
-
-**Desired behavior that didn't work**: When state changes in storage, the list should re-sort so visual order reflects current state.
-
-**What actually happened and falsified original thesis**: The list used stale prop values. We had wrongly assumed that components automatically react to storage mutations.
-
-**Cause & Fix**: Computed properties only track their declared dependencies. The fix was to dispatch custom events on storage writes and listen for them in consuming components.
-
----

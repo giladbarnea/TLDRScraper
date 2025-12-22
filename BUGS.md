@@ -1,11 +1,8 @@
 ---
-last_updated: 2025-12-06 17:20, 928abcf
+last_updated: 2025-12-22 18:34
 ---
 # Bugs Encountered
 
-## Third Party
-
-- [ ] Supabase error: `SSL: CERTIFICATE_VERIFY_FAILED`. See [this GitHub comment](https://github.com/supabase/supabase/discussions/29935#discussioncomment-12050763) for potential solution.
 
 ## Scraping
 
@@ -17,3 +14,4 @@ last_updated: 2025-12-06 17:20, 928abcf
 - [ ] https://www.gatesnotes.com/home/home-page-topic/reader/three-tough-truths-about-climate Empty content
 - [ ] https://x.com/satyanadella/status/1989755076353921404: Enable JavaScript or use a supported browser; disable privacy extensions; then try again. (25-11-17)
 - [ ] https://msn.com/en-us/money/savingandinvesting/oracle-has-lost-315-billion-in-market-value-since-announcing-its-300-billion-deal-with-openai/ar-AA1QH6et
+- [ ] https://docs.google.com/document/d/1Sm-XUZ4MvYHcOw7gsoIpdEu38GhCpgNCMnx6Fa0grks/edit (25-12-22)
