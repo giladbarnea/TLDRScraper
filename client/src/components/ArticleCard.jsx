@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
-import { AlertCircle, CheckCircle, ChevronLeft, Loader2, Trash2 } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { AlertCircle, Check, CheckCircle, ChevronDown, Loader2, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useArticleState } from '../hooks/useArticleState'
 import { useScrollProgress } from '../hooks/useScrollProgress'
@@ -23,9 +23,10 @@ function ErrorToast({ message, onDismiss }) {
   )
 }
 
-function ZenModeOverlay({ title, url, html, onClose }) {
+function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkDone }) {
   const scrollRef = useRef(null)
   const progress = useScrollProgress(scrollRef)
+  const [hasScrolled, setHasScrolled] = useState(false)
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -33,36 +34,76 @@ function ZenModeOverlay({ title, url, html, onClose }) {
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handleEscape)
+
+    const scrollEl = scrollRef.current
+    const handleScroll = () => {
+      setHasScrolled(scrollEl.scrollTop > 10)
+    }
+    scrollEl?.addEventListener('scroll', handleScroll, { passive: true })
+
     return () => {
       document.body.style.overflow = ''
       document.removeEventListener('keydown', handleEscape)
+      scrollEl?.removeEventListener('scroll', handleScroll)
     }
   }, [onClose])
 
   return createPortal(
     <div className="fixed inset-0 z-[100]">
-      <div className="w-full h-full bg-white flex flex-col animate-zen-enter">
-        <div className="flex items-center gap-3 p-5 border-b border-slate-100 bg-slate-50/80 shrink-0">
+      <div className="w-full h-full bg-white animate-zen-enter relative">
+        {/* Header: absolute positioned for transparency effect */}
+        <div className={`
+          absolute top-0 left-0 right-0 z-10
+          flex items-center justify-between px-5 py-4 transition-all duration-200
+          ${hasScrolled
+            ? 'bg-white/80 backdrop-blur-md border-b border-slate-100'
+            : 'bg-transparent border-b border-transparent'}
+        `}>
+          {/* Left: Collapse (Down Chevron) */}
           <button
             onClick={onClose}
-            className="shrink-0 p-2 rounded-full hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
+            className="p-2 -ml-2 rounded-full hover:bg-slate-200/60 text-slate-500 hover:text-slate-700 transition-colors"
+            aria-label="Close and save for later"
           >
-            <ChevronLeft size={20} />
+            <ChevronDown size={20} />
           </button>
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-display font-semibold text-lg text-slate-800 hover:text-brand-600 transition-colors"
+
+          {/* Center: Source Context */}
+          <div className="flex items-center gap-2">
+            {hostname && (
+              <div className="w-[18px] h-[18px] rounded-full bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                <img
+                  src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
+                  alt={displayDomain}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.target.style.display = 'none' }}
+                />
+              </div>
+            )}
+            <span className="text-sm text-slate-500 font-medium">
+              {displayDomain}
+              {articleMeta && <span className="text-slate-400"> · {articleMeta}</span>}
+            </span>
+          </div>
+
+          {/* Right: Mark Done (Checkmark) */}
+          <button
+            onClick={onMarkDone}
+            className="p-2 -mr-2 rounded-full hover:bg-green-100 text-slate-400 hover:text-green-600 transition-colors"
+            aria-label="Mark as done and remove"
           >
-            {title}
-          </a>
+            <Check size={20} />
+          </button>
+
+          {/* Progress bar at bottom of header */}
+          <div
+            className="absolute bottom-0 left-0 h-0.5 bg-purple-500 origin-left transition-transform duration-100"
+            style={{ transform: `scaleX(${progress})` }}
+          />
         </div>
-        <div
-          className="h-0.5 bg-purple-500 origin-left transition-transform duration-100"
-          style={{ transform: `scaleX(${progress})` }}
-        />
-        <div ref={scrollRef} className="overflow-y-auto flex-1 p-6 md:p-8 bg-white">
+
+        {/* Content: with top padding for absolute header */}
+        <div ref={scrollRef} className="overflow-y-auto h-full pt-16 p-6 md:p-8 bg-white">
           <div className="max-w-3xl mx-auto">
             <div
               className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900"
@@ -248,10 +289,16 @@ function ArticleCard({ article }) {
 
             {!isRemoved && tldr.expanded && tldr.html && (
               <ZenModeOverlay
-                title={article.title}
                 url={fullUrl}
                 html={tldr.html}
+                hostname={hostname}
+                displayDomain={displayDomain}
+                articleMeta={article.articleMeta}
                 onClose={() => tldr.collapse()}
+                onMarkDone={() => {
+                  tldr.collapse()
+                  toggleRemove()
+                }}
               />
             )}
           </div>
