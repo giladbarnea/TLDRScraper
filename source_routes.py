@@ -23,7 +23,7 @@ def run_context_script(context_types, only_definitions=True):
 
     for ctx in context_types:
         cmd = ['python3', str(script_path), ctx]
-        if ctx == 'server' and only_definitions:
+        if ctx in ('server', 'client') and only_definitions:
             cmd.append('--no-body')
         result = subprocess.run(
             cmd,
@@ -67,7 +67,7 @@ def source_ui():
             <label><input type="checkbox" name="context" value="client"> Client (React)</label>
         </div>
         <div class="checkbox-group">
-            <label><input type="checkbox" name="only_definitions" id="onlyDefinitions"> Python: Only definitions (no function bodies)</label>
+            <label><input type="checkbox" name="only_definitions" id="onlyDefinitions"> Only signatures (no function bodies - applies to Server + Client)</label>
         </div>
         <button type="submit">Download Context</button>
     </form>

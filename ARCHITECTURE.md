@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-21 09:54, 0cf4d39
+last_updated: 2025-12-23 12:31
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -184,8 +184,8 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 **User Action:** Browse to GET /api/source or call POST /api/source endpoint
 
 **Available Modes:**
-- `server`: Extract Python server code with optional AST-only mode
-- `client`: Extract all client-side code (JSX, JS, CSS, HTML)
+- `server`: Extract Python server code with optional signatures-only mode (AST-based)
+- `client`: Extract all client-side code (JSX, JS, CSS, HTML) with optional signatures-only mode (TypeScript .d.ts-like)
 - `docs`: Extract all markdown documentation
 - `all`: Concatenate all three contexts
 
