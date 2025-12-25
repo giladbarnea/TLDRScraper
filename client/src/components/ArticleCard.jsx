@@ -102,11 +102,11 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
           />
         </div>
 
-        {/* Content: with top padding for absolute header */}
-        <div ref={scrollRef} className="overflow-y-auto h-full pt-16 p-6 md:p-8 bg-white">
+        {/* Content: pt-[4.25rem] balances spacing below header */}
+        <div ref={scrollRef} className="overflow-y-auto h-full pt-[3rem] px-6 pb-[3rem] md:px-8 md:pb-8 bg-white">
           <div className="max-w-3xl mx-auto">
             <div
-              className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900"
+              className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg mt-12 prose-p:my-3 prose-headings:text-slate-900"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           </div>
