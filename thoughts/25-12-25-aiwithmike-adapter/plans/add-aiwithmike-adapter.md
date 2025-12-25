@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-25 08:45
+last_updated: 2025-12-25 09:46
 ---
 # Mathy AI (AI With Mike) Adapter Implementation Plan
 
@@ -227,14 +227,14 @@ class AiWithMikeAdapter(NewsletterAdapter):
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] `uv run python3 -c "from adapters.aiwithmike_adapter import AiWithMikeAdapter; print('Import OK')"` succeeds
-- [ ] `uv run python3 -c "from newsletter_config import NEWSLETTER_CONFIGS; assert 'aiwithmike' in NEWSLETTER_CONFIGS; print('Config OK')"` succeeds
-- [ ] `uv run python3 -m doctest adapters/aiwithmike_adapter.py -v` passes the `_strip_html` doctest
+- [x] `uv run python3 -c "from adapters.aiwithmike_adapter import AiWithMikeAdapter; print('Import OK')"` succeeds
+- [x] `uv run python3 -c "from newsletter_config import NEWSLETTER_CONFIGS; assert 'aiwithmike' in NEWSLETTER_CONFIGS; print('Config OK')"` succeeds
+- [x] `uv run python3 -m doctest adapters/aiwithmike_adapter.py -v` passes the `_strip_html` doctest
 
 #### Manual Verification:
-- [ ] Start server with `source setup.sh && start_server_and_watchdog`
-- [ ] `curl "http://localhost:5001/api/scrape?sources=aiwithmike&start_date=2025-12-22&end_date=2025-12-22"` returns article "When Models Judge Themselves"
-- [ ] Articles appear in the UI under "Mathy AI" category when browsing that date
+- [x] Start server with `source setup.sh && start_server_and_watchdog`
+- [x] `curl "http://localhost:5001/api/scrape?sources=aiwithmike&start_date=2025-12-22&end_date=2025-12-22"` returns article "When Models Judge Themselves"
+- [x] Articles appear in the UI under "Mathy AI" category when browsing that date
 
 ## Testing Strategy
 
