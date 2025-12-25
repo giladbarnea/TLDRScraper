@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-23 13:23
+last_updated: 2025-12-25 09:30
 ---
 `5410385c-b6ca-4add-af24-386832fee304`:
 Zen Overlay Plan:
@@ -7,3 +7,6 @@ Zen Overlay Plan:
 2. **Plan B (Swipe-Down):** Framer Motion drag gesture for collapse.
 3. **Plan C (Overscroll-Up):** Touch gesture at content bottom to trigger Mark Done.
 Status: 3 plans drafted. Ready to implement.
+
+not sure in what other session:
+Implemented Plan A (Header) iteration 1. Then small step to improve whitespace. Commit 0c6d344. Still not good enough. Client lint complains Unused `url` param in `function ZenModeOverlay` (`ArticleCard.jsx`). 
