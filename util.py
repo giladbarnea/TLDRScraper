@@ -158,11 +158,7 @@ def get_domain_name(url) -> str:
 
 logger = logging.getLogger(__name__)
 
-RETRIABLE_EXCEPTIONS = (
-    requests.Timeout,
-    requests.ConnectionError,
-    IOError,
-)
+RETRIABLE_EXCEPTIONS = (Exception,)
 
 
 def retry(max_attempts: int = 2, delay: float = 2.0):
