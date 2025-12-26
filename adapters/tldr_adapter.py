@@ -76,7 +76,7 @@ class TLDRAdapter(NewsletterAdapter):
 
         response.raise_for_status()
 
-        if response.is_redirect:
+        if 300 <= response.status_code < 400:
             return None
 
         logger.info(f"[tldr_adapter.fetch_issue] Fetched {newsletter_type} for {date_str} in {net_ms}ms")
