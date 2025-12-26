@@ -150,6 +150,7 @@ def _scrape_with_firecrawl(url: str, *, timeout: int) -> requests.Response:
     return mock_response
 
 
+@util.retry()
 def scrape_url(url: str, *, timeout: int = 10) -> Response:
     scraping_methods = [
         ("curl_cffi", _scrape_with_curl_cffi),
