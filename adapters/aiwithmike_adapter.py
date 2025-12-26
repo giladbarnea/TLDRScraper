@@ -8,7 +8,7 @@ filtering by date and extracting article metadata.
 import logging
 import re
 from datetime import datetime
-import requests
+
 import feedparser
 
 from adapters.newsletter_adapter import NewsletterAdapter
@@ -24,6 +24,13 @@ class AiWithMikeAdapter(NewsletterAdapter):
     def __init__(self, config):
         super().__init__(config)
         self.feed_url = "https://aiwithmike.substack.com/feed"
+
+    @util.retry()
+    def _fetch_feed(self):
+        """Fetch RSS feed content."""
+        response = util.fetch(self.feed_url, timeout=10)
+        response.raise_for_status()
+        return response.content
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
         """Fetch newsletter articles for a specific date from RSS feed.
@@ -44,10 +51,8 @@ class AiWithMikeAdapter(NewsletterAdapter):
         logger.info(f"[aiwithmike_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
-            response = requests.get(self.feed_url, timeout=10)
-            response.raise_for_status()
-
-            feed = feedparser.parse(response.content)
+            feed_content = self._fetch_feed()
+            feed = feedparser.parse(feed_content)
 
             logger.info(f"[aiwithmike_adapter.scrape_date] Fetched {len(feed.entries)} total entries from feed")
 
