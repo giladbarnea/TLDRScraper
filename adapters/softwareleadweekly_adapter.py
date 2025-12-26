@@ -10,7 +10,6 @@ from the HTML content.
 import logging
 import re
 from datetime import datetime, timedelta
-import requests
 
 from adapters.newsletter_adapter import NewsletterAdapter
 import util
@@ -130,35 +129,23 @@ class SoftwareLeadWeeklyAdapter(NewsletterAdapter):
         weeks_diff = days_diff // 7
         return REFERENCE_ISSUE + weeks_diff
 
+    @util.retry()
     def fetch_issue(self, issue_number: str, newsletter_type: str) -> str | None:
-        """Fetch raw HTML for a specific issue.
-
-        Args:
-            issue_number: Issue number as string
-            newsletter_type: Type (not used, included for interface compatibility)
-
-        Returns:
-            HTML content as string, or None if issue not found
-        """
+        """Fetch raw HTML for a specific issue."""
         url = f"https://softwareleadweekly.com/issues/{issue_number}"
 
-        try:
-            response = requests.get(
-                url,
-                headers={"User-Agent": self.config.user_agent},
-                timeout=10
-            )
+        response = util.fetch(
+            url,
+            headers={"User-Agent": self.config.user_agent},
+            timeout=10
+        )
 
-            if response.status_code == 404:
-                logger.info(f"[softwareleadweekly_adapter.fetch_issue] Issue {issue_number} not found (404)")
-                return None
-
-            response.raise_for_status()
-            return response.text
-
-        except Exception as e:
-            logger.error(f"[softwareleadweekly_adapter.fetch_issue] Error fetching issue {issue_number}: {e}", exc_info=True)
+        if response.status_code == 404:
+            logger.info(f"[softwareleadweekly_adapter.fetch_issue] Issue {issue_number} not found (404)")
             return None
+
+        response.raise_for_status()
+        return response.text
 
     def parse_articles(self, markdown: str, date: str, newsletter_type: str) -> list[dict]:
         """Parse articles from markdown content.

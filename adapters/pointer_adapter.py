@@ -13,7 +13,6 @@ import logging
 import re
 from datetime import datetime
 
-import requests
 from bs4 import BeautifulSoup
 
 from adapters.newsletter_adapter import NewsletterAdapter
@@ -30,6 +29,17 @@ class PointerAdapter(NewsletterAdapter):
         """Initialize with config."""
         super().__init__(config)
         self._date_to_url_cache = None
+
+    @util.retry()
+    def _fetch_page(self, url: str) -> str:
+        """Fetch page content."""
+        response = util.fetch(
+            url,
+            timeout=30,
+            headers={"User-Agent": self.config.user_agent}
+        )
+        response.raise_for_status()
+        return response.text
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
         """Fetch Pointer articles for a specific date.
@@ -102,23 +112,12 @@ class PointerAdapter(NewsletterAdapter):
         return self._date_to_url_cache.get(target_date)
 
     def _build_date_to_url_mapping(self) -> dict[str, str]:
-        """Build mapping of dates to issue URLs from archives page.
-
-        Returns:
-            Dictionary mapping YYYY-MM-DD strings to issue URLs
-        """
+        """Build mapping of dates to issue URLs from archives page."""
         archives_url = f"{self.config.base_url}/archives"
-
         logger.info(f"[pointer_adapter._build_date_to_url_mapping] Fetching archives from {archives_url}")
 
-        response = requests.get(
-            archives_url,
-            timeout=30,
-            headers={"User-Agent": self.config.user_agent}
-        )
-        response.raise_for_status()
-
-        soup = BeautifulSoup(response.text, 'html.parser')
+        html = self._fetch_page(archives_url)
+        soup = BeautifulSoup(html, 'html.parser')
         links = soup.find_all('a', href=True)
         issue_links = [link for link in links if '/archives/post_' in link['href']]
 
@@ -143,23 +142,9 @@ class PointerAdapter(NewsletterAdapter):
         return date_to_url
 
     def _scrape_issue(self, issue_url: str, date_str: str) -> list[dict]:
-        """Scrape articles from a Pointer issue page.
-
-        Args:
-            issue_url: URL of the issue page
-            date_str: Date string in YYYY-MM-DD format
-
-        Returns:
-            List of article dictionaries
-        """
-        response = requests.get(
-            issue_url,
-            timeout=30,
-            headers={"User-Agent": self.config.user_agent}
-        )
-        response.raise_for_status()
-
-        soup = BeautifulSoup(response.text, 'html.parser')
+        """Scrape articles from a Pointer issue page."""
+        html = self._fetch_page(issue_url)
+        soup = BeautifulSoup(html, 'html.parser')
         h1_tags = soup.find_all('h1')
 
         articles = []

@@ -9,8 +9,6 @@ import logging
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-import requests
-
 from adapters.newsletter_adapter import NewsletterAdapter
 import util
 
@@ -97,17 +95,15 @@ class NetflixAdapter(NewsletterAdapter):
 
         return self._normalize_response(articles, issues)
 
+    @util.retry()
     def _fetch_rss_feed(self) -> list[dict]:
-        """Fetch and parse the RSS feed.
-
-        Returns:
-            List of item dictionaries with title, link, pubDate, categories, description
-        """
-        response = requests.get(self.rss_url, timeout=30, headers={
-            'User-Agent': self.config.user_agent
-        })
+        """Fetch and parse the RSS feed."""
+        response = util.fetch(
+            self.rss_url,
+            timeout=30,
+            headers={'User-Agent': self.config.user_agent}
+        )
         response.raise_for_status()
-
         root = ET.fromstring(response.content)
         channel = root.find('channel')
 

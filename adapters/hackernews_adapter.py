@@ -13,7 +13,6 @@ Benefits over previous haxor library approach:
 
 import logging
 from datetime import datetime
-import requests
 
 from adapters.newsletter_adapter import NewsletterAdapter
 import util
@@ -132,6 +131,7 @@ class HackerNewsAdapter(NewsletterAdapter):
 
         return self._normalize_response(articles, issues)
 
+    @util.retry()
     def _fetch_stories_algolia(
         self,
         start_timestamp: int,
@@ -140,22 +140,8 @@ class HackerNewsAdapter(NewsletterAdapter):
         min_comments: int = 5,
         limit: int = 50
     ) -> list:
-        """Fetch stories from Algolia HN Search API with server-side filtering.
-
-        Args:
-            start_timestamp: Unix timestamp for start of date range
-            end_timestamp: Unix timestamp for end of date range
-            min_points: Minimum points (upvotes) required
-            min_comments: Minimum comment count required
-            limit: Maximum number of stories to return
-
-        Returns:
-            List of story dictionaries from Algolia API
-        """
+        """Fetch stories from Algolia HN Search API with server-side filtering."""
         url = f"{ALGOLIA_API_BASE}/search_by_date"
-
-        # Option B: Combined query for all story types with same quality threshold
-        # This includes story, ask_hn, and show_hn in a single request
         params = {
             "tags": "(story,ask_hn,show_hn)",
             "numericFilters": f"created_at_i>{start_timestamp},created_at_i<{end_timestamp},points>={min_points},num_comments>={min_comments}",
@@ -164,14 +150,13 @@ class HackerNewsAdapter(NewsletterAdapter):
 
         logger.info(f"[hackernews_adapter._fetch_stories_algolia] Querying Algolia API with filters: {params['numericFilters']}")
 
-        response = requests.get(url, params=params, timeout=10)
+        response = util.fetch(url, params=params, timeout=10)
         response.raise_for_status()
 
         data = response.json()
         hits = data.get('hits', [])
 
         logger.info(f"[hackernews_adapter._fetch_stories_algolia] Received {len(hits)} stories from Algolia")
-
         return hits
 
     def _algolia_story_to_article(self, story: dict, date: str) -> dict | None:

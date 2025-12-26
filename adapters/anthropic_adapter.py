@@ -8,7 +8,6 @@ and their publication dates, updated periodically.
 
 import logging
 from datetime import datetime
-import requests
 
 from adapters.newsletter_adapter import NewsletterAdapter
 import util

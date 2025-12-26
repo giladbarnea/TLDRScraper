@@ -13,9 +13,10 @@ The adapter:
 import logging
 import re
 from datetime import datetime
+
 import feedparser
-import requests
 from bs4 import BeautifulSoup
+from curl_cffi import requests as curl_requests
 
 from adapters.newsletter_adapter import NewsletterAdapter
 import util
@@ -28,6 +29,13 @@ RSS_FEED_URL = "https://react.statuscode.com/rss"
 
 class ReactStatusAdapter(NewsletterAdapter):
     """Adapter for React Status newsletter using RSS feed."""
+
+    @util.retry()
+    def _fetch_feed(self):
+        """Fetch RSS feed content."""
+        response = util.fetch(RSS_FEED_URL, timeout=10)
+        response.raise_for_status()
+        return response.content
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
         """Fetch React Status articles for a specific date using RSS feed.
@@ -54,7 +62,8 @@ class ReactStatusAdapter(NewsletterAdapter):
         logger.info(f"[react_status_adapter.scrape_date] Fetching RSS feed for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
-            feed = feedparser.parse(RSS_FEED_URL)
+            feed_content = self._fetch_feed()
+            feed = feedparser.parse(feed_content)
 
             if not feed.entries:
                 logger.warning("[react_status_adapter.scrape_date] No entries found in RSS feed")
@@ -209,11 +218,11 @@ class ReactStatusAdapter(NewsletterAdapter):
             Actual destination URL or None if resolution fails
         """
         try:
-            response = requests.head(
+            response = curl_requests.head(
                 tracking_url,
+                impersonate="chrome131",
                 allow_redirects=True,
                 timeout=10,
-                headers={"User-Agent": self.config.user_agent}
             )
             return response.url
         except Exception as e:

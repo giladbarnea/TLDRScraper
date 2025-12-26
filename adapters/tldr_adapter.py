@@ -12,8 +12,6 @@ import time
 import unicodedata
 from dataclasses import asdict, dataclass
 
-import requests
-
 from adapters.newsletter_adapter import NewsletterAdapter
 import util
 
@@ -56,48 +54,33 @@ class ParsedMarkdown:
 class TLDRAdapter(NewsletterAdapter):
     """Adapter for TLDR newsletter sources (Tech, AI, etc.)."""
 
+    @util.retry()
     def fetch_issue(self, date: str, newsletter_type: str) -> str | None:
-        """Fetch TLDR newsletter HTML for a specific date and type.
-
-        Args:
-            date: Date string in YYYY-MM-DD format
-            newsletter_type: Newsletter type (e.g., "tech", "ai")
-
-        Returns:
-            HTML content as string, or None if not found
-        """
+        """Fetch TLDR newsletter HTML for a specific date and type."""
         date_str = util.format_date_for_url(date)
-
-        # Build URL from config pattern
         url = self.config.url_pattern.format(
             base_url=self.config.base_url, type=newsletter_type, date=date_str
         )
 
-        try:
-            net_start = time.time()
-            response = requests.get(
-                url,
-                timeout=30,
-                headers={"User-Agent": self.config.user_agent},
-                allow_redirects=False,
-            )
-            net_ms = int(round((time.time() - net_start) * 1000))
+        net_start = time.time()
+        response = util.fetch(
+            url,
+            timeout=30,
+            headers={"User-Agent": self.config.user_agent},
+            allow_redirects=False,
+        )
+        net_ms = int(round((time.time() - net_start) * 1000))
 
-            if response.status_code == 404:
-                return None
-
-            response.raise_for_status()
-
-            if response.is_redirect:
-                return None
-
-            logger.info(f"[tldr_adapter.fetch_issue] Fetched {newsletter_type} for {date_str} in {net_ms}ms")
-
-            return response.text
-
-        except requests.RequestException:
-            logger.error(f"[tldr_adapter.fetch_issue] Request error for url={url}", exc_info=True)
+        if response.status_code == 404:
             return None
+
+        response.raise_for_status()
+
+        if response.is_redirect:
+            return None
+
+        logger.info(f"[tldr_adapter.fetch_issue] Fetched {newsletter_type} for {date_str} in {net_ms}ms")
+        return response.text
 
     def _parse_markdown_structure(
         self, markdown: str, date: str, newsletter_type: str
