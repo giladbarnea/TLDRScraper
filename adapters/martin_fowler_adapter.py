@@ -8,7 +8,7 @@ filtering by date and extracting article metadata.
 import logging
 import re
 from datetime import datetime
-import requests
+
 import feedparser
 
 from adapters.newsletter_adapter import NewsletterAdapter
@@ -25,6 +25,13 @@ class MartinFowlerAdapter(NewsletterAdapter):
         """Initialize with config."""
         super().__init__(config)
         self.feed_url = "https://martinfowler.com/feed.atom"
+
+    @util.retry()
+    def _fetch_feed(self):
+        """Fetch RSS feed content."""
+        response = util.fetch(self.feed_url, timeout=10)
+        response.raise_for_status()
+        return response.content
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
         """Fetch blog posts for a specific date from RSS feed.
@@ -45,10 +52,8 @@ class MartinFowlerAdapter(NewsletterAdapter):
         logger.info(f"[martin_fowler_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
-            response = requests.get(self.feed_url, timeout=10)
-            response.raise_for_status()
-
-            feed = feedparser.parse(response.content)
+            feed_content = self._fetch_feed()
+            feed = feedparser.parse(feed_content)
 
             logger.info(f"[martin_fowler_adapter.scrape_date] Fetched {len(feed.entries)} total entries from feed")
 

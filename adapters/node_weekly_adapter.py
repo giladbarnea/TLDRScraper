@@ -15,7 +15,6 @@ import time
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-import requests
 from bs4 import BeautifulSoup
 
 from adapters.newsletter_adapter import NewsletterAdapter
@@ -35,6 +34,13 @@ class NodeWeeklyAdapter(NewsletterAdapter):
         """Initialize with config."""
         super().__init__(config)
         self._date_to_issue_cache = None
+
+    @util.retry()
+    def _fetch(self, url: str, *, timeout: int = 30):
+        """Fetch URL and return response."""
+        response = util.fetch(url, timeout=timeout)
+        response.raise_for_status()
+        return response
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
         """Fetch Node Weekly articles for a specific date.
@@ -133,9 +139,7 @@ class NodeWeeklyAdapter(NewsletterAdapter):
         """
         logger.info(f"[node_weekly_adapter._build_date_to_issue_mapping] Fetching RSS feed from {RSS_FEED_URL}")
 
-        response = requests.get(RSS_FEED_URL, timeout=30)
-        response.raise_for_status()
-
+        response = self._fetch(RSS_FEED_URL, timeout=30)
         root = ET.fromstring(response.content)
         items = root.findall('.//item')
 
@@ -187,14 +191,7 @@ class NodeWeeklyAdapter(NewsletterAdapter):
         """
         time.sleep(0.2)  # Rate limiting
 
-        response = requests.get(
-            issue_url,
-            timeout=30,
-            headers={"User-Agent": self.config.user_agent}
-        )
-        response.raise_for_status()
-
-        # Convert to markdown
+        response = self._fetch(issue_url, timeout=30)
         markdown = self._html_to_markdown(response.text)
 
         # Parse articles from markdown

@@ -1,6 +1,11 @@
+import functools
 import logging
 import os
+import time
 from datetime import timedelta
+
+import requests
+from curl_cffi import requests as curl_requests
 
 
 def resolve_env_var(name: str, default: str = "") -> str:
@@ -149,3 +154,68 @@ def get_domain_name(url) -> str:
 
     except Exception:
         return "Unknown"
+
+
+logger = logging.getLogger(__name__)
+
+RETRIABLE_EXCEPTIONS = (Exception,)
+
+
+def retry(max_attempts: int = 2, delay: float = 2.0):
+    """
+    Retry decorator with fixed delay between attempts.
+
+    >>> attempt_count = 0
+    >>> @retry(max_attempts=2, delay=0.01)
+    ... def flaky():
+    ...     global attempt_count
+    ...     attempt_count += 1
+    ...     if attempt_count < 2:
+    ...         raise IOError("transient")
+    ...     return "ok"
+    >>> flaky()
+    'ok'
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            last_exception = None
+            for attempt in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except RETRIABLE_EXCEPTIONS as e:
+                    last_exception = e
+                    if attempt < max_attempts - 1:
+                        logger.warning(
+                            f"[util.retry] {func.__name__} attempt {attempt + 1} failed: {e}. Retrying in {delay}s..."
+                        )
+                        time.sleep(delay)
+            raise last_exception
+        return wrapper
+    return decorator
+
+
+def fetch(
+    url: str,
+    *,
+    timeout: int = 30,
+    headers: dict | None = None,
+    params: dict | None = None,
+    allow_redirects: bool = True,
+) -> requests.Response:
+    """Fetch URL content using curl_cffi with browser impersonation."""
+    default_headers = {
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://www.google.com/",
+    }
+    if headers:
+        default_headers.update(headers)
+
+    return curl_requests.get(
+        url,
+        impersonate="chrome131",
+        timeout=timeout,
+        headers=default_headers,
+        params=params,
+        allow_redirects=allow_redirects,
+    )

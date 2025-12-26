@@ -9,7 +9,7 @@ from a leading CDN and security provider.
 import logging
 import re
 from datetime import datetime
-import requests
+
 import feedparser
 
 from adapters.newsletter_adapter import NewsletterAdapter
@@ -23,6 +23,13 @@ RSS_FEED_URL = "https://blog.cloudflare.com/rss/"
 
 class CloudflareAdapter(NewsletterAdapter):
     """Adapter for Cloudflare Blog using RSS feed."""
+
+    @util.retry()
+    def _fetch_feed(self):
+        """Fetch RSS feed content."""
+        response = util.fetch(RSS_FEED_URL, timeout=10)
+        response.raise_for_status()
+        return response.content
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
         """Fetch Cloudflare blog posts for a specific date using RSS feed.
@@ -43,10 +50,8 @@ class CloudflareAdapter(NewsletterAdapter):
         logger.info(f"[cloudflare_adapter.scrape_date] Fetching RSS feed for {target_date_str}")
 
         try:
-            response = requests.get(RSS_FEED_URL, timeout=10)
-            response.raise_for_status()
-
-            feed = feedparser.parse(response.content)
+            feed_content = self._fetch_feed()
+            feed = feedparser.parse(feed_content)
 
             if not feed.entries:
                 logger.warning(f"[cloudflare_adapter.scrape_date] No entries found in RSS feed")

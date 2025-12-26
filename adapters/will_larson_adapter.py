@@ -10,8 +10,6 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from email.utils import parsedate_to_datetime
 
-import requests
-
 from adapters.newsletter_adapter import NewsletterAdapter
 import util
 
@@ -26,6 +24,13 @@ class WillLarsonAdapter(NewsletterAdapter):
         """Initialize with config."""
         super().__init__(config)
         self.rss_url = "https://lethain.com/feeds.xml"
+
+    @util.retry()
+    def _fetch_feed(self):
+        """Fetch RSS feed content."""
+        response = util.fetch(self.rss_url, timeout=10)
+        response.raise_for_status()
+        return response.content
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
         """Fetch articles from Will Larson's blog RSS feed for a specific date.
@@ -47,12 +52,8 @@ class WillLarsonAdapter(NewsletterAdapter):
         logger.info(f"[will_larson_adapter.scrape_date] Fetching articles for {target_date_str} from RSS feed")
 
         try:
-            # Fetch RSS feed
-            response = requests.get(self.rss_url, timeout=10)
-            response.raise_for_status()
-
-            # Parse XML
-            root = ET.fromstring(response.content)
+            feed_content = self._fetch_feed()
+            root = ET.fromstring(feed_content)
             items = root.findall('.//item')
 
             logger.info(f"[will_larson_adapter.scrape_date] Found {len(items)} items in RSS feed")

@@ -8,7 +8,7 @@ the blog listing page, filtering by date and extracting article metadata.
 import logging
 import re
 from datetime import datetime
-import requests
+
 from bs4 import BeautifulSoup
 
 from adapters.newsletter_adapter import NewsletterAdapter
@@ -25,6 +25,13 @@ class DeepMindAdapter(NewsletterAdapter):
         """Initialize with config."""
         super().__init__(config)
         self.blog_url = "https://deepmind.google/discover/blog/"
+
+    @util.retry()
+    def _fetch_page(self):
+        """Fetch blog listing page."""
+        response = util.fetch(self.blog_url, timeout=10)
+        response.raise_for_status()
+        return response.content
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
         """Fetch blog posts for a specific date from blog listing page.
@@ -45,10 +52,8 @@ class DeepMindAdapter(NewsletterAdapter):
         logger.info(f"[deepmind_adapter.scrape_date] Fetching articles for {target_month_year} (excluding {len(excluded_urls)} URLs)")
 
         try:
-            response = requests.get(self.blog_url, timeout=10)
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.content, 'html.parser')
+            page_content = self._fetch_page()
+            soup = BeautifulSoup(page_content, 'html.parser')
             article_cards = soup.find_all('article', class_='card-blog')
 
             logger.info(f"[deepmind_adapter.scrape_date] Found {len(article_cards)} total articles on blog page")
