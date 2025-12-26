@@ -1,0 +1,478 @@
+{
+  "anthropic": {
+    "display_name": "Anthropic Research",
+    "total_articles": 0,
+    "days_with_articles": 0,
+    "avg_articles_per_week": 0.0,
+    "avg_articles_per_publishing_day": 0.0,
+    "publishing_pattern": "no data",
+    "daily_counts": []
+  },
+  "bytebytego": {
+    "display_name": "ByteByteGo",
+    "total_articles": 20,
+    "days_with_articles": 20,
+    "avg_articles_per_week": 5.0,
+    "avg_articles_per_publishing_day": 1,
+    "std_dev": 0.0,
+    "coefficient_of_variation": 0.0,
+    "publishing_pattern": "daily (consistent)",
+    "daily_counts": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "dates_with_articles": [
+      "2025-11-30",
+      "2025-12-01",
+      "2025-12-02",
+      "2025-12-03",
+      "2025-12-04",
+      "2025-12-05",
+      "2025-12-06",
+      "2025-12-07",
+      "2025-12-09",
+      "2025-12-10",
+      "2025-12-11",
+      "2025-12-12",
+      "2025-12-13",
+      "2025-12-15",
+      "2025-12-16",
+      "2025-12-17",
+      "2025-12-18",
+      "2025-12-20",
+      "2025-12-22",
+      "2025-12-23"
+    ]
+  },
+  "cloudflare": {
+    "display_name": "Cloudflare Blog",
+    "total_articles": 13,
+    "days_with_articles": 10,
+    "avg_articles_per_week": 3.25,
+    "avg_articles_per_publishing_day": 1.3,
+    "std_dev": 0.48,
+    "coefficient_of_variation": 0.37,
+    "publishing_pattern": "frequent",
+    "daily_counts": [
+      1,
+      2,
+      1,
+      1,
+      1,
+      1,
+      2,
+      1,
+      2,
+      1
+    ],
+    "dates_with_articles": [
+      "2025-12-01",
+      "2025-12-03",
+      "2025-12-05",
+      "2025-12-08",
+      "2025-12-09",
+      "2025-12-11",
+      "2025-12-15",
+      "2025-12-18",
+      "2025-12-19",
+      "2025-12-22"
+    ]
+  },
+  "danluu": {
+    "display_name": "Dan Luu",
+    "total_articles": 0,
+    "days_with_articles": 0,
+    "avg_articles_per_week": 0.0,
+    "avg_articles_per_publishing_day": 0.0,
+    "publishing_pattern": "no data",
+    "daily_counts": []
+  },
+  "deepmind": {
+    "display_name": "Google DeepMind",
+    "total_articles": 13,
+    "days_with_articles": 2,
+    "avg_articles_per_week": 3.25,
+    "avg_articles_per_publishing_day": 6.5,
+    "std_dev": 0.71,
+    "coefficient_of_variation": 0.11,
+    "publishing_pattern": "sporadic (consistent)",
+    "daily_counts": [
+      7,
+      6
+    ],
+    "dates_with_articles": [
+      "2025-11-29",
+      "2025-12-01"
+    ]
+  },
+  "hackernews": {
+    "display_name": "Hacker News",
+    "total_articles": 0,
+    "days_with_articles": 0,
+    "avg_articles_per_week": 0.0,
+    "avg_articles_per_publishing_day": 0.0,
+    "publishing_pattern": "no data",
+    "daily_counts": []
+  },
+  "hillel_wayne": {
+    "display_name": "Hillel Wayne",
+    "total_articles": 0,
+    "days_with_articles": 0,
+    "avg_articles_per_week": 0.0,
+    "avg_articles_per_publishing_day": 0.0,
+    "publishing_pattern": "no data",
+    "daily_counts": []
+  },
+  "infoq": {
+    "display_name": "InfoQ",
+    "total_articles": 15,
+    "days_with_articles": 5,
+    "avg_articles_per_week": 3.75,
+    "avg_articles_per_publishing_day": 3,
+    "std_dev": 1.0,
+    "coefficient_of_variation": 0.33,
+    "publishing_pattern": "weekly",
+    "daily_counts": [
+      2,
+      4,
+      3,
+      4,
+      2
+    ],
+    "dates_with_articles": [
+      "2025-12-22",
+      "2025-12-23",
+      "2025-12-24",
+      "2025-12-25",
+      "2025-12-26"
+    ]
+  },
+  "jessitron": {
+    "display_name": "Jessitron",
+    "total_articles": 0,
+    "days_with_articles": 0,
+    "avg_articles_per_week": 0.0,
+    "avg_articles_per_publishing_day": 0.0,
+    "publishing_pattern": "no data",
+    "daily_counts": []
+  },
+  "lenny_newsletter": {
+    "display_name": "Lenny's Newsletter",
+    "total_articles": 17,
+    "days_with_articles": 13,
+    "avg_articles_per_week": 4.25,
+    "avg_articles_per_publishing_day": 1.31,
+    "std_dev": 0.48,
+    "coefficient_of_variation": 0.37,
+    "publishing_pattern": "frequent",
+    "daily_counts": [
+      1,
+      1,
+      1,
+      2,
+      2,
+      1,
+      1,
+      2,
+      1,
+      1,
+      1,
+      2,
+      1
+    ],
+    "dates_with_articles": [
+      "2025-12-04",
+      "2025-12-06",
+      "2025-12-07",
+      "2025-12-08",
+      "2025-12-09",
+      "2025-12-13",
+      "2025-12-14",
+      "2025-12-16",
+      "2025-12-18",
+      "2025-12-20",
+      "2025-12-21",
+      "2025-12-22",
+      "2025-12-23"
+    ]
+  },
+  "martin_fowler": {
+    "display_name": "Martin Fowler",
+    "total_articles": 4,
+    "days_with_articles": 3,
+    "avg_articles_per_week": 1.0,
+    "avg_articles_per_publishing_day": 1.33,
+    "std_dev": 0.58,
+    "coefficient_of_variation": 0.43,
+    "publishing_pattern": "sporadic",
+    "daily_counts": [
+      1,
+      1,
+      2
+    ],
+    "dates_with_articles": [
+      "2025-12-04",
+      "2025-12-11",
+      "2025-12-16"
+    ]
+  },
+  "netflix": {
+    "display_name": "Netflix Tech Blog",
+    "total_articles": 3,
+    "days_with_articles": 2,
+    "avg_articles_per_week": 0.75,
+    "avg_articles_per_publishing_day": 1.5,
+    "std_dev": 0.71,
+    "coefficient_of_variation": 0.47,
+    "publishing_pattern": "sporadic",
+    "daily_counts": [
+      1,
+      2
+    ],
+    "dates_with_articles": [
+      "2025-12-04",
+      "2025-12-15"
+    ]
+  },
+  "node_weekly": {
+    "display_name": "Node Weekly",
+    "total_articles": 120,
+    "days_with_articles": 3,
+    "avg_articles_per_week": 30.0,
+    "avg_articles_per_publishing_day": 40,
+    "std_dev": 3.61,
+    "coefficient_of_variation": 0.09,
+    "publishing_pattern": "sporadic (consistent)",
+    "daily_counts": [
+      43,
+      36,
+      41
+    ],
+    "dates_with_articles": [
+      "2025-12-02",
+      "2025-12-09",
+      "2025-12-16"
+    ]
+  },
+  "pointer": {
+    "display_name": "Pointer",
+    "total_articles": 57,
+    "days_with_articles": 6,
+    "avg_articles_per_week": 14.25,
+    "avg_articles_per_publishing_day": 9.5,
+    "std_dev": 0.55,
+    "coefficient_of_variation": 0.06,
+    "publishing_pattern": "weekly (consistent)",
+    "daily_counts": [
+      10,
+      10,
+      9,
+      9,
+      9,
+      10
+    ],
+    "dates_with_articles": [
+      "2025-12-02",
+      "2025-12-09",
+      "2025-12-12",
+      "2025-12-16",
+      "2025-12-19",
+      "2025-12-23"
+    ]
+  },
+  "pragmatic_engineer": {
+    "display_name": "The Pragmatic Engineer",
+    "total_articles": 8,
+    "days_with_articles": 8,
+    "avg_articles_per_week": 2.0,
+    "avg_articles_per_publishing_day": 1,
+    "std_dev": 0.0,
+    "coefficient_of_variation": 0.0,
+    "publishing_pattern": "weekly (consistent)",
+    "daily_counts": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "dates_with_articles": [
+      "2025-12-02",
+      "2025-12-03",
+      "2025-12-04",
+      "2025-12-09",
+      "2025-12-11",
+      "2025-12-16",
+      "2025-12-18",
+      "2025-12-23"
+    ]
+  },
+  "react_status": {
+    "display_name": "React Status",
+    "total_articles": 29,
+    "days_with_articles": 3,
+    "avg_articles_per_week": 7.25,
+    "avg_articles_per_publishing_day": 9.67,
+    "std_dev": 2.08,
+    "coefficient_of_variation": 0.22,
+    "publishing_pattern": "sporadic (consistent)",
+    "daily_counts": [
+      9,
+      8,
+      12
+    ],
+    "dates_with_articles": [
+      "2025-12-03",
+      "2025-12-10",
+      "2025-12-17"
+    ]
+  },
+  "simon_willison": {
+    "display_name": "Simon Willison",
+    "total_articles": 30,
+    "days_with_articles": 13,
+    "avg_articles_per_week": 7.5,
+    "avg_articles_per_publishing_day": 2.31,
+    "std_dev": 1.49,
+    "coefficient_of_variation": 0.65,
+    "publishing_pattern": "frequent",
+    "daily_counts": [
+      1,
+      2,
+      2,
+      2,
+      6,
+      3,
+      3,
+      4,
+      1,
+      1,
+      3,
+      1,
+      1
+    ],
+    "dates_with_articles": [
+      "2025-12-12",
+      "2025-12-13",
+      "2025-12-14",
+      "2025-12-15",
+      "2025-12-16",
+      "2025-12-17",
+      "2025-12-18",
+      "2025-12-19",
+      "2025-12-21",
+      "2025-12-22",
+      "2025-12-23",
+      "2025-12-24",
+      "2025-12-25"
+    ]
+  },
+  "softwareleadweekly": {
+    "display_name": "Software Lead Weekly",
+    "total_articles": 42,
+    "days_with_articles": 5,
+    "avg_articles_per_week": 10.5,
+    "avg_articles_per_publishing_day": 8.4,
+    "std_dev": 0.55,
+    "coefficient_of_variation": 0.07,
+    "publishing_pattern": "weekly (consistent)",
+    "daily_counts": [
+      8,
+      9,
+      8,
+      9,
+      8
+    ],
+    "dates_with_articles": [
+      "2025-11-28",
+      "2025-12-05",
+      "2025-12-12",
+      "2025-12-19",
+      "2025-12-26"
+    ]
+  },
+  "stripe_engineering": {
+    "display_name": "Stripe Engineering",
+    "total_articles": 0,
+    "days_with_articles": 0,
+    "avg_articles_per_week": 0.0,
+    "avg_articles_per_publishing_day": 0.0,
+    "publishing_pattern": "no data",
+    "daily_counts": []
+  },
+  "tldr_ai": {
+    "display_name": "TLDR AI",
+    "total_articles": 0,
+    "days_with_articles": 0,
+    "avg_articles_per_week": 0.0,
+    "avg_articles_per_publishing_day": 0.0,
+    "publishing_pattern": "no data",
+    "daily_counts": []
+  },
+  "tldr_tech": {
+    "display_name": "TLDR Tech",
+    "total_articles": 0,
+    "days_with_articles": 0,
+    "avg_articles_per_week": 0.0,
+    "avg_articles_per_publishing_day": 0.0,
+    "publishing_pattern": "no data",
+    "daily_counts": []
+  },
+  "will_larson": {
+    "display_name": "Irrational Exuberance",
+    "total_articles": 3,
+    "days_with_articles": 2,
+    "avg_articles_per_week": 0.75,
+    "avg_articles_per_publishing_day": 1.5,
+    "std_dev": 0.71,
+    "coefficient_of_variation": 0.47,
+    "publishing_pattern": "sporadic",
+    "daily_counts": [
+      1,
+      2
+    ],
+    "dates_with_articles": [
+      "2025-12-07",
+      "2025-12-18"
+    ]
+  },
+  "xeiaso": {
+    "display_name": "Xe Iaso",
+    "total_articles": 2,
+    "days_with_articles": 2,
+    "avg_articles_per_week": 0.5,
+    "avg_articles_per_publishing_day": 1,
+    "std_dev": 0.0,
+    "coefficient_of_variation": 0.0,
+    "publishing_pattern": "sporadic (consistent)",
+    "daily_counts": [
+      1,
+      1
+    ],
+    "dates_with_articles": [
+      "2025-12-01",
+      "2025-12-24"
+    ]
+  }
+}
