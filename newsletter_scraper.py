@@ -89,6 +89,9 @@ def _get_adapter_for_source(config):
     elif config.source_id == "node_weekly":
         from adapters.node_weekly_adapter import NodeWeeklyAdapter
         return NodeWeeklyAdapter(config)
+    elif config.source_id == "aiwithmike":
+        from adapters.aiwithmike_adapter import AiWithMikeAdapter
+        return AiWithMikeAdapter(config)
     else:
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 

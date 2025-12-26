@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-20 22:14, 1fdc1f9
+last_updated: 2025-12-25 09:43
 ---
 # Discussion — Incomplete Cache & Failed Source Tracking
 
@@ -114,3 +114,18 @@ These need resolution before designing a solution:
 4. **Granularity of tracking**
    - Per-date? Per-source-per-date?
    - Store in the payload itself, or separate metadata table?
+
+---
+
+## Field Reports
+
+### 2025-12-25: Cache vs Fresh Scrape Discrepancy
+
+While adding a new adapter, observed different sources appearing for Dec 22 depending on cache state:
+
+| With old cache | After cache clear + fresh scrape |
+|----------------|----------------------------------|
+| HN Show ✓ | HN Show ✗ |
+| Google DeepMind ✗ | Google DeepMind ✓ |
+
+Consistent with the problem statement: transient failures during original scrape left DeepMind out of cache permanently; fresh scrape had different transient failures (HN Show this time).

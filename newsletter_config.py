@@ -286,4 +286,15 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"newsletter": "Node Weekly"},
         sort_order=20,
     ),
+    "aiwithmike": NewsletterSourceConfig(
+        source_id="aiwithmike",
+        display_name="Mathy AI",
+        base_url="https://aiwithmike.substack.com",
+        url_pattern="",
+        types=["newsletter"],
+        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
+        article_pattern="",
+        category_display_names={"newsletter": "Mathy AI"},
+        sort_order=21,
+    ),
 }
