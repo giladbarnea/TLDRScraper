@@ -44,7 +44,6 @@ function read_root_markdown_files() {
       echo
     fi
   done
-  echo "Further reading: docs/testing/headless_playwright_guide.md — comprehensive guide on browser emulation, client interactions, state management, and UI testing in headless/sandboxed environments."
 }
 
 read_root_markdown_files "$@"
