@@ -24,7 +24,7 @@ export function useSummary(date, url, type = 'tldr') {
     throw new Error('Summary feature has been removed. Use type="tldr" instead.')
   }
 
-  const { article, updateArticle } = useArticleState(date, url)
+  const { article, updateArticle, isRead, markAsRead } = useArticleState(date, url)
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [effort, setEffort] = useState('low')
@@ -121,8 +121,7 @@ export function useSummary(date, url, type = 'tldr') {
   const toggle = (summaryEffort) => {
     if (isAvailable) {
       if (expanded) {
-        releaseZenLock(url)
-        setExpanded(false)
+        collapse()
       } else if (acquireZenLock(url)) {
         setExpanded(true)
       }
@@ -134,6 +133,7 @@ export function useSummary(date, url, type = 'tldr') {
   const collapse = () => {
     releaseZenLock(url)
     setExpanded(false)
+    if (!isRead) markAsRead()
   }
 
   const expand = () => {
