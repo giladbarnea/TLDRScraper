@@ -38,7 +38,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern=r"\((\d+)\s+minute\s+read\)|\(GitHub\s+Repo\)",
         category_display_names={"tech": "TLDR Tech"},
-        sort_order=2,
+        sort_order=22,  # 67.2/week - second most frequent
     ),
     "tldr_ai": NewsletterSourceConfig(
         source_id="tldr_ai",
@@ -49,7 +49,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern=r"\((\d+)\s+minute\s+read\)|\(GitHub\s+Repo\)",
         category_display_names={"ai": "TLDR AI"},
-        sort_order=1,  # AI comes before Tech
+        sort_order=21,  # 63.5/week - frequent
     ),
     "hackernews": NewsletterSourceConfig(
         source_id="hackernews",
@@ -64,7 +64,7 @@ NEWSLETTER_CONFIGS = {
             "ask": "HN Ask",
             "show": "HN Show",
         },
-        sort_order=3,  # After TLDR AI (1) and TLDR Tech (2)
+        sort_order=23,  # ~75/week - most frequent, lowest priority
     ),
     "xeiaso": NewsletterSourceConfig(
         source_id="xeiaso",
@@ -75,7 +75,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"blog": "Xe Iaso"},
-        sort_order=4,
+        sort_order=4,  # 0.5/week - rare, consistent
     ),
     "simon_willison": NewsletterSourceConfig(
         source_id="simon_willison",
@@ -86,7 +86,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"blog": "Simon Willison"},
-        sort_order=5,
+        sort_order=16,  # 7.5/week - bursty
     ),
     "danluu": NewsletterSourceConfig(
         source_id="danluu",
@@ -97,7 +97,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"blog": "Dan Luu"},
-        sort_order=5,
+        sort_order=5,  # 0.8/week - rare, bursty
     ),
     "will_larson": NewsletterSourceConfig(
         source_id="will_larson",
@@ -108,7 +108,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"blog": "Engineering Leadership"},
-        sort_order=6,
+        sort_order=6,  # 0.8/week - rare, bursty
     ),
     "cloudflare": NewsletterSourceConfig(
         source_id="cloudflare",
@@ -119,7 +119,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"blog": "Cloudflare Blog"},
-        sort_order=7,
+        sort_order=11,  # 3.2/week - moderate
     ),
     "lenny_newsletter": NewsletterSourceConfig(
         source_id="lenny_newsletter",
@@ -130,7 +130,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"newsletter": "Lenny's Newsletter"},
-        sort_order=8,
+        sort_order=15,  # 5.0/week - moderate
     ),
     "pragmatic_engineer": NewsletterSourceConfig(
         source_id="pragmatic_engineer",
@@ -141,7 +141,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"newsletter": "The Pragmatic Engineer"},
-        sort_order=9,
+        sort_order=9,  # 2.5/week - consistent
     ),
     "jessitron": NewsletterSourceConfig(
         source_id="jessitron",
@@ -152,7 +152,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"blog": "Jessitron"},
-        sort_order=10,
+        sort_order=8,  # 1.0/week - consistent
     ),
     "stripe_engineering": NewsletterSourceConfig(
         source_id="stripe_engineering",
@@ -163,7 +163,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"engineering": "Stripe Engineering"},
-        sort_order=11,
+        sort_order=1,  # 0.2/week - rarest, bursty (highest priority)
     ),
     "deepmind": NewsletterSourceConfig(
         source_id="deepmind",
@@ -174,7 +174,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"blog": "Google DeepMind"},
-        sort_order=12,
+        sort_order=12,  # 3.2/week - consistent
     ),
     "pointer": NewsletterSourceConfig(
         source_id="pointer",
@@ -185,7 +185,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"newsletter": "Pointer"},
-        sort_order=13,
+        sort_order=19,  # 15.2/week
     ),
     "netflix": NewsletterSourceConfig(
         source_id="netflix",
@@ -196,7 +196,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"blog": "Netflix Tech"},
-        sort_order=13,
+        sort_order=2,  # 0.2/week - rarest, consistent
     ),
     "anthropic": NewsletterSourceConfig(
         source_id="anthropic",
@@ -207,7 +207,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"research": "Anthropic Research"},
-        sort_order=14,
+        sort_order=10,  # 2.5/week - consistent
     ),
     "softwareleadweekly": NewsletterSourceConfig(
         source_id="softwareleadweekly",
@@ -218,7 +218,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"newsletter": "Software Lead Weekly"},
-        sort_order=8,
+        sort_order=18,  # 9.5/week
     ),
     "hillel_wayne": NewsletterSourceConfig(
         source_id="hillel_wayne",
@@ -229,7 +229,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"blog": "Hillel Wayne"},
-        sort_order=15,
+        sort_order=3,  # 0.5/week - rare, bursty
     ),
     "infoq": NewsletterSourceConfig(
         source_id="infoq",
@@ -240,7 +240,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"articles": "InfoQ"},
-        sort_order=16,
+        sort_order=13,  # 3.8/week
     ),
     "bytebytego": NewsletterSourceConfig(
         source_id="bytebytego",
@@ -251,7 +251,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"newsletter": "ByteByteGo"},
-        sort_order=17,
+        sort_order=14,  # 4.8/week - consistent
     ),
     "martin_fowler": NewsletterSourceConfig(
         source_id="martin_fowler",
@@ -262,7 +262,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"blog": "Martin Fowler"},
-        sort_order=18,
+        sort_order=7,  # 1.0/week - bursty
     ),
     "react_status": NewsletterSourceConfig(
         source_id="react_status",
@@ -273,7 +273,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"newsletter": "React Status"},
-        sort_order=19,
+        sort_order=17,  # 7.5/week - consistent
     ),
     "node_weekly": NewsletterSourceConfig(
         source_id="node_weekly",
@@ -284,7 +284,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"newsletter": "Node Weekly"},
-        sort_order=20,
+        sort_order=20,  # 30.0/week
     ),
     "aiwithmike": NewsletterSourceConfig(
         source_id="aiwithmike",

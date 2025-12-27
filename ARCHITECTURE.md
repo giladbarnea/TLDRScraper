@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-23 12:53, 03bc679
+last_updated: 2025-12-26 19:44
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -168,6 +168,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
   - Live sync with Supabase via useSupabaseStorage hook
   - Sticky date header with "Syncing..." indicator during updates
   - Articles grouped by: Date → Issue/Category → Section
+  - Newsletters (sources) sorted by rarity: rarest sources displayed at top (based on publishing frequency)
   - "Other" section for uncategorized articles
   - Auto-collapse behavior: Containers automatically collapse in real-time when all child articles are removed
     - Calendar days collapse when all articles for that date are removed
