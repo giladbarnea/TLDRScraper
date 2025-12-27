@@ -1,3 +1,10 @@
+#!/usr/bin/env -S uv run
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "google-adk>=1.21.0",
+# ]
+# ///
 """
 Smoke test for Google ADK integration.
 
@@ -10,10 +17,17 @@ If you get a 403 error, you need to:
 
 Alternative: The test includes a fallback to test google-genai client directly without ADK.
 
+This script uses inline dependencies (PEP 723) and can be run directly with:
+    uv run tests/test_google_adk_smoke.py
+
+Or as an executable (after chmod +x):
+    ./tests/test_google_adk_smoke.py
+
 References:
 - Google ADK docs: https://google.github.io/adk-docs/
 - Troubleshooting 403 errors: https://ai.google.dev/gemini-api/docs/troubleshooting
 - Gemini API setup: https://github.com/mhawksey/GeminiApp/issues/10
+- uv scripts: https://docs.astral.sh/uv/guides/scripts/
 """
 
 import asyncio
