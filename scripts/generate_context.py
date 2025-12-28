@@ -9,10 +9,14 @@ Usage:
 
 import argparse
 import ast
+import logging
 import pathlib
 import re
 import sys
 from typing import List, Set
+
+logging.basicConfig(level=logging.INFO, format='%(message)s', stream=sys.stderr)
+logger = logging.getLogger(__name__)
 
 COMMON_EXCLUDES = {
     'node_modules', '__pycache__', 'dist', 'build', '.venv', 'venv', 'env', '_vendor', '.pytest_cache',
@@ -313,25 +317,25 @@ def find_files_recursive(root_dir: pathlib.Path, extensions: Set[str], excludes:
 
 def generate_server_context(root_dir: pathlib.Path, no_body: bool) -> str:
     """Generate server context with Python files only."""
-    print(f"[generate_server_context] root_dir={root_dir}", file=sys.stderr)
-    print(f"[generate_server_context] root_dir.exists()={root_dir.exists()}", file=sys.stderr)
+    logger.info(f"[generate_server_context] root_dir={root_dir}")
+    logger.info(f"[generate_server_context] root_dir.exists()={root_dir.exists()}")
     python_files = find_files(root_dir, '*.py', SERVER_EXCLUDES)
-    print(f"[generate_server_context] found {len(python_files)} Python files", file=sys.stderr)
+    logger.info(f"[generate_server_context] found {len(python_files)} Python files")
     content_getter = get_python_definitions if no_body else read_file_content
     return format_files_output(python_files, root_dir, content_getter)
 
 
 def generate_client_context(root_dir: pathlib.Path, no_body: bool = False) -> str:
     """Generate client context with client files (excluding markdown)."""
-    print(f"[generate_client_context] root_dir={root_dir}", file=sys.stderr)
+    logger.info(f"[generate_client_context] root_dir={root_dir}")
     client_dir = root_dir / 'client'
-    print(f"[generate_client_context] client_dir={client_dir}", file=sys.stderr)
-    print(f"[generate_client_context] client_dir.exists()={client_dir.exists()}", file=sys.stderr)
+    logger.info(f"[generate_client_context] client_dir={client_dir}")
+    logger.info(f"[generate_client_context] client_dir.exists()={client_dir.exists()}")
     if not client_dir.exists():
         return '<files>\n</files>'
 
     files = find_files_recursive(client_dir, CLIENT_EXTENSIONS, COMMON_EXCLUDES)
-    print(f"[generate_client_context] found {len(files)} client files", file=sys.stderr)
+    logger.info(f"[generate_client_context] found {len(files)} client files")
 
     if no_body:
         def content_getter(filepath: pathlib.Path) -> str:
@@ -348,24 +352,24 @@ DOCS_WHITELIST = {'README.md', 'AGENTS.md', 'ARCHITECTURE.md'}
 
 def find_markdown_files(root_dir: pathlib.Path) -> List[pathlib.Path]:
     """Find whitelisted markdown files in root directory."""
-    print(f"[find_markdown_files] root_dir={root_dir}", file=sys.stderr)
-    print(f"[find_markdown_files] root_dir.exists()={root_dir.exists()}", file=sys.stderr)
+    logger.info(f"[find_markdown_files] root_dir={root_dir}")
+    logger.info(f"[find_markdown_files] root_dir.exists()={root_dir.exists()}")
     md_files = []
     for filename in DOCS_WHITELIST:
         path = root_dir / filename
         exists = path.exists()
-        print(f"[find_markdown_files] checking {path} -> exists={exists}", file=sys.stderr)
+        logger.info(f"[find_markdown_files] checking {path} -> exists={exists}")
         if exists:
             md_files.append(path)
-    print(f"[find_markdown_files] found {len(md_files)} markdown files: {[p.name for p in md_files]}", file=sys.stderr)
+    logger.info(f"[find_markdown_files] found {len(md_files)} markdown files: {[p.name for p in md_files]}")
     return sorted(md_files)
 
 
 def generate_docs_context(root_dir: pathlib.Path) -> str:
     """Generate docs context with whitelisted root markdown files."""
-    print(f"[generate_docs_context] root_dir={root_dir}", file=sys.stderr)
+    logger.info(f"[generate_docs_context] root_dir={root_dir}")
     all_md_files = find_markdown_files(root_dir)
-    print(f"[generate_docs_context] all_md_files={all_md_files}", file=sys.stderr)
+    logger.info(f"[generate_docs_context] all_md_files={all_md_files}")
     return format_files_output(all_md_files, root_dir, read_file_content)
 
 
@@ -378,11 +382,11 @@ def main():
 
     args = parser.parse_args()
 
-    print(f"[main] __file__={__file__}", file=sys.stderr)
+    logger.info(f"[main] __file__={__file__}")
     root_dir = pathlib.Path(__file__).parent.parent
-    print(f"[main] root_dir={root_dir}", file=sys.stderr)
-    print(f"[main] root_dir.absolute()={root_dir.absolute()}", file=sys.stderr)
-    print(f"[main] context_type={args.context_type}", file=sys.stderr)
+    logger.info(f"[main] root_dir={root_dir}")
+    logger.info(f"[main] root_dir.absolute()={root_dir.absolute()}")
+    logger.info(f"[main] context_type={args.context_type}")
 
     if args.context_type == 'server':
         content = generate_server_context(root_dir, args.no_body)
