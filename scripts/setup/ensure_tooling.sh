@@ -46,18 +46,12 @@ function _ensure_tool(){
 }
 
 function ensure_gitleaks(){
-  local os
-  os=$(uname -s)
-
-  case "$os" in
-    Linux)
-      _ensure_tool gitleaks "apt install -y gitleaks"
-      ;;
-    *)
-      error "Unsupported OS: $os"
-      return 1
-      ;;
-  esac
+  if isdefined apt; then
+    _ensure_tool gitleaks "apt install -y gitleaks"
+  else
+    error "No supported package manager found (apt)"
+    return 1
+  fi
 }
 
 # Main execution
