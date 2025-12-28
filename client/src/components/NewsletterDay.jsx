@@ -1,5 +1,6 @@
 import ArticleList from './ArticleList'
 import FoldableContainer from './FoldableContainer'
+import ReadStatsBadge from './ReadStatsBadge'
 
 function groupArticlesBySection(articles) {
   return articles.reduce((acc, article) => {
@@ -85,9 +86,12 @@ function NewsletterDay({ date, title, issue, articles }) {
       id={`newsletter-${date}-${title}`}
       headerClassName={`pl-1 border-l-2 transition-all duration-300 ${allRemoved ? 'border-slate-200 opacity-50' : 'border-brand-200'}`}
       title={
-        <h3 className="font-display font-bold text-xl py-2 text-slate-800">
-          {title}
-        </h3>
+        <div className="flex items-baseline gap-3 py-2">
+          <h3 className="font-display font-bold text-xl text-slate-800">
+            {title}
+          </h3>
+          <ReadStatsBadge articles={articles} />
+        </div>
       }
       defaultFolded={allRemoved}
       className="mb-8"
