@@ -19,18 +19,27 @@ def run_context_script(context_types, only_definitions=True):
     """
     root_dir = pathlib.Path(__file__).parent
     script_path = root_dir / 'scripts' / 'generate_context.py'
+    logger.info(f"[run_context_script] __file__={__file__}")
+    logger.info(f"[run_context_script] root_dir={root_dir}")
+    logger.info(f"[run_context_script] script_path={script_path}")
+    logger.info(f"[run_context_script] context_types={context_types}, only_definitions={only_definitions}")
     contents = []
 
     for ctx in context_types:
         cmd = ['python3', str(script_path), ctx]
         if ctx in ('server', 'client') and only_definitions:
             cmd.append('--no-body')
+        logger.info(f"[run_context_script] running cmd={cmd} cwd={root_dir}")
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             cwd=root_dir
         )
+        logger.info(f"[run_context_script] {ctx} returncode={result.returncode}")
+        logger.info(f"[run_context_script] {ctx} stderr={result.stderr}")
+        logger.info(f"[run_context_script] {ctx} stdout length={len(result.stdout)}")
+        logger.info(f"[run_context_script] {ctx} stdout file count={result.stdout.count('<file path=')}")
         if result.returncode != 0:
             raise RuntimeError(f"Failed to generate {ctx} context: {result.stderr}")
         contents.append(result.stdout)
