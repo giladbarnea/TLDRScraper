@@ -420,6 +420,7 @@ function main() {
   # Launch UV install+sync and client build in parallel background processes
   bash "$workdir/scripts/setup/ensure_uv_and_sync.sh" &
   bash "$workdir/scripts/setup/build_client.sh" &
+  bash "$workdir/scripts/setup/ensure_tooling.sh" &
 
   [[ "$quiet" == false ]] && message "[$0] UV sync and client build running in background..."
   
