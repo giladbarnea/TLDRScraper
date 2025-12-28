@@ -86,7 +86,7 @@ function NewsletterDay({ date, title, issue, articles }) {
       id={`newsletter-${date}-${title}`}
       headerClassName={`pl-1 border-l-2 transition-all duration-300 ${allRemoved ? 'border-slate-200 opacity-50' : 'border-brand-200'}`}
       title={
-        <div className="flex items-baseline gap-3 py-2">
+        <div className="flex items-center gap-3 py-2">
           <h3 className="font-display font-bold text-xl text-slate-800">
             {title}
           </h3>
