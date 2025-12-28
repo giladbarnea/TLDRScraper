@@ -45,23 +45,42 @@ git commit -m "$COMMIT_MESSAGE"
 echo "⬆️  Pushing to remote..."
 git push -u origin "$BRANCH_NAME"
 
-# 4. Create PR
-echo "🔀 Creating pull request..."
-if [ -z "$PR_BODY" ]; then
-  PR_BODY="$(
-    cat <<EOF
+# 4. Check if PR already exists for this branch
+echo "🔍 Checking if PR already exists..."
+PR_INFO=$(gh pr view "$BRANCH_NAME" --json state,number,url 2>/dev/null || echo "")
+
+if [ -n "$PR_INFO" ]; then
+  PR_STATE=$(echo "$PR_INFO" | jq -r '.state')
+  PR_NUMBER=$(echo "$PR_INFO" | jq -r '.number')
+  PR_URL=$(echo "$PR_INFO" | jq -r '.url')
+
+  if [ "$PR_STATE" = "MERGED" ] || [ "$PR_STATE" = "CLOSED" ]; then
+    echo "❌ PR #$PR_NUMBER already exists and is $PR_STATE"
+    echo "   URL: $PR_URL"
+    exit 1
+  fi
+
+  echo "✅ Found existing open PR #$PR_NUMBER, will poll and merge it"
+  echo "   URL: $PR_URL"
+else
+  # 5. Create PR
+  echo "🔀 Creating pull request..."
+  if [ -z "$PR_BODY" ]; then
+    PR_BODY="$(
+      cat <<EOF
 ## Summary
 $COMMIT_MESSAGE
 EOF
-  )"
+    )"
+  fi
+
+  PR_URL=$(gh pr create --title "$PR_TITLE" --body "$PR_BODY")
+  PR_NUMBER=$(echo "$PR_URL" | grep -o '[0-9]\+$')
+
+  echo "✅ PR created: $PR_URL"
 fi
 
-PR_URL=$(gh pr create --title "$PR_TITLE" --body "$PR_BODY")
-PR_NUMBER=$(echo "$PR_URL" | grep -o '[0-9]\+$')
-
-echo "✅ PR created: $PR_URL"
-
-# 5. Poll for workflow completion
+# 6. Poll for workflow completion
 echo "⏳ Polling for workflow completion..."
 MAX_WAIT=600     # 10 minutes max
 POLL_INTERVAL=10 # Check every 10 seconds
@@ -105,7 +124,7 @@ if [ $ELAPSED -ge $MAX_WAIT ]; then
   exit 1
 fi
 
-# 6. Merge PR
+# 7. Merge PR
 echo "🔀 Merging PR..."
 gh pr merge "$PR_NUMBER" --squash --delete-branch
 
