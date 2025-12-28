@@ -45,51 +45,19 @@ function _ensure_tool(){
   return 0
 }
 
-function install_gitleaks_binary(){
-  local install_dir="$HOME/.local/bin"
-  mkdir -p "$install_dir"
-
-  local version
-  version=$(curl -sS "https://api.github.com/repos/gitleaks/gitleaks/releases/latest" | grep -o '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4)
-  if [[ -z "$version" ]]; then
-    error "Could not determine latest gitleaks version"
-    return 1
-  fi
-
-  local os arch
-  os=$(uname -s | tr '[:upper:]' '[:lower:]')
-  arch=$(uname -m)
-  [[ "$arch" == "x86_64" ]] && arch="x64"
-  [[ "$arch" == "aarch64" ]] && arch="arm64"
-
-  local filename="gitleaks_${version#v}_${os}_${arch}.tar.gz"
-  local url="https://github.com/gitleaks/gitleaks/releases/download/${version}/${filename}"
-
-  local tmp_dir
-  tmp_dir=$(mktemp -d)
-  trap "rm -rf '$tmp_dir'" EXIT
-
-  if ! curl -sSfL "$url" -o "$tmp_dir/gitleaks.tar.gz"; then
-    error "Failed to download gitleaks from $url"
-    return 1
-  fi
-
-  if ! tar -xzf "$tmp_dir/gitleaks.tar.gz" -C "$tmp_dir"; then
-    error "Failed to extract gitleaks"
-    return 1
-  fi
-
-  if ! mv "$tmp_dir/gitleaks" "$install_dir/gitleaks"; then
-    error "Failed to install gitleaks to $install_dir"
-    return 1
-  fi
-
-  chmod +x "$install_dir/gitleaks"
-  return 0
-}
-
 function ensure_gitleaks(){
-  _ensure_tool gitleaks install_gitleaks_binary
+  local os
+  os=$(uname -s)
+
+  case "$os" in
+    Linux)
+      _ensure_tool gitleaks "apt install -y gitleaks"
+      ;;
+    *)
+      error "Unsupported OS: $os"
+      return 1
+      ;;
+  esac
 }
 
 # Main execution
