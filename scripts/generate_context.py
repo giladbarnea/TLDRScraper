@@ -25,11 +25,6 @@ SERVER_EXCLUDES = COMMON_EXCLUDES | {
     'vc__handler__python.py'
 }
 
-DOCS_EXCLUDES = COMMON_EXCLUDES | {
-    'thoughts', '.claude', '.git', '.github',
-    'experimental', 'docs', 'tests', 'scripts'
-}
-
 CONFIG_FILES = {
     'package.json', 'package-lock.json',
     'pyproject.toml', 'uv.lock',
@@ -341,19 +336,22 @@ def generate_client_context(root_dir: pathlib.Path, no_body: bool = False) -> st
     return format_files_output(files, root_dir, read_file_content)
 
 
-def find_markdown_files(root_dir: pathlib.Path, excludes: Set[str]) -> List[pathlib.Path]:
-    """Find all markdown files recursively, excluding specified directories."""
+DOCS_WHITELIST = {'README.md', 'AGENTS.md', 'ARCHITECTURE.md'}
+
+
+def find_markdown_files(root_dir: pathlib.Path) -> List[pathlib.Path]:
+    """Find whitelisted markdown files in root directory."""
     md_files = []
-    for path in root_dir.rglob('*.md'):
-        rel_to_root = path.relative_to(root_dir)
-        if not should_exclude(rel_to_root, excludes):
+    for filename in DOCS_WHITELIST:
+        path = root_dir / filename
+        if path.exists():
             md_files.append(path)
-    return md_files
+    return sorted(md_files)
 
 
 def generate_docs_context(root_dir: pathlib.Path) -> str:
-    """Generate docs context with all markdown files (root + client)."""
-    all_md_files = find_markdown_files(root_dir, DOCS_EXCLUDES)
+    """Generate docs context with whitelisted root markdown files."""
+    all_md_files = find_markdown_files(root_dir)
     return format_files_output(all_md_files, root_dir, read_file_content)
 
 
