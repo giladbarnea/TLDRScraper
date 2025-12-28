@@ -55,7 +55,7 @@ function ensure_gitleaks(){
 }
 
 # Main execution
-message "Starting tooling installation in background..."
+message "Starting tooling installation..."
 
 ensure_local_bin_path
 
