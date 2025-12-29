@@ -125,7 +125,6 @@ function buildDailyPayloadsFromScrape(data) {
     const issues = issuesByDate.get(date) || []
     payloads.push({
       date,
-      cachedAt: new Date().toISOString(),
       articles,
       issues
     })
