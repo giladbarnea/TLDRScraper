@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-25 09:43
+last_updated: 2025-12-29 16:49
 ---
 # Discussion — Incomplete Cache & Failed Source Tracking
 
@@ -47,23 +47,11 @@ except Exception as e:
 
 Failures are logged and swallowed. The scrape continues with whatever sources succeeded. No failure information is persisted.
 
-### How `cachedAt` works now
+### How cache timestamps work now
 
-`cachedAt` is a timestamp set by the **client** when building payloads from the server's response:
+**Note: As of 2025-12-29, the client-side `cachedAt` field has been removed** as it was never used by any code.
 
-```javascript
-// client/src/lib/scraper.js
-payloads.push({
-  date,
-  cachedAt: new Date().toISOString(),  // ← client sets this
-  articles,
-  issues
-})
-```
-
-The client then persists this to Supabase via `storageApi.setDailyPayload()`.
-
-The server has no visibility into when or whether data was cached. It reads from the same `daily_cache` table but treats payload existence as the only signal.
+The database has a `cached_at` column (TIMESTAMPTZ) that tracks when a date was first cached, but this is also not used for any decision-making. Cache decisions are purely based on payload existence.
 
 ---
 
@@ -81,7 +69,7 @@ The server has no visibility into when or whether data was cached. It reads from
 
 ## Architectural Concern: Cache Ownership
 
-Cache persistence is currently in the client's domain. The client decides when to write `cachedAt`, how to structure the payload, and when to persist.
+Cache persistence is currently in the client's domain. The client decides how to structure the payload and when to persist.
 
 This is problematic:
 - The **server** knows scrape outcomes (which sources succeeded, which failed, what errors occurred)

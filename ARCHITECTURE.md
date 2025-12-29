@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-26 19:44
+last_updated: 2025-12-29 16:49
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -588,8 +588,7 @@ User clicks "Scrape Newsletters"
   │         └─ Build daily payloads: [{
   │              date: "2024-01-01",
   │              articles: [...],
-  │              issues: [...],
-  │              cachedAt: timestamp
+  │              issues: [...]
   │            }]
   │
   ├─ Step 4: Merge with Cache (if enabled)
@@ -724,7 +723,6 @@ User clicks "TLDR" button OR clicks article card body
 ```typescript
 {
   date: string,              // "2024-01-01"
-  cachedAt: string,          // ISO timestamp
   articles: Article[],       // Array of articles for this date
   issues: Issue[]            // Array of newsletter issues for this date
 }
@@ -1028,7 +1026,6 @@ CREATE TABLE daily_cache (
   date: '2024-01-01',
   payload: {
     date: '2024-01-01',
-    cachedAt: '2024-01-01T12:00:00Z',
     articles: [{url, title, read, removed, tldr, ...}, ...],
     issues: [{date, source_id, category, ...}, ...]
   },

@@ -56,7 +56,6 @@ def test_2_newsletter_scraping_cache_miss():
 
     payload = {
         "date": future_date,
-        "cachedAt": datetime.now().isoformat(),
         "articles": [
             {
                 "url": "https://example.com/article1",
@@ -114,7 +113,6 @@ def test_4_mark_article_as_read():
 
     payload = {
         "date": test_date,
-        "cachedAt": datetime.now().isoformat(),
         "articles": [
             {
                 "url": "https://example.com/unread-article",
@@ -158,7 +156,6 @@ def test_5_remove_article():
 
     payload = {
         "date": test_date,
-        "cachedAt": datetime.now().isoformat(),
         "articles": [
             {
                 "url": "https://example.com/remove-test",
@@ -226,7 +223,6 @@ def test_7_generate_tldr():
 
     payload = {
         "date": test_date,
-        "cachedAt": datetime.now().isoformat(),
         "articles": [
             {
                 "url": "https://example.com/tldr-test",
@@ -273,7 +269,6 @@ def test_8_article_sorting_states():
 
     payload = {
         "date": test_date,
-        "cachedAt": datetime.now().isoformat(),
         "articles": [
             {
                 "url": "https://example.com/unread",
@@ -339,7 +334,6 @@ def test_9_scrape_with_existing_data():
 
     existing_payload = {
         "date": test_date,
-        "cachedAt": datetime.now().isoformat(),
         "articles": [
             {
                 "url": "https://example.com/existing",
@@ -362,7 +356,6 @@ def test_9_scrape_with_existing_data():
 
     fresh_payload = {
         "date": test_date,
-        "cachedAt": datetime.now().isoformat(),
         "articles": [
             {
                 "url": "https://example.com/existing",

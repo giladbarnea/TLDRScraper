@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-20 22:11, 41c283a
+last_updated: 2025-12-29 16:51
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -14,7 +14,7 @@ Newsletter aggregator that scrapes tech newsletters from multiple sources, displ
    * Supabase PostgreSQL for all data persistence
    * Gemini 3 Pro Preview for TLDRs
 - Storage: Project uses Supabase Database (PostgreSQL) for all data persistence (newsletters, article states, settings, scrape results). Data is stored server-side with client hooks managing async operations.
-- Cache mechanism: Server-side storage with cache-first scraping behavior. Daily payloads stored as JSONB in PostgreSQL. 
+- Cache mechanism: Server-side storage with cache-first scraping for past dates (early return if cached). Today always scrapes and unions with cache to capture new articles published later in the day. Daily payloads stored as JSONB in PostgreSQL. 
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
 
