@@ -67,7 +67,12 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
             <ChevronDown size={20} />
           </button>
 
-          <div className="flex items-center gap-2">
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+          >
             {hostname && (
               <img
                 src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
@@ -79,7 +84,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
               {displayDomain}
               {articleMeta && <span className="text-slate-400"> · {articleMeta}</span>}
             </span>
-          </div>
+          </a>
 
           <button
             onClick={onMarkDone}
