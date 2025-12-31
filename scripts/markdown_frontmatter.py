@@ -9,13 +9,7 @@ import sys
 from pathlib import Path
 import logging
 
-try:
-    import util
-    logger = logging.getLogger("markdown_frontmatter")
-except ModuleNotFoundError:
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    import util
-    logger = logging.getLogger("markdown_frontmatter")
+logger = logging.getLogger("markdown_frontmatter")
 
 
 def _read_frontmatter(file_path: Path) -> tuple[dict[str, str], str]:
