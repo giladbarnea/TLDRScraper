@@ -19,21 +19,19 @@ fi
 source "$SERVER_CONTEXT_WORKDIR/scripts/setup/common.sh"
 
 # Override message/error for setup.sh context (since this file is sourced, not executed)
-function error(){
+function error() {
   echo "[setup.sh] ERROR: $*" >&2
 }
 
-function message(){
-	[[ "$SETUP_QUIET" != "true" ]] && echo "[setup.sh] $*" >&2
-	return 0
+function message() {
+  [[ "$SETUP_QUIET" != "true" ]] && echo "[setup.sh] $*" >&2
+  return 0
 }
-
-
 
 # resolve_server_context [--workdir=WORKDIR] [--run-dir=RUN_DIR] [--log-file=LOG_FILE] [--pid-file=SERVER_PID_FILE] [--watchdog-pid-file=WATCHDOG_PID_FILE] [--check-interval=CHECK_INTERVAL] [--port=PORT]
 # Resolves the server context from command line arguments and environment variables.
 # Returns 0 if successful, 1 if unsuccessful.
-# 
+#
 # Command line arguments and their default values:
 #   --workdir=WORKDIR            Default: value of $SERVER_CONTEXT_WORKDIR if set, otherwise $PWD
 #   --run-dir=RUN_DIR            Default: "$workdir/.run"
@@ -61,93 +59,91 @@ resolve_server_context() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --workdir=*)
-        workdir="${1#*=}"
-        ;;
-      --workdir)
-        shift
-        if [[ $# -eq 0 ]]; then
-          echo "[setup.sh resolve_server_context] ERROR: --workdir requires a value" >&2
-          return 1
-        fi
-        workdir="$1"
-        ;;
-      --run-dir=*)
-        run_dir="${1#*=}"
-        ;;
-      --run-dir)
-        shift
-        if [[ $# -eq 0 ]]; then
-          echo "[setup.sh resolve_server_context] ERROR: --run-dir requires a value" >&2
-          return 1
-        fi
-        run_dir="$1"
-        ;;
-      --log-file=*)
-        log_file="${1#*=}"
-        ;;
-      --log-file)
-        shift
-        if [[ $# -eq 0 ]]; then
-          echo "[setup.sh resolve_server_context] ERROR: --log-file requires a value" >&2
-          return 1
-        fi
-        log_file="$1"
-        ;;
-      --pid-file=*)
-        server_pid_file="${1#*=}"
-        ;;
-      --pid-file)
-        shift
-        if [[ $# -eq 0 ]]; then
-          echo "[setup.sh resolve_server_context] ERROR: --pid-file requires a value" >&2
-          return 1
-        fi
-        server_pid_file="$1"
-        ;;
-      --watchdog-pid-file=*)
-        watchdog_pid_file="${1#*=}"
-        ;;
-      --watchdog-pid-file)
-        shift
-        if [[ $# -eq 0 ]]; then
-          echo "[setup.sh resolve_server_context] ERROR: --watchdog-pid-file requires a value" >&2
-          return 1
-        fi
-        watchdog_pid_file="$1"
-        ;;
-      --check-interval=*)
-        check_interval="${1#*=}"
-        ;;
-      --check-interval)
-        shift
-        if [[ $# -eq 0 ]]; then
-          echo "[setup.sh resolve_server_context] ERROR: --check-interval requires a value" >&2
-          return 1
-        fi
-        check_interval="$1"
-        ;;
-      --port=*)
-        port="${1#*=}"
-        ;;
-      --port)
-        shift
-        if [[ $# -eq 0 ]]; then
-          echo "[setup.sh resolve_server_context] ERROR: --port requires a value" >&2
-          return 1
-        fi
-        port="$1"
-        ;;
-        
-      # Quiet mode is irrelevant on the environment variable level, so we ignore it here.
-      -q|--quiet|--quiet=*)
-        ;;
-      --)
-        shift
-        break
-        ;;
-      *)
-        ;;
+    --workdir=*)
+      workdir="${1#*=}"
+      ;;
+    --workdir)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "[setup.sh resolve_server_context] ERROR: --workdir requires a value" >&2
+        return 1
+      fi
+      workdir="$1"
+      ;;
+    --run-dir=*)
+      run_dir="${1#*=}"
+      ;;
+    --run-dir)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "[setup.sh resolve_server_context] ERROR: --run-dir requires a value" >&2
+        return 1
+      fi
+      run_dir="$1"
+      ;;
+    --log-file=*)
+      log_file="${1#*=}"
+      ;;
+    --log-file)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "[setup.sh resolve_server_context] ERROR: --log-file requires a value" >&2
+        return 1
+      fi
+      log_file="$1"
+      ;;
+    --pid-file=*)
+      server_pid_file="${1#*=}"
+      ;;
+    --pid-file)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "[setup.sh resolve_server_context] ERROR: --pid-file requires a value" >&2
+        return 1
+      fi
+      server_pid_file="$1"
+      ;;
+    --watchdog-pid-file=*)
+      watchdog_pid_file="${1#*=}"
+      ;;
+    --watchdog-pid-file)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "[setup.sh resolve_server_context] ERROR: --watchdog-pid-file requires a value" >&2
+        return 1
+      fi
+      watchdog_pid_file="$1"
+      ;;
+    --check-interval=*)
+      check_interval="${1#*=}"
+      ;;
+    --check-interval)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "[setup.sh resolve_server_context] ERROR: --check-interval requires a value" >&2
+        return 1
+      fi
+      check_interval="$1"
+      ;;
+    --port=*)
+      port="${1#*=}"
+      ;;
+    --port)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "[setup.sh resolve_server_context] ERROR: --port requires a value" >&2
+        return 1
+      fi
+      port="$1"
+      ;;
+
+    # Quiet mode is irrelevant on the environment variable level, so we ignore it here.
+    -q | --quiet | --quiet=*) ;;
+    --)
+      shift
+      break
+      ;;
+    *) ;;
     esac
     shift || true
   done
@@ -169,80 +165,81 @@ resolve_server_context() {
   return 0
 }
 
-decolor () {
-    local text="${1:-$(cat /dev/stdin)}"
-    # Remove ANSI color codes step by step using basic bash parameter expansion
-    # Remove escape sequences like \033[0m, \033[31m, \033[1;31m, etc.
+decolor() {
+  local text="${1:-$(cat /dev/stdin)}"
+  # Remove ANSI color codes step by step using basic bash parameter expansion
+  # Remove escape sequences like \033[0m, \033[31m, \033[1;31m, etc.
 
-    # Remove \033[*m patterns (any characters between [ and m)
-    while [[ "$text" == *$'\033['*m* ]]; do
-        text="${text//$'\033['*m/}"
-    done
+  # Remove \033[*m patterns (any characters between [ and m)
+  while [[ "$text" == *$'\033['*m* ]]; do
+    text="${text//$'\033['*m/}"
+  done
 
-    # Also handle \e[*m patterns (alternative escape sequence format)
-    while [[ "$text" == *$'\e['*m* ]]; do
-        text="${text//$'\e['*m/}"
-    done
+  # Also handle \e[*m patterns (alternative escape sequence format)
+  while [[ "$text" == *$'\e['*m* ]]; do
+    text="${text//$'\e['*m/}"
+  done
 
-    echo -n "$text"
+  echo -n "$text"
 }
 
 # # ensure_uv [-q,-quiet]
-function ensure_local_bin_path(){
-    local quiet="${1:-false}"
-    [[ "$SETUP_QUIET" == "true" ]] && quiet=true
-    
-    # Cursor web agent installs to /home/ubuntu/.local/bin.
-    if [[ -d "/home/ubuntu" ]]; then
-        if [[ ":$PATH:" == *":/home/ubuntu/.local/bin:"* ]]; then
-            [[ "$quiet" == false ]] && message "[$0] /home/ubuntu/.local/bin already present in PATH"
-            return 0
-        fi
-        export PATH="/home/ubuntu/.local/bin:$PATH"
-        [[ "$quiet" == false ]] && message "[$0] Added /home/ubuntu/.local/bin to PATH"
-        return 0
+function ensure_local_bin_path() {
+  local quiet="${1:-false}"
+  [[ "$SETUP_QUIET" == "true" ]] && quiet=true
+
+  # Cursor web agent installs to /home/ubuntu/.local/bin.
+  if [[ -d "/home/ubuntu" ]]; then
+    if [[ ":$PATH:" == *":/home/ubuntu/.local/bin:"* ]]; then
+      [[ "$quiet" == false ]] && message "[$0] /home/ubuntu/.local/bin already present in PATH"
+      return 0
     fi
-    
-    # The default path for local bin is $HOME/.local/bin.
-    if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
-        [[ "$quiet" == false ]] && message "[$0] \$HOME/.local/bin already present in PATH"
-        return 0
-    fi
-    mkdir -p "$HOME/.local/bin"
-    export PATH="$HOME/.local/bin:$PATH"
-    [[ "$quiet" == false ]] && message "[$0] Added \$HOME/.local/bin to PATH"
+    export PATH="/home/ubuntu/.local/bin:$PATH"
+    [[ "$quiet" == false ]] && message "[$0] Added /home/ubuntu/.local/bin to PATH"
+    return 0
+  fi
+
+  # The default path for local bin is $HOME/.local/bin.
+  if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
+    [[ "$quiet" == false ]] && message "[$0] \$HOME/.local/bin already present in PATH"
+    return 0
+  fi
+  mkdir -p "$HOME/.local/bin"
+  export PATH="$HOME/.local/bin:$PATH"
+  [[ "$quiet" == false ]] && message "[$0] Added \$HOME/.local/bin to PATH"
 }
 
 # _ensure_tool [-q,-quiet] <TOOL> <INSTALL_EXPRESSION>
 # Private function: idempotent installation of TOOL.
-function _ensure_tool(){
+function _ensure_tool() {
   local quiet=false
   local tool=""
   local install_expression=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --quiet)
-        if [[ "$2" != false && "$2" != true ]]; then
-          quiet=true
-        else
-          quiet="$2"
-          shift
-        fi
-        ;;
-      --quiet=false)
-        quiet=false
-        ;;
-        --quiet=true)
+    --quiet)
+      if [[ "$2" != false && "$2" != true ]]; then
         quiet=true
-        ;;
-      -q)
-        quiet=true
-        ;;
-      *)
-        tool="$1"
-        install_expression="$2"
+      else
+        quiet="$2"
         shift
+      fi
+      ;;
+    --quiet=false)
+      quiet=false
+      ;;
+    --quiet=true)
+      quiet=true
+      ;;
+    -q)
+      quiet=true
+      ;;
+    *)
+      tool="$1"
+      install_expression="$2"
+      shift
+      ;;
     esac
     shift
   done
@@ -254,12 +251,12 @@ function _ensure_tool(){
   fi
   [[ "$quiet" == false ]] && message "[$_self_name] $tool is not installed, installing with '$install_expression'" >&2
   if ! eval "$install_expression" >/dev/null 2>&1; then
-      message "[$_self_name] ERROR: Failed to install $tool." >&2
-      return 1
+    message "[$_self_name] ERROR: Failed to install $tool." >&2
+    return 1
   fi
   if ! isdefined "$tool"; then
-      message "[$_self_name] ERROR: After installing $tool, 'command -v $tool' returned a non-zero exit code. $tool is probably installed but not in PATH." >&2
-      return 1
+    message "[$_self_name] ERROR: After installing $tool, 'command -v $tool' returned a non-zero exit code. $tool is probably installed but not in PATH." >&2
+    return 1
   fi
   [[ "$quiet" == false ]] && message "[$_self_name] $tool installed and in the PATH"
   return 0
@@ -267,37 +264,37 @@ function _ensure_tool(){
 
 # ensure_uv [-q,-quiet]
 # Idempotent installation of uv.
-function ensure_uv(){
+function ensure_uv() {
   _ensure_tool uv "curl -LsSf https://astral.sh/uv/install.sh | sh" "$@"
 }
 
 # uv_sync [-q,-quiet]
 # Idempotent installation of Python dependencies using uv.
-function uv_sync(){
-    local quiet=false
-    if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
-        quiet=true
-    elif [[ "$1" == "--quiet=true" ]]; then
-        quiet=true
-    elif [[ "$1" == "--quiet=false" ]]; then
-        quiet=false
-    fi
-    [[ "$SETUP_QUIET" == "true" ]] && quiet=true
-    ensure_uv --quiet || return 1
-    [[ "$quiet" == false ]] && message "[$0] Running 'uv sync'..."
-    local uv_sync_output
-    if uv_sync_output=$(uv sync -p 3.11 2>&1); then
-        [[ "$quiet" == false ]] && message "[$0] Successfully ran uv sync. Use 'uv run python3 ...' to run Python."
-        return 0
-    else
-        error "[$0] failed to uv sync. Output:"
-        echo "$uv_sync_output" >&2
-        return 1
-    fi
+function uv_sync() {
+  local quiet=false
+  if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
+    quiet=true
+  elif [[ "$1" == "--quiet=true" ]]; then
+    quiet=true
+  elif [[ "$1" == "--quiet=false" ]]; then
+    quiet=false
+  fi
+  [[ "$SETUP_QUIET" == "true" ]] && quiet=true
+  ensure_uv --quiet || return 1
+  [[ "$quiet" == false ]] && message "[$0] Running 'uv sync'..."
+  local uv_sync_output
+  if uv_sync_output=$(uv sync -p 3.11 2>&1); then
+    [[ "$quiet" == false ]] && message "[$0] Successfully ran uv sync. Use 'uv run python3 ...' to run Python."
+    return 0
+  else
+    error "[$0] failed to uv sync. Output:"
+    echo "$uv_sync_output" >&2
+    return 1
+  fi
 }
 
 # # ensure_eza [-q,--quiet]
-function ensure_eza(){
+function ensure_eza() {
   _ensure_tool 'eza' 'apt install -y eza' "$@"
 }
 # function ensure_claude_settings(){
@@ -320,7 +317,7 @@ function ensure_eza(){
 #     if [[ ! -s "$settings_path" ]]; then
 #         if ! cat <<'JSON' > "$settings_path"; then
 # {
-  
+
 #   "permissions": {
 #       "defaultMode": "bypassPermissions"
 #   },
@@ -359,8 +356,8 @@ function ensure_eza(){
 #     return 0
 # }
 
-function build_client(){
-  if { builtin cd client && npm ci && npm run build; } then
+function build_client() {
+  if { builtin cd client && npm ci && npm run build; }; then
     message "[$0] Successfully built client"
     builtin cd "$SERVER_CONTEXT_WORKDIR"
     return 0
@@ -371,23 +368,23 @@ function build_client(){
   fi
 }
 
-
 # main [-q,-quiet]
 # Idempotent environment and dependencies setup, installation, and verification.
 function main() {
+  [[ -f ~/.claude/stop-hook-git-check.sh ]] && rm ~/.claude/stop-hook-git-check.sh
   local quiet=false
   local -a args=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --quiet|--quiet=true|-q)
-        quiet=true
-        ;;
-      --quiet=false)
-        quiet=false
-        ;;
-      *)
-        args+=("$1")
-        ;;
+    --quiet | --quiet=true | -q)
+      quiet=true
+      ;;
+    --quiet=false)
+      quiet=false
+      ;;
+    *)
+      args+=("$1")
+      ;;
     esac
     shift
   done
@@ -409,7 +406,6 @@ function main() {
 
   message "[$0] Working directory: $workdir"
 
-
   #region ----[ Install & Build Dependencies ]----
 
   mkdir -p "$run_dir"
@@ -423,15 +419,14 @@ function main() {
   bash "$workdir/scripts/setup/ensure_tooling.sh" &
 
   [[ "$quiet" == false ]] && message "[$0] UV sync and client build running in background..."
-  
+
   #region ----[ Prepare & Print Docs ]----
-  
+
   [[ "$quiet" == false ]] && message "[$0] Configuring git hooks..."
   if [[ -d "$workdir/.githooks" ]]; then
     if git config core.hooksPath .githooks; then
       [[ "$quiet" == false ]] && message "[$0] Git hooks configured to use .githooks directory"
-      
-      
+
       if [[ -x "$workdir/.githooks/pre-merge-commit" ]]; then
         [[ "$quiet" == false ]] && message "[$0] Running pre-merge-commit hook to generate PROJECT_STRUCTURE.md..."
         (builtin cd "$workdir" && ./.githooks/pre-merge-commit)
@@ -439,15 +434,15 @@ function main() {
       fi
     fi
   fi
-  
+
   #region ----[ Env Vars Validation ]----
-    
+
   [[ "$quiet" == false ]] && message "[$0] Checking for required environment variables..."
   if [[ -f "$workdir/.env" ]]; then
-      local line
-      command grep --color=never -E -v '^(\s*#|$)' "$workdir/.env" | while read -r line; do
-        eval export "$line"
-      done
+    local line
+    command grep --color=never -E -v '^(\s*#|$)' "$workdir/.env" | while read -r line; do
+      eval export "$line"
+    done
   fi
   local -a expected_env_vars=(
     GITHUB_API_TOKEN
@@ -458,12 +453,15 @@ function main() {
     SUPABASE_SECRET_KEY
     SUPABASE_URL
   )
-  local pattern="($(IFS='|'; echo "${expected_env_vars[*]}"))"
+  local pattern="($(
+    IFS='|'
+    echo "${expected_env_vars[*]}"
+  ))"
   local existing_env_vars="$(env | command grep --color=never -E "$pattern" | sort -u)"
   local -a missing_env_vars=()
   local env_var_name
   for env_var_name in "${expected_env_vars[@]}"; do
-    if ! command grep --color=never -E -q "${env_var_name}=.+" <<< "$existing_env_vars"; then
+    if ! command grep --color=never -E -q "${env_var_name}=.+" <<<"$existing_env_vars"; then
       missing_env_vars+=("$env_var_name")
     fi
   done
@@ -476,7 +474,7 @@ function main() {
     message "[$0] Setup complete successfully. Available env vars: ${expected_env_vars[*]}"
   fi
 
-  echo 1 > "$HOME/.cache/tech-news-scraper/setup-complete"
+  echo 1 >"$HOME/.cache/tech-news-scraper/setup-complete"
 }
 
 # region Watchdog
@@ -505,7 +503,7 @@ watchdog() {
     error "[$0] empty PID in $server_pid_file"
     return 1
   fi
-  
+
   # Start watching the server process. Error out and return 2 if the server if not kill -0 $server_pid.
   while true; do
     if ! kill -0 "$server_pid" 2>/dev/null; then
@@ -543,16 +541,16 @@ function start_server_and_watchdog() {
   message "[$0] Starting server with nohup (port $port)..."
   rm -f "$log_file" "$server_pid_file" "$watchdog_pid_file"
   mkdir -p "$run_dir"
-  
+
   # Start the server in the background and write the PID to $server_pid_file.
   (
     builtin cd "$workdir"
-    PORT="$port" uv run python3.11 "$workdir/serve.py" >> "$log_file" 2>&1 &
-    echo $! > "$server_pid_file"
+    PORT="$port" uv run python3.11 "$workdir/serve.py" >>"$log_file" 2>&1 &
+    echo $! >"$server_pid_file"
     wait
   ) &
   local server_pid=""
-  
+
   # Wait for the server to start and load the PID into $server_pid. 5-second timeout.
   local attempt=0
   while [[ $attempt -lt 50 ]]; do
@@ -572,8 +570,8 @@ function start_server_and_watchdog() {
   message "[$0] Server started with PID $server_pid"
   sleep 1
   local watchdog_command="builtin cd \"$workdir\" && SETUP_SH_SKIP_MAIN=1 source \"$workdir/setup.sh\" && watchdog --workdir=\"$workdir\" --run-dir=\"$run_dir\" --log-file=\"$log_file\" --pid-file=\"$server_pid_file\" --watchdog-pid-file=\"$watchdog_pid_file\" --check-interval=\"$check_interval\" --port=\"$port\""
-  nohup bash -lc "$watchdog_command" >> "$log_file" 2>&1 &
-  echo $! > "$watchdog_pid_file"
+  nohup bash -lc "$watchdog_command" >>"$log_file" 2>&1 &
+  echo $! >"$watchdog_pid_file"
   message "[$0] Watchdog started with PID $(cat "$watchdog_pid_file")"
   print_server_and_watchdog_pids "$@"
 }
@@ -637,10 +635,9 @@ if [[ "${SETUP_SH_SKIP_MAIN:-0}" != "1" ]]; then
   main "$@"
 fi
 
-
 _available_functions_after_setup_sh=($(declare -F | cut -d' ' -f 3))
 _new_functions=($(comm -23 <(echo "${_available_functions_after_setup_sh[@]}") <(echo "${_available_functions_before_setup_sh[@]}")))
-_new_functions=($(xargs -n1 <<< ${_new_functions[@]} | grep -e server -e watchdog || true))
+_new_functions=($(xargs -n1 <<<${_new_functions[@]} | grep -e server -e watchdog || true))
 if [[ ${#_new_functions[@]} -gt 0 ]]; then
   _new_functions_formatted="$(echo ${_new_functions[@]} | tr ' ' ', ')"
   message "[DONE] New functions available for use after sourcing setup.sh: ${_new_functions_formatted}"
@@ -649,3 +646,4 @@ if [[ ${#_new_functions[@]} -gt 0 ]]; then
   message "  - kill_server_and_watchdog: ${KILL_SERVER_AND_WATCHDOG_DOC}"
   message "  - print_server_and_watchdog_pids: ${PRINT_SERVER_AND_WATCHDOG_PIDS_DOC}"
 fi
+
