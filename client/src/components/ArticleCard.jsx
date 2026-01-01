@@ -50,14 +50,14 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
 
   return createPortal(
     <div className="fixed inset-0 z-[100]">
-      <div className="w-full h-full bg-white relative animate-zen-enter">
-        {/* Absolute Header */}
+      <div className="w-full h-full bg-white flex flex-col animate-zen-enter">
+        {/* Header */}
         <div
           className={`
-            absolute top-0 left-0 right-0 z-10
+            relative shrink-0 z-10
             flex items-center justify-between p-4
             transition-all duration-200
-            ${hasScrolled ? 'bg-white/80 backdrop-blur-md border-b border-slate-100' : 'bg-transparent'}
+            ${hasScrolled ? 'bg-white/80 backdrop-blur-md border-b border-slate-100' : 'bg-white'}
           `}
         >
           <button
@@ -100,8 +100,8 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
           />
         </div>
 
-        {/* Content Area with Padding */}
-        <div ref={scrollRef} className="overflow-y-auto h-full pt-16 p-6 md:p-8 bg-white">
+        {/* Content Area */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 md:p-8 bg-white">
           <div className="max-w-3xl mx-auto">
             <div
               className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900"
