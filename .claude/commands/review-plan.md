@@ -3,11 +3,11 @@ description: Review an implementation plan for design flaws and blindspots
 model: inherit
 argument-hint: plan_file_path
 name: review-plan
-last_updated: 2025-12-17 07:42, 984bd6b
+last_updated: 2026-01-01 08:27
 ---
 # Plan Review Task
 
-Your task is to review an implementation plan for potential major design flaws and blindspots.
+Your task is to review an implementation plan for potential major design flaws, blindspots and possible scope creep.
 
 ## Instructions
 
@@ -31,6 +31,7 @@ Your task is to review an implementation plan for potential major design flaws a
 5. **Critical Review**
    - Does the plan have any hard blindspots?
    - Are there major design flaws?
+   - Does the plan’s scope unnecessarily expand to implicitly address issues that aren’t part of the problem statement or feature definition?
    - Could the intended outcome be achieved with a markedly better, simpler approach?
    - Does it align with the project's architecture and conventions?
    - Does it handle important edge cases?
