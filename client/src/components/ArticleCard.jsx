@@ -65,65 +65,67 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
         initial={{ y: 12, opacity: 0, scale: 0.98 }}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        className="w-full h-full bg-white relative"
+        className="w-full h-full bg-white"
       >
-        {/* Absolute Header - drag handle */}
-        <div
-          onPointerDown={startDrag}
-          className={`
-            absolute top-0 left-0 right-0 z-10
-            flex items-center justify-between p-4
-            transition-all duration-200 cursor-grab active:cursor-grabbing
-            ${hasScrolled ? 'bg-white/95 backdrop-blur-md border-b border-slate-100' : 'bg-white/90'}
-          `}
-        >
-          <button
-            onClick={onClose}
-            className="shrink-0 p-2 rounded-full hover:bg-slate-200/80 text-slate-500 hover:text-slate-700 transition-colors"
-          >
-            <ChevronDown size={20} />
-          </button>
-
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 hover:opacity-70 transition-opacity"
-          >
-            {hostname && (
-              <img
-                src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
-                className="w-[18px] h-[18px] rounded-full border border-slate-200"
-                alt=""
-              />
-            )}
-            <span className="text-sm text-slate-500 font-medium">
-              {displayDomain}
-              {articleMeta && <span className="text-slate-400"> · {articleMeta}</span>}
-            </span>
-          </a>
-
-          <button
-            onClick={onMarkDone}
-            className="shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
-          >
-            <Check size={20} />
-          </button>
-
-          {/* Progress Bar */}
+        <div ref={scrollRef} className="overflow-y-auto h-full">
+          {/* Sticky Header - drag handle */}
           <div
-            className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 origin-left transition-transform duration-100"
-            style={{ transform: `scaleX(${progress})` }}
-          />
-        </div>
+            onPointerDown={startDrag}
+            className={`
+              sticky top-0 z-10
+              flex items-center justify-between p-4
+              transition-all duration-200 cursor-grab active:cursor-grabbing
+              ${hasScrolled ? 'bg-white/95 backdrop-blur-md border-b border-slate-100' : 'bg-white'}
+            `}
+          >
+            <button
+              onClick={onClose}
+              className="shrink-0 p-2 rounded-full hover:bg-slate-200/80 text-slate-500 hover:text-slate-700 transition-colors"
+            >
+              <ChevronDown size={20} />
+            </button>
 
-        {/* Content Area with Padding */}
-        <div ref={scrollRef} className="overflow-y-auto h-full pt-20 p-6 md:p-8 bg-white">
-          <div className="max-w-3xl mx-auto">
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+            >
+              {hostname && (
+                <img
+                  src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
+                  className="w-[18px] h-[18px] rounded-full border border-slate-200"
+                  alt=""
+                />
+              )}
+              <span className="text-sm text-slate-500 font-medium">
+                {displayDomain}
+                {articleMeta && <span className="text-slate-400"> · {articleMeta}</span>}
+              </span>
+            </a>
+
+            <button
+              onClick={onMarkDone}
+              className="shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
+            >
+              <Check size={20} />
+            </button>
+
+            {/* Progress Bar */}
             <div
-              className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900"
-              dangerouslySetInnerHTML={{ __html: html }}
+              className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 origin-left transition-transform duration-100"
+              style={{ transform: `scaleX(${progress})` }}
             />
+          </div>
+
+          {/* Content Area - flows after header */}
+          <div className="px-6 pb-6 md:px-8 md:pb-8 bg-white">
+            <div className="max-w-3xl mx-auto">
+              <div
+                className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            </div>
           </div>
         </div>
       </motion.div>
