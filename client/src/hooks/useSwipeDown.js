@@ -1,10 +1,9 @@
-import { useAnimation, useDragControls } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useAnimation } from 'framer-motion'
+import { useEffect, useRef } from 'react'
 
-export function useSwipeDown({ onSwipeComplete }) {
-  const [isDragging, setIsDragging] = useState(false)
+export function useSwipeDown({ onSwipeComplete, scrollRef }) {
   const controls = useAnimation()
-  const dragControls = useDragControls()
+  const gestureRef = useRef({ startY: 0, startScrollTop: 0, isDragging: false })
 
   useEffect(() => {
     controls.start({
@@ -15,38 +14,57 @@ export function useSwipeDown({ onSwipeComplete }) {
     })
   }, [controls])
 
-  const startDrag = (event) => {
-    dragControls.start(event)
+  const handlePointerDown = (e) => {
+    const scrollTop = scrollRef.current?.scrollTop ?? 0
+    gestureRef.current = { startY: e.clientY, startScrollTop: scrollTop, isDragging: false }
   }
 
-  const handleDragStart = () => {
-    setIsDragging(true)
-  }
+  const handlePointerMove = (e) => {
+    const { startY, startScrollTop, isDragging } = gestureRef.current
+    const deltaY = e.clientY - startY
 
-  const handleDragEnd = async (_event, info) => {
-    setIsDragging(false)
-    const { offset, velocity } = info
-    const swipeThreshold = 80
-    const velocityThreshold = 500
+    if (startScrollTop === 0 && deltaY > 0) {
+      if (!isDragging && deltaY > 12) {
+        gestureRef.current.isDragging = true
+        e.target.setPointerCapture(e.pointerId)
+      }
 
-    if (offset.y > swipeThreshold || velocity.y > velocityThreshold) {
-      await controls.start({
-        y: window.innerHeight,
-        opacity: 0,
-        transition: { duration: 0.2, ease: 'easeOut' }
-      })
-      onSwipeComplete()
-    } else {
-      controls.start({ y: 0, opacity: 1 })
+      if (gestureRef.current.isDragging) {
+        controls.set({ y: deltaY * 0.5 })
+      }
     }
   }
 
+  const handlePointerUp = async (e) => {
+    const { startY, isDragging } = gestureRef.current
+
+    if (isDragging) {
+      try {
+        e.target.releasePointerCapture(e.pointerId)
+      } catch {}
+
+      const deltaY = e.clientY - startY
+      const swipeThreshold = 80
+
+      if (deltaY > swipeThreshold) {
+        await controls.start({
+          y: window.innerHeight,
+          opacity: 0,
+          transition: { duration: 0.2, ease: 'easeOut' }
+        })
+        onSwipeComplete()
+      } else {
+        controls.start({ y: 0, opacity: 1 })
+      }
+    }
+
+    gestureRef.current = { startY: 0, startScrollTop: 0, isDragging: false }
+  }
+
   return {
-    isDragging,
     controls,
-    dragControls,
-    startDrag,
-    handleDragStart,
-    handleDragEnd,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
   }
 }

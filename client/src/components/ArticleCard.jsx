@@ -28,8 +28,9 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
   const [hasScrolled, setHasScrolled] = useState(false)
   const scrollRef = useRef(null)
   const progress = useScrollProgress(scrollRef)
-  const { controls, dragControls, startDrag, handleDragStart, handleDragEnd } = useSwipeDown({
-    onSwipeComplete: onClose
+  const { controls, handlePointerDown, handlePointerMove, handlePointerUp } = useSwipeDown({
+    onSwipeComplete: onClose,
+    scrollRef
   })
 
   useEffect(() => {
@@ -55,26 +56,24 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
   return createPortal(
     <div className="fixed inset-0 z-[100]">
       <motion.div
-        drag="y"
-        dragListener={false}
-        dragControls={dragControls}
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={{ top: 0, bottom: 0.6 }}
-        dragMomentum={false}
         animate={controls}
         initial={{ y: 12, opacity: 0, scale: 0.98 }}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
         className="w-full h-full bg-white"
       >
-        <div ref={scrollRef} className="overflow-y-auto h-full">
-          {/* Sticky Header - drag handle */}
+        <div
+          ref={scrollRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className="overflow-y-auto h-full"
+        >
+          {/* Sticky Header */}
           <div
-            onPointerDown={startDrag}
             className={`
               sticky top-0 z-10
               flex items-center justify-between p-4
-              transition-all duration-200 cursor-grab active:cursor-grabbing
+              transition-all duration-200
               ${hasScrolled ? 'bg-white/95 backdrop-blur-md border-b border-slate-100' : 'bg-white'}
             `}
           >
