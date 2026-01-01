@@ -66,7 +66,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className="overflow-y-auto h-full"
+          className="overflow-y-auto h-full bg-white"
         >
           {/* Sticky Header */}
           <div
