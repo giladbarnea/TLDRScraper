@@ -1,3 +1,6 @@
+---
+last_updated: 2026-01-01 06:21, 95a000c
+---
 # Plan B: Swipe-Down Collapse Gesture
 
 ## Overview
