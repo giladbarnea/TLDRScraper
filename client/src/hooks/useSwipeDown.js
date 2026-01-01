@@ -9,7 +9,6 @@ export function useSwipeDown({ onSwipeComplete, scrollRef }) {
     controls.start({
       y: 0,
       opacity: 1,
-      scale: 1,
       transition: { type: 'spring', damping: 25, stiffness: 300 }
     })
   }, [controls])
@@ -30,7 +29,7 @@ export function useSwipeDown({ onSwipeComplete, scrollRef }) {
       }
 
       if (gestureRef.current.isDragging) {
-        controls.set({ y: deltaY * 0.5 })
+        controls.set({ y: deltaY * 0.5, opacity: 1 })
       }
     }
   }

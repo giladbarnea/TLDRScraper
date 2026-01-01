@@ -57,7 +57,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
     <div className="fixed inset-0 z-[100]">
       <motion.div
         animate={controls}
-        initial={{ y: 12, opacity: 0, scale: 0.98 }}
+        initial={{ y: 20, opacity: 0 }}
         className="w-full h-full bg-white"
       >
         <div
