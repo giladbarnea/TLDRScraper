@@ -1,8 +1,5 @@
 ---
 description: Review of Plan B (Swipe-Down Collapse)
-model: gemini-2.0-flash-exp
-argument-hint: thoughts/25-12-22-zen-overlay-header-and-swipe-interactions/plans/plan-b-swipe-down-collapse.md
-name: review-plan
 last_updated: 2025-12-31 10:13, da59643
 ---
 # Plan Review: Swipe-Down Collapse Gesture
