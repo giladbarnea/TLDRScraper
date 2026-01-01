@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { useArticleState } from '../hooks/useArticleState'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
+import { useSwipeDown } from '../hooks/useSwipeDown'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
 
 function ErrorToast({ message, onDismiss }) {
@@ -27,6 +28,9 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
   const [hasScrolled, setHasScrolled] = useState(false)
   const scrollRef = useRef(null)
   const progress = useScrollProgress(scrollRef)
+  const { controls, dragControls, startDrag, handleDragStart, handleDragEnd } = useSwipeDown({
+    onSwipeComplete: onClose
+  })
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -50,13 +54,26 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
 
   return createPortal(
     <div className="fixed inset-0 z-[100]">
-      <div className="w-full h-full bg-white relative animate-zen-enter">
-        {/* Absolute Header */}
+      <motion.div
+        drag="y"
+        dragListener={false}
+        dragControls={dragControls}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.6 }}
+        dragMomentum={false}
+        animate={controls}
+        initial={{ y: 12, opacity: 0, scale: 0.98 }}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        className="w-full h-full bg-white relative"
+      >
+        {/* Absolute Header - drag handle */}
         <div
+          onPointerDown={startDrag}
           className={`
             absolute top-0 left-0 right-0 z-10
             flex items-center justify-between p-4
-            transition-all duration-200
+            transition-all duration-200 cursor-grab active:cursor-grabbing
             ${hasScrolled ? 'bg-white/80 backdrop-blur-md border-b border-slate-100' : 'bg-transparent'}
           `}
         >
@@ -109,7 +126,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
             />
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>,
     document.body
   )
