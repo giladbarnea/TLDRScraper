@@ -62,6 +62,7 @@ jobs:
 
       - name: Test Gemini CLI
         env:
+          GOOGLE_GENAI_USE_VERTEXAI: true
           GOOGLE_CLOUD_PROJECT: gen-lang-client-0028319981
           GOOGLE_CLOUD_LOCATION: us-central1
         run: |
