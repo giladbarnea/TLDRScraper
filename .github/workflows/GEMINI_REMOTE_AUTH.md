@@ -1,7 +1,9 @@
 ---
 last_updated: 2026-01-02 11:51
 ---
-These commands were used once locally in an authenticated session to set up the remote auth for the Gemini API:
+## Context
+
+These commands were successfully run once locally in an gcloud-authenticated session to set up the remote auth for the Gemini API:
 
 ```sh
 # 1. Enable required APIs
@@ -41,8 +43,9 @@ gcloud iam workload-identity-pools providers describe "github-provider" \
   --location="global" \
   --workload-identity-pool="github-pool" \
   --format="value(name)"
-  ```
+```
 ---
+
 Then `./test-gemini-wif.yml` was created and tested successfully in CI.
   
 Resources:
