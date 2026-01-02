@@ -1,0 +1,81 @@
+name: Test Gemini CLI with WIF
+
+on:
+  workflow_dispatch: # Manual trigger for testing
+  push:
+    branches:
+      - test-gemini-wif # Only run on test branch
+
+jobs:
+  test-gemini:
+    runs-on: ubuntu-latest
+
+    # CRITICAL: Must set these permissions
+    permissions:
+      contents: read
+      id-token: write # Required for Workload Identity Federation
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Debug - Show GitHub context
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Repository Owner: ${{ github.repository_owner }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Ref: ${{ github.ref }}"
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/700540012924/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-actions-sa@gen-lang-client-0028319981.iam.gserviceaccount.com'
+
+      - name: Debug - Verify authentication
+        run: |
+          echo "Auth completed: ${{ steps.auth.outcome }}"
+          echo "Checking if gcloud is authenticated..."
+          gcloud auth list
+          gcloud config list
+
+      - name: Debug - Test Vertex AI access
+        run: |
+          echo "Testing Vertex AI API access..."
+          gcloud ai models list \
+            --region=us-central1 \
+            --project=gen-lang-client-0028319981 \
+            --limit=5 || echo "⚠️ Could not list models (this might be OK if no models exist)"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Gemini CLI
+        run: |
+          echo "Installing @google/gemini-cli..."
+          npm install -g @google/gemini-cli
+          which gemini || echo "❌ Gemini CLI not found in PATH"
+          gemini --version || echo "❌ Could not get gemini version"
+
+      - name: Test Gemini CLI
+        env:
+          GOOGLE_GENAI_USE_VERTEXAI: true
+          GOOGLE_CLOUD_PROJECT: gen-lang-client-0028319981
+          GOOGLE_CLOUD_LOCATION: us-central1
+        run: |
+          echo "Testing Gemini CLI..."
+          gemini -p "Respond with exactly: 'Authentication successful!'" \
+            --model gemini-2.5-pro
+
+      - name: Debug - Show logs on failure
+        if: failure()
+        run: |
+          echo "=== Workflow failed. Debug info ==="
+          echo "Environment variables:"
+          env | grep -E 'GOOGLE|GCLOUD|GCP' || echo "No Google-related env vars found"
+          echo ""
+          echo "gcloud info:"
+          gcloud info
