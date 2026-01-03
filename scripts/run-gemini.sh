@@ -18,20 +18,32 @@ function ensure_gemini_setup() {
 }
 
 function main() {
-  if [[ $# -ne 1 ]]; then
-    echo "Usage: $0 <prompt-file-path>" >&2
-    return 1
-  fi
-
   ensure_gemini_setup || return 1
-  prompt_file="$1"
 
-  if [[ ! -f "$prompt_file" ]]; then
-    echo "Error: File not found: $prompt_file" >&2
+  local prompt=""
+
+  # Priority: argument first, then stdin
+  if [[ -n "$1" ]]; then
+    # Argument provided
+    if [[ -f "$1" ]]; then
+      # Argument is a file
+      prompt="$(cat "$1")"
+    else
+      # Argument is a literal prompt string
+      prompt="$1"
+    fi
+  elif [[ -p /dev/stdin ]] || [[ ! -t 0 ]]; then
+    # No argument, check stdin (pipe or redirect)
+    prompt="$(<&0)"
+  else
+    # No argument and no stdin
+    echo "Error: No input provided. Provide stdin, a file path, or a literal prompt." >&2
+    echo "Usage: $0 <prompt-file-or-text>" >&2
+    echo "   or: echo 'prompt' | $0" >&2
     return 1
   fi
 
-  gemini -m gemini-2.5-pro --yolo -p "$(cat "$prompt_file")"
+  gemini -m gemini-2.5-pro --yolo -p "$prompt"
 }
 
 main "${@}"
