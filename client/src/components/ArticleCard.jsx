@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { motion, useAnimation, useDragControls } from 'framer-motion'
 import { AlertCircle, Check, CheckCircle, ChevronDown, Loader2, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -27,6 +27,24 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
   const [hasScrolled, setHasScrolled] = useState(false)
   const scrollRef = useRef(null)
   const progress = useScrollProgress(scrollRef)
+  const dragControls = useDragControls()
+  const animationControls = useAnimation()
+
+  const handlePointerDown = (e) => {
+    if (scrollRef.current?.scrollTop <= 0) {
+      dragControls.start(e)
+    }
+  }
+
+  const handleDragEnd = async (_event, info) => {
+    const { offset, velocity } = info
+    if (offset.y > 80 || velocity.y > 500) {
+      await animationControls.start({ y: '100%', opacity: 0, transition: { duration: 0.2 } })
+      onClose()
+    } else {
+      animationControls.start({ y: 0, opacity: 1 })
+    }
+  }
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -50,7 +68,18 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
 
   return createPortal(
     <div className="fixed inset-0 z-[100]">
-      <div className="w-full h-full bg-white flex flex-col animate-zen-enter">
+      <motion.div
+        drag="y"
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.5 }}
+        animate={animationControls}
+        initial={{ y: 0, opacity: 1 }}
+        onDragEnd={handleDragEnd}
+        onPointerDown={handlePointerDown}
+        className="w-full h-full bg-white flex flex-col"
+      >
         {/* Header */}
         <div
           className={`
@@ -109,7 +138,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
             />
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>,
     document.body
   )
