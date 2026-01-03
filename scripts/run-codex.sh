@@ -22,20 +22,32 @@ function ensure_codex_installed(){
 }
 
 function main(){
-    if [[ $# -ne 1 ]]; then
-        echo "Usage: $0 <prompt-file-path>" >&2
+    ensure_codex_installed || return 1
+
+    local prompt=""
+
+    # Priority: argument first, then stdin
+    if [[ -n "$1" ]]; then
+        # Argument provided
+        if [[ -f "$1" ]]; then
+            # Argument is a file
+            prompt="$(cat "$1")"
+        else
+            # Argument is a literal prompt string
+            prompt="$1"
+        fi
+    elif [[ -p /dev/stdin ]] || [[ ! -t 0 ]]; then
+        # No argument, check stdin (pipe or redirect)
+        prompt="$(<&0)"
+    else
+        # No argument and no stdin
+        echo "Error: No input provided. Provide stdin, a file path, or a literal prompt." >&2
+        echo "Usage: $0 <prompt-file-or-text>" >&2
+        echo "   or: echo 'prompt' | $0" >&2
         return 1
     fi
 
-    ensure_codex_installed
-    prompt_file="$1"
-    
-    if [[ ! -f "$prompt_file" ]]; then
-        echo "Error: File not found: $prompt_file" >&2
-        return 1
-    fi
-    
-    codex --model=gpt-5.2-high --ask-for-approval=never exec --config='model_reasoning_effort=xhigh' --skip-git-repo-check --sandbox danger-full-access -- "$(cat "$prompt_file")"
+    codex --model=gpt-5.2-high --ask-for-approval=never exec --config='model_reasoning_effort=xhigh' --skip-git-repo-check --sandbox danger-full-access -- "$prompt"
 }
 
 main "${@}"
