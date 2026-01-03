@@ -1,23 +1,19 @@
 #!/usr/bin/env bash
 
-function ensure_gemini_installed() {
-  if command -v gemini 1>/dev/null 2>&1; then
-    return 0
-  fi
-  echo "'gemini' is not installed. Installing it..." >&2
+function ensure_gemini_setup() {
   for base in . ./scripts; do
-    if [[ ! -f "$base"/install-gemini-cli.sh ]]; then
+    if [[ ! -f "$base"/setup-gemini-cli.sh ]]; then
       continue
     fi
 
-    "$SHELL" "$base"/install-gemini-cli.sh || {
-      echo "Error: failed to install gemini-cli." >&2
+    # Source the setup script to export environment variables
+    source "$base"/setup-gemini-cli.sh || {
+      echo "Error: failed to setup gemini-cli." >&2
       return 1
     }
-    echo "Installed gemini-cli"
     return 0
   done
-  echo "Error: did not find install-gemini-cli.sh script" 1>&2
+  echo "Error: did not find setup-gemini-cli.sh script" 1>&2
   return 1
 }
 
@@ -27,12 +23,7 @@ function main() {
     return 1
   fi
 
-  if [[ -z $GEMINI_API_KEY ]]; then
-    echo "ERROR: GEMINI_API_KEY env var is unset. Report to user." >&2
-    return 1
-  fi
-
-  ensure_gemini_installed || return 1
+  ensure_gemini_setup || return 1
   prompt_file="$1"
 
   if [[ ! -f "$prompt_file" ]]; then
@@ -40,7 +31,7 @@ function main() {
     return 1
   fi
 
-  cat "$prompt_file" | gemini -m gemini-3-pro-preview --yolo -
+  gemini -m gemini-2.5-pro --yolo -p "$(cat "$prompt_file")"
 }
 
 main "${@}"
