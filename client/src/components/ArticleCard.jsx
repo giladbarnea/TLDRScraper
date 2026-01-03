@@ -30,6 +30,10 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
   const dragControls = useDragControls()
   const animationControls = useAnimation()
 
+  useEffect(() => {
+    animationControls.set({ y: 0, opacity: 1 })
+  }, [animationControls])
+
   const handlePointerDown = (e) => {
     if (scrollRef.current?.scrollTop <= 0) {
       dragControls.start(e)
