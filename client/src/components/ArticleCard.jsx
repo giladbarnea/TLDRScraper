@@ -51,14 +51,14 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
   }, [onClose])
 
   return createPortal(
-    <div className="fixed inset-0 z-[100]">
-      <div
-        className="w-full h-full bg-white flex flex-col animate-zen-enter"
-        style={{
-          transform: `translateY(${pullOffset}px)`,
-          transition: pullOffset === 0 ? 'transform 0.3s ease-out' : 'none'
-        }}
-      >
+    <div
+      className="fixed inset-0 z-[100]"
+      style={{
+        transform: `translateY(${pullOffset}px)`,
+        transition: pullOffset === 0 ? 'transform 0.3s ease-out' : 'none'
+      }}
+    >
+      <div className="w-full h-full bg-white flex flex-col animate-zen-enter">
         {/* Header */}
         <div
           className={`
