@@ -28,7 +28,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
   const [hasScrolled, setHasScrolled] = useState(false)
   const scrollRef = useRef(null)
   const progress = useScrollProgress(scrollRef)
-  const { pullOffset, handlers } = usePullToClose({ scrollRef, onClose })
+  const { pullOffset } = usePullToClose({ scrollRef, onClose })
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -109,7 +109,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
         </div>
 
         {/* Content Area */}
-        <div ref={scrollRef} {...handlers} className="flex-1 overflow-y-auto p-6 md:p-8 bg-white">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 md:p-8 bg-white" style={{ overscrollBehavior: 'none' }}>
           <div className="max-w-3xl mx-auto">
             <div
               className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900"
