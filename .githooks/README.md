@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-10 18:55, 6148b1a
+last_updated: 2026-01-05 06:10
 ---
 # Git Hooks
 
@@ -38,18 +38,18 @@ Performs two tasks:
 
 ### pre-merge-commit
 
-Automatically generates `PROJECT_STRUCTURE.md` using `eza` before merge commits so the working tree stays in sync.
+Automatically generates `PROJECT_STRUCTURE.md` using a Python script before merge commits so the working tree stays in sync.
 
 **Requirements:**
-- `eza` must be installed ([installation guide](https://github.com/eza-community/eza))
+- Python 3.11+ (uses `scripts/generate_tree.py`)
 
-The hook will attempt to auto-install `eza` on Ubuntu/Debian systems.
+The Python script is a drop-in replacement for `eza` to avoid installation time.
 
 ### post-checkout
 
 Ensures the local clone has the `merge.ours` driver configured so Git respects the `PROJECT_STRUCTURE.md merge=ours` rule from `.gitattributes`.
 
-Also regenerates `PROJECT_STRUCTURE.md` using `eza` to ensure the file is present and up-to-date when switching branches.
+Also regenerates `PROJECT_STRUCTURE.md` using the Python script to ensure the file is present and up-to-date when switching branches.
 
 ### post-merge, post-rewrite
 

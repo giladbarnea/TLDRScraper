@@ -294,9 +294,10 @@ function uv_sync() {
 }
 
 # # ensure_eza [-q,--quiet]
-function ensure_eza() {
-  _ensure_tool 'eza' 'apt install -y eza' "$@"
-}
+# Replaced with Python script scripts/generate_tree.py
+# function ensure_eza() {
+#   _ensure_tool 'eza' 'apt install -y eza' "$@"
+# }
 # function ensure_claude_settings(){
 #     local quiet=false
 #     if [[ "$1" == "--quiet" || "$1" == "-q" ]]; then
