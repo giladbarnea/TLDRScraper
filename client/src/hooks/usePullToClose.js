@@ -15,7 +15,8 @@ export function usePullToClose({ containerRef, scrollRef, onClose, threshold = 8
     if (!container) return
 
     const handleTouchStart = (e) => {
-      if (scrollRef.current?.scrollTop === 0) {
+      const touchedScrollArea = scrollRef.current?.contains(e.target)
+      if (!touchedScrollArea || scrollRef.current?.scrollTop === 0) {
         startY.current = e.touches[0].clientY
       }
     }
