@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-29 16:49
+last_updated: 2026-01-05 08:21
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -1138,23 +1138,9 @@ Three-tier cache strategy in `useSupabaseStorage`:
 
 ## Testing Considerations
 
-### Unit Tests (Frontend)
-
-- `scraper.js`: Date range computation, cache hit/miss logic
-- `useArticleState.js`: State mutations (read/unread/removed)
-- `useSummary.js`: Toggle expansion, fetch logic
-
 ### Integration Tests
 
-- Full scraping flow (API → cache → display)
-- Summary generation end-to-end
 - Cache merge behavior
-
-### E2E Tests
-
-- User scrapes date range → Views results
-- User marks article as read → State persists
-- User generates summary → Summary displays and caches
 
 ---
 
