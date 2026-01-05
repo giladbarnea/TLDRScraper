@@ -26,9 +26,10 @@ function ErrorToast({ message, onDismiss }) {
 
 function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkDone }) {
   const [hasScrolled, setHasScrolled] = useState(false)
+  const containerRef = useRef(null)
   const scrollRef = useRef(null)
   const progress = useScrollProgress(scrollRef)
-  const { pullOffset } = usePullToClose({ scrollRef, onClose })
+  const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose })
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -58,7 +59,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
         transition: pullOffset === 0 ? 'transform 0.3s ease-out' : 'none'
       }}
     >
-      <div className="w-full h-full bg-white flex flex-col animate-zen-enter">
+      <div ref={containerRef} className="w-full h-full bg-white flex flex-col animate-zen-enter">
         {/* Header */}
         <div
           className={`

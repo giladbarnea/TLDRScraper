@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-export function usePullToClose({ scrollRef, onClose, threshold = 80 }) {
+export function usePullToClose({ containerRef, scrollRef, onClose, threshold = 80 }) {
   const [pullOffset, setPullOffset] = useState(0)
   const pullOffsetRef = useRef(0)
   const startY = useRef(null)
@@ -11,11 +11,11 @@ export function usePullToClose({ scrollRef, onClose, threshold = 80 }) {
   }, [pullOffset])
 
   useEffect(() => {
-    const element = scrollRef.current
-    if (!element) return
+    const container = containerRef.current
+    if (!container) return
 
     const handleTouchStart = (e) => {
-      if (element.scrollTop === 0) {
+      if (scrollRef.current?.scrollTop === 0) {
         startY.current = e.touches[0].clientY
       }
     }
@@ -45,16 +45,16 @@ export function usePullToClose({ scrollRef, onClose, threshold = 80 }) {
       isPulling.current = false
     }
 
-    element.addEventListener('touchstart', handleTouchStart, { passive: true })
-    element.addEventListener('touchmove', handleTouchMove, { passive: false })
-    element.addEventListener('touchend', handleTouchEnd, { passive: true })
+    container.addEventListener('touchstart', handleTouchStart, { passive: true })
+    container.addEventListener('touchmove', handleTouchMove, { passive: false })
+    container.addEventListener('touchend', handleTouchEnd, { passive: true })
 
     return () => {
-      element.removeEventListener('touchstart', handleTouchStart)
-      element.removeEventListener('touchmove', handleTouchMove)
-      element.removeEventListener('touchend', handleTouchEnd)
+      container.removeEventListener('touchstart', handleTouchStart)
+      container.removeEventListener('touchmove', handleTouchMove)
+      container.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [scrollRef, onClose, threshold])
+  }, [containerRef, scrollRef, onClose, threshold])
 
   return { pullOffset }
 }
