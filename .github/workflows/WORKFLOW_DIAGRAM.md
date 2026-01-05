@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-21 07:54
+last_updated: 2026-01-05 06:10
 ---
 # Documentation Maintenance Workflow
 
@@ -64,8 +64,8 @@ PR opened/updated/reopened/merged to main
 │ Condition: Job 2 completed (success or skipped)                 │
 │                                                                 │
 │ • Checkout code (includes all previous updates!)                │
-│ • Install eza                                                   │
-│ • Generate PROJECT_STRUCTURE.md                                 │
+│ • Set up Python 3.11                                            │
+│ • Generate PROJECT_STRUCTURE.md (Python script)                 │
 │ • Display preview in workflow logs                              │
 │ • Do NOT commit (file is .gitignored)                           │
 │                                                                 │

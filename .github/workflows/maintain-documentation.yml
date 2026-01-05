@@ -114,17 +114,14 @@ jobs:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
 
-      - name: Install eza
-        run: |
-          DOWNLOAD_URL=$(curl -s https://api.github.com/repos/eza-community/eza/releases/latest | grep -o '"browser_download_url": "[^"]*eza_x86_64-unknown-linux-gnu.tar.gz"' | cut -d'"' -f4)
-          curl -L -o eza.tar.gz "$DOWNLOAD_URL"
-          tar -xzf eza.tar.gz
-          sudo mv eza /usr/local/bin/
-          sudo chmod +x /usr/local/bin/eza
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
       - name: Generate project structure
         run: |
-          eza \
+          python3 scripts/generate_tree.py \
             --classify \
             --icons \
             --tree \
