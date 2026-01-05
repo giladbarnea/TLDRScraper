@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-01-05 08:21
+last_updated: 2026-01-05 08:35
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -116,7 +116,7 @@ PY
 
 - Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables.
 - Run `source ./setup.sh` to verify the environment and dependencies are set up correctly. Use `source setup.sh && start_server_and_watchdog` and `source setup.sh && print_server_and_watchdog_pids` to confirm the local server is running. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/tldr-url`) throughout the development process to catch regressions early. Use `source setup.sh && kill_server_and_watchdog` for cleanup.
-- Verify every new behavior, fix or modification you make by utilizing your shell.
+- Verify every new behavior, fix or modification you make by utilizing your shell. If possible, execute the modified flow to ensure nothing is broken.
 
 ## Using (Sub-)Agents
 
