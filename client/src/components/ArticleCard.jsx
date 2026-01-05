@@ -3,6 +3,7 @@ import { AlertCircle, Check, CheckCircle, ChevronDown, Loader2, Trash2 } from 'l
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useArticleState } from '../hooks/useArticleState'
+import { usePullToClose } from '../hooks/usePullToClose'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
@@ -25,8 +26,10 @@ function ErrorToast({ message, onDismiss }) {
 
 function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkDone }) {
   const [hasScrolled, setHasScrolled] = useState(false)
+  const containerRef = useRef(null)
   const scrollRef = useRef(null)
   const progress = useScrollProgress(scrollRef)
+  const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose })
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -49,8 +52,14 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
   }, [onClose])
 
   return createPortal(
-    <div className="fixed inset-0 z-[100]">
-      <div className="w-full h-full bg-white flex flex-col animate-zen-enter">
+    <div
+      className="fixed inset-0 z-[100]"
+      style={{
+        transform: `translateY(${pullOffset}px)`,
+        transition: pullOffset === 0 ? 'transform 0.3s ease-out' : 'none'
+      }}
+    >
+      <div ref={containerRef} className="w-full h-full bg-white flex flex-col animate-zen-enter">
         {/* Header */}
         <div
           className={`
