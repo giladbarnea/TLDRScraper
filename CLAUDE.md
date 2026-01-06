@@ -1,5 +1,5 @@
 ---
-last_updated: 2025-12-20 22:11, 41c283a
+last_updated: 2026-01-06 07:50, 73ae2b8
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -14,7 +14,7 @@ Newsletter aggregator that scrapes tech newsletters from multiple sources, displ
    * Supabase PostgreSQL for all data persistence
    * Gemini 3 Pro Preview for TLDRs
 - Storage: Project uses Supabase Database (PostgreSQL) for all data persistence (newsletters, article states, settings, scrape results). Data is stored server-side with client hooks managing async operations.
-- Cache mechanism: Server-side storage with cache-first scraping behavior. Daily payloads stored as JSONB in PostgreSQL. 
+- Cache mechanism: Server-side storage with cache-first scraping for past dates (early return if cached). Today always scrapes and unions with cache to capture new articles published later in the day. Daily payloads stored as JSONB in PostgreSQL. 
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
 
@@ -86,10 +86,6 @@ builtin cd client && CI=1 npm run dev
 
 This runs Vite dev server on port 3000 with API proxy to localhost:5001.
 
-#### Testing Client UI With Playwright
-
-See [docs/testing/headless_playwright_guide.md](docs/testing/headless_playwright_guide.md) for the definitive guide on configuration, stable patterns, and environment management.
-
 ### `uv` installation and usage
 
 - Install `uv`:
@@ -120,7 +116,7 @@ PY
 
 - Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables.
 - Run `source ./setup.sh` to verify the environment and dependencies are set up correctly. Use `source setup.sh && start_server_and_watchdog` and `source setup.sh && print_server_and_watchdog_pids` to confirm the local server is running. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/tldr-url`) throughout the development process to catch regressions early. Use `source setup.sh && kill_server_and_watchdog` for cleanup.
-- Verify every new behavior, fix or modification you make by utilizing your shell and Playwright. If possible, execute the modified flow to ensure nothing is broken.
+- Verify every new behavior, fix or modification you make by utilizing your shell. If possible, execute the modified flow to ensure nothing is broken.
 
 ## Using (Sub-)Agents
 
