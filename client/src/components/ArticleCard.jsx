@@ -3,6 +3,7 @@ import { AlertCircle, Check, CheckCircle, ChevronDown, Loader2, Trash2 } from 'l
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useArticleState } from '../hooks/useArticleState'
+import { useOverscrollUp } from '../hooks/useOverscrollUp'
 import { usePullToClose } from '../hooks/usePullToClose'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
@@ -30,6 +31,11 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
   const scrollRef = useRef(null)
   const progress = useScrollProgress(scrollRef)
   const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose })
+  const { overscrollOffset, isOverscrolling, progress: overscrollProgress, isComplete: overscrollComplete } = useOverscrollUp({
+    scrollRef,
+    onComplete: onMarkDone,
+    threshold: 60
+  })
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -110,12 +116,48 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
         </div>
 
         {/* Content Area */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 md:p-8 bg-white">
-          <div className="max-w-3xl mx-auto">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto bg-white">
+          <div
+            className="p-6 md:p-8"
+            style={{
+              transform: `translateY(-${overscrollOffset * 0.4}px)`,
+              transition: isOverscrolling ? 'none' : 'transform 0.2s ease-out'
+            }}
+          >
+            <div className="max-w-3xl mx-auto">
+              <div
+                className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            </div>
+          </div>
+
+          {/* Overscroll completion zone */}
+          <div
+            className={`
+              flex items-center justify-center transition-all duration-150
+              ${isOverscrolling ? 'opacity-100 py-16' : 'opacity-0 py-0 h-0 overflow-hidden'}
+            `}
+            style={{
+              transform: `translateY(${isOverscrolling ? 0 : 20}px)`,
+            }}
+          >
             <div
-              className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900"
-              dangerouslySetInnerHTML={{ __html: html }}
-            />
+              className={`
+                w-12 h-12 rounded-full flex items-center justify-center transition-all duration-150
+                ${overscrollComplete
+                  ? 'bg-green-500 text-white scale-110'
+                  : 'bg-slate-100 text-slate-400'}
+              `}
+            >
+              <CheckCircle
+                size={24}
+                style={{
+                  opacity: 0.3 + overscrollProgress * 0.7,
+                  transform: `scale(${0.8 + overscrollProgress * 0.2})`
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
