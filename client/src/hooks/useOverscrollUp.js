@@ -5,7 +5,6 @@ export function useOverscrollUp({ scrollRef, onComplete, threshold = 60 }) {
   const overscrollOffsetRef = useRef(0)
   const startY = useRef(null)
   const isOverscrolling = useRef(false)
-  const gestureDecided = useRef(false)
 
   useEffect(() => {
     overscrollOffsetRef.current = overscrollOffset
@@ -21,7 +20,6 @@ export function useOverscrollUp({ scrollRef, onComplete, threshold = 60 }) {
     }
 
     const handleTouchStart = (e) => {
-      gestureDecided.current = false
       if (isAtBottom()) {
         startY.current = e.touches[0].clientY
       }
@@ -31,16 +29,6 @@ export function useOverscrollUp({ scrollRef, onComplete, threshold = 60 }) {
       if (startY.current === null) return
 
       const deltaY = startY.current - e.touches[0].clientY
-
-      // First significant movement decides if this is our gesture
-      if (!gestureDecided.current && Math.abs(deltaY) > 5) {
-        gestureDecided.current = true
-        if (deltaY <= 0) {
-          // Downward movement - not our gesture, bail out entirely
-          startY.current = null
-          return
-        }
-      }
 
       if (deltaY > 0 && isAtBottom()) {
         e.preventDefault()
@@ -60,7 +48,6 @@ export function useOverscrollUp({ scrollRef, onComplete, threshold = 60 }) {
       setOverscrollOffset(0)
       startY.current = null
       isOverscrolling.current = false
-      gestureDecided.current = false
     }
 
     scrollEl.addEventListener('touchstart', handleTouchStart, { passive: true })
