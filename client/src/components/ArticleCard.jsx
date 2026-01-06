@@ -135,8 +135,8 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
           {/* Overscroll completion zone */}
           <div
             className={`
-              flex items-center justify-center py-16 transition-all duration-150
-              ${isOverscrolling ? 'opacity-100' : 'opacity-0'}
+              flex items-center justify-center transition-all duration-150
+              ${isOverscrolling ? 'opacity-100 py-16' : 'opacity-0 py-0 h-0 overflow-hidden'}
             `}
             style={{
               transform: `translateY(${isOverscrolling ? 0 : 20}px)`,
