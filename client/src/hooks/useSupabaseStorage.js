@@ -195,6 +195,7 @@ export function useSupabaseStorage(key, defaultValue) {
     if (resolved === previous) return
 
     // Optimistic: update local state immediately
+    console.log('[useSupabaseStorage] optimistic setValue', { key, resolved })
     valueRef.current = resolved
     setValue(resolved)
     setError(null)
