@@ -12,7 +12,6 @@ export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete }) {
     controls.start({
       opacity: stateLoading ? 0.4 : isRemoved ? 0.5 : 1,
       filter: stateLoading || isRemoved ? 'grayscale(100%)' : 'grayscale(0%)',
-      scale: isRemoved ? 0.98 : 1,
       x: 0,
     })
   }, [isRemoved, stateLoading, controls])
