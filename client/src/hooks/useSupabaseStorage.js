@@ -4,6 +4,10 @@ const changeListenersByKey = new Map()
 const readCache = new Map()
 const inflightReads = new Map()
 
+export function primeSupabaseStorageCache(key, value) {
+  readCache.set(key, value)
+}
+
 function emitChange(key) {
   const listeners = changeListenersByKey.get(key)
   if (listeners) {

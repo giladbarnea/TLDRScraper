@@ -3,7 +3,9 @@
  * Extracted from composables/useScraper.js
  */
 
+import { primeSupabaseStorageCache } from '../hooks/useSupabaseStorage'
 import * as storageApi from './storageApi'
+import { getNewsletterScrapeKey } from './storageKeys'
 
 function computeDateRange(startDate, endDate) {
   const dates = []
@@ -173,6 +175,11 @@ export async function loadFromCache(startDate, endDate, signal) {
   if (!payloads || payloads.length === 0) {
     return null
   }
+
+  payloads.forEach(payload => {
+    if (!payload?.date) return
+    primeSupabaseStorageCache(getNewsletterScrapeKey(payload.date), payload)
+  })
 
   return {
     success: true,
