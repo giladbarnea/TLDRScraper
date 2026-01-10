@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 
 const changeListenersByKey = new Map()
 const readCache = new Map()
@@ -194,11 +195,13 @@ export function useSupabaseStorage(key, defaultValue) {
 
     if (resolved === previous) return
 
-    // Optimistic: update local state immediately
+    // Optimistic: update local state immediately, force sync render
     console.log('[useSupabaseStorage] optimistic setValue', { key, resolved })
     valueRef.current = resolved
-    setValue(resolved)
-    setError(null)
+    flushSync(() => {
+      setValue(resolved)
+      setError(null)
+    })
 
     // Persist to server in background
     try {
