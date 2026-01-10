@@ -13,11 +13,9 @@ This document catalogs recurring pitfalls in various topics, including managing 
 
 **What actually happened and falsified original thesis**: Changing `useSupabaseStorage.setValueAsync` to call `setValue(resolved)` before `await writeValue()` had no visible effect—the UI still waited ~1 second for the server. We wrongly assumed updating the local React state in the calling hook would propagate to all components.
 
-// instruction:  this paragraph is fine
-**Cause & Fix**: Multiple components use `useSupabaseStorage` with the same key (e.g., `ArticleCard` and `CalendarDay`). Each creates its own hook instance with independent local state. Calling `setValue()` only updates that one instance. Other subscribers only update when `emitChange(key)` fires, which happened inside `writeValue()` after the server responded. The fix was to also update the shared `readCache` and call `emitChange(key)` immediately—before the server request—so all subscribers re-render optimistically. On error, revert cache and emit again. 
+**Cause & Fix**: Multiple components use `useSupabaseStorage` with the same key (e.g., `ArticleCard` and `CalendarDay`). Each creates its own hook instance with independent local state. Calling `setValue()` only updates that one instance. Other subscribers only update when `emitChange(key)` fires, which happened inside `writeValue()` after the server responded. The fix was to also update the shared `readCache` and call `emitChange(key)` immediately—before the server request—so all subscribers re-render optimistically. On error, revert cache and emit again.
 
-// instruction: this paragraph needs streamlining
-**The generalized principle to learn from is to always investigate the wider dependency tree** of the intended affected scope before implementation, upstream and downstream, because any logic is likely to be part of a larger system which is crucial to understand in order for the intended change to work.
+**The generalized principle is to always investigate the broader dependency tree**—upstream and downstream—of the scope you intend to affect before implementing changes. Logic is usually part of a larger system, and you need to understand that system for the change to work as intended.
 
 ---
 
