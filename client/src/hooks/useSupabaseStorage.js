@@ -189,30 +189,27 @@ export function useSupabaseStorage(key, defaultValue) {
   const setValueAsync = async (nextValue) => {
     if (typeof window === 'undefined') return
 
+    setLoading(true)
     setError(null)
-    const previous = valueRef.current
 
     try {
+      const previous = valueRef.current
       const resolved = typeof nextValue === 'function' ? nextValue(previous) : nextValue
 
-      if (resolved === previous) return
+      if (resolved === previous) {
+        setLoading(false)
+        return
+      }
 
-      // Optimistic: update local state + shared cache, notify all subscribers
       valueRef.current = resolved
-      setValue(resolved)
-      readCache.set(key, resolved)
-      emitChange(key)
-
       await writeValue(key, resolved)
+      setValue(resolved)
+      setLoading(false)
 
     } catch (err) {
-      // Revert on failure
       console.error(`Failed to set storage value for ${key}:`, err)
       setError(err)
-      valueRef.current = previous
-      setValue(previous)
-      readCache.set(key, previous)
-      emitChange(key)
+      setLoading(false)
       throw err
     }
   }
