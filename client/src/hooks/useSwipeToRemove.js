@@ -10,11 +10,11 @@ export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete }) {
 
   useEffect(() => {
     controls.start({
-      opacity: stateLoading ? 0.4 : isRemoved ? 0.5 : 1,
+      opacity: isDragging ? 1 : stateLoading ? 0.4 : isRemoved ? 0.5 : 1,
       filter: stateLoading || isRemoved ? 'grayscale(100%)' : 'grayscale(0%)',
       x: 0,
     })
-  }, [isRemoved, stateLoading, controls])
+  }, [isDragging, isRemoved, stateLoading, controls])
 
   const handleDragStart = () => {
     setIsDragging(true)
