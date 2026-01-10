@@ -9,7 +9,6 @@ export function useArticleState(date, url) {
 
   const isRead = article?.read?.isRead ?? false
   const isRemoved = Boolean(article?.removed)
-  console.log('[useArticleState] render', { url, isRemoved, articleRemoved: article?.removed })
 
   const updateArticle = (updater) => {
     if (!article) return

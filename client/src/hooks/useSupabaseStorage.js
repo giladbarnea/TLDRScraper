@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
 
 const changeListenersByKey = new Map()
 const readCache = new Map()
@@ -190,28 +189,30 @@ export function useSupabaseStorage(key, defaultValue) {
   const setValueAsync = async (nextValue) => {
     if (typeof window === 'undefined') return
 
+    setError(null)
     const previous = valueRef.current
-    const resolved = typeof nextValue === 'function' ? nextValue(previous) : nextValue
 
-    if (resolved === previous) return
-
-    // Optimistic: update local state immediately, force sync render
-    console.log('[useSupabaseStorage] optimistic setValue', { key, resolved })
-    valueRef.current = resolved
-    flushSync(() => {
-      setValue(resolved)
-      setError(null)
-    })
-
-    // Persist to server in background
     try {
+      const resolved = typeof nextValue === 'function' ? nextValue(previous) : nextValue
+
+      if (resolved === previous) return
+
+      // Optimistic: update local state + shared cache, notify all subscribers
+      valueRef.current = resolved
+      setValue(resolved)
+      readCache.set(key, resolved)
+      emitChange(key)
+
       await writeValue(key, resolved)
+
     } catch (err) {
       // Revert on failure
       console.error(`Failed to set storage value for ${key}:`, err)
+      setError(err)
       valueRef.current = previous
       setValue(previous)
-      setError(err)
+      readCache.set(key, previous)
+      emitChange(key)
       throw err
     }
   }

@@ -1,9 +1,19 @@
 ---
-last_updated: 2025-12-22 18:36, 44111d6
+last_updated: 2026-01-10 14:18
 ---
 # Gotchas
 
 This document catalogs recurring pitfalls in various topics, including managing client-side state persistence and reactivity, surprising design decisions, and so on.
+
+---
+
+#### 2025-01-10: Optimistic update only affected calling hook instance, not other subscribers
+
+**Desired behavior that didn't work**: Swipe-to-remove gesture should update UI immediately without waiting for server response.
+
+**What actually happened and falsified original thesis**: Changing `useSupabaseStorage.setValueAsync` to call `setValue(resolved)` before `await writeValue()` had no visible effect—the UI still waited ~1 second for the server. We wrongly assumed updating the local React state in the calling hook would propagate to all components.
+
+**Cause & Fix**: Multiple components use `useSupabaseStorage` with the same key (e.g., `ArticleCard` and `CalendarDay`). Each creates its own hook instance with independent local state. Calling `setValue()` only updates that one instance. Other subscribers only update when `emitChange(key)` fires, which happened inside `writeValue()` after the server responded. The fix was to also update the shared `readCache` and call `emitChange(key)` immediately—before the server request—so all subscribers re-render optimistically. On error, revert cache and emit again.
 
 ---
 
