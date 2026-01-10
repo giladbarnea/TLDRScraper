@@ -1,0 +1,45 @@
+{
+  "env": {
+    "DISABLE_TELEMETRY": "1",
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "SLASH_COMMAND_TOOL_CHAR_BUDGET": "10000000"
+  },
+  "permissions": {
+    "allow": [
+      "*"
+    ],
+    "defaultMode": "bypassPermissions"
+  },
+  "skipWebFetchPreflight": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cd \"$CLAUDE_PROJECT_DIR\" && source setup.sh 2>&1 && scripts/print_root_markdown_files.sh --quiet=false'"
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cd \"$CLAUDE_PROJECT_DIR\" && source setup.sh 2>&1 && scripts/print_root_markdown_files.sh --quiet=false'"
+          }
+        ]
+      }
+    ]
+  },
+  "sandbox": {
+    "excludedCommands": [],
+    "enabled": false,
+    "network": {
+      "allowLocalBinding": true
+    }
+  },
+  "alwaysThinkingEnabled": true
+}
