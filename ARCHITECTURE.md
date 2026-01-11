@@ -62,7 +62,6 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  GET/POST /api/storage/daily/<date>                              │  │
 │  │  POST /api/storage/daily-range                                   │  │
 │  │  GET /api/storage/is-cached/<date>                               │  │
-│  │  GET/POST /api/source                                            │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                    │                                     │
 │                                    ▼                                     │
@@ -92,7 +91,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  - scrape_date_range() │   │  - tldr_url()                       │ │
 │  │  - Adapter Factory     │   │  - url_to_markdown()                │ │
 │  │                        │   │  - scrape_url()                     │ │
-│  │  22 Adapter Classes:   │   │  - _call_llm()                      │ │
+│  │  23 Adapter Classes:   │   │  - _call_llm()                      │ │
 │  │  TLDR, HackerNews,     │   │                                      │ │
 │  │  Anthropic, Stripe,    │   │                                      │ │
 │  │  Simon Willison, etc.  │   │                                      │ │
@@ -181,18 +180,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - Stats display (article count, unique URLs, dates processed)
 - Collapsible debug logs
 
-### 6. Context Generation (Development Tool)
-**User Action:** Browse to GET /api/source or call POST /api/source endpoint
-
-**Available Modes:**
-- `server`: Extract Python server code with optional signatures-only mode (AST-based)
-- `client`: Extract all client-side code (JSX, JS, CSS, HTML) with optional signatures-only mode (TypeScript .d.ts-like)
-- `docs`: Extract all markdown documentation
-- `all`: Concatenate all three contexts
-
-**Output Format:** XML with file paths and contents for LLM consumption
-
-### 7. Tailwind CSS v4 Configuration
+### 6. Tailwind CSS v4 Configuration
 **Configuration Method:** CSS-first via `@theme` directive in index.css
 
 **Custom Design Tokens:**
@@ -236,7 +224,7 @@ idle
   │    │    │
   │    │    ├─ All past dates fully cached & cache enabled
   │    │    │    ↓
-  │    │    │  loading_cache (GET /api/storage/daily-range)
+  │    │    │  loading_cache (POST /api/storage/daily-range)
   │    │    │    ↓
   │    │    │  complete (load from client cache)
   │    │    │
@@ -649,7 +637,7 @@ User clicks "TLDR" button OR clicks article card body
   │    │         │
   │    │         └─ If TLDR not available: Fetch from API
   │    │              │
-  │    │              └─ window.fetch('/api/tldr-url', {
+  │    │              └─ window.fetch('/api/tldr-url?model=gemini-3-pro-preview', {
   │    │                   method: 'POST',
   │    │                   body: JSON.stringify({ url, summary_effort })
   │    │                 })
@@ -734,30 +722,15 @@ User clicks "TLDR" button OR clicks article card body
 {
   url: string,               // Canonical URL (unique identifier)
   title: string,
-  articleMeta: string,       // Metadata extracted from source (e.g., "158 upvotes, 57 comments" or "5 minute read")
-  issueDate: string,         // "2024-01-01"
+  article_meta: string,      // Metadata extracted from source (e.g., "158 upvotes, 57 comments" or "5 minute read")
+  date: string,              // "2024-01-01"
   category: string,          // "TLDR Tech", "HackerNews", etc.
-  sourceId: string,          // "tldr_tech", "hackernews"
-  section: string | null,    // Section title within newsletter
-  sectionEmoji: string | null,
-  sectionOrder: number | null,
-  newsletterType: string | null,
-
-  // User state
-  removed: boolean,
-  read: {
-    isRead: boolean,
-    markedAt: string | null  // ISO timestamp
-  },
-
-  // AI-generated content
-  tldr: {
-    status: 'unknown' | 'creating' | 'available' | 'error',
-    markdown: string,
-    effort: 'minimal' | 'low' | 'medium' | 'high',
-    checkedAt: string | null,
-    errorMessage: string | null
-  }
+  source_id?: string,        // "tldr_tech", "hackernews"
+  section_title?: string,    // Section title within newsletter
+  section_emoji?: string,
+  section_order?: number,
+  newsletter_type?: string,
+  removed: boolean
 }
 ```
 
@@ -779,7 +752,8 @@ User clicks "TLDR" button OR clicks article card body
 {
   start_date: string,        // "2024-01-01"
   end_date: string,          // "2024-01-03"
-  sources?: string[]         // ["tldr_tech", "hackernews"] (optional)
+  sources?: string[],        // ["tldr_tech", "hackernews"] (optional)
+  excluded_urls?: string[]   // canonical URLs to exclude (optional)
 }
 ```
 
@@ -796,8 +770,7 @@ User clicks "TLDR" button OR clicks article card body
     dates_processed: number,
     dates_with_content: number,
     network_fetches: number,
-    cache_mode: string,
-    debug_logs: string[]
+    cache_mode: string
   },
   output: string             // Markdown formatted output
 }
@@ -1036,7 +1009,7 @@ CREATE TABLE daily_cache (
 ### Storage Flow
 
 1. **Initial Scrape**: API response → Build payloads → POST /api/storage/daily/{date} → Supabase upsert
-2. **Cache Hit**: GET /api/storage/daily-range → Read from Supabase → Skip scrape API call
+2. **Cache Hit**: POST /api/storage/daily-range → Read from Supabase → Skip scrape API call
 3. **User Interaction**: Modify article state → POST /api/storage/daily/{date} → Supabase upsert → Dispatches 'supabase-storage-change' event
 4. **Summary/TLDR**: Fetch from API → Update article → POST /api/storage/daily/{date} → Supabase upsert
 
