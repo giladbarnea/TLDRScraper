@@ -1,3 +1,6 @@
+---
+last_updated: 2026-01-12 17:29, 32bda46
+---
 # Plan: Consolidate cache logic on server
 
 ## Goal
