@@ -37,6 +37,10 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
     threshold: 60
   })
 
+  const truncatedMeta = articleMeta && articleMeta.length > 22
+    ? articleMeta.slice(0, 22) + '...'
+    : articleMeta
+
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     const handleEscape = (e) => {
@@ -97,7 +101,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
             )}
             <span className="text-sm text-slate-500 font-medium">
               {displayDomain}
-              {articleMeta && <span className="text-slate-400"> · {articleMeta}</span>}
+              {truncatedMeta && <span className="text-slate-400"> · {truncatedMeta}</span>}
             </span>
           </a>
 
