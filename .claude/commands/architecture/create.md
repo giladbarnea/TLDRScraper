@@ -3,6 +3,8 @@ name: architecture-create
 description: Create ARCHITECTURE.md document
 last_updated: 2026-01-12 18:25, 02a1a10
 ---
+# Create an ARCHITECTURE.md File
+
 ## Purpose
 The overall purpose of this task is twofold:
 1. Precisely map the end-to-end call graph for each feature the project provides.
@@ -16,7 +18,6 @@ Work in a layered approach. Like an oil painter, treat the codebase as the canva
 - Refine the whole system together instead of finishing one part completely before moving on
 - Block in the broad areas first, then build up layers of detail across the entire codebase
 
-
 The end result should be a sharp and precise ARCHITECTURE.md with a clear specification of available user interactions → state transitions (`#purpose-1`), and user interactions → call graphs (`#purpose-2`). 
 
 ## Task
@@ -26,6 +27,7 @@ Roughly, here are the passes you should perform:
 3. For each feature, List the big ticket code components involved with the feature, by call order, from client to backend. Associate components with major state transitions.
 4. For each feature, step by step, like a compiler recording the state machine, specify the call graph exactly. Keep track of the passed values and thereby the state from step to step.
 
+---
 
 ## EXAMPLE ARCHITECTURE.md
 
@@ -34,7 +36,10 @@ The project is utterly different than the current project but I find its ARCHITE
 
 <Example ARCHITECTURE.md>
 
-## Architecture Diagram
+## Architecture Diagram (The "City Map")
+
+> Focus: Structural boundaries, high-level grouping, and external relationships.
+> Answers: What are the major building blocks of the system? (e.g., "There is a User, a CLI Tool, and a Processing Engine.")
 
 
 ```plaintext
@@ -160,6 +165,10 @@ The project is utterly different than the current project but I find its ARCHITE
 ```
 
 ---
+
+## Dependency Tree
+> Focus: Composition and Hierarchy.
+> Answers: What is this thing made of? What libraries do I need installed? What are the main "big ticket" functions available?
 
 onefilellm.py
 ```
