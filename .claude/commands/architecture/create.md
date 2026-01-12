@@ -1,7 +1,7 @@
 ---
 name: architecture-create
 description: Create ARCHITECTURE.md document
-last_updated: 2026-01-12 18:13, 661aef5
+last_updated: 2026-01-12 20:06, 984bd6b
 ---
 ## Purpose
 The overall purpose of this task is twofold:
@@ -159,6 +159,8 @@ The project is utterly different than the current project but I find its ARCHITE
                                           +---------------------------------+
 ```
 
+---
+
 onefilellm.py
 ```
   |-- requests
@@ -207,7 +209,12 @@ main()
         |-- tiktoken
 ```
 
-## Sequence Diagram
+---
+
+## Sequence Diagram  (The "Movie Script")
+
+> Focus: Chronology, Interactions, Control Flow.
+> Answers: Who talks to whom, and in what order?
 
 ```
 sequenceDiagram
@@ -276,7 +283,12 @@ sequenceDiagram
     onefilellm.py->>User: Display token counts and file information
 ```
 
-## Data Flow Diagram
+---
+
+## Data Flow Diagram (The "Plumbing Plan")
+
+> Focus: Inputs, Outputs, Storage, Transformation.
+> Answers: Where does the data come from, how does it change, and where does it end up?
 
 ```
 External Entities
@@ -351,7 +363,7 @@ Detailed Processes
   - Process Local Directory -> Extract Text
 ```
 
-
+---
 
 ## Call Graph
 
