@@ -435,34 +435,7 @@ User clicks "Scrape Newsletters"
        │    - progress.value = 0
        │    - error.value = null
        │
-       ├─ Step 1: Check cache
-       │    │
-  │    └─ scraper.js isRangeCached(startDate, endDate)
-  │         │
-  │         ├─ If today is in range:
-  │         │    │
-  │         │    └─ Return false immediately (bypass cache to trigger server union)
-  │         │
-  │         ├─ Compute date range for past dates only
-  │         │
-  │         └─ Check each date in Supabase:
-  │              │
-  │              └─ GET /api/storage/is-cached/{date}
-  │                   │
-  │                   ├─ If ALL dates cached AND cacheEnabled = true
-  │                   │    │
-  │                   │    └─ scraper.js loadFromCache()
-  │                   │         │
-  │                   │         ├─ POST /api/storage/daily-range
-  │                   │         ├─ Build stats: buildStatsFromPayloads()
-  │                   │         │
-  │                   │         └─ Return cached results
-       │                   │
-       │                   └─ If NOT fully cached OR cache disabled
-       │                        │
-       │                        └─ Continue to API call...
-       │
-       ├─ Step 2: API Call
+       ├─ Step 1: API Call
        │    │
        │    ├─ progress.value = 50
        │    │
@@ -509,7 +482,7 @@ User clicks "Scrape Newsletters"
        │              │                   │
        │              │                   └─ For each source_id in source_ids:
        │              │                             │
-       │              │                             ├─ newsletter_scraper.py:231 _collect_newsletters_for_date_from_source()
+       │              │                             ├─ newsletter_scraper.py:234 _collect_newsletters_for_date_from_source()
        │              │                             │    │
        │              │                             │    ├─ newsletter_scraper.py:15 _get_adapter_for_source(config)
        │              │                             │    │    │
@@ -550,7 +523,7 @@ User clicks "Scrape Newsletters"
        │              │                             │
        │              │                             └─ Sleep 0.2s (rate limiting)
        │              │
-       │              ├─ newsletter_scraper.py:198 _build_scrape_response()
+       │              ├─ newsletter_scraper.py:201 _build_scrape_response()
        │              │    │
        │              │    ├─ Group articles by date
        │              │    ├─ Build markdown output (newsletter_merger.py)
@@ -566,43 +539,24 @@ User clicks "Scrape Newsletters"
        │              │
        │              └─ Flask jsonify() → HTTP Response
        │
-       ├─ Step 3: Process Response
+       ├─ Step 2: Process Response
        │    │
-  │    └─ scraper.js buildDailyPayloadsFromScrape(data)
-  │         │
-  │         ├─ Group articles by date
-  │         ├─ Group issues by date
-  │         │
-  │         └─ Build daily payloads: [{
-  │              date: "2024-01-01",
-  │              articles: [...],
-  │              issues: [...]
-  │            }]
-  │
-  ├─ Step 4: Merge with Cache (if enabled)
-  │    │
-  │    └─ scraper.js mergeWithCache(payloads)
-  │         │
-  │         └─ For each payload:
-  │              │
-  │              ├─ GET /api/storage/daily/{date}
-  │              │    │
-  │              │    ├─ If cached data exists:
-  │              │    │    │
-  │              │    │    └─ Merge articles (preserve tldr, read, removed)
-  │              │    │
-  │              │    └─ POST /api/storage/daily/{date} (save to Supabase)
-  │              │
-  │              └─ Return merged payload
-  │
-  ├─ Step 5: Update State
+       │    └─ Backend returns complete payloads in response
+       │         │
+       │         └─ data.payloads: [{
+       │              date: "2024-01-01",
+       │              articles: [...],  // With all user state preserved (read, removed, tldr)
+       │              issues: [...]
+       │            }]
+       │
+       ├─ Step 3: Update State
   │    │
   │    ├─ Update progress state
   │    ├─ Set results state: { success, payloads, source, stats }
   │    │
   │    └─ Return results
   │
-  └─ Step 6: Display Results
+  └─ Step 4: Display Results
        │
        └─ ScrapeForm.jsx passes results via callback
             │
@@ -646,13 +600,13 @@ User clicks "TLDR" button OR clicks article card body
   │    │                        │
   │    │                        ├─ serve.py:72 tldr_url()
   │    │                        │    │
-  │    │                        │    └─ tldr_app.py:32 tldr_url(url, summary_effort)
+  │    │                        │    └─ tldr_app.py:29 tldr_url(url, summary_effort)
   │    │                        │         │
-  │    │                        │         └─ tldr_service.py:79 tldr_url_content(url, summary_effort)
+  │    │                        │         └─ tldr_service.py:256 tldr_url_content(url, summary_effort)
   │    │                        │              │
   │    │                        │              ├─ util.canonicalize_url(url)
   │    │                        │              │
-  │    │                        │              └─ summarizer.py:279 tldr_url(url, summary_effort)
+  │    │                        │              └─ summarizer.py:280 tldr_url(url, summary_effort)
   │    │                        │                   │
   │    │                        │                   ├─ url_to_markdown(url)
   │    │                        │                   │    (scrapes and converts URL content to markdown)
@@ -862,14 +816,10 @@ sequenceDiagram
 
         NewsletterScraper->>NewsletterScraper: Build response & dedupe
         NewsletterScraper-->>Flask: {articles, issues, stats}
-        Flask-->>useScraper: JSON response
 
-        useScraper->>useScraper: buildDailyPayloadsFromScrape()
-
-        alt Cache enabled
-            useScraper->>Supabase: GET /api/storage/daily/{date} (merge)
-            useScraper->>Supabase: POST /api/storage/daily/{date} (save)
-        end
+        Flask->>Flask: Build payloads with server-side merge
+        Flask->>Supabase: Read/write cached payloads
+        Flask-->>useScraper: JSON response with complete payloads
 
         useScraper-->>ScrapeForm: Return results
     end
@@ -918,41 +868,41 @@ function computeDateRange(startDate, endDate) {
 }
 ```
 
-### 3. Cache Merge Algorithm (scraper.js)
+### 3. Server-Side Payload Merge Algorithm (tldr_service.py:85)
 
-```javascript
-// Merge new scrape results with existing cached data from Supabase
-async function mergeWithCache(payloads) {
-  const merged = []
+```python
+# Merge new scrape results with cached payload (server-side)
+def _merge_payloads(new_payload: dict, cached_payload: dict) -> dict:
+    merged_articles: list[dict] = []
+    cached_by_url = {item.get("url"): item for item in cached_payload.get("articles", [])}
+    seen_urls = set()
 
-  for (const payload of payloads) {
-    const existing = await storageApi.getDailyPayload(payload.date)
+    # Merge new articles, preserving cached user state (tldr, read, removed)
+    for article in new_payload.get("articles", []):
+        url = article.get("url")
+        if url:
+            seen_urls.add(url)
+        cached_article = cached_by_url.get(url)
+        if cached_article:
+            merged_articles.append({
+                **article,
+                "tldr": cached_article.get("tldr"),
+                "read": cached_article.get("read"),
+                "removed": cached_article.get("removed"),
+            })
+        else:
+            merged_articles.append(article)
 
-    if (existing) {
-      // Merge: preserve user state (read, removed) and AI content (tldr)
-      const mergedPayload = {
-        ...payload,
-        articles: payload.articles.map(article => {
-          const existingArticle = existing.articles?.find(a => a.url === article.url)
-          return existingArticle
-            ? { ...article, tldr: existingArticle.tldr,
-                read: existingArticle.read, removed: existingArticle.removed }
-            : article
-        })
-      }
-      await storageApi.setDailyPayload(payload.date, mergedPayload)
-      merged.push(mergedPayload)
-    } else {
-      await storageApi.setDailyPayload(payload.date, payload)
-      merged.push(payload)
-    }
-  }
+    # Append cached articles not in new payload (user-removed articles persist)
+    for cached_article in cached_payload.get("articles", []):
+        url = cached_article.get("url")
+        if url and url not in seen_urls:
+            merged_articles.append(cached_article)
 
-  return merged
-}
+    return {"articles": merged_articles, "issues": ...}
 ```
 
-### 4. URL Deduplication (newsletter_scraper.py:231)
+### 4. URL Deduplication (newsletter_scraper.py)
 
 ```python
 # Deduplicate articles across sources using canonical URLs
