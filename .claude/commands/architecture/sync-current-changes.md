@@ -8,17 +8,17 @@ last_updated: 2025-12-17 07:42, 984bd6b
 For context, to understand what ARCHITECTURE.md is trying to achieve:
 <original-architecture-md-creation-prompt>
 ## Purpose
-The purpose of the task at large is two-fold:
-1. map out precisely the call graphs of each feature the project provides, end to end
-2. build a crisp state machine of the flow of each feature.
+The overall purpose of this task is twofold:
+1. Precisely map the end-to-end call graph for each feature the project provides.
+2. Build a clear state machine that captures each feature's flow.
 
 ## Strategy
-I want you to implement the task in a layered approach. like an oil painter, the drawing is an analogy for the task and the canvas is the codebase. Accordingly, make multiple passes over the codebase to cultivate a deep understanding of it:
+Work in a layered approach. Like an oil painter, treat the codebase as the canvas and your task as the drawing. Make multiple passes over the codebase to cultivate a deep understanding of it:
 
--   Start with rough shapes and composition across the whole canvas
--   Gradually add detail in passes
--   Refine everything together rather than finishing one section completely before moving to the next
--   blocking in broad areas first, then building up layers of detail across the entire work.
+- Start by getting a sense of the overall structure and how the pieces fit together
+- Add detail gradually, pass by pass
+- Refine the whole system together instead of finishing one part completely before moving on
+- Block in the broad areas first, then build up layers of detail across the entire codebase
 	
 
 The end result should be a sharp and precise ARCHITECTURE.md with a clear specification of available user interactions → state transitions (`#purpose-1`), and user interactions → call graphs (`#purpose-2`). 
@@ -28,7 +28,7 @@ Roughly, here are the passes you should perform:
 1. Investigate the major features and user interactions in the project that are directly related to or affected by your recent change.
 2. Succinctly enumerate the various state transitions associated with it, if any.
 3. List the big ticket code components involved with the feature, by call order, from client to backend. Associate components with major state transitions.
-4. Step by step, like a compiler recording the state machine, list out the call graph exactly. Keep track of the passed values and thereby the state from step to step.
+4. Step by step, like a compiler recording the state machine, specify the call graph exactly. Keep track of the passed values and thereby the state from step to step.
 </original-architecture-md-creation-prompt>
 
 ---
