@@ -3,14 +3,15 @@
  * Extracted from composables/useScraper.js
  */
 
-export async function scrapeNewsletters(startDate, endDate, cacheEnabled = true) {
+export async function scrapeNewsletters(startDate, endDate, cacheEnabled = true, signal) {
   const response = await window.fetch('/api/scrape', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       start_date: startDate,
       end_date: endDate
-    })
+    }),
+    signal
   })
 
   const data = await response.json()
