@@ -6,7 +6,7 @@ import requests
 
 import storage_service
 import util
-from newsletter_scraper import _build_scrape_response, scrape_date_range
+from newsletter_scraper import scrape_date_range
 from summarizer import (
     DEFAULT_MODEL,
     DEFAULT_TLDR_REASONING_EFFORT,
@@ -44,40 +44,119 @@ def _parse_date_range(
     return start_date, end_date
 
 
-def _cached_article_to_internal(article: dict) -> dict:
-    """Convert cached article (client camelCase format) to internal format (snake_case)."""
+def _build_default_article_state() -> dict:
+    return {
+        "tldr": {
+            "status": "unknown",
+            "markdown": "",
+            "effort": "low",
+            "checkedAt": None,
+            "errorMessage": None,
+        },
+        "read": {"isRead": False, "markedAt": None},
+    }
+
+
+def _article_to_payload(article: dict) -> dict:
+    defaults = _build_default_article_state()
     return {
         "url": article.get("url", ""),
         "title": article.get("title", ""),
-        "article_meta": article.get("articleMeta", ""),
-        "date": article.get("issueDate", ""),
+        "articleMeta": article.get("article_meta", ""),
+        "issueDate": article.get("date", ""),
         "category": article.get("category", ""),
-        "removed": article.get("removed", False),
-        "source_id": article.get("sourceId"),
-        "section_title": article.get("section"),
-        "section_emoji": article.get("sectionEmoji"),
-        "section_order": article.get("sectionOrder"),
-        "newsletter_type": article.get("newsletterType"),
+        "sourceId": article.get("source_id"),
+        "section": article.get("section_title"),
+        "sectionEmoji": article.get("section_emoji"),
+        "sectionOrder": article.get("section_order"),
+        "newsletterType": article.get("newsletter_type"),
+        "removed": bool(article.get("removed", False)),
+        "tldr": defaults["tldr"],
+        "read": defaults["read"],
+    }
+
+
+def _build_payload_from_scrape(date_str: str, articles: list[dict], issues: list[dict]) -> dict:
+    payload_articles = [_article_to_payload(article) for article in articles]
+    payload_issues = [issue for issue in issues if issue.get("date") == date_str]
+    return {"date": date_str, "articles": payload_articles, "issues": payload_issues}
+
+
+def _merge_payloads(new_payload: dict, cached_payload: dict) -> dict:
+    merged_articles: list[dict] = []
+    cached_by_url = {item.get("url"): item for item in cached_payload.get("articles", [])}
+    seen_urls = set()
+
+    for article in new_payload.get("articles", []):
+        url = article.get("url")
+        if url:
+            seen_urls.add(url)
+        cached_article = cached_by_url.get(url)
+        if cached_article:
+            merged_articles.append(
+                {
+                    **article,
+                    "tldr": cached_article.get("tldr", article.get("tldr")),
+                    "read": cached_article.get("read", article.get("read")),
+                    "removed": cached_article.get("removed", article.get("removed")),
+                }
+            )
+        else:
+            merged_articles.append(article)
+
+    for cached_article in cached_payload.get("articles", []):
+        url = cached_article.get("url")
+        if url and url in seen_urls:
+            continue
+        merged_articles.append(cached_article)
+
+    merged_issues = cached_payload.get("issues") or new_payload.get("issues") or []
+    if cached_payload.get("issues") and new_payload.get("issues"):
+        seen_issue_keys = set()
+        merged_issues = []
+        for issue in cached_payload.get("issues", []) + new_payload.get("issues", []):
+            key = (issue.get("date"), issue.get("source_id"), issue.get("category"))
+            if key in seen_issue_keys:
+                continue
+            seen_issue_keys.add(key)
+            merged_issues.append(issue)
+
+    return {
+        "date": new_payload.get("date"),
+        "articles": merged_articles,
+        "issues": merged_issues,
+    }
+
+
+def _build_stats_from_payloads(payloads: list[dict], total_network_fetches: int) -> dict:
+    unique_urls = set()
+    total_articles = 0
+    dates_with_content = 0
+
+    for payload in payloads:
+        articles = payload.get("articles", [])
+        if articles:
+            dates_with_content += 1
+        for article in articles:
+            url = article.get("url")
+            if url:
+                unique_urls.add(url)
+            total_articles += 1
+
+    return {
+        "total_articles": total_articles,
+        "unique_urls": len(unique_urls),
+        "dates_processed": len(payloads),
+        "dates_with_content": dates_with_content,
+        "network_fetches": total_network_fetches,
+        "cache_mode": "read_write",
     }
 
 
 def scrape_newsletters_in_date_range(
     start_date_text: str, end_date_text: str, source_ids: list[str] | None = None, excluded_urls: list[str] | None = None
 ) -> dict:
-    """Scrape newsletters in date range with server-side cache integration.
-
-    For past dates: Uses cached data if available, otherwise scrapes.
-    For today: Unions cached articles with newly scraped articles (excluding cached URLs).
-
-    Args:
-        start_date_text: Start date in ISO format
-        end_date_text: End date in ISO format
-        source_ids: Optional list of source IDs to scrape. Defaults to all configured sources.
-        excluded_urls: List of canonical URLs to exclude from results
-
-    Returns:
-        Response dictionary with articles and issues
-    """
+    """Scrape newsletters in date range with server-side cache integration."""
     start_date, end_date = _parse_date_range(start_date_text, end_date_text)
     dates = util.get_date_range(start_date, end_date)
     today_str = date_type.today().isoformat()
@@ -88,16 +167,30 @@ def scrape_newsletters_in_date_range(
         f"[tldr_service.scrape_newsletters] start start_date={start_date_text} end_date={end_date_text} sources={sources_str} excluded_count={excluded_count}",
     )
 
-    all_articles: list[dict] = []
-    url_set: set[str] = set()
-    issue_metadata_by_key: dict[tuple[str, str, str], dict] = {}
     total_network_fetches = 0
+    payloads_by_date: dict[str, dict] = {}
+    dates_to_write: set[str] = set()
+
+    if all(
+        util.format_date_for_url(current_date) != today_str
+        and storage_service.is_date_cached(util.format_date_for_url(current_date))
+        for current_date in dates
+    ):
+        cached_payloads = storage_service.get_daily_payloads_range(
+            start_date_text,
+            end_date_text,
+        )
+        return {
+            "success": True,
+            "payloads": cached_payloads,
+            "stats": _build_stats_from_payloads(cached_payloads, total_network_fetches),
+            "source": "cache",
+        }
 
     for current_date in dates:
         date_str = util.format_date_for_url(current_date)
 
         if date_str == today_str:
-            # TODAY: Server-Side Union - merge cached + newly scraped
             cached_payload = storage_service.get_daily_payload(date_str)
             cached_urls: set[str] = set()
 
@@ -105,83 +198,55 @@ def scrape_newsletters_in_date_range(
                 for article in cached_payload.get('articles', []):
                     url = article.get('url', '')
                     canonical_url = util.canonicalize_url(url) if url else ''
-                    if canonical_url and canonical_url not in url_set:
+                    if canonical_url:
                         cached_urls.add(canonical_url)
-                        url_set.add(canonical_url)
-                        all_articles.append(_cached_article_to_internal(article))
 
-                for issue in cached_payload.get('issues', []):
-                    key = (issue.get('date'), issue.get('source_id'), issue.get('category'))
-                    if key not in issue_metadata_by_key:
-                        issue_metadata_by_key[key] = issue
-
-            # Scrape today with cached URLs excluded
             combined_excluded = list(set(excluded_urls or []) | cached_urls)
             result = scrape_date_range(current_date, current_date, source_ids, combined_excluded)
             total_network_fetches += result.get('stats', {}).get('network_fetches', 0)
 
-            # Add newly scraped articles
-            for article in result.get('articles', []):
-                url = article.get('url', '')
-                canonical_url = util.canonicalize_url(url) if url else ''
-                if canonical_url and canonical_url not in url_set:
-                    url_set.add(canonical_url)
-                    all_articles.append(article)
-
-            for issue in result.get('issues', []):
-                key = (issue.get('date'), issue.get('source_id'), issue.get('category'))
-                if key not in issue_metadata_by_key:
-                    issue_metadata_by_key[key] = issue
+            new_payload = _build_payload_from_scrape(
+                date_str,
+                result.get('articles', []),
+                result.get('issues', []),
+            )
+            if cached_payload:
+                payloads_by_date[date_str] = _merge_payloads(new_payload, cached_payload)
+            else:
+                payloads_by_date[date_str] = new_payload
+            dates_to_write.add(date_str)
         else:
-            # PAST DATE: Cache-first
             cached_payload = storage_service.get_daily_payload(date_str)
             if cached_payload:
-                for article in cached_payload.get('articles', []):
-                    url = article.get('url', '')
-                    canonical_url = util.canonicalize_url(url) if url else ''
-                    if canonical_url and canonical_url not in url_set:
-                        url_set.add(canonical_url)
-                        all_articles.append(_cached_article_to_internal(article))
-
-                for issue in cached_payload.get('issues', []):
-                    key = (issue.get('date'), issue.get('source_id'), issue.get('category'))
-                    if key not in issue_metadata_by_key:
-                        issue_metadata_by_key[key] = issue
+                payloads_by_date[date_str] = cached_payload
             else:
-                # Not cached, must scrape
                 result = scrape_date_range(current_date, current_date, source_ids, excluded_urls)
                 total_network_fetches += result.get('stats', {}).get('network_fetches', 0)
+                payloads_by_date[date_str] = _build_payload_from_scrape(
+                    date_str,
+                    result.get('articles', []),
+                    result.get('issues', []),
+                )
+                dates_to_write.add(date_str)
 
-                for article in result.get('articles', []):
-                    url = article.get('url', '')
-                    canonical_url = util.canonicalize_url(url) if url else ''
-                    if canonical_url and canonical_url not in url_set:
-                        url_set.add(canonical_url)
-                        all_articles.append(article)
-
-                for issue in result.get('issues', []):
-                    key = (issue.get('date'), issue.get('source_id'), issue.get('category'))
-                    if key not in issue_metadata_by_key:
-                        issue_metadata_by_key[key] = issue
-
-    # Ensure all articles have removed field
-    for article in all_articles:
-        article.setdefault("removed", False)
-
-    result = _build_scrape_response(
-        start_date,
-        end_date,
-        dates,
-        all_articles,
-        url_set,
-        issue_metadata_by_key,
-        total_network_fetches,
-    )
+    ordered_payloads = [
+        payloads_by_date[util.format_date_for_url(current_date)]
+        for current_date in reversed(dates)
+    ]
+    for date_str in dates_to_write:
+        storage_service.set_daily_payload(date_str, payloads_by_date[date_str])
 
     logger.info(
-        f"[tldr_service.scrape_newsletters] done dates_processed={result['stats']['dates_processed']} total_articles={result['stats']['total_articles']}",
+        "[tldr_service.scrape_newsletters] done dates_processed=%s total_articles=%s",
+        len(ordered_payloads),
+        sum(len(payload.get("articles", [])) for payload in ordered_payloads),
     )
-    return result
+    return {
+        "success": True,
+        "payloads": ordered_payloads,
+        "stats": _build_stats_from_payloads(ordered_payloads, total_network_fetches),
+        "source": "live",
+    }
 
 
 def fetch_tldr_prompt_template() -> str:

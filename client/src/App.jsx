@@ -2,7 +2,7 @@ import { Calendar } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Feed from './components/Feed'
 import ScrapeForm from './components/ScrapeForm'
-import { loadFromCache } from './lib/scraper'
+import { scrapeNewsletters } from './lib/scraper'
 
 function App() {
   const [results, setResults] = useState(null)
@@ -18,17 +18,14 @@ function App() {
     const endDate = today.toISOString().split('T')[0]
     const startDate = twoDaysAgo.toISOString().split('T')[0]
 
-    loadFromCache(startDate, endDate, controller.signal)
-      .then(cached => {
-        if (cached) {
-          setResults(cached)
-        } else {
-          setResults({ payloads: [], stats: null })
-        }
+    scrapeNewsletters(startDate, endDate, true, controller.signal)
+      .then(result => {
+        setResults(result)
       })
       .catch(err => {
         if (err.name === 'AbortError') return
-        console.error('Failed to load cached results:', err)
+        console.error('Failed to load results:', err)
+        setResults({ payloads: [], stats: null })
       })
 
     return () => {
