@@ -15,8 +15,8 @@ dependencies = [
     "supabase>=2.0.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "playwright>=1.55.0",
-    "pytest>=8.4.2",
+    "playwright>=1.57.0",
+    "pytest>=9.0.2",
 ]
