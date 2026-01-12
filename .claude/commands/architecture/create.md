@@ -36,9 +36,9 @@ The project is utterly different than the current project but I find its ARCHITE
 
 <Example ARCHITECTURE.md>
 
-## Architecture Diagram (The "City Map")
+## Architecture Diagram (Space)
 
-> Focus: Structural boundaries, high-level grouping, and external relationships.
+> Focus: The "City Map". Structural boundaries, where things "live", high-level grouping, and external relationships.
 > Answers: What are the major building blocks of the system? (e.g., "There is a User, a CLI Tool, and a Processing Engine.")
 
 
@@ -166,63 +166,9 @@ The project is utterly different than the current project but I find its ARCHITE
 
 ---
 
-## Dependency Tree
-> Focus: Composition and Hierarchy.
-> Answers: What is this thing made of? What libraries do I need installed? What are the main "big ticket" functions available?
+## Sequence Diagram  (Time)
 
-onefilellm.py
-```
-  |-- requests
-  |-- BeautifulSoup4
-  |-- PyPDF2
-  |-- tiktoken
-  |-- nltk
-  |-- nbformat
-  |-- nbconvert
-  |-- youtube-transcript-api
-  |-- pyperclip
-  |-- wget
-  |-- tqdm
-  |-- rich
-  |-- GitHub API
-  |-- ArXiv
-  |-- YouTube
-  |-- Sci-Hub
-  |-- Webpage
-  |-- Filesystem
-main()
-  |-- process_github_repo
-  |   |-- download_file
-  |-- process_github_pull_request
-  |   |-- download_file
-  |-- process_github_issue
-  |   |-- download_file
-  |-- process_arxiv_pdf
-  |   |-- PdfReader (from PyPDF2)
-  |-- process_local_folder
-  |-- fetch_youtube_transcript
-  |-- crawl_and_extract_text
-  |   |-- BeautifulSoup (from BeautifulSoup4)
-  |   |-- urlparse (from urllib.parse)
-  |   |-- urljoin (from urllib.parse)
-  |   |-- is_same_domain
-  |   |-- is_within_depth
-  |   |-- process_pdf
-  |-- process_doi_or_pmid
-  |   |-- wget
-  |   |-- PdfReader (from PyPDF2)
-  |-- preprocess_text
-  |   |-- re
-  |   |-- stop_words (from nltk.corpus)
-  |-- get_token_count
-        |-- tiktoken
-```
-
----
-
-## Sequence Diagram  (The "Movie Script")
-
-> Focus: Chronology, Interactions, Control Flow.
+> Focus: The "Movie Script". Chronology, Interactions, Control Flow.
 > Answers: Who talks to whom, and in what order?
 
 ```
@@ -294,9 +240,9 @@ sequenceDiagram
 
 ---
 
-## Data Flow Diagram (The "Plumbing Plan")
+## Data Flow Diagram (Matter)
 
-> Focus: Inputs, Outputs, Storage, Transformation.
+> Focus: The dynamic transformation. Inputs, Outputs, Storage, State. The mutation of state/data as it moves through the pipes.
 > Answers: Where does the data come from, how does it change, and where does it end up?
 
 ```
@@ -374,7 +320,10 @@ Detailed Processes
 
 ---
 
-## Call Graph
+## Call Graph (Logic)
+The static wiring. The rigid hierarchy of "what controls what" inside the code.
+> Focus: Execution depth and runtime symbol dependencies.
+> Answers: When A runs, exactly which other symbols does it trigger?
 
 ```
 main
