@@ -1,3 +1,6 @@
+---
+last_updated: 2026-01-12 17:53, 99a5ef3
+---
 # Sync (date range) server-side flow + speed opportunities
 
 ## Server-side flow when the user clicks “sync” (scrape a date range)
