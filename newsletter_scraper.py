@@ -149,13 +149,23 @@ def _group_articles_by_date(articles: list[dict]) -> dict[str, list[dict]]:
 
 
 def _sort_issues(issues: list[dict]) -> list[dict]:
-    """Sort issues by date DESC, source sort_order ASC, category ASC.
+    """Sort issues by date DESC, then randomize with subtle priority weighting.
+
+    Within each date, newsletters are shuffled randomly but lower sort_order
+    (rarer sources) have a slight preference to appear earlier.
 
     >>> issues = [{"date": "2024-01-01", "source_id": "tldr_tech", "category": "Tech"}]
     >>> result = _sort_issues(issues)
     >>> len(result) == 1
     True
     """
+    import random
+
+    max_sort_order = max(
+        config.sort_order for config in NEWSLETTER_CONFIGS.values()
+    )
+    priority_weight = 0.15
+
     def _issue_sort_key(issue: dict) -> tuple:
         date_text = issue.get("date", "") or ""
         try:
@@ -167,10 +177,13 @@ def _sort_issues(issues: list[dict]) -> list[dict]:
         sort_order = (
             NEWSLETTER_CONFIGS[source_id].sort_order
             if source_id in NEWSLETTER_CONFIGS
-            else 999
+            else max_sort_order
         )
 
-        return (-date_ordinal, sort_order, issue.get("category", ""))
+        normalized_priority = sort_order / max_sort_order
+        weighted_random = (1 - priority_weight) * random.random() + priority_weight * normalized_priority
+
+        return (-date_ordinal, weighted_random)
 
     return sorted(issues, key=_issue_sort_key)
 
