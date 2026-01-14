@@ -20,7 +20,8 @@ export default defineConfig({
   server: {
     port: 3000,
     allowedHosts: [
-      'handy-waters-diary-liz.trycloudflare.com'
+      'handy-waters-diary-liz.trycloudflare.com',
+      'josue-ungreedy-unphysically.ngrok-free.dev'
     ],
     proxy: {
       '/api': {
