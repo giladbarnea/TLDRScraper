@@ -1609,7 +1609,6 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32.5" },
     { name = "supabase", specifier = ">=2.0.0" },
 ]
-provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
