@@ -21,7 +21,14 @@ app = Flask(
     static_url_path='/assets'
 )
 app.register_blueprint(source_bp)
-logging.basicConfig(level=util.resolve_env_var("LOG_LEVEL", "INFO"))
+
+# Configure logging with timestamps and detailed format
+log_format = "%(asctime)s %(levelname)s │ %(name)s %(filename)s:%(lineno)d %(funcName)s │ %(message)s"
+logging.basicConfig(
+    level=util.resolve_env_var("LOG_LEVEL", "INFO"),
+    format=log_format,
+    force=True  # Override any existing configuration
+)
 logger = logging.getLogger("serve")
 
 
