@@ -42,12 +42,12 @@ class DanLuuAdapter(NewsletterAdapter):
 
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
 
-        logger.info(f"[danluu_adapter.scrape_date] Fetching articles for {date} from RSS feed (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"Fetching articles for {date} from RSS feed (excluding {len(excluded_urls)} URLs)")
 
         try:
             feed_items = self._fetch_rss_feed()
 
-            logger.info(f"[danluu_adapter.scrape_date] Fetched {len(feed_items)} total items from RSS feed")
+            logger.info(f"Fetched {len(feed_items)} total items from RSS feed")
 
             # Filter items by date and excluded URLs
             filtered_items = []
@@ -69,7 +69,7 @@ class DanLuuAdapter(NewsletterAdapter):
                 if canonical_url not in excluded_set:
                     filtered_items.append(item)
 
-            logger.info(f"[danluu_adapter.scrape_date] {len(filtered_items)} articles match date {date}")
+            logger.info(f"{len(filtered_items)} articles match date {date}")
 
             # Convert to article format
             for item in filtered_items:
@@ -77,10 +77,10 @@ class DanLuuAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            logger.info(f"[danluu_adapter.scrape_date] Converted {len(articles)} items to articles")
+            logger.info(f"Converted {len(articles)} items to articles")
 
         except Exception as e:
-            logger.error(f"[danluu_adapter.scrape_date] Error fetching RSS feed: {e}", exc_info=True)
+            logger.error(f"Error fetching RSS feed: {e}", exc_info=True)
 
         # Create issue metadata if we have articles
         issues = []
@@ -108,7 +108,7 @@ class DanLuuAdapter(NewsletterAdapter):
         channel = root.find('channel')
 
         if channel is None:
-            logger.warning("[danluu_adapter._fetch_rss_feed] No channel found in RSS feed")
+            logger.warning("No channel found in RSS feed")
             return []
 
         items = []
@@ -143,7 +143,7 @@ class DanLuuAdapter(NewsletterAdapter):
             # RSS 2.0 uses RFC 822/2822 format: "Mon, 28 Oct 2024 00:00:00 +0000"
             return datetime.strptime(pub_date_str, '%a, %d %b %Y %H:%M:%S %z')
         except ValueError:
-            logger.warning(f"[danluu_adapter._parse_pub_date] Failed to parse date: {pub_date_str}")
+            logger.warning(f"Failed to parse date: {pub_date_str}")
             return None
 
     def _rss_item_to_article(self, item: dict, date: str) -> dict | None:

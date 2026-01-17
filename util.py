@@ -187,7 +187,7 @@ def retry(max_attempts: int = 2, delay: float = 2.0):
                     last_exception = e
                     if attempt < max_attempts - 1:
                         logger.warning(
-                            f"[util.retry] {func.__name__} attempt {attempt + 1} failed: {e}. Retrying in {delay}s..."
+                            f"{func.__name__} attempt {attempt + 1} failed: {e}. Retrying in {delay}s..."
                         )
                         time.sleep(delay)
             raise last_exception

@@ -44,17 +44,17 @@ class StripeEngineeringAdapter(NewsletterAdapter):
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
         target_date_str = target_date.strftime("%Y-%m-%d")
 
-        logger.info(f"[stripe_engineering_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
             result = self.firecrawl.scrape(self.blog_url)
             markdown = result.markdown
 
-            logger.info(f"[stripe_engineering_adapter.scrape_date] Successfully scraped blog page")
+            logger.info(f"Successfully scraped blog page")
 
             parsed_articles = self._parse_articles_from_markdown(markdown)
 
-            logger.info(f"[stripe_engineering_adapter.scrape_date] Parsed {len(parsed_articles)} total articles from blog")
+            logger.info(f"Parsed {len(parsed_articles)} total articles from blog")
 
             for article in parsed_articles:
                 article_date_str = article.get('date', '')
@@ -73,10 +73,10 @@ class StripeEngineeringAdapter(NewsletterAdapter):
                 article['url'] = canonical_url
                 articles.append(article)
 
-            logger.info(f"[stripe_engineering_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}")
+            logger.info(f"Found {len(articles)} articles for {target_date_str}")
 
         except Exception as e:
-            logger.error(f"[stripe_engineering_adapter.scrape_date] Error fetching blog: {e}", exc_info=True)
+            logger.error(f"Error fetching blog: {e}", exc_info=True)
 
         issues = []
         if articles:
@@ -110,7 +110,7 @@ class StripeEngineeringAdapter(NewsletterAdapter):
                 parsed_date = datetime.strptime(date_str, "%B %d, %Y")
                 formatted_date = parsed_date.strftime("%Y-%m-%d")
             except Exception:
-                logger.warning(f"[stripe_engineering_adapter._parse_articles_from_markdown] Could not parse date: {date_str}")
+                logger.warning(f"Could not parse date: {date_str}")
                 continue
 
             author_name = self._extract_author(summary_section)

@@ -51,18 +51,18 @@ class SoftwareLeadWeeklyAdapter(NewsletterAdapter):
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
         target_date_str = target_date.strftime("%Y-%m-%d")
 
-        logger.info(f"[softwareleadweekly_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         # Calculate which Friday to use
         issue_date = self._get_issue_date_for_target(target_date)
         issue_number = self._calculate_issue_number(issue_date)
 
-        logger.info(f"[softwareleadweekly_adapter.scrape_date] Target date {target_date_str} maps to issue {issue_number} ({issue_date.strftime('%Y-%m-%d')})")
+        logger.info(f"Target date {target_date_str} maps to issue {issue_number} ({issue_date.strftime('%Y-%m-%d')})")
 
         try:
             html = self.fetch_issue(str(issue_number), "newsletter")
             if html is None:
-                logger.info(f"[softwareleadweekly_adapter.scrape_date] No content found for issue {issue_number}")
+                logger.info(f"No content found for issue {issue_number}")
                 return self._normalize_response([], [])
 
             markdown = self._html_to_markdown(html)
@@ -73,10 +73,10 @@ class SoftwareLeadWeeklyAdapter(NewsletterAdapter):
                 if canonical_url not in excluded_set:
                     articles.append(article)
 
-            logger.info(f"[softwareleadweekly_adapter.scrape_date] Found {len(articles)} articles for issue {issue_number}")
+            logger.info(f"Found {len(articles)} articles for issue {issue_number}")
 
         except Exception as e:
-            logger.error(f"[softwareleadweekly_adapter.scrape_date] Error fetching issue {issue_number}: {e}", exc_info=True)
+            logger.error(f"Error fetching issue {issue_number}: {e}", exc_info=True)
 
         issues = []
         if articles:
@@ -141,7 +141,7 @@ class SoftwareLeadWeeklyAdapter(NewsletterAdapter):
         )
 
         if response.status_code == 404:
-            logger.info(f"[softwareleadweekly_adapter.fetch_issue] Issue {issue_number} not found (404)")
+            logger.info(f"Issue {issue_number} not found (404)")
             return None
 
         response.raise_for_status()
@@ -169,7 +169,7 @@ class SoftwareLeadWeeklyAdapter(NewsletterAdapter):
 
             if line.startswith('### ') and not line.startswith('### Subscribe'):
                 current_section = line[4:].strip()
-                logger.info(f"[softwareleadweekly_adapter.parse_articles] Found section: {current_section}")
+                logger.info(f"Found section: {current_section}")
                 i += 1
                 continue
 

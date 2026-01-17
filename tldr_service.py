@@ -164,7 +164,7 @@ def scrape_newsletters_in_date_range(
     sources_str = ", ".join(source_ids) if source_ids else "all"
     excluded_count = len(excluded_urls) if excluded_urls else 0
     logger.info(
-        f"[tldr_service.scrape_newsletters] start start_date={start_date_text} end_date={end_date_text} sources={sources_str} excluded_count={excluded_count}",
+        f"start start_date={start_date_text} end_date={end_date_text} sources={sources_str} excluded_count={excluded_count}",
     )
 
     total_network_fetches = 0
@@ -237,7 +237,7 @@ def scrape_newsletters_in_date_range(
         storage_service.set_daily_payload(date_str, payloads_by_date[date_str])
 
     logger.info(
-        "[tldr_service.scrape_newsletters] done dates_processed=%s total_articles=%s",
+        "done dates_processed=%s total_articles=%s",
         len(ordered_payloads),
         sum(len(payload.get("articles", [])) for payload in ordered_payloads),
     )
@@ -274,7 +274,7 @@ def tldr_url_content(
         )
     except requests.RequestException as error:
         logger.error(
-            "[tldr_service.tldr_url_content] request error error=%s",
+            "request error error=%s",
             repr(error),
             exc_info=True,
         )

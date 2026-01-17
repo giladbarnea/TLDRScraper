@@ -79,7 +79,7 @@ class TLDRAdapter(NewsletterAdapter):
         if 300 <= response.status_code < 400:
             return None
 
-        logger.info(f"[tldr_adapter.fetch_issue] Fetched {newsletter_type} for {date_str} in {net_ms}ms")
+        logger.info(f"Fetched {newsletter_type} for {date_str} in {net_ms}ms")
         return response.text
 
     def _parse_markdown_structure(

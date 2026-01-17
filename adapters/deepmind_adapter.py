@@ -85,7 +85,7 @@ class DeepMindAdapter(NewsletterAdapter):
                 datetime_attr = time_elem.get('datetime', '').strip()
                 return _parse_date_string(datetime_attr)
         except Exception as e:
-            logger.warning(f"[deepmind_adapter] Could not fetch date from {article_url}: {e}")
+            logger.warning(f"Could not fetch date from {article_url}: {e}")
         return None
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
@@ -108,14 +108,14 @@ class DeepMindAdapter(NewsletterAdapter):
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
         target_month_year = target_date.strftime("%B %Y")
 
-        logger.info(f"[deepmind_adapter.scrape_date] Fetching articles for {target_month_year} (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"Fetching articles for {target_month_year} (excluding {len(excluded_urls)} URLs)")
 
         try:
             page_content = self._fetch_page()
             soup = BeautifulSoup(page_content, 'html.parser')
             article_cards = soup.find_all('article', class_='card-blog')
 
-            logger.info(f"[deepmind_adapter.scrape_date] Found {len(article_cards)} total articles on blog page")
+            logger.info(f"Found {len(article_cards)} total articles on blog page")
 
             for card in article_cards:
                 link_elem = card.find('a', class_='button')
@@ -144,10 +144,10 @@ class DeepMindAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            logger.info(f"[deepmind_adapter.scrape_date] Found {len(articles)} articles actually published in {target_month_year}")
+            logger.info(f"Found {len(articles)} articles actually published in {target_month_year}")
 
         except Exception as e:
-            logger.error(f"[deepmind_adapter.scrape_date] Error fetching blog: {e}", exc_info=True)
+            logger.error(f"Error fetching blog: {e}", exc_info=True)
 
         issues = []
         if articles:

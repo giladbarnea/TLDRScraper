@@ -61,16 +61,16 @@ class PointerAdapter(NewsletterAdapter):
 
         date_str = util.format_date_for_url(date)
 
-        logger.info(f"[pointer_adapter.scrape_date] Scraping Pointer for {date_str} (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"Scraping Pointer for {date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
             issue_url = self._get_issue_url_for_date(date_str)
 
             if not issue_url:
-                logger.info(f"[pointer_adapter.scrape_date] No issue found for {date_str}")
+                logger.info(f"No issue found for {date_str}")
                 return self._normalize_response([], [])
 
-            logger.info(f"[pointer_adapter.scrape_date] Found issue URL: {issue_url}")
+            logger.info(f"Found issue URL: {issue_url}")
 
             scraped_articles = self._scrape_issue(issue_url, date_str)
 
@@ -79,10 +79,10 @@ class PointerAdapter(NewsletterAdapter):
                 if canonical_url not in excluded_set:
                     articles.append(article)
 
-            logger.info(f"[pointer_adapter.scrape_date] Scraped {len(articles)} articles after filtering")
+            logger.info(f"Scraped {len(articles)} articles after filtering")
 
         except Exception as e:
-            logger.error(f"[pointer_adapter.scrape_date] Error scraping Pointer for {date_str}: {e}", exc_info=True)
+            logger.error(f"Error scraping Pointer for {date_str}: {e}", exc_info=True)
 
         category = self.config.category_display_names.get("newsletter", "Pointer")
         issues = []
@@ -114,7 +114,7 @@ class PointerAdapter(NewsletterAdapter):
     def _build_date_to_url_mapping(self) -> dict[str, str]:
         """Build mapping of dates to issue URLs from archives page."""
         archives_url = f"{self.config.base_url}/archives"
-        logger.info(f"[pointer_adapter._build_date_to_url_mapping] Fetching archives from {archives_url}")
+        logger.info(f"Fetching archives from {archives_url}")
 
         html = self._fetch_page(archives_url)
         soup = BeautifulSoup(html, 'html.parser')
@@ -137,7 +137,7 @@ class PointerAdapter(NewsletterAdapter):
                 except Exception:
                     continue
 
-        logger.info(f"[pointer_adapter._build_date_to_url_mapping] Built mapping for {len(date_to_url)} issues")
+        logger.info(f"Built mapping for {len(date_to_url)} issues")
 
         return date_to_url
 

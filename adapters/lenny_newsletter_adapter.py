@@ -49,13 +49,13 @@ class LennyNewsletterAdapter(NewsletterAdapter):
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
         target_date_str = target_date.strftime("%Y-%m-%d")
 
-        logger.info(f"[lenny_newsletter_adapter.scrape_date] Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
             feed_content = self._fetch_feed()
             feed = feedparser.parse(feed_content)
 
-            logger.info(f"[lenny_newsletter_adapter.scrape_date] Fetched {len(feed.entries)} total entries from feed")
+            logger.info(f"Fetched {len(feed.entries)} total entries from feed")
 
             for entry in feed.entries:
                 if not entry.get('published_parsed'):
@@ -80,10 +80,10 @@ class LennyNewsletterAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            logger.info(f"[lenny_newsletter_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}")
+            logger.info(f"Found {len(articles)} articles for {target_date_str}")
 
         except Exception as e:
-            logger.error(f"[lenny_newsletter_adapter.scrape_date] Error fetching feed: {e}", exc_info=True)
+            logger.error(f"Error fetching feed: {e}", exc_info=True)
 
         issues = []
         if articles:

@@ -279,7 +279,7 @@ def _collect_newsletters_for_date_from_source(
 
     current_processed += 1
     logger.info(
-        f"[newsletter_scraper] Processing {config.display_name} for {date_str} ({current_processed}/{total_count})",
+        f"Processing {config.display_name} for {date_str} ({current_processed}/{total_count})",
     )
 
     try:
@@ -313,7 +313,7 @@ def _collect_newsletters_for_date_from_source(
 
     except Exception as e:
         logger.error(
-            f"[newsletter_scraper] Error processing {config.display_name} for {date_str}: {e}",
+            f"Error processing {config.display_name} for {date_str}: {e}",
             exc_info=True,
         )
 
@@ -355,7 +355,7 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
         for source_id in source_ids:
             if source_id not in NEWSLETTER_CONFIGS:
                 logger.warning(
-                    f"[newsletter_scraper] Unknown source_id: {source_id}, skipping",
+                    f"Unknown source_id: {source_id}, skipping",
                 )
                 continue
 

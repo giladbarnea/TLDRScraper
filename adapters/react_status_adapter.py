@@ -59,23 +59,23 @@ class ReactStatusAdapter(NewsletterAdapter):
         target_date_str = util.format_date_for_url(date)
         target_date = datetime.fromisoformat(target_date_str).date()
 
-        logger.info(f"[react_status_adapter.scrape_date] Fetching RSS feed for {target_date_str} (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"Fetching RSS feed for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
             feed_content = self._fetch_feed()
             feed = feedparser.parse(feed_content)
 
             if not feed.entries:
-                logger.warning("[react_status_adapter.scrape_date] No entries found in RSS feed")
+                logger.warning("No entries found in RSS feed")
                 return self._normalize_response([], [])
 
-            logger.info(f"[react_status_adapter.scrape_date] Fetched {len(feed.entries)} issues from RSS")
+            logger.info(f"Fetched {len(feed.entries)} issues from RSS")
 
             # Find the issue for the target date
             matching_entry = self._find_matching_issue(feed.entries, target_date)
 
             if not matching_entry:
-                logger.info(f"[react_status_adapter.scrape_date] No issue found for {target_date_str}")
+                logger.info(f"No issue found for {target_date_str}")
                 return self._normalize_response([], [])
 
             # Parse articles from the issue
@@ -85,10 +85,10 @@ class ReactStatusAdapter(NewsletterAdapter):
 
             articles.extend(parsed_articles)
 
-            logger.info(f"[react_status_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}")
+            logger.info(f"Found {len(articles)} articles for {target_date_str}")
 
         except Exception as e:
-            logger.error(f"[react_status_adapter.scrape_date] Error fetching RSS feed: {e}", exc_info=True)
+            logger.error(f"Error fetching RSS feed: {e}", exc_info=True)
 
         issues = []
         if articles:
@@ -203,7 +203,7 @@ class ReactStatusAdapter(NewsletterAdapter):
                 })
 
             except Exception as e:
-                logger.warning(f"[react_status_adapter._parse_issue_articles] Error processing article '{title}': {e}")
+                logger.warning(f"Error processing article '{title}': {e}")
                 continue
 
         return articles
@@ -226,5 +226,5 @@ class ReactStatusAdapter(NewsletterAdapter):
             )
             return response.url
         except Exception as e:
-            logger.warning(f"[react_status_adapter._resolve_tracking_link] Error resolving {tracking_url}: {e}")
+            logger.warning(f"Error resolving {tracking_url}: {e}")
             return None

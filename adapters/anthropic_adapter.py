@@ -103,7 +103,7 @@ class AnthropicAdapter(NewsletterAdapter):
         target_date = datetime.fromisoformat(util.format_date_for_url(date))
         target_date_str = target_date.strftime("%Y-%m-%d")
 
-        logger.info(f"[anthropic_adapter.scrape_date] Checking articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"Checking articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
             for known_article in self.known_articles:
@@ -126,10 +126,10 @@ class AnthropicAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            logger.info(f"[anthropic_adapter.scrape_date] Found {len(articles)} articles for {target_date_str}")
+            logger.info(f"Found {len(articles)} articles for {target_date_str}")
 
         except Exception as e:
-            logger.error(f"[anthropic_adapter.scrape_date] Error processing articles: {e}", exc_info=True)
+            logger.error(f"Error processing articles: {e}", exc_info=True)
 
         issues = []
         if articles:
