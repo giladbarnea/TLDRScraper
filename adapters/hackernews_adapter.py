@@ -65,7 +65,7 @@ class HackerNewsAdapter(NewsletterAdapter):
         start_timestamp = int(start_of_day.timestamp())
         end_timestamp = int(end_of_day.timestamp())
 
-        logger.info(f"[hackernews_adapter.scrape_date] Fetching stories for {date} using Algolia API (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"Fetching stories for {date} using Algolia API (excluding {len(excluded_urls)} URLs)")
 
         # Fetch stories using Algolia API with server-side filtering
         try:
@@ -77,7 +77,7 @@ class HackerNewsAdapter(NewsletterAdapter):
                 limit=self.max_stories
             )
 
-            logger.info(f"[hackernews_adapter.scrape_date] Fetched {len(stories)} pre-filtered stories for {date}")
+            logger.info(f"Fetched {len(stories)} pre-filtered stories for {date}")
 
             # Filter out excluded URLs before scoring
             filtered_stories = []
@@ -88,7 +88,7 @@ class HackerNewsAdapter(NewsletterAdapter):
                 if canonical_url not in excluded_set:
                     filtered_stories.append(story)
 
-            logger.info(f"[hackernews_adapter.scrape_date] {len(filtered_stories)} stories after filtering excluded URLs")
+            logger.info(f"{len(filtered_stories)} stories after filtering excluded URLs")
 
             # Sort by leading score (already have points and comments from API)
             stories_with_scores = []
@@ -111,10 +111,10 @@ class HackerNewsAdapter(NewsletterAdapter):
                 if article:
                     articles.append(article)
 
-            logger.info(f"[hackernews_adapter.scrape_date] Converted {len(articles)} stories to articles")
+            logger.info(f"Converted {len(articles)} stories to articles")
 
         except Exception as e:
-            logger.error(f"[hackernews_adapter.scrape_date] Error fetching stories: {e}", exc_info=True)
+            logger.error(f"Error fetching stories: {e}", exc_info=True)
 
         # Create issues for each category that has articles
         categories_in_articles = {article['category'] for article in articles}
@@ -148,7 +148,7 @@ class HackerNewsAdapter(NewsletterAdapter):
             "hitsPerPage": limit
         }
 
-        logger.info(f"[hackernews_adapter._fetch_stories_algolia] Querying Algolia API with filters: {params['numericFilters']}")
+        logger.info(f"Querying Algolia API with filters: {params['numericFilters']}")
 
         response = util.fetch(url, params=params, timeout=10)
         response.raise_for_status()
@@ -156,7 +156,7 @@ class HackerNewsAdapter(NewsletterAdapter):
         data = response.json()
         hits = data.get('hits', [])
 
-        logger.info(f"[hackernews_adapter._fetch_stories_algolia] Received {len(hits)} stories from Algolia")
+        logger.info(f"Received {len(hits)} stories from Algolia")
         return hits
 
     def _algolia_story_to_article(self, story: dict, date: str) -> dict | None:

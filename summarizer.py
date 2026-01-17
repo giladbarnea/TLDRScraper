@@ -80,7 +80,7 @@ def _scrape_with_curl_cffi(
 def _scrape_with_jina_reader(url: str, *, timeout: int) -> requests.Response:
     reader_url = _build_jina_reader_url(url)
     logger.info(
-        f"[summarizer.scrape_url] Scraping with Jina reader url={url}",
+        f"Scraping with Jina reader url={url}",
     )
     response = requests.get(
         reader_url,
@@ -103,7 +103,7 @@ def _scrape_with_firecrawl(url: str, *, timeout: int) -> requests.Response:
         raise RuntimeError("FIRECRAWL_API_KEY not configured")
 
     logger.info(
-        f"[summarizer.scrape_url] Scraping with Firecrawl url={url}",
+        f"Scraping with Firecrawl url={url}",
     )
 
     response = requests.post(
@@ -173,7 +173,7 @@ def scrape_url(url: str, *, timeout: int = 10) -> Response:
             # Only log intermediate failures if all methods fail
             if errors:
                 logger.info(
-                    f"[summarizer.scrape_url] {name} succeeded after {len(errors)} failed attempts for url={url}",
+                    f"{name} succeeded after {len(errors)} failed attempts for url={url}",
                 )
             return result
         except requests.HTTPError as status_error:
@@ -187,7 +187,7 @@ def scrape_url(url: str, *, timeout: int = 10) -> Response:
     # Only log errors if all methods failed
     if errors:
         logger.error(
-            f"[summarizer.scrape_url] All methods failed for url={url}. Errors: {'; '.join(errors)}",
+            f"All methods failed for url={url}. Errors: {'; '.join(errors)}",
         )
 
     if last_status_error is not None:
@@ -208,7 +208,7 @@ def _fetch_github_readme(url: str) -> str:
 
     raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/README.md"
     logger.info(
-        f"[summarizer._fetch_github_readme] Trying raw fetch from {raw_url}",
+        f"Trying raw fetch from {raw_url}",
     )
     github_api_token = util.resolve_env_var("GITHUB_API_TOKEN", "")
     auth_headers = {
@@ -224,7 +224,7 @@ def _fetch_github_readme(url: str) -> str:
         )
         response.raise_for_status()
         logger.info(
-            f"[summarizer._fetch_github_readme] Raw fetch succeeded for {raw_url}",
+            f"Raw fetch succeeded for {raw_url}",
         )
         return md.convert_response(response).markdown
     except requests.HTTPError as e:
@@ -233,7 +233,7 @@ def _fetch_github_readme(url: str) -> str:
                 f"https://raw.githubusercontent.com/{owner}/{repo}/master/README.md"
             )
             logger.info(
-                f"[summarizer._fetch_github_readme] Main branch not found, trying master: {master_url}",
+                f"Main branch not found, trying master: {master_url}",
             )
             try:
                 response = requests.get(
@@ -243,12 +243,12 @@ def _fetch_github_readme(url: str) -> str:
                 )
                 response.raise_for_status()
                 logger.info(
-                    f"[summarizer._fetch_github_readme] Master branch fetch succeeded for {master_url}",
+                    f"Master branch fetch succeeded for {master_url}",
                 )
                 return md.convert_response(response).markdown
             except Exception:
                 logger.warning(
-                    f"[summarizer._fetch_github_readme] Master branch fetch failed for {master_url}",
+                    f"Master branch fetch failed for {master_url}",
                 )
                 raise
 
@@ -257,7 +257,7 @@ def _fetch_github_readme(url: str) -> str:
     content = result.markdown
 
     logger.info(
-        f"[summarizer._fetch_github_readme] Direct fetch succeeded for {url}",
+        f"Direct fetch succeeded for {url}",
     )
     return content
 
@@ -265,7 +265,7 @@ def _fetch_github_readme(url: str) -> str:
 def url_to_markdown(url: str) -> str:
     """Fetch URL and convert to markdown. For GitHub repos, fetches README.md."""
     logger.info(
-        f"[summarizer.url_to_markdown] Fetching and converting to markdown {url}",
+        f"Fetching and converting to markdown {url}",
     )
 
     if _is_github_repo_url(url):

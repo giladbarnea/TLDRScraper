@@ -69,7 +69,7 @@ def scrape_newsletters_in_date_range():
         return jsonify({"success": False, "error": str(error)}), 400
     except Exception as error:
         logger.exception(
-            "[serve.scrape_newsletters_in_date_range] Failed to scrape newsletters: %s",
+            "Failed to scrape newsletters: %s",
             error,
         )
         return jsonify({"success": False, "error": str(error)}), 500
@@ -96,7 +96,7 @@ def tldr_url(model: str = DEFAULT_MODEL):
         return jsonify({"success": False, "error": str(error)}), 400
     except requests.RequestException as e:
         logger.error(
-            "[serve.tldr_url] request error error=%s",
+            "request error error=%s",
             repr(e),
             exc_info=True,
         )
@@ -104,7 +104,7 @@ def tldr_url(model: str = DEFAULT_MODEL):
 
     except Exception as e:
         logger.error(
-            "[serve.tldr_url] error error=%s",
+            "error error=%s",
             repr(e),
             exc_info=True,
         )
@@ -123,7 +123,7 @@ def get_storage_setting(key):
 
     except Exception as e:
         logger.error(
-            "[serve.get_storage_setting] error key=%s error=%s",
+            "error key=%s error=%s",
             key, repr(e),
             exc_info=True,
         )
@@ -141,7 +141,7 @@ def set_storage_setting(key):
 
     except Exception as e:
         logger.error(
-            "[serve.set_storage_setting] error key=%s error=%s",
+            "error key=%s error=%s",
             key, repr(e),
             exc_info=True,
         )
@@ -159,7 +159,7 @@ def get_storage_daily(date):
 
     except Exception as e:
         logger.error(
-            "[serve.get_storage_daily] error date=%s error=%s",
+            "error date=%s error=%s",
             date, repr(e),
             exc_info=True,
         )
@@ -177,7 +177,7 @@ def set_storage_daily(date):
 
     except Exception as e:
         logger.error(
-            "[serve.set_storage_daily] error date=%s error=%s",
+            "error date=%s error=%s",
             date, repr(e),
             exc_info=True,
         )
@@ -196,7 +196,7 @@ def get_storage_daily_range():
 
     except Exception as e:
         logger.error(
-            "[serve.get_storage_daily_range] error error=%s",
+            "error error=%s",
             repr(e),
             exc_info=True,
         )
@@ -211,7 +211,7 @@ def check_storage_is_cached(date):
 
     except Exception as e:
         logger.error(
-            "[serve.check_storage_is_cached] error date=%s error=%s",
+            "error date=%s error=%s",
             date, repr(e),
             exc_info=True,
         )
