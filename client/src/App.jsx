@@ -18,9 +18,25 @@ function App() {
     const endDate = today.toISOString().split('T')[0]
     const startDate = twoDaysAgo.toISOString().split('T')[0]
 
+    const cacheKey = `scrapeResults:${startDate}:${endDate}`
+    const TTL_MS = 10 * 60 * 1000
+
+    const cached = sessionStorage.getItem(cacheKey)
+    if (cached) {
+      const { timestamp, data } = JSON.parse(cached)
+      if (Date.now() - timestamp < TTL_MS) {
+        setResults(data)
+        return
+      }
+    }
+
     scrapeNewsletters(startDate, endDate, true, controller.signal)
       .then(result => {
         setResults(result)
+        sessionStorage.setItem(cacheKey, JSON.stringify({
+          timestamp: Date.now(),
+          data: result
+        }))
       })
       .catch(err => {
         if (err.name === 'AbortError') return
