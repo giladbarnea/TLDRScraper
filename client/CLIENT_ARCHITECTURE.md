@@ -64,7 +64,8 @@ The client is built as a Single Page Application (SPA) using React and Vite. It 
 main()
 ├── App (Root)
 │   ├── useEffect (Initial Load)
-│   │   └── scrapeNewsletters()
+│   │   ├── sessionStorage cache check (10min TTL)
+│   │   └── scrapeNewsletters() [if cache miss/stale]
 │   │       └── fetch('/api/scrape')
 │   │
 │   ├── Header Area
