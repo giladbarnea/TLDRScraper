@@ -33,10 +33,12 @@ function App() {
     scrapeNewsletters(startDate, endDate, true, controller.signal)
       .then(result => {
         setResults(result)
-        sessionStorage.setItem(cacheKey, JSON.stringify({
-          timestamp: Date.now(),
-          data: result
-        }))
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            timestamp: Date.now(),
+            data: result
+          }))
+        } catch {}
       })
       .catch(err => {
         if (err.name === 'AbortError') return
