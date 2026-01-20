@@ -93,6 +93,12 @@ def _get_adapter_for_source(config):
     elif config.source_id == "aiwithmike":
         from adapters.aiwithmike_adapter import AiWithMikeAdapter
         return AiWithMikeAdapter(config)
+    elif config.source_id == "savannah_ostrowski":
+        from adapters.savannah_adapter import SavannahAdapter
+        return SavannahAdapter(config)
+    elif config.source_id == "lucumr":
+        from adapters.lucumr_adapter import LucumrAdapter
+        return LucumrAdapter(config)
     else:
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 
