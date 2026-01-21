@@ -275,17 +275,6 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"newsletter": "React Status"},
         sort_order=17,  # 7.5/week - consistent
     ),
-    "node_weekly": NewsletterSourceConfig(
-        source_id="node_weekly",
-        display_name="Node Weekly",
-        base_url="https://nodeweekly.com",
-        url_pattern="",
-        types=["newsletter"],
-        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
-        article_pattern="",
-        category_display_names={"newsletter": "Node Weekly"},
-        sort_order=20,  # 30.0/week
-    ),
     "aiwithmike": NewsletterSourceConfig(
         source_id="aiwithmike",
         display_name="Mathy AI",
