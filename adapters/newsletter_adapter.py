@@ -6,10 +6,8 @@ providing a template method pattern for fetching, parsing, and normalizing
 newsletter content from different sources.
 """
 
-from io import BytesIO
-
 from bs4 import BeautifulSoup
-from markitdown import MarkItDown
+import html2text
 
 from newsletter_config import NewsletterSourceConfig
 import util
@@ -30,7 +28,13 @@ class NewsletterAdapter:
             config: Configuration object defining source-specific settings
         """
         self.config = config
-        self.md = MarkItDown()
+        # Configure html2text for optimal conversion
+        self.h = html2text.HTML2Text()
+        self.h.body_width = 0  # Don't wrap lines
+        self.h.unicode_snob = True  # Use unicode instead of ASCII approximations
+        self.h.ignore_images = True  # Skip images, we only need text
+        self.h.protect_links = True  # Don't wrap URLs
+        self.h.single_line_break = True  # Use single line breaks
 
     def fetch_issue(self, date: str, newsletter_type: str) -> str | None:
         """Fetch raw HTML for a specific issue.
@@ -138,7 +142,7 @@ class NewsletterAdapter:
         return self._normalize_response(articles, issues)
 
     def _html_to_markdown(self, html: str) -> str:
-        """Convert HTML to markdown using BeautifulSoup and MarkItDown.
+        """Convert HTML to markdown using BeautifulSoup and html2text.
 
         Args:
             html: Raw HTML content
@@ -149,9 +153,7 @@ class NewsletterAdapter:
         soup = BeautifulSoup(html, "html.parser")
         newsletter_content = soup.body or soup
         content_html = str(newsletter_content)
-        content_stream = BytesIO(content_html.encode("utf-8"))
-        result = self.md.convert_stream(content_stream, file_extension=".html")
-        return result.text_content
+        return self.h.handle(content_html)
 
     def _normalize_response(self, articles: list[dict], issues: list[dict]) -> dict:
         """Convert to standardized format with source_id.
