@@ -7,21 +7,21 @@ SETUP_QUIET="${SETUP_QUIET:-false}"
 
 source "$WORKDIR/scripts/setup/common.sh"
 
-function ensure_local_bin_path(){
-    if [[ -d "/home/ubuntu" ]]; then
-        if [[ ":$PATH:" != *":/home/ubuntu/.local/bin:"* ]]; then
-            export PATH="/home/ubuntu/.local/bin:$PATH"
-        fi
-        return 0
+function ensure_local_bin_path() {
+  if [[ -d "/home/ubuntu" ]]; then
+    if [[ ":$PATH:" != *":/home/ubuntu/.local/bin:"* ]]; then
+      export PATH="/home/ubuntu/.local/bin:$PATH"
     fi
+    return 0
+  fi
 
-    if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-        mkdir -p "$HOME/.local/bin"
-        export PATH="$HOME/.local/bin:$PATH"
-    fi
+  if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    mkdir -p "$HOME/.local/bin"
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
 }
 
-function _ensure_tool(){
+function _ensure_tool() {
   local tool="$1"
   local install_expression="$2"
 
@@ -32,20 +32,21 @@ function _ensure_tool(){
 
   message "$tool is not installed, installing with '$install_expression'"
   if ! eval "$install_expression" >/dev/null 2>&1; then
-      error "Failed to install $tool."
-      return 1
+    error "Failed to install $tool."
+    return 1
   fi
 
   if ! command -v "$tool" 1>/dev/null 2>&1; then
-      error "After installing $tool, 'command -v $tool' returned a non-zero exit code. $tool is probably installed but not in PATH."
-      return 1
+    error "After installing $tool, 'command -v $tool' returned a non-zero exit code. $tool is probably installed but not in PATH."
+    return 1
   fi
 
   message "$tool installed and in the PATH"
   return 0
 }
 
-function ensure_gitleaks(){
+function ensure_gitleaks() {
+  command -v gitleaks 1>/dev/null 2>&1 && return 0
   if isdefined apt; then
     _ensure_tool gitleaks "apt install -y gitleaks"
   else
@@ -60,8 +61,8 @@ message "Starting tooling installation..."
 ensure_local_bin_path
 
 if ! ensure_gitleaks; then
-    error "Failed to install gitleaks"
-    exit 1
+  error "Failed to install gitleaks"
+  exit 1
 fi
 
 message "Tooling installation complete"
