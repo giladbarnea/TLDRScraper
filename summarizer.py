@@ -6,13 +6,20 @@ from typing import Optional
 
 import requests
 from curl_cffi import requests as curl_requests
-from markitdown import MarkItDown
+import html2text
 
 import util
 import urllib.parse as urlparse
 
 logger = logging.getLogger("summarizer")
-md = MarkItDown()
+
+# Configure html2text for optimal conversion
+h = html2text.HTML2Text()
+h.body_width = 0  # Don't wrap lines
+h.unicode_snob = True  # Use unicode instead of ASCII approximations
+h.ignore_images = True  # Skip images, we only need text
+h.protect_links = True  # Don't wrap URLs
+h.single_line_break = True  # Use single line breaks
 
 _TLDR_PROMPT_CACHE = None
 
@@ -129,7 +136,7 @@ def _scrape_with_firecrawl(url: str, *, timeout: int) -> requests.Response:
         raise RuntimeError("Firecrawl returned empty content")
 
     # Create a mock Response object with the HTML content
-    # (MarkItDown will convert it to markdown)
+    # (html2text will convert it to markdown)
     from io import BytesIO
     from urllib3.response import HTTPResponse
 
@@ -226,7 +233,7 @@ def _fetch_github_readme(url: str) -> str:
         logger.info(
             f"Raw fetch succeeded for {raw_url}",
         )
-        return md.convert_response(response).markdown
+        return h.handle(response.text)
     except requests.HTTPError as e:
         if e.response and e.response.status_code == 404:
             master_url = (
@@ -245,7 +252,7 @@ def _fetch_github_readme(url: str) -> str:
                 logger.info(
                     f"Master branch fetch succeeded for {master_url}",
                 )
-                return md.convert_response(response).markdown
+                return h.handle(response.text)
             except Exception:
                 logger.warning(
                     f"Master branch fetch failed for {master_url}",
@@ -253,8 +260,7 @@ def _fetch_github_readme(url: str) -> str:
                 raise
 
     response = scrape_url(url)
-    result = md.convert_response(response)
-    content = result.markdown
+    content = h.handle(response.text)
 
     logger.info(
         f"Direct fetch succeeded for {url}",
@@ -272,7 +278,7 @@ def url_to_markdown(url: str) -> str:
         return _fetch_github_readme(url)
 
     response = scrape_url(url)
-    markdown = md.convert_response(response).markdown
+    markdown = h.handle(response.text)
 
     return markdown
 
