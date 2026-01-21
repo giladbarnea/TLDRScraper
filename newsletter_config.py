@@ -275,17 +275,6 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"newsletter": "React Status"},
         sort_order=17,  # 7.5/week - consistent
     ),
-    "node_weekly": NewsletterSourceConfig(
-        source_id="node_weekly",
-        display_name="Node Weekly",
-        base_url="https://nodeweekly.com",
-        url_pattern="",
-        types=["newsletter"],
-        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
-        article_pattern="",
-        category_display_names={"newsletter": "Node Weekly"},
-        sort_order=20,  # 30.0/week
-    ),
     "aiwithmike": NewsletterSourceConfig(
         source_id="aiwithmike",
         display_name="Mathy AI",
@@ -296,5 +285,27 @@ NEWSLETTER_CONFIGS = {
         article_pattern="",
         category_display_names={"newsletter": "Mathy AI"},
         sort_order=21,
+    ),
+    "savannah_ostrowski": NewsletterSourceConfig(
+        source_id="savannah_ostrowski",
+        display_name="Savannah Ostrowski",
+        base_url="https://savannah.dev",
+        url_pattern="",
+        types=["blog"],
+        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
+        article_pattern="",
+        category_display_names={"blog": "Savannah Ostrowski"},
+        sort_order=4,  # High priority - Python core dev, steering council
+    ),
+    "lucumr": NewsletterSourceConfig(
+        source_id="lucumr",
+        display_name="Armin Ronacher",
+        base_url="https://lucumr.pocoo.org",
+        url_pattern="",
+        types=["blog"],
+        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
+        article_pattern="",
+        category_display_names={"blog": "Armin Ronacher"},
+        sort_order=7,  # High priority - Flask/Ruff creator
     ),
 }
