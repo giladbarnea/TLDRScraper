@@ -3,7 +3,7 @@ description: Create detailed implementation plans based on thorough research and
 model: inherit
 argument-hint: [optional_requirements_file_path_and_additional_instructions]
 name: plan
-last_updated: 2026-01-22 08:04, 0d2a86c
+last_updated: 2026-01-22 11:51
 ---
 # Implementation Plan
 
@@ -36,7 +36,7 @@ Then wait for the user's input.
 
 ### Step 1: Context Gathering & Initial Analysis
 
-1. **If the user mentioned antly files, reads all of them immediately and FULLY**:
+1. **If the user mentioned any files, reads all of them immediately and FULLY**:
    - Task files (e.g., `thoughts/yy-mm-dd-ENG-1234/ticket.md`)
    - Research documents
    - Related implementation plans
@@ -86,7 +86,7 @@ Then wait for the user's input.
 
 ### Step 2: Follow-up Research & Discovery
 
-**This step is conditional:** Only if the user provided clarifications or corrections, asked for further research, or in general responded with anything short of a clear green light, a second research round is meritted.
+**This step is conditional:** Only if the user provided clarifications or corrections, asked for further research, or in general responded with anything short of a clear green light, a second research round is merited.
 
 1. **If the user corrects any misunderstanding**:
    - DO NOT just accept the correction
@@ -362,7 +362,7 @@ When spawning research sub-tasks:
    - Don't accept results that seem incorrect
 
 Example of spawning multiple tasks:
-```python
+```
 # Spawn these tasks concurrently:
 tasks = [
     Task("Research database schema", db_research_prompt),
