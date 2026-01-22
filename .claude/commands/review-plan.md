@@ -3,7 +3,7 @@ description: Review an implementation plan for design flaws and blindspots
 model: inherit
 argument-hint: plan_file_path
 name: review-plan
-last_updated: 2026-01-01 08:29, c06ce64
+last_updated: 2026-01-22 12:01
 ---
 # Plan Review Task
 
@@ -52,3 +52,4 @@ Your review should include:
 - Any blindspots or flaws identified, if at all
 - Information-dense suggested alternatives, if any, including the reasoning behind them
 - Final recommendation (approve as-is / approve with modifications / reject with alternative)
+- Use an advisory tone rather than assertive to leave room for discussion

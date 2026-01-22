@@ -1,14 +1,14 @@
 ---
 name: architecture-create
 description: Create ARCHITECTURE.md document
-last_updated: 2026-01-12 19:22, aed9b9d
+last_updated: 2026-01-22 12:01
 ---
 # Create an ARCHITECTURE.md File
 
 ## Purpose
 The overall purpose of this task is twofold:
 1. Precisely map the end-to-end call graph for each feature the project provides.
-2. Build a clear state machine that captures each feature’s flow.
+2. Build a crisp state machine that captures each feature’s flow.
 
 ## Strategy
 Work in a layered approach. Like an oil painter, treat the codebase as the canvas and your task as the drawing. Make multiple passes over the codebase to cultivate a deep understanding of it:
@@ -32,7 +32,7 @@ Roughly, here are the passes you should perform:
 ## EXAMPLE ARCHITECTURE.md
 
 The following is a high quality ARCHITECTURE.md of a CLI tool called 'onefilellm', which describes itself: ”Specify a github or local repo, github pull request, arXiv or Sci-Hub paper, Youtube transcript or documentation URL on the web and scrape into a text file and clipboard for easier LLM ingestion“.
-The project is utterly different than the current project but I find its ARCHITECTURE.md well-written. Therefore, ignore onefilellm's domain entirely and focus on the generalizable reasons the file is good, to ultimately apply it on the ARCHITECTURE.md file you will build:
+The project is utterly different from the current project but I find its ARCHITECTURE.md well-written. Therefore, ignore onefilellm's domain entirely and focus on the generalizable reasons the file is good, to ultimately apply it on the ARCHITECTURE.md file you will build:
 
 <Example ARCHITECTURE.md>
 
