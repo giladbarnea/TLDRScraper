@@ -36,7 +36,7 @@ Then wait for the user's input.
 
 ### Step 1: Context Gathering & Initial Analysis
 
-1. **Read all mentioned files immediately and FULLY**:
+1. **If the user mentioned antly files, reads all of them immediately and FULLY**:
    - Task files (e.g., `thoughts/yy-mm-dd-ENG-1234/ticket.md`)
    - Research documents
    - Related implementation plans
@@ -84,9 +84,9 @@ Then wait for the user's input.
 
    Only ask questions that you genuinely cannot answer through code investigation.
 
-### Step 2: Research & Discovery
+### Step 2: Follow-up Research & Discovery
 
-After getting initial clarifications:
+**This step is conditional:** Only if the user provided clarifications or corrections, asked for further research, or in general responded with anything short of a clear green light, a second research round is meritted.
 
 1. **If the user corrects any misunderstanding**:
    - DO NOT just accept the correction
@@ -210,7 +210,7 @@ After structure approval:
 **Changes**: [Declarative, behavioral description of changes]
 
 ```[language]
-// Specific code to add/modify
+// Specific code **symbols** to add/modify/delete, no implementation snippets - pseudo code at most
 ```
 
 ### Success Criteria:
@@ -229,7 +229,7 @@ After structure approval:
 
 ---
 
-## Phase 2: [Descriptive Name]
+## (If applicable) Phase 2: [Descriptive Name]
 
 [Similar structure with both automated and manual success criteria...]
 
