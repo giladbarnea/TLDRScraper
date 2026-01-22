@@ -527,7 +527,7 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
 
     # Check for parallel scraping environment variable (default: enabled)
     use_parallel = util.resolve_env_var("ENABLE_PARALLEL_SCRAPING", default="true").lower() in ("true", "1", "yes")
-    max_workers = int(util.resolve_env_var("SCRAPER_MAX_WORKERS", default="8"))
+    max_workers = int(util.resolve_env_var("SCRAPER_MAX_WORKERS", default=str(len(source_ids))))
 
     for date in dates:
         date_str = util.format_date_for_url(date)
