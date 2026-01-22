@@ -1,7 +1,7 @@
 ---
 name: architecture-sync-since-last-updated
 description: "Sync ARCHITECTURE.md with changes since it was last updated"
-last_updated: 2026-01-12 21:38, d0baef5
+last_updated: 2026-01-22 12:01
 ---
 `ARCHITECTURE.md` was written at some point in time. It was a very good representation of the project at that time. Since then, the project has evolved, therefore `ARCHITECTURE.md` is outdated in some aspects. Your task is to make it as good a representation of the project in it's current state. For context:
 
@@ -9,7 +9,7 @@ last_updated: 2026-01-12 21:38, d0baef5
 ## Purpose
 The overall purpose of this task is twofold:
 1. Precisely map the end-to-end call graph for each feature the project provides.
-2. Build a clear state machine that captures each feature's flow.
+2. Build a crisp state machine that captures each feature's flow.
 
 ## Strategy
 Work in a layered approach. Like an oil painter, treat the codebase as the canvas and your task as the drawing. Make multiple passes over the codebase to cultivate a deep understanding of it:
