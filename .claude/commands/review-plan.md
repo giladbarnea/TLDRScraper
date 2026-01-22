@@ -3,7 +3,7 @@ description: Review an implementation plan for design flaws and blindspots
 model: inherit
 argument-hint: plan_file_path
 name: review-plan
-last_updated: 2026-01-22 12:01
+last_updated: 2026-01-22 12:02, 42883d1
 ---
 # Plan Review Task
 
