@@ -171,19 +171,21 @@ def scrape_newsletters_in_date_range(
     payloads_by_date: dict[str, dict] = {}
     dates_to_write: set[str] = set()
 
-    if all(
-        util.format_date_for_url(current_date) != today_str
-        and storage_service.is_date_cached(util.format_date_for_url(current_date))
-        for current_date in dates
-    ):
-        cached_payloads = storage_service.get_daily_payloads_range(
-            start_date_text,
-            end_date_text,
-        )
+    # Fetch all cached payloads upfront in one query
+    all_cached_payloads = storage_service.get_daily_payloads_range(start_date_text, end_date_text)
+    cache_map: dict[str, dict] = {payload["date"]: payload for payload in all_cached_payloads}
+
+    # Fast path: all dates cached and none is today
+    all_cached_and_not_today = all(
+        util.format_date_for_url(d) != today_str and util.format_date_for_url(d) in cache_map
+        for d in dates
+    )
+    if all_cached_and_not_today:
+        ordered = [cache_map[util.format_date_for_url(d)] for d in reversed(dates)]
         return {
             "success": True,
-            "payloads": cached_payloads,
-            "stats": _build_stats_from_payloads(cached_payloads, total_network_fetches),
+            "payloads": ordered,
+            "stats": _build_stats_from_payloads(ordered, total_network_fetches),
             "source": "cache",
         }
 
@@ -191,7 +193,7 @@ def scrape_newsletters_in_date_range(
         date_str = util.format_date_for_url(current_date)
 
         if date_str == today_str:
-            cached_payload = storage_service.get_daily_payload(date_str)
+            cached_payload = cache_map.get(date_str)
             cached_urls: set[str] = set()
 
             if cached_payload:
@@ -216,7 +218,7 @@ def scrape_newsletters_in_date_range(
                 payloads_by_date[date_str] = new_payload
             dates_to_write.add(date_str)
         else:
-            cached_payload = storage_service.get_daily_payload(date_str)
+            cached_payload = cache_map.get(date_str)
             if cached_payload:
                 payloads_by_date[date_str] = cached_payload
             else:
