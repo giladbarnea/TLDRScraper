@@ -84,7 +84,7 @@ function NewsletterDay({ date, title, issue, articles }) {
   return (
     <FoldableContainer
       id={`newsletter-${date}-${title}`}
-      headerClassName={`pl-1 border-l-2 transition-all duration-300 ${allRemoved ? 'border-slate-200 opacity-50' : 'border-brand-200'}`}
+      headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
       title={
         <div className="flex items-center gap-3 py-2">
           <h3 className="font-display font-bold text-xl text-slate-800">
@@ -96,7 +96,7 @@ function NewsletterDay({ date, title, issue, articles }) {
       defaultFolded={allRemoved}
       className="mb-8"
     >
-      <div className="pl-4 space-y-6 mt-2 border-l-2 border-slate-100 ml-2">
+      <div className="space-y-6 mt-4">
         <IssueSubtitle issue={issue} allRemoved={allRemoved} />
 
         {hasSections ? (
