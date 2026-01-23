@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-01-23 14:59
+last_updated: 2026-01-23 15:02, 7543c6c
 ---
 # Review: Scrape-First Source of Truth (Option 1) Implementation Plan
 
