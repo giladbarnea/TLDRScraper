@@ -133,8 +133,33 @@ async function writeValue(key, value) {
 }
 
 export function useSupabaseStorage(key, defaultValue) {
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Cache Seeding for Scrape-First Hydration
+  // ─────────────────────────────────────────────────────────────────────────────
+  // When CalendarDay mounts, it passes the authoritative payload from /api/scrape
+  // as defaultValue. By seeding readCache here, the subsequent readValue() call
+  // in the useEffect below hits the cache instantly—no network fetch needed.
+  //
+  // This eliminates redundant per-day /api/storage/daily/<date> calls while
+  // preserving the pub/sub reactivity mechanism:
+  //
+  //   1. CalendarDay seeds cache with payload from scrape
+  //   2. useArticleState (in ArticleCard) finds payload already cached
+  //   3. When user toggles state, setValueAsync() updates cache + calls emitChange()
+  //   4. Both components' subscriptions fire, read from cache, and re-render
+  //
+  // DO NOT REMOVE THIS LOGIC. Without cache seeding:
+  //   - Each CalendarDay would fetch /api/storage/daily/<date> on mount (N calls)
+  //   - The "Syncing..." indicator would flash on every day header
+  //   - useArticleState would also trigger fetches before finding the payload
+  // ─────────────────────────────────────────────────────────────────────────────
+  const cacheWasEmpty = !readCache.has(key)
+  if (defaultValue != null && cacheWasEmpty) {
+    readCache.set(key, defaultValue)
+  }
+
   const [value, setValue] = useState(defaultValue)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(cacheWasEmpty && defaultValue == null)
   const [error, setError] = useState(null)
   const valueRef = useRef(defaultValue)
 
