@@ -1,5 +1,3 @@
-import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
-import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import FoldableContainer from './FoldableContainer'
 import NewsletterDay from './NewsletterDay'
 import ReadStatsBadge from './ReadStatsBadge'
@@ -11,7 +9,7 @@ function formatDateDisplay(dateStr) {
   return { displayText: isToday ? 'Today' : niceDate, isToday }
 }
 
-function CalendarDayTitle({ dateStr, loading, articles }) {
+function CalendarDayTitle({ dateStr, articles }) {
   const { displayText } = formatDateDisplay(dateStr)
   return (
     <div className="flex items-center gap-3 py-4">
@@ -19,7 +17,6 @@ function CalendarDayTitle({ dateStr, loading, articles }) {
         {displayText}
       </h2>
       <ReadStatsBadge articles={articles} />
-      {loading && <span className="text-xs font-medium text-brand-500 animate-pulse">Syncing...</span>}
     </div>
   )
 }
@@ -48,17 +45,12 @@ function NewsletterList({ date, issues, articles }) {
 }
 
 function CalendarDay({ payload }) {
-  const [livePayload, , , { loading }] = useSupabaseStorage(
-    getNewsletterScrapeKey(payload.date),
-    payload
-  )
-
-  const date = livePayload?.date ?? payload.date
-  const articles = (livePayload?.articles ?? payload.articles).map((article, index) => ({
+  const date = payload.date
+  const articles = payload.articles.map((article, index) => ({
     ...article,
     originalOrder: index
   }))
-  const issues = livePayload?.issues ?? payload.issues ?? []
+  const issues = payload.issues ?? []
 
   const allArticlesRemoved = articles.length > 0 && articles.every(a => a.removed)
 
@@ -66,7 +58,7 @@ function CalendarDay({ payload }) {
     <section className="animate-slide-up mb-12">
       <FoldableContainer
         id={`calendar-${date}`}
-        title={<CalendarDayTitle dateStr={date} loading={loading} articles={articles} />}
+        title={<CalendarDayTitle dateStr={date} articles={articles} />}
         defaultFolded={allArticlesRemoved}
         headerClassName="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/60"
         contentClassName="mt-4"
