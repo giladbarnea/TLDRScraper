@@ -1,3 +1,6 @@
+---
+last_updated: 2026-01-23 06:28, ab06062
+---
 # App refresh flow (client → server → client)
 
 ## Client-side flow (page load / refresh)
