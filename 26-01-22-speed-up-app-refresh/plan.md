@@ -1,3 +1,6 @@
+---
+last_updated: 2026-01-23 09:46, a38c993
+---
 # Scrape-First Source of Truth (Option 1) Implementation Plan
 
 ## Two-Layer Brainstorm
