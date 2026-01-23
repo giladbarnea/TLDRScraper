@@ -153,7 +153,7 @@ def _group_articles_by_date(articles: list[dict]) -> dict[str, list[dict]]:
 
 
 def _sort_issues(issues: list[dict]) -> list[dict]:
-    """Sort issues by date DESC, then randomize with subtle priority weighting.
+    """Sort issues by date DESC, then randomize with priority weighting.
 
     Within each date, newsletters are shuffled randomly but lower sort_order
     (rarer sources) have a slight preference to appear earlier.
@@ -168,7 +168,11 @@ def _sort_issues(issues: list[dict]) -> list[dict]:
     max_sort_order = max(
         config.sort_order for config in NEWSLETTER_CONFIGS.values()
     )
-    priority_weight = 0.15
+    # Priority weight balances deterministic ordering vs randomization:
+    # - 0.40 means 40% deterministic (based on sort_order) + 60% random
+    # - With TLDR at 14-15 and HN at 23, this gives TLDR ~70% probability
+    #   to appear before HN while maintaining feed variety
+    priority_weight = 0.40
 
     def _issue_sort_key(issue: dict) -> tuple:
         date_text = issue.get("date", "") or ""
