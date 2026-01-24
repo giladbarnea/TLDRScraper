@@ -1,3 +1,6 @@
+---
+last_updated: 2026-01-24 14:41, ef482d1
+---
 currently, there's a "special case" in the scrape logic where newsletter-day's are always rescraped (no cache hit) if the scrape target day is "today". otherwise (anything but today), the first time a scrape happens the results are cached and subsequent requests return the cached data.
 this is half valid rationale: it is true that if i scrape today in the morning, new articles may be published later today, so we should still scrape the sources in the evening, for example.
 but this is also true for e.g. "yesterday" - if yesterday, i scraped in the morning, then didn't use the app not until the day after, yesterday is 'frozen' with whatever had been published up to morning. it's as plausible that we've missed out on new articles that were published later that day.

@@ -1,3 +1,6 @@
+---
+last_updated: 2026-01-24 14:41, ef482d1
+---
 ## Implementation Plan: Fix Newsletter Cache Logic
 
 ### Problem Summary
