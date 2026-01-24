@@ -2,10 +2,13 @@ import functools
 import logging
 import os
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import requests
 from curl_cffi import requests as curl_requests
+
+PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 
 
 def resolve_env_var(name: str, default: str = "") -> str:
@@ -39,6 +42,39 @@ def format_date_for_url(date):
     if isinstance(date, str):
         return date
     return date.strftime("%Y-%m-%d")
+
+
+def should_rescrape(date_str: str, cached_at_iso: str | None) -> bool:
+    """
+    Determine if a date needs rescraping based on when it was last scraped.
+
+    Returns True if cached_at is before the next day's 00:00 AM Pacific time,
+    meaning articles could still have been published after the cache was written.
+
+    >>> should_rescrape("2025-01-23", None)
+    True
+    >>> should_rescrape("2025-01-23", "2025-01-24T09:00:00+00:00")
+    False
+    >>> should_rescrape("2025-01-23", "2025-01-24T07:59:59+00:00")
+    True
+    """
+    if cached_at_iso is None:
+        return True
+
+    # Parse the target date and compute next day midnight Pacific
+    target_date = datetime.fromisoformat(date_str)
+    next_day = target_date + timedelta(days=1)
+    next_day_midnight_pacific = datetime(
+        next_day.year, next_day.month, next_day.day,
+        0, 0, 0, tzinfo=PACIFIC_TZ
+    )
+
+    # Parse cached_at (ISO format with timezone from Supabase)
+    # Handle both 'Z' suffix and '+00:00' format
+    cached_at_normalized = cached_at_iso.replace('Z', '+00:00')
+    cached_at = datetime.fromisoformat(cached_at_normalized)
+
+    return cached_at < next_day_midnight_pacific
 
 
 def canonicalize_url(url) -> str:

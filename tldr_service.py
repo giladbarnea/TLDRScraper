@@ -159,7 +159,6 @@ def scrape_newsletters_in_date_range(
     """Scrape newsletters in date range with server-side cache integration."""
     start_date, end_date = _parse_date_range(start_date_text, end_date_text)
     dates = util.get_date_range(start_date, end_date)
-    today_str = date_type.today().isoformat()
 
     sources_str = ", ".join(source_ids) if source_ids else "all"
     excluded_count = len(excluded_urls) if excluded_urls else 0
@@ -172,15 +171,21 @@ def scrape_newsletters_in_date_range(
     dates_to_write: set[str] = set()
 
     # Fetch all cached payloads upfront in one query
-    all_cached_payloads = storage_service.get_daily_payloads_range(start_date_text, end_date_text)
-    cache_map: dict[str, dict] = {payload["date"]: payload for payload in all_cached_payloads}
+    all_cached_rows = storage_service.get_daily_payloads_range(start_date_text, end_date_text)
+    cache_map: dict[str, dict] = {}
+    cached_at_map: dict[str, str | None] = {}
+    for row in all_cached_rows:
+        date_key = row['date']
+        cache_map[date_key] = row['payload']
+        cached_at_map[date_key] = row['cached_at']
 
-    # Fast path: all dates cached and none is today
-    all_cached_and_not_today = all(
-        util.format_date_for_url(d) != today_str and util.format_date_for_url(d) in cache_map
+    # Fast path: all dates cached and fresh (no rescrape needed)
+    all_cached_and_fresh = all(
+        util.format_date_for_url(d) in cache_map
+        and not util.should_rescrape(util.format_date_for_url(d), cached_at_map.get(util.format_date_for_url(d)))
         for d in dates
     )
-    if all_cached_and_not_today:
+    if all_cached_and_fresh:
         ordered = [cache_map[util.format_date_for_url(d)] for d in reversed(dates)]
         return {
             "success": True,
@@ -191,11 +196,12 @@ def scrape_newsletters_in_date_range(
 
     for current_date in dates:
         date_str = util.format_date_for_url(current_date)
+        cached_payload = cache_map.get(date_str)
+        cached_at = cached_at_map.get(date_str)
 
-        if date_str == today_str:
-            cached_payload = cache_map.get(date_str)
+        if util.should_rescrape(date_str, cached_at):
+            # Rescrape needed: either no cache or cache is stale
             cached_urls: set[str] = set()
-
             if cached_payload:
                 for article in cached_payload.get('articles', []):
                     url = article.get('url', '')
@@ -218,25 +224,15 @@ def scrape_newsletters_in_date_range(
                 payloads_by_date[date_str] = new_payload
             dates_to_write.add(date_str)
         else:
-            cached_payload = cache_map.get(date_str)
-            if cached_payload:
-                payloads_by_date[date_str] = cached_payload
-            else:
-                result = scrape_date_range(current_date, current_date, source_ids, excluded_urls)
-                total_network_fetches += result.get('stats', {}).get('network_fetches', 0)
-                payloads_by_date[date_str] = _build_payload_from_scrape(
-                    date_str,
-                    result.get('articles', []),
-                    result.get('issues', []),
-                )
-                dates_to_write.add(date_str)
+            # Cache is fresh, use it directly
+            payloads_by_date[date_str] = cached_payload
 
     ordered_payloads = [
         payloads_by_date[util.format_date_for_url(current_date)]
         for current_date in reversed(dates)
     ]
     for date_str in dates_to_write:
-        storage_service.set_daily_payload(date_str, payloads_by_date[date_str])
+        storage_service.set_daily_payload_from_scrape(date_str, payloads_by_date[date_str])
 
     logger.info(
         "done dates_processed=%s total_articles=%s",

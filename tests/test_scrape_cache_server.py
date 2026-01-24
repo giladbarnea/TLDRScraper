@@ -49,7 +49,9 @@ def _start_server():
 
 
 def _stub_storage(monkeypatch):
+    from datetime import datetime, timezone
     store = {}
+    cached_at_store = {}
 
     def get_daily_payload(date_text):
         return store.get(date_text)
@@ -58,9 +60,17 @@ def _stub_storage(monkeypatch):
         store[date_text] = payload
         return {"date": date_text, "payload": payload}
 
+    def set_daily_payload_from_scrape(date_text, payload):
+        store[date_text] = payload
+        cached_at_store[date_text] = datetime.now(timezone.utc).isoformat()
+        return {"date": date_text, "payload": payload, "cached_at": cached_at_store[date_text]}
+
     def get_daily_payloads_range(start_date, end_date):
         dates = sorted(store.keys(), reverse=True)
-        filtered = [store[date_text] for date_text in dates if start_date <= date_text <= end_date]
+        filtered = [
+            {'date': date_text, 'payload': store[date_text], 'cached_at': cached_at_store.get(date_text)}
+            for date_text in dates if start_date <= date_text <= end_date
+        ]
         return filtered
 
     def is_date_cached(date_text):
@@ -68,17 +78,22 @@ def _stub_storage(monkeypatch):
 
     monkeypatch.setattr(storage_service, "get_daily_payload", get_daily_payload)
     monkeypatch.setattr(storage_service, "set_daily_payload", set_daily_payload)
+    monkeypatch.setattr(storage_service, "set_daily_payload_from_scrape", set_daily_payload_from_scrape)
     monkeypatch.setattr(storage_service, "get_daily_payloads_range", get_daily_payloads_range)
     monkeypatch.setattr(storage_service, "is_date_cached", is_date_cached)
-    return store
+    return store, cached_at_store
 
 
 def test_scrape_returns_cached_payloads_when_range_fully_cached(monkeypatch):
-    store = _stub_storage(monkeypatch)
+    from datetime import datetime, timedelta as td, timezone
+    store, cached_at_store = _stub_storage(monkeypatch)
     start_date = (date_type.today() - timedelta(days=3)).isoformat()
     end_date = (date_type.today() - timedelta(days=2)).isoformat()
     store[start_date] = _build_payload(start_date, url="https://example.com/a", title="Cached A")
     store[end_date] = _build_payload(end_date, url="https://example.com/b", title="Cached B")
+    # Set cached_at to a fresh timestamp (after Pacific midnight of next day)
+    cached_at_store[start_date] = (datetime.now(timezone.utc) + td(days=1)).isoformat()
+    cached_at_store[end_date] = (datetime.now(timezone.utc) + td(days=1)).isoformat()
 
     def fail_scrape(*args, **kwargs):
         raise AssertionError("Scrape should not run on full cache hit")
@@ -103,7 +118,7 @@ def test_scrape_returns_cached_payloads_when_range_fully_cached(monkeypatch):
 
 
 def test_scrape_populates_cache_on_miss(monkeypatch):
-    store = _stub_storage(monkeypatch)
+    store, cached_at_store = _stub_storage(monkeypatch)
     test_date = (date_type.today() - timedelta(days=4)).isoformat()
 
     def scrape_stub(*_args, **_kwargs):
@@ -144,17 +159,21 @@ def test_scrape_populates_cache_on_miss(monkeypatch):
     assert article["tldr"]["status"] == "unknown"
 
 
-def test_scrape_unions_today_with_cached_state(monkeypatch):
-    store = _stub_storage(monkeypatch)
-    today = date_type.today().isoformat()
-    store[today] = _build_payload(
-        today,
+def test_scrape_unions_stale_cache_with_new_articles(monkeypatch):
+    from datetime import datetime, timezone
+    store, cached_at_store = _stub_storage(monkeypatch)
+    test_date = (date_type.today() - timedelta(days=1)).isoformat()
+    store[test_date] = _build_payload(
+        test_date,
         url="https://example.com/existing",
         title="Existing Article",
         tldr_status="available",
         removed=True,
         is_read=True,
     )
+    # Set cached_at to a stale timestamp (before Pacific midnight of next day)
+    # Using a timestamp from yesterday makes it stale
+    cached_at_store[test_date] = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
 
     def scrape_stub(*_args, **_kwargs):
         return {
@@ -163,7 +182,7 @@ def test_scrape_unions_today_with_cached_state(monkeypatch):
                     "url": "https://example.com/existing",
                     "title": "Existing Article Fresh",
                     "article_meta": "",
-                    "date": today,
+                    "date": test_date,
                     "category": "Newsletter",
                     "source_id": None,
                 },
@@ -171,12 +190,12 @@ def test_scrape_unions_today_with_cached_state(monkeypatch):
                     "url": "https://example.com/new",
                     "title": "New Article",
                     "article_meta": "",
-                    "date": today,
+                    "date": test_date,
                     "category": "Newsletter",
                     "source_id": None,
                 },
             ],
-            "issues": [{"date": today, "source_id": "tldr_tech", "category": "TLDR Tech"}],
+            "issues": [{"date": test_date, "source_id": "tldr_tech", "category": "TLDR Tech"}],
             "stats": {"network_fetches": 1},
         }
 
@@ -186,7 +205,7 @@ def test_scrape_unions_today_with_cached_state(monkeypatch):
     try:
         response = requests.post(
             f"http://127.0.0.1:{server.server_port}/api/scrape",
-            json={"start_date": today, "end_date": today},
+            json={"start_date": test_date, "end_date": test_date},
             timeout=5,
         )
         payload = response.json()
@@ -195,7 +214,7 @@ def test_scrape_unions_today_with_cached_state(monkeypatch):
         thread.join()
 
     assert payload["success"] is True
-    merged_payload = store[today]
+    merged_payload = store[test_date]
     existing = next(item for item in merged_payload["articles"] if item["url"] == "https://example.com/existing")
     assert existing["removed"] is True
     assert existing["read"]["isRead"] is True
