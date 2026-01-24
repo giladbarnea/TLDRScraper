@@ -1,3 +1,6 @@
+---
+last_updated: 2026-01-24 08:11, 6967463
+---
 # Scrape-First Hydration via Cache Seeding
 
 ## Overview
