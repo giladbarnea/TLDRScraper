@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "source setup.sh"
+            "command": "source setup.sh --quiet"
           }
         ]
       }
