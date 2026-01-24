@@ -14,7 +14,7 @@ This document maps the frontend architecture of the Newsletter Aggregator. It de
 
 ---
 
-The client is built as a Single Page Application (SPA) using React and Vite. It relies heavily on an Optimistic UI pattern where local state updates immediately for the user while syncing asynchronously to the backend via useSupabaseStorage. The architecture emphasizes "Zen Mode" reading, dividing the view into a Feed (browsing) and an Overlay (reading).
+The client is built as a Single Page Application (SPA) using React and Vite. It relies heavily on an Optimistic UI pattern where local state updates immediately for the user while syncing asynchronously to the backend via useSupabaseStorage. The architecture uses **scrape-first hydration**: `/api/scrape` is the authoritative data source, and CalendarDay seeds the storage cache with this payload on mount—eliminating redundant per-day storage fetches while preserving pub/sub reactivity for state changes. The architecture emphasizes "Zen Mode" reading, dividing the view into a Feed (browsing) and an Overlay (reading).
 
 ## Architecture Diagram
 > Focus: Structural boundaries, State management, and External relationships.
@@ -75,7 +75,7 @@ main()
 │   │
 │   └── Feed (Main Content)
 │       └── CalendarDay (Iterated by Date)
-│           ├── useSupabaseStorage(scrapes:date)
+│           ├── useSupabaseStorage(scrapes:date)  ← seeds cache, no fetch
 │           └── FoldableContainer
 │               └── NewsletterDay (Iterated by Issue)
 │                   ├── FoldableContainer
@@ -123,28 +123,24 @@ TIME   ACTOR              ACTION                                TARGET
 
 Data Flow Diagram
 Focus: Transformation of data from Raw API Payload to Persisted User State.
-[ SOURCE ]           [ ENRICHMENT ]         [ PRESENTATION ]       [ PERSISTENCE ]
-(Raw JSON)           (Merging State)        (UI Rendering)         (Syncing)
+[ SOURCE ]           [ CACHE SEED ]         [ PRESENTATION ]       [ PERSISTENCE ]
+(/api/scrape)        (No extra fetch)       (UI Rendering)         (Syncing)
 
-                     ┌──────────────────┐
-                     │ useSupabaseStore │
-                     │ (Fetch/Cache)    │
-                     └────────┬─────────┘
-                              │
-┌──────────────┐     ┌────────▼─────────┐   ┌────────────────┐     ┌──────────────┐
-│ API Response │────►│ Live Payload     │──►│ Feed Grouping  │────►│ DOM Output   │
-│ (Newsletters)│     │ (Merged Data)    │   │ (Date/Issue)   │     │ (HTML)       │
+┌──────────────┐     ┌──────────────────┐   ┌────────────────┐     ┌──────────────┐
+│ API Response │────►│ CalendarDay      │──►│ Feed Grouping  │────►│ DOM Output   │
+│ (Newsletters)│     │ seeds readCache  │   │ (Date/Issue)   │     │ (HTML)       │
 └──────────────┘     └────────┬─────────┘   └────────────────┘     └──────────────┘
                               │
                               │ (User Action: Read/Remove)
                               │
                      ┌────────▼─────────┐   ┌────────────────┐
-                     │ Optimistic Upd.  │──►│ Write Queue    │
-                     │ (Local React)    │   │ (Debounced)    │
-                     └──────────────────┘   └───────┬────────┘
-                                                    │
-                                                    ▼
-                                            ┌────────────────┐
-                                            │ API /storage   │
-                                            └────────────────┘
+                     │ setValueAsync()  │──►│ emitChange()   │
+                     │ updates cache    │   │ notifies subs  │
+                     └────────┬─────────┘   └───────┬────────┘
+                              │                     │
+                              ▼                     ▼
+                     ┌────────────────┐     ┌────────────────┐
+                     │ API /storage   │     │ All components │
+                     │ (persist)      │     │ re-render      │
+                     └────────────────┘     └────────────────┘
 ```
