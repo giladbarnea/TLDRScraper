@@ -1012,6 +1012,7 @@ CREATE TABLE daily_cache (
 2. **Cache Hit**: POST /api/storage/daily-range → Read from Supabase → Skip scrape API call
 3. **User Interaction**: Modify article state → POST /api/storage/daily/{date} → Supabase upsert → Dispatches 'supabase-storage-change' event
 4. **Summary/TLDR**: Fetch from API → Update article → POST /api/storage/daily/{date} → Supabase upsert
+5. **cached_at contract**: Only scrape writes advance cached_at; user-state updates must not mutate cached_at so it remains a scrape freshness signal.
 
 ### Storage Key Patterns
 
