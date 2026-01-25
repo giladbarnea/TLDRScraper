@@ -45,8 +45,8 @@ pgrep -fal serve.py
 pgrep -fal vite
 ```
 
-### Manual Startup (Fallback)
-If `setup.sh` helper functions (like `start_server_and_watchdog`) fail or you need more control, run the services manually in the background.
+### Manual Startup
+Run the services manually in the background:
 
 **Backend (Flask):**
 ```bash

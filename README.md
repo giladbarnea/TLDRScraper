@@ -14,32 +14,9 @@ Newsletter aggregator that scrapes tech newsletters from multiple sources, displ
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
 
-## Development
-
 ## Development & Setup
 
-### Running the server and logs watchdog
-```bash
-# Verify the environment and dependencies are set up correctly.
-source ./setup.sh
-
-# Start the server and watchdog in the background. Logs output to file.
-source ./setup.sh && start_server_and_watchdog
-
-# Verify the server is running.
-source ./setup.sh && print_server_and_watchdog_pids
-
-# Exercise the API with curl requests.
-curl http://localhost:5001/api/scrape
-curl http://localhost:5001/api/tldr-url
-curl ...additional endpoints that may be relevant...
-
-# Stop the server and watchdog.
-source ./setup.sh && kill_server_and_watchdog
-```
-
-
-## Client setup
+### Client setup
 
 ```bash
 source ./setup.sh && build_client
