@@ -48,27 +48,6 @@ This is true both for local and production environments.
 
 ## Development & Setup
 
-### Running the server and logs watchdog in a background process
-```bash
-# Verify the environment and dependencies are set up correctly.
-source ./setup.sh
-
-# Start the server and watchdog in the background. Logs output to file.
-source ./setup.sh && start_server_and_watchdog
-
-# Verify the server is running.
-source ./setup.sh && print_server_and_watchdog_pids
-
-# Exercise the API with curl requests.
-curl http://localhost:5001/api/scrape
-curl http://localhost:5001/api/tldr-url
-curl ...additional endpoints that may be relevant...
-
-# Stop the server and watchdog.
-source ./setup.sh && kill_server_and_watchdog
-```
-
-
 ### Client setup
 
 Builds client:
@@ -115,7 +94,7 @@ PY
 ## Practical guidance
 
 - Trust and Verify: Lean heavily on curling and running transient Python programs in a check-verify-trial-and-error process to make sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, the existence and values of environment variables.
-- Run `source ./setup.sh` to verify the environment and dependencies are set up correctly. Use `source setup.sh && start_server_and_watchdog` and `source setup.sh && print_server_and_watchdog_pids` to confirm the local server is running. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/tldr-url`) throughout the development process to catch regressions early. Use `source setup.sh && kill_server_and_watchdog` for cleanup.
+- Run `source ./setup.sh` to verify the environment and dependencies are set up correctly. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/tldr-url`) throughout the development process to catch regressions early.
 - Verify every new behavior, fix or modification you make by utilizing your shell. If possible, execute the modified flow to ensure nothing is broken.
 
 ## Using (Sub-)Agents
