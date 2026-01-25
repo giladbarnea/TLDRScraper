@@ -1,3 +1,6 @@
+---
+last_updated: 2026-01-25 11:53, cb6c5e1
+---
 # Implementation Review 1 - Rescrape Full Days
 
 ## Scope reviewed
