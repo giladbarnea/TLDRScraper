@@ -81,6 +81,9 @@ def get_daily_payloads_range(start_date, end_date):
     """
     Get all cached payloads in date range (inclusive).
 
+    cached_at reflects the last scrape time and is only advanced by
+    set_daily_payload_from_scrape().
+
     >>> get_daily_payloads_range('2025-11-07', '2025-11-09')
     [{'date': '2025-11-09', 'payload': {...}, 'cached_at': '...'}, ...]
     """
