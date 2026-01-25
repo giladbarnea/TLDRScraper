@@ -186,8 +186,8 @@ function ArticleTitle({ isRead, title }) {
 
 function ArticleMeta({ domain, hostname, articleMeta, isRead, tldrLoading }) {
   return (
-    <div className="mb-1 flex items-center justify-between">
-      <div className="flex items-center gap-2">
+    <div className="mb-1 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         {hostname && (
           <div className="w-[18px] h-[18px] rounded-full bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
             <img
@@ -198,18 +198,18 @@ function ArticleMeta({ domain, hostname, articleMeta, isRead, tldrLoading }) {
             />
           </div>
         )}
-        <div className="flex items-baseline gap-2 text-xs leading-none">
-          <span className="font-medium text-slate-600">
+        <div className="flex items-baseline gap-2 text-xs leading-none min-w-0">
+          <span className="font-medium text-slate-600 shrink-0">
             {domain && domain}
           </span>
-          <span className="text-slate-300">|</span>
-          <span className="font-normal text-slate-400">
+          <span className="text-slate-300 shrink-0">|</span>
+          <span className="font-normal text-slate-400 truncate">
             {articleMeta}
           </span>
         </div>
-        {isRead && <CheckCircle size={14} className="text-slate-300" />}
+        {isRead && <CheckCircle size={14} className="text-slate-300 shrink-0" />}
       </div>
-      {tldrLoading && <Loader2 size={14} className="animate-spin text-brand-500" />}
+      {tldrLoading && <Loader2 size={14} className="animate-spin text-brand-500 shrink-0" />}
     </div>
   )
 }
