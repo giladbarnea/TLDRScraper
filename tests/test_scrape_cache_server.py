@@ -98,7 +98,7 @@ def test_scrape_returns_cached_payloads_when_range_fully_cached(monkeypatch):
     def fail_scrape(*args, **kwargs):
         raise AssertionError("Scrape should not run on full cache hit")
 
-    monkeypatch.setattr(tldr_service, "scrape_date_range", fail_scrape)
+    monkeypatch.setattr(tldr_service, "scrape_single_source_for_date", fail_scrape)
 
     server, thread = _start_server()
     try:
@@ -121,23 +121,29 @@ def test_scrape_populates_cache_on_miss(monkeypatch):
     store, cached_at_store = _stub_storage(monkeypatch)
     test_date = (date_type.today() - timedelta(days=4)).isoformat()
 
-    def scrape_stub(*_args, **_kwargs):
-        return {
-            "articles": [
-                {
-                    "url": "https://example.com/new",
-                    "title": "Fresh Article",
-                    "article_meta": "",
-                    "date": test_date,
-                    "category": "Newsletter",
-                    "source_id": None,
-                }
-            ],
-            "issues": [{"date": test_date, "source_id": "tldr_tech", "category": "TLDR Tech"}],
-            "stats": {"network_fetches": 1},
-        }
+    def scrape_stub(_date, source_id, _excluded):
+        return (
+            test_date,
+            {
+                "articles": [
+                    {
+                        "url": "https://example.com/new",
+                        "title": "Fresh Article",
+                        "article_meta": "",
+                        "date": test_date,
+                        "category": "Newsletter",
+                        "source_id": source_id,
+                    }
+                ],
+                "issues": [{"date": test_date, "source_id": source_id, "category": "TLDR Tech"}],
+                "network_articles": 1,
+                "error": None,
+                "source_id": source_id,
+            },
+        )
 
-    monkeypatch.setattr(tldr_service, "scrape_date_range", scrape_stub)
+    monkeypatch.setattr(tldr_service, "get_default_source_ids", lambda: ["tldr_tech"])
+    monkeypatch.setattr(tldr_service, "scrape_single_source_for_date", scrape_stub)
 
     server, thread = _start_server()
     try:
@@ -175,31 +181,37 @@ def test_scrape_unions_stale_cache_with_new_articles(monkeypatch):
     # Using a timestamp from yesterday makes it stale
     cached_at_store[test_date] = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
 
-    def scrape_stub(*_args, **_kwargs):
-        return {
-            "articles": [
-                {
-                    "url": "https://example.com/existing",
-                    "title": "Existing Article Fresh",
-                    "article_meta": "",
-                    "date": test_date,
-                    "category": "Newsletter",
-                    "source_id": None,
-                },
-                {
-                    "url": "https://example.com/new",
-                    "title": "New Article",
-                    "article_meta": "",
-                    "date": test_date,
-                    "category": "Newsletter",
-                    "source_id": None,
-                },
-            ],
-            "issues": [{"date": test_date, "source_id": "tldr_tech", "category": "TLDR Tech"}],
-            "stats": {"network_fetches": 1},
-        }
+    def scrape_stub(_date, source_id, _excluded):
+        return (
+            test_date,
+            {
+                "articles": [
+                    {
+                        "url": "https://example.com/existing",
+                        "title": "Existing Article Fresh",
+                        "article_meta": "",
+                        "date": test_date,
+                        "category": "Newsletter",
+                        "source_id": source_id,
+                    },
+                    {
+                        "url": "https://example.com/new",
+                        "title": "New Article",
+                        "article_meta": "",
+                        "date": test_date,
+                        "category": "Newsletter",
+                        "source_id": source_id,
+                    },
+                ],
+                "issues": [{"date": test_date, "source_id": source_id, "category": "TLDR Tech"}],
+                "network_articles": 2,
+                "error": None,
+                "source_id": source_id,
+            },
+        )
 
-    monkeypatch.setattr(tldr_service, "scrape_date_range", scrape_stub)
+    monkeypatch.setattr(tldr_service, "get_default_source_ids", lambda: ["tldr_tech"])
+    monkeypatch.setattr(tldr_service, "scrape_single_source_for_date", scrape_stub)
 
     server, thread = _start_server()
     try:

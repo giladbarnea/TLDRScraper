@@ -1,8 +1,6 @@
 import logging
 import json
-import time
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from newsletter_config import NEWSLETTER_CONFIGS
 from adapters.tldr_adapter import TLDRAdapter
@@ -248,34 +246,20 @@ def _build_scrape_response(
     }
 
 
+def get_default_source_ids() -> list[str]:
+    """Return configured source IDs.
+
+    >>> isinstance(get_default_source_ids(), list)
+    True
+    """
+    return list(NEWSLETTER_CONFIGS.keys())
 
 
-
-
-def _collect_newsletters_for_date_from_source_worker(
-    source_id,
-    config,
+def scrape_single_source_for_date(
     date,
-    date_str,
+    source_id,
     excluded_urls,
 ):
-    """Worker function for parallel scraping that returns results instead of mutating shared state.
-
-    Args:
-        source_id: Source identifier
-        config: NewsletterSourceConfig instance
-        date: Date object
-        date_str: Date string
-        excluded_urls: List of canonical URLs to exclude
-
-    Returns:
-        dict with keys:
-            - articles: List of article dicts with canonical URLs
-            - issues: List of issue metadata dicts
-            - network_articles: Count of new articles fetched
-            - error: Error message if any, otherwise None
-            - source_id: Source identifier for tracking
-    """
     result = {
         "articles": [],
         "issues": [],
@@ -283,173 +267,55 @@ def _collect_newsletters_for_date_from_source_worker(
         "error": None,
         "source_id": source_id,
     }
+    date_str = util.format_date_for_url(date)
+
+    if source_id not in NEWSLETTER_CONFIGS:
+        logger.warning(f"Unknown source_id: {source_id}, skipping")
+        result["error"] = f"Unknown source_id: {source_id}"
+        return date_str, result
+
+    config = NEWSLETTER_CONFIGS[source_id]
 
     try:
         adapter = _get_adapter_for_source(config)
         scrape_result = adapter.scrape_date(date, excluded_urls)
 
-        # Process articles - canonicalize URLs
         for article in scrape_result.get("articles", []):
             canonical_url = util.canonicalize_url(article["url"])
             article["url"] = canonical_url
             result["articles"].append(article)
 
-        # Process issues - deep copy to avoid shared state issues
         for issue in scrape_result.get("issues", []):
             issue_copy = json.loads(json.dumps(issue))
             result["issues"].append(issue_copy)
 
         result["network_articles"] = len(result["articles"])
 
-    except Exception as e:
+    except Exception as error:
         logger.error(
-            f"Error processing {config.display_name} for {date_str}: {e}",
+            f"Error processing {config.display_name} for {date_str}: {error}",
             exc_info=True,
         )
-        result["error"] = str(e)
+        result["error"] = str(error)
 
-    return result
+    return date_str, result
 
 
-def _collect_newsletters_for_date_from_source(
-    source_id,
-    config,
-    date,
-    date_str,
-    processed_count,
-    total_count,
-    url_set,
-    all_articles,
-    issue_metadata_by_key,
-    excluded_urls,
-):
-    """Collect newsletters for a date using source adapter.
+def merge_source_results_for_date(date_str: str, source_results: list[tuple[str, dict]]) -> dict:
+    url_set: set[str] = set()
+    all_articles: list[dict] = []
+    issue_metadata_by_key: dict[tuple[str, str, str], dict] = {}
 
-    Args:
-        source_id: Source identifier
-        config: NewsletterSourceConfig instance
-        date: Date object
-        date_str: Date string
-        processed_count: Current progress counter
-        total_count: Total items to process
-        url_set: Set of URLs for deduplication
-        all_articles: List to append articles to
-        issue_metadata_by_key: Dict to store issue metadata
-        excluded_urls: List of canonical URLs to exclude
-
-    Returns:
-        Tuple of (updated_processed_count, network_articles_count)
-    """
-    day_articles: list[dict] = []
-    network_articles = 0
-    current_processed = processed_count
-
-    current_processed += 1
-    logger.info(
-        f"Processing {config.display_name} for {date_str} ({current_processed}/{total_count})",
+    _, total_network_articles = _merge_source_results_deterministically(
+        source_results, date_str, url_set, all_articles, issue_metadata_by_key
     )
+    issues_output = _sort_issues(list(issue_metadata_by_key.values()))
 
-    try:
-        # Get adapter and scrape
-        adapter = _get_adapter_for_source(config)
-        result = adapter.scrape_date(date, excluded_urls)
-
-        # Process articles from response
-        for article in result.get("articles", []):
-            canonical_url = util.canonicalize_url(article["url"])
-            article["url"] = canonical_url
-
-            day_articles.append(article)
-
-            if canonical_url not in url_set:
-                url_set.add(canonical_url)
-                all_articles.append(article)
-                network_articles += 1
-
-        # Process issues from response
-        for issue in result.get("issues", []):
-            issue_copy = json.loads(json.dumps(issue))
-            source_id = issue_copy.get("source_id", "")
-            category = issue_copy.get("category", "")
-            # Use triple-key to prevent collisions
-            issue_metadata_by_key[(date_str, source_id, category)] = issue_copy
-
-        # Rate limiting
-        if network_articles > 0:
-            time.sleep(0.2)
-
-    except Exception as e:
-        logger.error(
-            f"Error processing {config.display_name} for {date_str}: {e}",
-            exc_info=True,
-        )
-
-    return current_processed, network_articles
-
-
-def _scrape_sources_for_date_parallel(
-    date,
-    date_str,
-    source_ids,
-    excluded_urls,
-    max_workers=8,
-):
-    """Execute all sources for a date in parallel using thread pool.
-
-    Args:
-        date: Date object
-        date_str: Date string
-        source_ids: List of source IDs to scrape
-        excluded_urls: List of canonical URLs to exclude
-        max_workers: Maximum number of parallel workers
-
-    Returns:
-        List of tuples (source_id, result_dict) in original source_ids order
-    """
-    results = []
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all tasks
-        future_to_source = {}
-        for source_id in source_ids:
-            if source_id not in NEWSLETTER_CONFIGS:
-                logger.warning(f"Unknown source_id: {source_id}, skipping")
-                continue
-
-            config = NEWSLETTER_CONFIGS[source_id]
-            future = executor.submit(
-                _collect_newsletters_for_date_from_source_worker,
-                source_id,
-                config,
-                date,
-                date_str,
-                excluded_urls,
-            )
-            future_to_source[future] = source_id
-
-        # Collect results maintaining original order
-        source_to_result = {}
-        for future in as_completed(future_to_source):
-            source_id = future_to_source[future]
-            try:
-                result = future.result(timeout=60)
-                source_to_result[source_id] = result
-            except Exception as e:
-                logger.error(f"Failed to get result for {source_id} on {date_str}: {e}")
-                source_to_result[source_id] = {
-                    "articles": [],
-                    "issues": [],
-                    "network_articles": 0,
-                    "error": str(e),
-                    "source_id": source_id,
-                }
-
-    # Return results in original source_ids order for determinism
-    for source_id in source_ids:
-        if source_id in source_to_result:
-            results.append((source_id, source_to_result[source_id]))
-
-    return results
+    return {
+        "articles": all_articles,
+        "issues": issues_output,
+        "network_fetches": total_network_articles,
+    }
 
 
 def _merge_source_results_deterministically(
@@ -516,7 +382,7 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
 
     # Default to all configured sources
     if source_ids is None:
-        source_ids = list(NEWSLETTER_CONFIGS.keys())
+        source_ids = get_default_source_ids()
 
     # Default to empty list for excluded URLs
     if excluded_urls is None:
@@ -529,56 +395,35 @@ def scrape_date_range(start_date, end_date, source_ids=None, excluded_urls=None)
     network_fetches = 0
     issue_metadata_by_key: dict[tuple[str, str, str], dict] = {}  # (date, source_id, category)
 
-    # Check for parallel scraping environment variable (default: enabled)
-    use_parallel = util.resolve_env_var("ENABLE_PARALLEL_SCRAPING", default="true").lower() in ("true", "1", "yes")
-    max_workers = int(util.resolve_env_var("SCRAPER_MAX_WORKERS", default=str(len(source_ids))))
-
     for date in dates:
         date_str = util.format_date_for_url(date)
 
-        if use_parallel:
-            # Parallel execution: all sources for this date run concurrently
-            logger.info(f"Scraping {len(source_ids)} sources for {date_str} in parallel (max_workers={max_workers})")
-            source_results = _scrape_sources_for_date_parallel(
-                date, date_str, source_ids, excluded_urls, max_workers
-            )
-
-            # Merge results deterministically
-            new_articles, network_increment = _merge_source_results_deterministically(
-                source_results, date_str, url_set, all_articles, issue_metadata_by_key
-            )
-
-            processed_count += len(source_results)
-            network_fetches += network_increment
-
-            logger.info(
-                f"Date {date_str}: {len(source_results)} sources processed, "
-                f"{new_articles} new articles ({processed_count}/{total_count} total)"
-            )
-        else:
-            # Sequential execution (legacy/fallback)
-            for source_id in source_ids:
-                if source_id not in NEWSLETTER_CONFIGS:
-                    logger.warning(
-                        f"Unknown source_id: {source_id}, skipping",
-                    )
-                    continue
-
-                config = NEWSLETTER_CONFIGS[source_id]
-
-                processed_count, network_increment = _collect_newsletters_for_date_from_source(
-                    source_id,
-                    config,
-                    date,
-                    date_str,
-                    processed_count,
-                    total_count,
-                    url_set,
-                    all_articles,
-                    issue_metadata_by_key,
-                    excluded_urls,
+        source_results = []
+        for source_id in source_ids:
+            if source_id not in NEWSLETTER_CONFIGS:
+                logger.warning(
+                    f"Unknown source_id: {source_id}, skipping",
                 )
-                network_fetches += network_increment
+                continue
+
+            config = NEWSLETTER_CONFIGS[source_id]
+            processed_count += 1
+            logger.info(
+                f"Processing {config.display_name} for {date_str} ({processed_count}/{total_count})",
+            )
+            _, result = scrape_single_source_for_date(date, source_id, excluded_urls)
+            source_results.append((source_id, result))
+
+        new_articles, network_increment = _merge_source_results_deterministically(
+            source_results, date_str, url_set, all_articles, issue_metadata_by_key
+        )
+
+        network_fetches += network_increment
+
+        logger.info(
+            f"Date {date_str}: {len(source_results)} sources processed, "
+            f"{new_articles} new articles ({processed_count}/{total_count} total)"
+        )
 
     # Ensure all articles have removed field
     for article in all_articles:
