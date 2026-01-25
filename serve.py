@@ -191,7 +191,8 @@ def get_storage_daily_range():
         start_date = data['start_date']
         end_date = data['end_date']
 
-        payloads = storage_service.get_daily_payloads_range(start_date, end_date)
+        rows = storage_service.get_daily_payloads_range(start_date, end_date)
+        payloads = [row['payload'] for row in rows]
         return jsonify({"success": True, "payloads": payloads})
 
     except Exception as e:

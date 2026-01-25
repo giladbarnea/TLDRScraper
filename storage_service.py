@@ -46,6 +46,9 @@ def get_daily_payload(date):
 def set_daily_payload(date, payload):
     """
     Save or update daily payload (upsert).
+    Does NOT update cached_at - use set_daily_payload_from_scrape() for scrape results.
+    This path is for user-state updates (read/removed/TLDR) and must not advance cached_at,
+    which tracks scrape freshness only.
 
     >>> set_daily_payload('2025-11-09', {'date': '2025-11-09', 'articles': [...]})
     {'date': '2025-11-09', 'payload': {...}, ...}
@@ -58,22 +61,46 @@ def set_daily_payload(date, payload):
 
     return result.data[0] if result.data else None
 
+def set_daily_payload_from_scrape(date, payload):
+    """
+    Save or update daily payload from a scrape operation (upsert).
+    Updates cached_at to current timestamp to track scrape freshness.
+
+    >>> set_daily_payload_from_scrape('2025-11-09', {'date': '2025-11-09', 'articles': [...]})
+    {'date': '2025-11-09', 'payload': {...}, 'cached_at': '...'}
+    """
+    from datetime import datetime, timezone
+    supabase = supabase_client.get_supabase_client()
+    result = supabase.table('daily_cache').upsert({
+        'date': date,
+        'payload': payload,
+        'cached_at': datetime.now(timezone.utc).isoformat()
+    }).execute()
+
+    return result.data[0] if result.data else None
+
 def get_daily_payloads_range(start_date, end_date):
     """
     Get all cached payloads in date range (inclusive).
 
+    cached_at reflects the last scrape time and is only advanced by
+    set_daily_payload_from_scrape().
+
     >>> get_daily_payloads_range('2025-11-07', '2025-11-09')
-    [{'date': '2025-11-09', ...}, {'date': '2025-11-08', ...}, ...]
+    [{'date': '2025-11-09', 'payload': {...}, 'cached_at': '...'}, ...]
     """
     supabase = supabase_client.get_supabase_client()
     result = supabase.table('daily_cache') \
-        .select('payload') \
+        .select('date, payload, cached_at') \
         .gte('date', start_date) \
         .lte('date', end_date) \
         .order('date', desc=True) \
         .execute()
 
-    return [row['payload'] for row in result.data]
+    return [
+        {'date': row['date'], 'payload': row['payload'], 'cached_at': row['cached_at']}
+        for row in result.data
+    ]
 
 def is_date_cached(date):
     """

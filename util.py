@@ -2,10 +2,13 @@ import functools
 import logging
 import os
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import requests
 from curl_cffi import requests as curl_requests
+
+PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 
 
 def resolve_env_var(name: str, default: str = "") -> str:
@@ -39,6 +42,50 @@ def format_date_for_url(date):
     if isinstance(date, str):
         return date
     return date.strftime("%Y-%m-%d")
+
+
+def parse_cached_at_epoch_seconds(cached_at_iso: str) -> float:
+    """
+    Parse cached_at ISO timestamp into epoch seconds.
+
+    >>> parse_cached_at_epoch_seconds("2025-01-24T09:00:00+00:00") > 0
+    True
+    """
+    cached_at_normalized = cached_at_iso.replace("Z", "+00:00")
+    cached_at = datetime.fromisoformat(cached_at_normalized)
+    if cached_at.tzinfo is None:
+        raise ValueError("cached_at must include a timezone offset")
+    return cached_at.timestamp()
+
+
+def next_day_midnight_pacific_epoch_seconds(date_str: str) -> float:
+    """
+    Return epoch seconds for next day's 00:00 AM Pacific time.
+
+    >>> next_day_midnight_pacific_epoch_seconds("2025-01-23") > 0
+    True
+    """
+    target_date = datetime.fromisoformat(date_str)
+    next_day = target_date + timedelta(days=1)
+    next_day_midnight_pacific = datetime(
+        next_day.year, next_day.month, next_day.day,
+        0, 0, 0, tzinfo=PACIFIC_TZ
+    )
+    return next_day_midnight_pacific.timestamp()
+
+
+def should_rescrape(date_str: str, cached_at_epoch_seconds: float | None) -> bool:
+    """
+    Determine if a date needs rescraping based on when it was last scraped.
+
+    >>> should_rescrape("2025-01-23", None)
+    True
+    """
+    if cached_at_epoch_seconds is None:
+        return True
+
+    next_day_midnight_epoch = next_day_midnight_pacific_epoch_seconds(date_str)
+    return cached_at_epoch_seconds < next_day_midnight_epoch
 
 
 def canonicalize_url(url) -> str:
