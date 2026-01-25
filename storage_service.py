@@ -47,6 +47,8 @@ def set_daily_payload(date, payload):
     """
     Save or update daily payload (upsert).
     Does NOT update cached_at - use set_daily_payload_from_scrape() for scrape results.
+    This path is for user-state updates (read/removed/TLDR) and must not advance cached_at,
+    which tracks scrape freshness only.
 
     >>> set_daily_payload('2025-11-09', {'date': '2025-11-09', 'articles': [...]})
     {'date': '2025-11-09', 'payload': {...}, ...}
