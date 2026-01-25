@@ -1,4 +1,6 @@
 import logging
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date as date_type
 from datetime import datetime
 
@@ -6,7 +8,11 @@ import requests
 
 import storage_service
 import util
-from newsletter_scraper import scrape_date_range
+from newsletter_scraper import (
+    get_default_source_ids,
+    merge_source_results_for_date,
+    scrape_single_source_for_date,
+)
 from summarizer import (
     DEFAULT_MODEL,
     DEFAULT_TLDR_REASONING_EFFORT,
@@ -159,8 +165,12 @@ def scrape_newsletters_in_date_range(
     """Scrape newsletters in date range with server-side cache integration."""
     start_date, end_date = _parse_date_range(start_date_text, end_date_text)
     dates = util.get_date_range(start_date, end_date)
+    resolved_source_ids = source_ids or get_default_source_ids()
+    source_order = {
+        source_id: index for index, source_id in enumerate(resolved_source_ids)
+    }
 
-    sources_str = ", ".join(source_ids) if source_ids else "all"
+    sources_str = ", ".join(resolved_source_ids) if resolved_source_ids else "all"
     excluded_count = len(excluded_urls) if excluded_urls else 0
     logger.info(
         f"start start_date={start_date_text} end_date={end_date_text} sources={sources_str} excluded_count={excluded_count}",
@@ -169,6 +179,7 @@ def scrape_newsletters_in_date_range(
     total_network_fetches = 0
     payloads_by_date: dict[str, dict] = {}
     dates_to_write: set[str] = set()
+    work_items: list[tuple[date_type, str, str, list[str]]] = []
 
     # Fetch all cached payloads upfront in one query
     all_cached_rows = storage_service.get_daily_payloads_range(start_date_text, end_date_text)
@@ -217,22 +228,65 @@ def scrape_newsletters_in_date_range(
                         cached_urls.add(canonical_url)
 
             combined_excluded = list(set(excluded_urls or []) | cached_urls)
-            result = scrape_date_range(current_date, current_date, source_ids, combined_excluded)
-            total_network_fetches += result.get('stats', {}).get('network_fetches', 0)
-
-            new_payload = _build_payload_from_scrape(
-                date_str,
-                result.get('articles', []),
-                result.get('issues', []),
-            )
-            if cached_payload:
-                payloads_by_date[date_str] = _merge_payloads(new_payload, cached_payload)
-            else:
-                payloads_by_date[date_str] = new_payload
             dates_to_write.add(date_str)
+            for source_id in resolved_source_ids:
+                work_items.append((current_date, date_str, source_id, combined_excluded))
         else:
             # Cache is fresh, use it directly
             payloads_by_date[date_str] = cached_payload
+
+    results_by_date: dict[str, list[tuple[str, dict]]] = defaultdict(list)
+    if work_items:
+        max_workers = int(util.resolve_env_var("MAX_PARALLEL_SCRAPES", default="20"))
+        max_workers = max(1, min(max_workers, len(work_items)))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_task = {
+                executor.submit(
+                    scrape_single_source_for_date, date_value, source_id, excluded
+                ): (date_str, source_id)
+                for date_value, date_str, source_id, excluded in work_items
+            }
+            for future in as_completed(future_to_task):
+                task_date_str, source_id = future_to_task[future]
+                try:
+                    date_str, result = future.result()
+                except Exception as error:
+                    logger.error(
+                        "Scrape task failed date=%s source=%s error=%s",
+                        task_date_str,
+                        source_id,
+                        repr(error),
+                        exc_info=True,
+                    )
+                    result = {
+                        "articles": [],
+                        "issues": [],
+                        "network_articles": 0,
+                        "error": str(error),
+                        "source_id": source_id,
+                    }
+                    date_str = task_date_str
+                results_by_date[date_str].append((source_id, result))
+
+    for current_date in dates:
+        date_str = util.format_date_for_url(current_date)
+        if date_str not in dates_to_write:
+            continue
+        cached_payload = cache_map.get(date_str)
+        source_results = results_by_date.get(date_str, [])
+        source_results.sort(key=lambda item: source_order.get(item[0], len(source_order)))
+        merged_result = merge_source_results_for_date(date_str, source_results)
+        total_network_fetches += merged_result.get("network_fetches", 0)
+
+        new_payload = _build_payload_from_scrape(
+            date_str,
+            merged_result.get("articles", []),
+            merged_result.get("issues", []),
+        )
+        if cached_payload:
+            payloads_by_date[date_str] = _merge_payloads(new_payload, cached_payload)
+        else:
+            payloads_by_date[date_str] = new_payload
 
     ordered_payloads = [
         payloads_by_date[util.format_date_for_url(current_date)]
