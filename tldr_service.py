@@ -173,16 +173,23 @@ def scrape_newsletters_in_date_range(
     # Fetch all cached payloads upfront in one query
     all_cached_rows = storage_service.get_daily_payloads_range(start_date_text, end_date_text)
     cache_map: dict[str, dict] = {}
-    cached_at_map: dict[str, str | None] = {}
+    cached_at_epoch_map: dict[str, float | None] = {}
     for row in all_cached_rows:
         date_key = row['date']
         cache_map[date_key] = row['payload']
-        cached_at_map[date_key] = row['cached_at']
+        cached_at_iso = row['cached_at']
+        if cached_at_iso is None:
+            cached_at_epoch_map[date_key] = None
+        else:
+            cached_at_epoch_map[date_key] = util.parse_cached_at_epoch_seconds(cached_at_iso)
 
     # Fast path: all dates cached and fresh (no rescrape needed)
     all_cached_and_fresh = all(
         util.format_date_for_url(d) in cache_map
-        and not util.should_rescrape(util.format_date_for_url(d), cached_at_map.get(util.format_date_for_url(d)))
+        and not util.should_rescrape(
+            util.format_date_for_url(d),
+            cached_at_epoch_map.get(util.format_date_for_url(d)),
+        )
         for d in dates
     )
     if all_cached_and_fresh:
@@ -197,9 +204,9 @@ def scrape_newsletters_in_date_range(
     for current_date in dates:
         date_str = util.format_date_for_url(current_date)
         cached_payload = cache_map.get(date_str)
-        cached_at = cached_at_map.get(date_str)
+        cached_at_epoch = cached_at_epoch_map.get(date_str)
 
-        if util.should_rescrape(date_str, cached_at):
+        if util.should_rescrape(date_str, cached_at_epoch):
             # Rescrape needed: either no cache or cache is stale
             cached_urls: set[str] = set()
             if cached_payload:
