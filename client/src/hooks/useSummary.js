@@ -1,7 +1,10 @@
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
+import markedKatex from 'marked-katex-extension'
 import { useEffect, useRef, useState } from 'react'
 import { useArticleState } from './useArticleState'
+
+marked.use(markedKatex({ throwOnError: false }))
 
 let zenLockOwner = null
 
@@ -38,7 +41,9 @@ export function useSummary(date, url, type = 'tldr') {
     if (!markdown) return ''
     try {
       const rawHtml = marked.parse(markdown)
-      return DOMPurify.sanitize(rawHtml)
+      return DOMPurify.sanitize(rawHtml, {
+        ADD_TAGS: ['annotation', 'semantics']
+      })
     } catch (error) {
       console.error('Failed to parse markdown:', error)
       return ''
