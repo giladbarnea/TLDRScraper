@@ -136,4 +136,5 @@ ngrok
 .gemini-clipboard
 
 .claude/skills
+.codex/
 /core

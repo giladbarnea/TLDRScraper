@@ -436,6 +436,12 @@ function main() {
     fi
   fi
 
+  # Ephemeral .codex directory: a read-only copy of .claude/skills (not version tracked)
+  rm -rf "$workdir/.codex" 1>/dev/null 2>&1
+  mkdir -p "$workdir/.codex"
+  cp -r "$workdir/.claude/skills" "$workdir/.codex/"
+  chmod -R a-w "$workdir/.codex"
+
   #region ----[ Env Vars Validation ]----
 
   [[ "$quiet" == false ]] && message "[$0] Checking for required environment variables..."
