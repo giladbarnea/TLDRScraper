@@ -14,6 +14,12 @@ git config --local merge.ours.driver true
 source ./.githooks/util.sh
 generate_project_structure
 
+# Ephemeral .codex directory: a read-only copy of .claude/skills (not version tracked)
+rm -rf .codex 1>/dev/null 2>&1
+mkdir -p .codex
+cp -r .claude/skills .codex/
+chmod -R a-w .codex
+
 # Only run on branch checkouts (not file checkouts)
 if [[ "$3" = "1" && "${#SYNC_PATHS[@]}" -gt 0 ]]; then
   echo "[post-checkout] Syncing external .claude subdirectories..."
