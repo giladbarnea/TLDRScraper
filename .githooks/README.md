@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-01-05 06:10
+last_updated: 2026-01-26 21:56
 ---
 # Git Hooks
 
@@ -50,6 +50,8 @@ The Python script is a drop-in replacement for `eza` to avoid installation time.
 Ensures the local clone has the `merge.ours` driver configured so Git respects the `PROJECT_STRUCTURE.md merge=ours` rule from `.gitattributes`.
 
 Also regenerates `PROJECT_STRUCTURE.md` using the Python script to ensure the file is present and up-to-date when switching branches.
+
+Creates an ephemeral `.codex` directory as a read-only copy of `.claude/skills` (not version-tracked).
 
 ### post-merge, post-rewrite
 
