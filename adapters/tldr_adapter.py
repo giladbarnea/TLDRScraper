@@ -127,6 +127,22 @@ class TLDRAdapter(NewsletterAdapter):
                     issue_subtitle = text
 
                 if level >= 2:
+                    # Check if this heading contains an article link (e.g., ### [Title](URL))
+                    link_in_heading = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", text)
+                    if link_in_heading:
+                        # This heading contains a link - treat as article candidate
+                        for title, url in link_in_heading:
+                            # Strip angle brackets from URLs (e.g., <https://...> -> https://...)
+                            url = url.strip("<>")
+                            if url.startswith("http") and not self._is_file_url(url):
+                                article_candidates.append({
+                                    "title": title,
+                                    "url": url,
+                                    "section_order": current_section_order,
+                                })
+                        continue
+
+                if level >= 2:
                     if not re.search(r"[A-Za-z0-9]", text):
                         pending_section_emoji = text.strip()
                         continue
