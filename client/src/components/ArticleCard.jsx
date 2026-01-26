@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { AlertCircle, Check, CheckCircle, ChevronDown, Loader2, Trash2 } from 'lucide-react'
+import { AlertCircle, ArrowDownCircle, Check, CheckCircle, ChevronDown, Loader2, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useArticleState } from '../hooks/useArticleState'
@@ -184,7 +184,15 @@ function ArticleTitle({ isRead, title }) {
   )
 }
 
-function ArticleMeta({ domain, hostname, articleMeta, isRead, tldrLoading }) {
+function ArticleMeta({ domain, hostname, articleMeta, tldrLoading, tldrAvailable, isRead }) {
+  const stateIndicator = tldrLoading ? (
+    <Loader2 size={14} className="animate-spin text-brand-500 shrink-0" />
+  ) : isRead ? (
+    <CheckCircle size={14} className="text-slate-300 shrink-0" />
+  ) : tldrAvailable ? (
+    <ArrowDownCircle size={14} className="text-slate-300 shrink-0" />
+  ) : null
+
   return (
     <div className="mb-1 flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 min-w-0">
@@ -207,9 +215,8 @@ function ArticleMeta({ domain, hostname, articleMeta, isRead, tldrLoading }) {
             {articleMeta}
           </span>
         </div>
-        {isRead && <CheckCircle size={14} className="text-slate-300 shrink-0" />}
       </div>
-      {tldrLoading && <Loader2 size={14} className="animate-spin text-brand-500 shrink-0" />}
+      {stateIndicator}
     </div>
   )
 }
@@ -331,8 +338,9 @@ function ArticleCard({ article }) {
                 domain={displayDomain}
                 hostname={hostname}
                 articleMeta={article.articleMeta}
-                isRead={isRead}
                 tldrLoading={tldr.loading}
+                tldrAvailable={isAvailable}
+                isRead={isRead}
               />
             )}
 
