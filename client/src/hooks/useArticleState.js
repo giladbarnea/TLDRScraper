@@ -42,6 +42,10 @@ export function useArticleState(date, url) {
     else markAsRead()
   }
 
+  const markAsRemoved = () => {
+    updateArticle(() => ({ removed: true }))
+  }
+
   const toggleRemove = () => {
     updateArticle(() => ({ removed: !isRemoved }))
   }
@@ -55,6 +59,7 @@ export function useArticleState(date, url) {
     markAsRead,
     markAsUnread,
     toggleRead,
+    markAsRemoved,
     toggleRemove,
     updateArticle
   }
