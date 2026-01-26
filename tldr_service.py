@@ -218,7 +218,8 @@ def scrape_newsletters_in_date_range(
         cached_at_epoch = cached_at_epoch_map.get(date_str)
 
         if util.should_rescrape(date_str, cached_at_epoch):
-            # Rescrape needed: either no cache or cache is stale
+            reason = "no cache" if cached_at_epoch is None else "stale cache"
+            logger.info(f"date={date_str} action=rescrape reason={reason}")
             cached_urls: set[str] = set()
             if cached_payload:
                 for article in cached_payload.get('articles', []):
@@ -232,7 +233,7 @@ def scrape_newsletters_in_date_range(
             for source_id in resolved_source_ids:
                 work_items.append((current_date, date_str, source_id, combined_excluded))
         else:
-            # Cache is fresh, use it directly
+            logger.info(f"date={date_str} action=use_cache reason=fresh_cache")
             payloads_by_date[date_str] = cached_payload
 
     results_by_date: dict[str, list[tuple[str, dict]]] = defaultdict(list)
