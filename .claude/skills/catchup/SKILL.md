@@ -1,8 +1,8 @@
 ---
 name: catchup
 description: Establish continuity with recent work. Catch up on recent project context and progress. Use when starting a session on an ongoing project or effort, when wider context is helpful, or when user asks to get up to speed.
+last_updated: 2026-01-26 08:09, dc94550
 ---
-
 Check which of these exist in the project, then dive into those that do:
 
 1. **Git** - `git log -15 --pretty=format:'%h %ad %s' --date=short --stat`. Read affected files in full. Branch name often contains Jira ID.
