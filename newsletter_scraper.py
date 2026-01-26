@@ -65,8 +65,14 @@ def _get_adapter_for_source(config):
         from adapters.softwareleadweekly_adapter import SoftwareLeadWeeklyAdapter
         return SoftwareLeadWeeklyAdapter(config)
     elif config.source_id == "anthropic":
-        from adapters.anthropic_adapter import AnthropicAdapter
-        return AnthropicAdapter(config)
+        from adapters.anthropic_adapter import AnthropicResearchAdapter
+        return AnthropicResearchAdapter(config)
+    elif config.source_id == "anthropic_news":
+        from adapters.anthropic_news_adapter import AnthropicNewsAdapter
+        return AnthropicNewsAdapter(config)
+    elif config.source_id == "claude_blog":
+        from adapters.claude_blog_adapter import ClaudeBlogAdapter
+        return ClaudeBlogAdapter(config)
     elif config.source_id == "netflix":
         from adapters.netflix_adapter import NetflixAdapter
         return NetflixAdapter(config)

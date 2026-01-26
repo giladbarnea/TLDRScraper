@@ -209,6 +209,28 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"research": "Anthropic Research"},
         sort_order=10,  # 2.5/week - consistent
     ),
+    "anthropic_news": NewsletterSourceConfig(
+        source_id="anthropic_news",
+        display_name="Anthropic News",
+        base_url="https://www.anthropic.com",
+        url_pattern="",
+        types=["news"],
+        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
+        article_pattern="",
+        category_display_names={"news": "Anthropic News"},
+        sort_order=9,  # ~2/week - consistent
+    ),
+    "claude_blog": NewsletterSourceConfig(
+        source_id="claude_blog",
+        display_name="Claude Blog",
+        base_url="https://claude.com",
+        url_pattern="",
+        types=["blog"],
+        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
+        article_pattern="",
+        category_display_names={"blog": "Claude Blog"},
+        sort_order=11,  # ~2/week - consistent
+    ),
     "softwareleadweekly": NewsletterSourceConfig(
         source_id="softwareleadweekly",
         display_name="Software Lead Weekly",

@@ -1,7 +1,7 @@
 """
-Anthropic Research adapter implementation.
+Claude Blog adapter implementation.
 
-This adapter fetches research articles from Anthropic's research page,
+This adapter fetches blog posts from Claude's blog,
 filtering by date and extracting article metadata.
 Uses the standard scraper fallback cascade (curl_cffi -> jina -> firecrawl).
 """
@@ -15,19 +15,19 @@ import util
 import summarizer
 
 
-logger = logging.getLogger("anthropic_research_adapter")
+logger = logging.getLogger("claude_blog_adapter")
 
 
-class AnthropicResearchAdapter(NewsletterAdapter):
-    """Adapter for Anthropic Research."""
+class ClaudeBlogAdapter(NewsletterAdapter):
+    """Adapter for Claude Blog."""
 
     def __init__(self, config):
         """Initialize with config."""
         super().__init__(config)
-        self.research_url = "https://www.anthropic.com/research"
+        self.blog_url = "https://claude.com/blog"
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
-        """Fetch research articles for a specific date from Anthropic Research.
+        """Fetch blog posts for a specific date from Claude Blog.
 
         Args:
             date: Date string in YYYY-MM-DD format
@@ -45,13 +45,13 @@ class AnthropicResearchAdapter(NewsletterAdapter):
         logger.info(f"Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
-            markdown = summarizer.url_to_markdown(self.research_url)
+            markdown = summarizer.url_to_markdown(self.blog_url)
 
-            logger.info(f"Successfully scraped research page")
+            logger.info(f"Successfully scraped blog page")
 
             parsed_articles = self._parse_articles_from_markdown(markdown)
 
-            logger.info(f"Parsed {len(parsed_articles)} total articles from research page")
+            logger.info(f"Parsed {len(parsed_articles)} total articles from blog")
 
             for article in parsed_articles:
                 article_date_str = article.get('date', '')
@@ -73,14 +73,14 @@ class AnthropicResearchAdapter(NewsletterAdapter):
             logger.info(f"Found {len(articles)} articles for {target_date_str}")
 
         except Exception as e:
-            logger.error(f"Error fetching research: {e}", exc_info=True)
+            logger.error(f"Error fetching blog: {e}", exc_info=True)
 
         issues = []
         if articles:
             issues.append({
                 'date': target_date_str,
                 'source_id': self.config.source_id,
-                'category': self.config.category_display_names.get('research', 'Anthropic Research'),
+                'category': self.config.category_display_names.get('blog', 'Claude Blog'),
                 'title': None,
                 'subtitle': None
             })
@@ -88,48 +88,51 @@ class AnthropicResearchAdapter(NewsletterAdapter):
         return self._normalize_response(articles, issues)
 
     def _parse_articles_from_markdown(self, markdown: str) -> list[dict]:
-        """Parse articles from Anthropic research markdown.
+        """Parse articles from Claude blog markdown.
 
-        The research page has a table format with Date, Category, and Title columns.
-        Example from curl_cffi: "  * [Jan 19, 2026InterpretabilityThe assistant axis...](</research/assistant-axis>)"
-        Example from firecrawl: "- [Jan 19, 2026Interpretability\\\nThe assistant axis...](https://www.anthropic.com/research/...)"
+        Example from curl_cffi:
+        ## Cowork: Claude Code for the rest of your work
+        January 12, 2026
+        [Read more](</blog/cowork-research-preview>)Read more
+
+        Example from firecrawl:
+        ## Title
+        Date
+        [Read more](https://claude.com/blog/slug)
         """
         articles = []
 
-        # Try curl_cffi format first (one line, relative URLs)
-        # Format: "  * [Jan 19, 2026InterpretabilityThe assistant axis...](</research/assistant-axis>)"
-        # Category is one or two title-case words, title is the rest
-        article_pattern = r'\* \[([A-Za-z]+ \d+, \d{4})([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)([^\]]+)\]\(</(?:research|news)/([^\)]+)>\)'
+        # Try curl_cffi format first (relative URLs with angle brackets)
+        article_pattern = r'## ([^\n]+)\n([A-Za-z]+ \d+, \d{4})\n\[Read more\]\(</blog/([^\)]+)>\)'
         matches = re.findall(article_pattern, markdown)
 
-        # If no matches, try firecrawl format (with escaped newlines, absolute URLs)
+        # If no matches, try firecrawl format (absolute URLs without angle brackets)
         if not matches:
-            article_pattern = r'- \[([A-Za-z]+ \d+, \d{4})([A-Za-z\s]+)\\+\n([^\]]+)\]\((https://www\.anthropic\.com/[^\)]+)\)'
+            article_pattern = r'## ([^\n]+)\n+([A-Za-z]+ \d+, \d{4})\n+\[Read more\]\((https://claude\.com/blog/[^\)]+)\)'
             matches_firecrawl = re.findall(article_pattern, markdown)
             # Convert to same format as curl_cffi matches
-            matches = [(date, cat, title, url.split('/')[-1]) for date, cat, title, url in matches_firecrawl]
+            matches = [(title, date, url.split('/')[-1]) for title, date, url in matches_firecrawl]
 
-        for date_str, category, title, url_part in matches:
+        for title, date_str, url_part in matches:
             try:
-                parsed_date = datetime.strptime(date_str.strip(), "%b %d, %Y")
+                parsed_date = datetime.strptime(date_str.strip(), "%B %d, %Y")
                 formatted_date = parsed_date.strftime("%Y-%m-%d")
             except Exception:
                 logger.warning(f"Could not parse date: {date_str}")
                 continue
 
-            category = category.strip()
             title = title.strip()
 
-            # Build full URL from relative path (works for both /research/ and /news/ paths)
-            full_url = f"https://www.anthropic.com/research/{url_part}" if url_part else url_part
+            # Build full URL from relative path
+            full_url = f"https://claude.com/blog/{url_part}" if url_part else url_part
 
             articles.append({
                 "title": title,
-                "article_meta": f"{category}",
+                "article_meta": "",
                 "url": full_url,
-                "category": self.config.category_display_names.get('research', 'Anthropic Research'),
+                "category": self.config.category_display_names.get('blog', 'Claude Blog'),
                 "date": formatted_date,
-                "newsletter_type": "research",
+                "newsletter_type": "blog",
                 "removed": False,
             })
 
