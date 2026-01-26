@@ -230,7 +230,7 @@ function TldrError({ message }) {
 }
 
 function ArticleCard({ article }) {
-  const { isRead, isRemoved, toggleRemove, loading: stateLoading } = useArticleState(
+  const { isRead, isRemoved, toggleRemove, markAsRemoved, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
   )
@@ -358,7 +358,7 @@ function ArticleCard({ article }) {
                 onClose={() => tldr.collapse()}
                 onMarkDone={() => {
                   tldr.collapse()
-                  toggleRemove()
+                  markAsRemoved()
                 }}
               />
             )}
