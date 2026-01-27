@@ -13,6 +13,11 @@ export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete }) {
       opacity: stateLoading ? 0.4 : isRemoved ? 0.5 : 1,
       filter: stateLoading || isRemoved ? 'grayscale(100%)' : 'grayscale(0%)',
       x: 0,
+      transition: {
+        filter: { type: "tween", duration: 0.2, ease: "easeOut" },
+        opacity: { type: "spring", stiffness: 400, damping: 30 },
+        x: { type: "spring", stiffness: 400, damping: 30 }
+      }
     })
   }, [isRemoved, stateLoading, controls])
 
