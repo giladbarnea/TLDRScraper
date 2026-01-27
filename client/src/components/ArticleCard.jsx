@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { AlertCircle, ArrowDownCircle, Check, CheckCircle, ChevronDown, Loader2, Trash2 } from 'lucide-react'
+import { AlertCircle, ArrowDownCircle, Check, CheckCircle, ChevronDown, Loader2, MoreVertical, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useArticleState } from '../hooks/useArticleState'
@@ -8,6 +8,7 @@ import { usePullToClose } from '../hooks/usePullToClose'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
+import BottomSheet from './BottomSheet'
 
 function ErrorToast({ message, onDismiss }) {
   useEffect(() => {
@@ -25,7 +26,7 @@ function ErrorToast({ message, onDismiss }) {
   )
 }
 
-function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkDone }) {
+function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkDone, onOpenMenu }) {
   const [hasScrolled, setHasScrolled] = useState(false)
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
@@ -105,12 +106,24 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
             </span>
           </a>
 
-          <button
-            onClick={onMarkDone}
-            className="shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
-          >
-            <Check size={20} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenMenu()
+              }}
+              className="shrink-0 p-2 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
+            >
+              <MoreVertical size={20} />
+            </button>
+
+            <button
+              onClick={onMarkDone}
+              className="shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
+            >
+              <Check size={20} />
+            </button>
+          </div>
 
           {/* Progress Bar */}
           <div
@@ -230,6 +243,7 @@ function TldrError({ message }) {
 }
 
 function ArticleCard({ article }) {
+  const [menuOpen, setMenuOpen] = useState(false)
   const { isRead, isRemoved, toggleRemove, markAsRemoved, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
@@ -263,9 +277,20 @@ function ArticleCard({ article }) {
     }
   })()
 
+  const handleSelect = () => {
+    const storageKey = 'podcastSources-1'
+    const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    const componentId = `article-${article.url}`
+    if (!existing.includes(componentId)) {
+      existing.push(componentId)
+      localStorage.setItem(storageKey, JSON.stringify(existing))
+    }
+    setMenuOpen(false)
+  }
+
   const handleCardClick = (e) => {
     if (isDragging) return
-    
+
     if (isRemoved) {
       e.preventDefault()
       toggleRemove()
@@ -360,12 +385,26 @@ function ArticleCard({ article }) {
                   tldr.collapse()
                   markAsRemoved()
                 }}
+                onOpenMenu={() => setMenuOpen(true)}
               />
             )}
           </div>
         </motion.div>
       </motion.div>
-      
+
+      <BottomSheet
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title={article.title}
+      >
+        <button
+          onClick={handleSelect}
+          className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-medium transition-colors"
+        >
+          Select
+        </button>
+      </BottomSheet>
+
       {dragError && <ErrorToast message={dragError} onDismiss={clearDragError} />}
     </>
   )

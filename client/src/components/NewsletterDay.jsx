@@ -88,7 +88,7 @@ function NewsletterDay({ date, title, issue, articles }) {
   const handleSelect = () => {
     const storageKey = 'podcastSources-1'
     const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    const componentId = `newsletter-${date}-${title}`
+    const componentId = `newsletter-${date}-${issue.source_id}`
     if (!existing.includes(componentId)) {
       existing.push(componentId)
       localStorage.setItem(storageKey, JSON.stringify(existing))
