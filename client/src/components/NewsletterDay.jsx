@@ -100,13 +100,11 @@ function NewsletterDay({ date, title, issue, articles }) {
               {title}
             </h3>
             <ReadStatsBadge articles={articles} />
-            <div className="ml-auto">
-              <ThreeDotMenuButton onClick={() => setMenuOpen(true)} />
-            </div>
           </div>
         }
         defaultFolded={allRemoved}
         className="mb-8"
+        rightContent={<ThreeDotMenuButton onClick={() => setMenuOpen(true)} />}
       >
         <div className="space-y-6 mt-4">
           <IssueSubtitle issue={issue} allRemoved={allRemoved} />

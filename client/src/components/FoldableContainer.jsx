@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 
-function FoldableContainer({ id, title, children, defaultFolded = false, className = '', headerClassName = '', contentClassName = '', dataAttributes = {} }) {
+function FoldableContainer({ id, title, children, defaultFolded = false, className = '', headerClassName = '', contentClassName = '', dataAttributes = {}, rightContent = null }) {
   const [isFolded, setIsFolded] = useLocalStorage(id, defaultFolded)
   const prevDefaultFolded = useRef(defaultFolded)
 
@@ -19,20 +19,24 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
       {...dataAttributes}
       className={`transition-all duration-300 ${className}`}
     >
-      <div 
-        onClick={() => setIsFolded(!isFolded)}
-        className={`cursor-pointer group select-none flex items-center ${headerClassName}`}
-      >
-        <div className="flex-grow-0">
-          {title}
+      <div className={`flex items-center ${headerClassName}`}>
+        <div
+          onClick={() => setIsFolded(!isFolded)}
+          className="cursor-pointer group select-none flex items-center flex-1"
+        >
+          <div className="flex-grow-0">
+            {title}
+          </div>
+
+          <div className={`
+            text-slate-400 transition-all duration-300 transform ml-4
+            ${isFolded ? '' : 'rotate-90'}
+          `}>
+            <ChevronRight size={20} />
+          </div>
         </div>
-        
-        <div className={`
-          text-slate-400 transition-all duration-300 transform ml-4
-          ${isFolded ? '' : 'rotate-90'}
-        `}>
-          <ChevronRight size={20} />
-        </div>
+
+        {rightContent}
       </div>
 
       <div className={`

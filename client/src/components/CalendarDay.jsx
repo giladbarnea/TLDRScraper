@@ -14,7 +14,7 @@ function formatDateDisplay(dateStr) {
   return { displayText: isToday ? 'Today' : niceDate, isToday }
 }
 
-function CalendarDayTitle({ dateStr, loading, articles, onMenuClick }) {
+function CalendarDayTitle({ dateStr, loading, articles }) {
   const { displayText } = formatDateDisplay(dateStr)
   return (
     <div className="flex items-center gap-3 py-4">
@@ -23,9 +23,6 @@ function CalendarDayTitle({ dateStr, loading, articles, onMenuClick }) {
       </h2>
       <ReadStatsBadge articles={articles} />
       {loading && <span className="text-xs font-medium text-brand-500 animate-pulse">Syncing...</span>}
-      <div className="ml-auto">
-        <ThreeDotMenuButton onClick={onMenuClick} />
-      </div>
     </div>
   )
 }
@@ -78,10 +75,11 @@ function CalendarDay({ payload }) {
     <section className="animate-slide-up mb-12">
       <FoldableContainer
         id={`calendar-${date}`}
-        title={<CalendarDayTitle dateStr={date} loading={loading} articles={articles} onMenuClick={() => setMenuOpen(true)} />}
+        title={<CalendarDayTitle dateStr={date} loading={loading} articles={articles} />}
         defaultFolded={allArticlesRemoved}
         headerClassName="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/60"
         contentClassName="mt-4"
+        rightContent={<ThreeDotMenuButton onClick={() => setMenuOpen(true)} />}
       >
         <NewsletterList date={date} issues={issues} articles={articles} />
       </FoldableContainer>
