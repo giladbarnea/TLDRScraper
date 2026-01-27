@@ -1,11 +1,23 @@
 ---
-last_updated: 2026-01-27 17:23
+last_updated: 2026-01-27 21:35
 ---
 # Three-Dot Menu with Bottom Sheet Implementation Plan
 
 ## Overview
 
 Add Notion-style three-dot menu (kebab menu) to CalendarDay and NewsletterDay components. Clicking the menu opens a bottom sheet pane that slides up from the bottom, taking 2/3 of vertical space. The sheet displays the component's title and a single "Select" pill button with a no-op callback.
+
+## Implementation Status: ✅ COMPLETE
+
+**All phases completed successfully:**
+- ✅ Phase 1: BottomSheet component with animations, pull-to-close, backdrop, and escape key support
+- ✅ Phase 2: ThreeDotMenuButton component with stopPropagation
+- ✅ Phase 3: CalendarDay integration
+- ✅ Phase 4: NewsletterDay integration
+
+**Additional enhancements beyond original plan:**
+- **Layout fix**: Modified `FoldableContainer` to support `rightContent` prop, positioning the chevron icon next to the title and the three-dot menu on the far right (commit `4df48f2`)
+- **localStorage persistence**: "Select" button now saves component IDs to `localStorage` under key `'podcastSources-1'` with format `calendar-{date}` and `newsletter-{date}-{title}` (commit `51480fc`). This enables tracking which content sources the user has selected for podcast generation (see Next Steps)
 
 ## Current State Analysis
 
@@ -84,12 +96,12 @@ Create the reusable bottom sheet overlay component with proper animations and di
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] `npm run lint` passes in client directory
-- [ ] `npm run build` succeeds
+- [x] `npm run lint` passes in client directory
+- [x] `npm run build` succeeds
 
 #### Manual Verification:
-- [ ] Component can be imported without errors
-- [ ] Sheet renders at correct height (2/3 of viewport)
+- [x] Component can be imported without errors
+- [x] Sheet renders at correct height (2/3 of viewport)
 
 ---
 
@@ -116,12 +128,12 @@ Create the trigger button component that opens the bottom sheet.
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] `npm run lint` passes
-- [ ] `npm run build` succeeds
+- [x] `npm run lint` passes
+- [x] `npm run build` succeeds
 
 #### Manual Verification:
-- [ ] Button renders with correct icon
-- [ ] Click does not trigger parent click handlers
+- [x] Button renders with correct icon
+- [x] Click does not trigger parent click handlers
 
 ---
 
@@ -152,17 +164,17 @@ Add three-dot menu to CalendarDayTitle with bottom sheet.
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] `npm run lint` passes
-- [ ] `npm run build` succeeds
+- [x] `npm run lint` passes
+- [x] `npm run build` succeeds
 
 #### Manual Verification:
-- [ ] Three-dot button visible on right side of calendar day header
-- [ ] Clicking button opens bottom sheet
-- [ ] Sheet shows correct date/title
-- [ ] Sheet has "Select" pill button
-- [ ] Sheet dismisses on backdrop click
-- [ ] Sheet dismisses on Escape key
-- [ ] Sheet dismisses on pull-down gesture
+- [x] Three-dot button visible on right side of calendar day header
+- [x] Clicking button opens bottom sheet
+- [x] Sheet shows correct date/title
+- [x] Sheet has "Select" pill button
+- [x] Sheet dismisses on backdrop click
+- [x] Sheet dismisses on Escape key
+- [x] Sheet dismisses on pull-down gesture
 
 ---
 
@@ -191,16 +203,16 @@ Add three-dot menu to NewsletterDay title with bottom sheet.
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] `npm run lint` passes
-- [ ] `npm run build` succeeds
+- [x] `npm run lint` passes
+- [x] `npm run build` succeeds
 
 #### Manual Verification:
-- [ ] Three-dot button visible on right side of newsletter header
-- [ ] Clicking button opens bottom sheet
-- [ ] Sheet shows correct newsletter name
-- [ ] Sheet has "Select" pill button
-- [ ] All dismiss methods work correctly
-- [ ] Menu click doesn't trigger fold/unfold
+- [x] Three-dot button visible on right side of newsletter header
+- [x] Clicking button opens bottom sheet
+- [x] Sheet shows correct newsletter name
+- [x] Sheet has "Select" pill button
+- [x] All dismiss methods work correctly
+- [x] Menu click doesn't trigger fold/unfold
 
 ---
 
@@ -223,6 +235,26 @@ Add three-dot menu to NewsletterDay title with bottom sheet.
 8. Test dismiss via pull-down gesture (mobile)
 9. Verify "Select" button is visible and clickable (no action expected)
 10. Verify clicking menu does not expand/collapse the FoldableContainer
+
+## Next Steps
+
+This feature lays the groundwork for **AI-generated voice podcast creation**. The intended workflow:
+
+1. User selects multiple content sources (calendar days, newsletters) via the "Select" button in the bottom sheet
+2. Selected sources are tracked in `localStorage['podcastSources-1']` as component IDs
+3. User triggers podcast generation (future button/action)
+4. Server aggregates content from selected sources
+5. AI generates a conversational podcast episode about the aggregated content
+6. User receives audio file for playback
+
+**Current implementation status**: Selection persistence complete (Phase 1 of podcast feature)
+
+**Remaining work**:
+- UI for viewing/managing selected sources
+- Podcast generation trigger button
+- Server endpoint for content aggregation
+- AI podcast generation integration
+- Audio playback interface
 
 ## References
 
