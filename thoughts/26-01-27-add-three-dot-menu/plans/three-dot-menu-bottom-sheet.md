@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-01-27 21:32
+last_updated: 2026-01-27 21:35
 ---
 # Three-Dot Menu with Bottom Sheet Implementation Plan
 
@@ -17,7 +17,7 @@ Add Notion-style three-dot menu (kebab menu) to CalendarDay and NewsletterDay co
 
 **Additional enhancements beyond original plan:**
 - **Layout fix**: Modified `FoldableContainer` to support `rightContent` prop, positioning the chevron icon next to the title and the three-dot menu on the far right (commit `4df48f2`)
-- **localStorage persistence**: "Select" button now saves component IDs to `localStorage` under key `'podcastSources-1'` with format `calendar-{date}` and `newsletter-{date}-{title}` (commit `51480fc`)
+- **localStorage persistence**: "Select" button now saves component IDs to `localStorage` under key `'podcastSources-1'` with format `calendar-{date}` and `newsletter-{date}-{title}` (commit `51480fc`). This enables tracking which content sources the user has selected for podcast generation (see Next Steps)
 
 ## Current State Analysis
 
@@ -235,6 +235,26 @@ Add three-dot menu to NewsletterDay title with bottom sheet.
 8. Test dismiss via pull-down gesture (mobile)
 9. Verify "Select" button is visible and clickable (no action expected)
 10. Verify clicking menu does not expand/collapse the FoldableContainer
+
+## Next Steps
+
+This feature lays the groundwork for **AI-generated voice podcast creation**. The intended workflow:
+
+1. User selects multiple content sources (calendar days, newsletters) via the "Select" button in the bottom sheet
+2. Selected sources are tracked in `localStorage['podcastSources-1']` as component IDs
+3. User triggers podcast generation (future button/action)
+4. Server aggregates content from selected sources
+5. AI generates a conversational podcast episode about the aggregated content
+6. User receives audio file for playback
+
+**Current implementation status**: Selection persistence complete (Phase 1 of podcast feature)
+
+**Remaining work**:
+- UI for viewing/managing selected sources
+- Podcast generation trigger button
+- Server endpoint for content aggregation
+- AI podcast generation integration
+- Audio playback interface
 
 ## References
 
