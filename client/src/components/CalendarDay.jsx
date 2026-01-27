@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
+import BottomSheet from './BottomSheet'
 import FoldableContainer from './FoldableContainer'
 import NewsletterDay from './NewsletterDay'
 import ReadStatsBadge from './ReadStatsBadge'
+import ThreeDotMenuButton from './ThreeDotMenuButton'
 
 function formatDateDisplay(dateStr) {
   const dateObj = new Date(dateStr)
@@ -48,6 +51,7 @@ function NewsletterList({ date, issues, articles }) {
 }
 
 function CalendarDay({ payload }) {
+  const [menuOpen, setMenuOpen] = useState(false)
   const [livePayload, , , { loading }] = useSupabaseStorage(
     getNewsletterScrapeKey(payload.date),
     payload
@@ -61,6 +65,18 @@ function CalendarDay({ payload }) {
   const issues = livePayload?.issues ?? payload.issues ?? []
 
   const allArticlesRemoved = articles.length > 0 && articles.every(a => a.removed)
+  const { displayText } = formatDateDisplay(date)
+
+  const handleSelect = () => {
+    const storageKey = 'podcastSources-1'
+    const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    const componentId = `calendar-${date}`
+    if (!existing.includes(componentId)) {
+      existing.push(componentId)
+      localStorage.setItem(storageKey, JSON.stringify(existing))
+    }
+    setMenuOpen(false)
+  }
 
   return (
     <section className="animate-slide-up mb-12">
@@ -70,9 +86,23 @@ function CalendarDay({ payload }) {
         defaultFolded={allArticlesRemoved}
         headerClassName="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/60"
         contentClassName="mt-4"
+        rightContent={<ThreeDotMenuButton onClick={() => setMenuOpen(true)} />}
       >
         <NewsletterList date={date} issues={issues} articles={articles} />
       </FoldableContainer>
+
+      <BottomSheet
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title={displayText}
+      >
+        <button
+          onClick={handleSelect}
+          className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-medium transition-colors"
+        >
+          Select
+        </button>
+      </BottomSheet>
     </section>
   )
 }
