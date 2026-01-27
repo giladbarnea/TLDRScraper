@@ -86,6 +86,13 @@ function NewsletterDay({ date, title, issue, articles }) {
   const sortedSectionKeys = hasSections ? getSortedSectionKeys(sections) : []
 
   const handleSelect = () => {
+    const storageKey = 'podcastSources-1'
+    const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    const componentId = `newsletter-${date}-${title}`
+    if (!existing.includes(componentId)) {
+      existing.push(componentId)
+      localStorage.setItem(storageKey, JSON.stringify(existing))
+    }
     setMenuOpen(false)
   }
 

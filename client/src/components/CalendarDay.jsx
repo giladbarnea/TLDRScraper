@@ -68,6 +68,13 @@ function CalendarDay({ payload }) {
   const { displayText } = formatDateDisplay(date)
 
   const handleSelect = () => {
+    const storageKey = 'podcastSources-1'
+    const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    const componentId = `calendar-${date}`
+    if (!existing.includes(componentId)) {
+      existing.push(componentId)
+      localStorage.setItem(storageKey, JSON.stringify(existing))
+    }
     setMenuOpen(false)
   }
 
