@@ -440,6 +440,7 @@ function main() {
   rm -rf "$workdir/.codex"
   mkdir -p "$workdir/.codex"
   cp -r "$workdir/.claude/skills" "$workdir/.codex/"
+  chmod -R a+rwx "$workdir/.codex"
 
   #region ----[ Env Vars Validation ]----
 
