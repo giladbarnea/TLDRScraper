@@ -23,7 +23,7 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
         onClick={() => setIsFolded(!isFolded)}
         className={`cursor-pointer group select-none flex items-center ${headerClassName}`}
       >
-        <div className="flex-grow-0">
+        <div className="flex-1 min-w-0">
           {title}
         </div>
         

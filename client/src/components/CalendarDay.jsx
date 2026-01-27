@@ -1,5 +1,6 @@
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
+import ActionMenuSheet from './ActionMenuSheet'
 import FoldableContainer from './FoldableContainer'
 import NewsletterDay from './NewsletterDay'
 import ReadStatsBadge from './ReadStatsBadge'
@@ -14,12 +15,17 @@ function formatDateDisplay(dateStr) {
 function CalendarDayTitle({ dateStr, loading, articles }) {
   const { displayText } = formatDateDisplay(dateStr)
   return (
-    <div className="flex items-center gap-3 py-4">
-      <h2 className="font-display text-2xl font-bold text-slate-900 tracking-tight">
-        {displayText}
-      </h2>
-      <ReadStatsBadge articles={articles} />
-      {loading && <span className="text-xs font-medium text-brand-500 animate-pulse">Syncing...</span>}
+    <div className="flex items-center gap-3 py-4 w-full">
+      <div className="flex items-center gap-3">
+        <h2 className="font-display text-2xl font-bold text-slate-900 tracking-tight">
+          {displayText}
+        </h2>
+        <ReadStatsBadge articles={articles} />
+        {loading && <span className="text-xs font-medium text-brand-500 animate-pulse">Syncing...</span>}
+      </div>
+      <div className="ml-auto">
+        <ActionMenuSheet title={displayText} />
+      </div>
     </div>
   )
 }

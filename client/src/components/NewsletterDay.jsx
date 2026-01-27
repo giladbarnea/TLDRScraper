@@ -1,4 +1,5 @@
 import ArticleList from './ArticleList'
+import ActionMenuSheet from './ActionMenuSheet'
 import FoldableContainer from './FoldableContainer'
 import ReadStatsBadge from './ReadStatsBadge'
 
@@ -86,11 +87,16 @@ function NewsletterDay({ date, title, issue, articles }) {
       id={`newsletter-${date}-${title}`}
       headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
       title={
-        <div className="flex items-center gap-3 py-2">
-          <h3 className="font-display font-bold text-xl text-slate-800">
-            {title}
-          </h3>
-          <ReadStatsBadge articles={articles} />
+        <div className="flex items-center gap-3 py-2 w-full">
+          <div className="flex items-center gap-3">
+            <h3 className="font-display font-bold text-xl text-slate-800">
+              {title}
+            </h3>
+            <ReadStatsBadge articles={articles} />
+          </div>
+          <div className="ml-auto">
+            <ActionMenuSheet title={title} />
+          </div>
         </div>
       }
       defaultFolded={allRemoved}
