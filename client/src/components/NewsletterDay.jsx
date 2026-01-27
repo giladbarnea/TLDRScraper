@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import ArticleList from './ArticleList'
+import BottomSheet from './BottomSheet'
 import FoldableContainer from './FoldableContainer'
 import ReadStatsBadge from './ReadStatsBadge'
+import ThreeDotMenuButton from './ThreeDotMenuButton'
 
 function groupArticlesBySection(articles) {
   return articles.reduce((acc, article) => {
@@ -75,42 +78,65 @@ function SectionsList({ date, title, sections, sortedSectionKeys }) {
 }
 
 function NewsletterDay({ date, title, issue, articles }) {
+  const [menuOpen, setMenuOpen] = useState(false)
   const allRemoved = articles.length > 0 && articles.every(a => a.removed)
   const hasSections = articles.some(a => a.section)
 
   const sections = hasSections ? groupArticlesBySection(articles) : {}
   const sortedSectionKeys = hasSections ? getSortedSectionKeys(sections) : []
 
-  return (
-    <FoldableContainer
-      id={`newsletter-${date}-${title}`}
-      headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
-      title={
-        <div className="flex items-center gap-3 py-2">
-          <h3 className="font-display font-bold text-xl text-slate-800">
-            {title}
-          </h3>
-          <ReadStatsBadge articles={articles} />
-        </div>
-      }
-      defaultFolded={allRemoved}
-      className="mb-8"
-    >
-      <div className="space-y-6 mt-4">
-        <IssueSubtitle issue={issue} allRemoved={allRemoved} />
+  const handleSelect = () => {
+    setMenuOpen(false)
+  }
 
-        {hasSections ? (
-          <SectionsList
-            date={date}
-            title={title}
-            sections={sections}
-            sortedSectionKeys={sortedSectionKeys}
-          />
-        ) : (
-          <ArticleList articles={articles} showSectionHeaders={false} />
-        )}
-      </div>
-    </FoldableContainer>
+  return (
+    <>
+      <FoldableContainer
+        id={`newsletter-${date}-${title}`}
+        headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+        title={
+          <div className="flex items-center gap-3 py-2">
+            <h3 className="font-display font-bold text-xl text-slate-800">
+              {title}
+            </h3>
+            <ReadStatsBadge articles={articles} />
+            <div className="ml-auto">
+              <ThreeDotMenuButton onClick={() => setMenuOpen(true)} />
+            </div>
+          </div>
+        }
+        defaultFolded={allRemoved}
+        className="mb-8"
+      >
+        <div className="space-y-6 mt-4">
+          <IssueSubtitle issue={issue} allRemoved={allRemoved} />
+
+          {hasSections ? (
+            <SectionsList
+              date={date}
+              title={title}
+              sections={sections}
+              sortedSectionKeys={sortedSectionKeys}
+            />
+          ) : (
+            <ArticleList articles={articles} showSectionHeaders={false} />
+          )}
+        </div>
+      </FoldableContainer>
+
+      <BottomSheet
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title={title}
+      >
+        <button
+          onClick={handleSelect}
+          className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-medium transition-colors"
+        >
+          Select
+        </button>
+      </BottomSheet>
+    </>
   )
 }
 
