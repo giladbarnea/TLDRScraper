@@ -88,7 +88,13 @@ function NewsletterDay({ date, title, issue, articles }) {
   const handleSelect = () => {
     const storageKey = 'podcastSources-1'
     const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    const componentId = `newsletter-${date}-${title}`
+    // IMPORTANT: Use unified ID that's stable across frontend and backend.
+    // For newsletter issues, we use (date, source_id) which matches the backend's
+    // composite key design. The backend uses (date, source_id, category) for issues,
+    // but date+source_id is sufficient since each source_id only publishes once per day.
+    // We use issue.source_id (e.g., "tldr_tech") NOT title/category (e.g., "TLDR Tech")
+    // because source_id is the canonical, stable identifier defined in newsletter_config.py.
+    const componentId = `newsletter-${date}-${issue.source_id}`
     if (!existing.includes(componentId)) {
       existing.push(componentId)
       localStorage.setItem(storageKey, JSON.stringify(existing))
