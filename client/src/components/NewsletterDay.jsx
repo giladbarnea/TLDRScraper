@@ -34,8 +34,7 @@ function IssueSubtitle({ issue, allRemoved }) {
   )
 }
 
-function SectionTitle({ sectionKey, sectionEmoji }) {
-  const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
+function SectionTitle({ displayTitle }) {
   return (
     <div className="flex items-center gap-3">
       <h4 className="font-display font-bold text-lg text-slate-700">
@@ -68,7 +67,7 @@ function Section({ date, sourceId, newsletterTitle, sectionKey, articles }) {
       <FoldableContainer
         key={`${newsletterTitle}-${sectionKey}`}
         id={`section-${date}-${newsletterTitle}-${sectionKey}`}
-        title={<SectionTitle sectionKey={sectionKey} sectionEmoji={sectionEmoji} />}
+        title={<SectionTitle displayTitle={displayTitle} />}
         headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
         defaultFolded={allRemoved}
         className="mb-4"
