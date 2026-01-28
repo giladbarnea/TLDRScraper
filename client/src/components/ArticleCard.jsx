@@ -8,8 +8,7 @@ import { usePullToClose } from '../hooks/usePullToClose'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
-import BottomSheet from './BottomSheet'
-import ThreeDotMenuButton from './ThreeDotMenuButton'
+import Selectable from './Selectable'
 
 function ErrorToast({ message, onDismiss }) {
   useEffect(() => {
@@ -244,7 +243,6 @@ function TldrError({ message }) {
 }
 
 function ArticleCard({ article }) {
-  const [menuOpen, setMenuOpen] = useState(false)
   const { isRead, isRemoved, toggleRemove, markAsRemoved, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
@@ -278,21 +276,6 @@ function ArticleCard({ article }) {
     }
   })()
 
-  const handleSelect = () => {
-    const storageKey = 'podcastSources-1'
-    const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    // IMPORTANT: Use unified ID that's stable across frontend and backend.
-    // For articles, we use the canonical URL which is the backend's unique identifier.
-    // The backend canonicalizes URLs via util.canonicalize_url() and uses them as
-    // the primary key for deduplication and storage operations.
-    const componentId = `article-${article.url}`
-    if (!existing.includes(componentId)) {
-      existing.push(componentId)
-      localStorage.setItem(storageKey, JSON.stringify(existing))
-    }
-    setMenuOpen(false)
-  }
-
   const handleCardClick = (e) => {
     if (isDragging) return
 
@@ -308,115 +291,108 @@ function ArticleCard({ article }) {
     tldr.toggle()
   }
 
-  return (
-    <>
-      <motion.div
-        layout
-        className={`relative ${tldr.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
-      >
-        <div className={`absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8 transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
-          <Trash2 className="text-red-400" size={20} />
-        </div>
+  // Use unified ID that's stable across frontend and backend.
+  // For articles, we use the canonical URL which is the backend's unique identifier.
+  const componentId = `article-${article.url}`
 
-        <motion.div
-          drag={canDrag ? "x" : false}
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={{ left: 0.5, right: 0.1 }}
-          dragMomentum={false}
-          dragListener={canDrag}
-          animate={controls}
-          initial={{ opacity: 1, filter: 'grayscale(0%)', scale: 1, x: 0 }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          whileHover={canDrag ? { scale: 1.005 } : undefined}
-          whileTap={canDrag ? { scale: 0.99 } : undefined}
-          onClick={handleCardClick}
-          style={{ touchAction: canDrag ? "pan-y" : "auto" }}
-          data-article-title={article.title}
-          data-article-url={article.url}
-          data-article-date={article.issueDate}
-          data-article-category={article.category}
-          data-article-source={article.sourceId}
-          data-read={isRead}
-          data-removed={isRemoved}
-          data-state-loading={stateLoading}
-          data-tldr-status={tldr.status}
-          data-tldr-expanded={tldr.expanded}
-          data-tldr-available={isAvailable}
-          data-dragging={isDragging}
-          data-can-drag={canDrag}
-          className={`
-            relative z-10
-            rounded-[20px] border border-white/40
-            shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)]
-            backdrop-blur-xl
-            cursor-pointer select-none
-            ${isRemoved ? 'bg-slate-50' : 'bg-white'}
-            ${stateLoading ? 'pointer-events-none' : ''}
-            ${tldr.expanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
-          `}
-        >
-          <div className="p-5 flex flex-col gap-2">
-            <div className="flex items-start justify-between gap-2">
-              <ArticleTitle
-                isRead={isRead}
-                title={article.title}
-              />
-              {!isRemoved && (
-                <ThreeDotMenuButton onClick={() => setMenuOpen(true)} />
-              )}
+  return (
+    <Selectable id={componentId} title={article.title}>
+      {({ menuButton, openMenu }) => (
+        <>
+          <motion.div
+            layout
+            className={`relative ${tldr.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
+          >
+            <div className={`absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8 transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
+              <Trash2 className="text-red-400" size={20} />
             </div>
 
-            {!isRemoved && (
-              <ArticleMeta
-                domain={displayDomain}
-                hostname={hostname}
-                articleMeta={article.articleMeta}
-                tldrLoading={tldr.loading}
-                tldrAvailable={isAvailable}
-                isRead={isRead}
-              />
-            )}
+            <motion.div
+              drag={canDrag ? "x" : false}
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={{ left: 0.5, right: 0.1 }}
+              dragMomentum={false}
+              dragListener={canDrag}
+              animate={controls}
+              initial={{ opacity: 1, filter: 'grayscale(0%)', scale: 1, x: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              whileHover={canDrag ? { scale: 1.005 } : undefined}
+              whileTap={canDrag ? { scale: 0.99 } : undefined}
+              onClick={handleCardClick}
+              style={{ touchAction: canDrag ? "pan-y" : "auto" }}
+              data-article-title={article.title}
+              data-article-url={article.url}
+              data-article-date={article.issueDate}
+              data-article-category={article.category}
+              data-article-source={article.sourceId}
+              data-read={isRead}
+              data-removed={isRemoved}
+              data-state-loading={stateLoading}
+              data-tldr-status={tldr.status}
+              data-tldr-expanded={tldr.expanded}
+              data-tldr-available={isAvailable}
+              data-dragging={isDragging}
+              data-can-drag={canDrag}
+              className={`
+                relative z-10
+                rounded-[20px] border border-white/40
+                shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)]
+                backdrop-blur-xl
+                cursor-pointer select-none
+                ${isRemoved ? 'bg-slate-50' : 'bg-white'}
+                ${stateLoading ? 'pointer-events-none' : ''}
+                ${tldr.expanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
+              `}
+            >
+              <div className="p-5 flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <ArticleTitle
+                    isRead={isRead}
+                    title={article.title}
+                  />
+                  {!isRemoved && menuButton}
+                </div>
 
-            {!isRemoved && tldr.status === 'error' && (
-              <TldrError message={tldr.errorMessage} />
-            )}
+                {!isRemoved && (
+                  <ArticleMeta
+                    domain={displayDomain}
+                    hostname={hostname}
+                    articleMeta={article.articleMeta}
+                    tldrLoading={tldr.loading}
+                    tldrAvailable={isAvailable}
+                    isRead={isRead}
+                  />
+                )}
 
-            {!isRemoved && tldr.expanded && tldr.html && (
-              <ZenModeOverlay
-                url={fullUrl}
-                html={tldr.html}
-                hostname={hostname}
-                displayDomain={displayDomain}
-                articleMeta={article.articleMeta}
-                onClose={() => tldr.collapse()}
-                onMarkDone={() => {
-                  tldr.collapse()
-                  markAsRemoved()
-                }}
-                onOpenMenu={() => setMenuOpen(true)}
-              />
-            )}
-          </div>
-        </motion.div>
-      </motion.div>
+                {!isRemoved && tldr.status === 'error' && (
+                  <TldrError message={tldr.errorMessage} />
+                )}
 
-      <BottomSheet
-        isOpen={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        title={article.title}
-      >
-        <button
-          onClick={handleSelect}
-          className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-medium transition-colors"
-        >
-          Select
-        </button>
-      </BottomSheet>
+                {!isRemoved && tldr.expanded && tldr.html && (
+                  <ZenModeOverlay
+                    url={fullUrl}
+                    html={tldr.html}
+                    hostname={hostname}
+                    displayDomain={displayDomain}
+                    articleMeta={article.articleMeta}
+                    onClose={() => tldr.collapse()}
+                    onMarkDone={() => {
+                      tldr.collapse()
+                      markAsRemoved()
+                    }}
+                    onOpenMenu={openMenu}
+                  />
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
 
-      {dragError && <ErrorToast message={dragError} onDismiss={clearDragError} />}
-    </>
+          {dragError && <ErrorToast message={dragError} onDismiss={clearDragError} />}
+        </>
+      )}
+    </Selectable>
   )
 }
 
