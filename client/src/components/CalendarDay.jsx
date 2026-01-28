@@ -70,6 +70,9 @@ function CalendarDay({ payload }) {
   const handleSelect = () => {
     const storageKey = 'podcastSources-1'
     const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    // IMPORTANT: Use unified ID that's stable across frontend and backend.
+    // For calendar days, we use the ISO date (YYYY-MM-DD) which is already
+    // a canonical identifier matching the backend's date handling.
     const componentId = `calendar-${date}`
     if (!existing.includes(componentId)) {
       existing.push(componentId)

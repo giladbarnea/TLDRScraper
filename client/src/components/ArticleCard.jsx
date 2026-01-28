@@ -280,6 +280,10 @@ function ArticleCard({ article }) {
   const handleSelect = () => {
     const storageKey = 'podcastSources-1'
     const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    // IMPORTANT: Use unified ID that's stable across frontend and backend.
+    // For articles, we use the canonical URL which is the backend's unique identifier.
+    // The backend canonicalizes URLs via util.canonicalize_url() and uses them as
+    // the primary key for deduplication and storage operations.
     const componentId = `article-${article.url}`
     if (!existing.includes(componentId)) {
       existing.push(componentId)
