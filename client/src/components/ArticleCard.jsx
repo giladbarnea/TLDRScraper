@@ -9,6 +9,7 @@ import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
 import BottomSheet from './BottomSheet'
+import ThreeDotMenuButton from './ThreeDotMenuButton'
 
 function ErrorToast({ message, onDismiss }) {
   useEffect(() => {
@@ -357,10 +358,15 @@ function ArticleCard({ article }) {
           `}
         >
           <div className="p-5 flex flex-col gap-2">
-            <ArticleTitle
-              isRead={isRead}
-              title={article.title}
-            />
+            <div className="flex items-start justify-between gap-2">
+              <ArticleTitle
+                isRead={isRead}
+                title={article.title}
+              />
+              {!isRemoved && (
+                <ThreeDotMenuButton onClick={() => setMenuOpen(true)} />
+              )}
+            </div>
 
             {!isRemoved && (
               <ArticleMeta

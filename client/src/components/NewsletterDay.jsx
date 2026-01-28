@@ -45,31 +45,62 @@ function SectionTitle({ sectionKey, sectionEmoji }) {
   )
 }
 
-function Section({ date, newsletterTitle, sectionKey, articles }) {
+function Section({ date, sourceId, newsletterTitle, sectionKey, articles }) {
+  const [menuOpen, setMenuOpen] = useState(false)
   const allRemoved = articles.every(a => a.removed)
   const sectionEmoji = articles[0].sectionEmoji
 
+  const handleSelect = () => {
+    const storageKey = 'podcastSources-1'
+    const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    const componentId = `section-${date}-${sourceId}-${sectionKey}`
+    if (!existing.includes(componentId)) {
+      existing.push(componentId)
+      localStorage.setItem(storageKey, JSON.stringify(existing))
+    }
+    setMenuOpen(false)
+  }
+
+  const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
+
   return (
-    <FoldableContainer
-      key={`${newsletterTitle}-${sectionKey}`}
-      id={`section-${date}-${newsletterTitle}-${sectionKey}`}
-      title={<SectionTitle sectionKey={sectionKey} sectionEmoji={sectionEmoji} />}
-      headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
-      defaultFolded={allRemoved}
-      className="mb-4"
-    >
-      <div className={`space-y-4 mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
-        <ArticleList articles={articles} showSectionHeaders={false} />
-      </div>
-    </FoldableContainer>
+    <>
+      <FoldableContainer
+        key={`${newsletterTitle}-${sectionKey}`}
+        id={`section-${date}-${newsletterTitle}-${sectionKey}`}
+        title={<SectionTitle sectionKey={sectionKey} sectionEmoji={sectionEmoji} />}
+        headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+        defaultFolded={allRemoved}
+        className="mb-4"
+        rightContent={<ThreeDotMenuButton onClick={() => setMenuOpen(true)} />}
+      >
+        <div className={`space-y-4 mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
+          <ArticleList articles={articles} showSectionHeaders={false} />
+        </div>
+      </FoldableContainer>
+
+      <BottomSheet
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title={displayTitle}
+      >
+        <button
+          onClick={handleSelect}
+          className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-medium transition-colors"
+        >
+          Select
+        </button>
+      </BottomSheet>
+    </>
   )
 }
 
-function SectionsList({ date, title, sections, sortedSectionKeys }) {
+function SectionsList({ date, sourceId, title, sections, sortedSectionKeys }) {
   return sortedSectionKeys.map(sectionKey => (
     <Section
       key={`${title}-${sectionKey}`}
       date={date}
+      sourceId={sourceId}
       newsletterTitle={title}
       sectionKey={sectionKey}
       articles={sections[sectionKey]}
@@ -125,6 +156,7 @@ function NewsletterDay({ date, title, issue, articles }) {
           {hasSections ? (
             <SectionsList
               date={date}
+              sourceId={issue.source_id}
               title={title}
               sections={sections}
               sortedSectionKeys={sortedSectionKeys}
