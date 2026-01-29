@@ -7,7 +7,8 @@ const STORAGE_KEY = 'podcastSources-1'
 export function SelectionProvider({ children }) {
   const [selectedIds, setSelectedIds] = useState(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
-    return new Set(stored ? JSON.parse(stored) : [])
+    const parsed = stored ? JSON.parse(stored) : []
+    return new Set(parsed.filter((id) => id.startsWith('article-')))
   })
 
   const isSelectMode = selectedIds.size > 0
@@ -38,6 +39,16 @@ export function SelectionProvider({ children }) {
     })
   }, [])
 
+  const deselectMany = useCallback((ids) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      for (const id of ids) {
+        next.delete(id)
+      }
+      return next
+    })
+  }, [])
+
   const clear = useCallback(() => {
     setSelectedIds(new Set())
   }, [])
@@ -49,6 +60,7 @@ export function SelectionProvider({ children }) {
     isSelectMode,
     toggle,
     selectMany,
+    deselectMany,
     clear,
     isSelected,
   }

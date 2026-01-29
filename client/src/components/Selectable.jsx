@@ -4,17 +4,22 @@ import { useSelection } from '../contexts/SelectionContext'
 import { useLongPress } from '../hooks/useLongPress'
 
 function Selectable({ id, descendantIds = [], disabled = false, children }) {
-  const { isSelectMode, toggle, selectMany, isSelected } = useSelection()
-  const selected = isSelected(id)
+  const { isSelectMode, toggle, selectMany, deselectMany, isSelected } = useSelection()
+  const isParent = descendantIds.length > 0
+  const selected = isParent ? descendantIds.every((descendantId) => isSelected(descendantId)) : isSelected(id)
   const wrapperRef = useRef(null)
 
   const handleSelect = useCallback(() => {
-    if (descendantIds.length > 0) {
-      selectMany([id, ...descendantIds])
-    } else {
-      toggle(id)
+    if (isParent) {
+      if (selected) {
+        deselectMany(descendantIds)
+      } else {
+        selectMany(descendantIds)
+      }
+      return
     }
-  }, [id, descendantIds, selectMany, toggle])
+    toggle(id)
+  }, [isParent, selected, deselectMany, selectMany, descendantIds, toggle, id])
 
   const longPress = useLongPress(handleSelect, { disabled })
 
@@ -41,7 +46,7 @@ function Selectable({ id, descendantIds = [], disabled = false, children }) {
       data-selectable
       className="relative"
       onClickCapture={handleClickCapture}
-      {...longPress}
+      {...longPress.handlers}
     >
       <div className={selected ? 'ring-4 ring-slate-300 rounded-[20px]' : ''}>
         {children}
