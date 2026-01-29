@@ -10,6 +10,7 @@ export function SelectionProvider({ children }) {
     const parsed = stored ? JSON.parse(stored) : []
     return new Set(parsed.filter((id) => id.startsWith('article-')))
   })
+  const [disabledIds, setDisabledIds] = useState(() => new Set())
 
   const isSelectMode = selectedIds.size > 0
 
@@ -18,6 +19,7 @@ export function SelectionProvider({ children }) {
   }, [selectedIds])
 
   const toggle = useCallback((id) => {
+    if (disabledIds.has(id)) return
     setSelectedIds(prev => {
       const next = new Set(prev)
       if (next.has(id)) {
@@ -27,22 +29,36 @@ export function SelectionProvider({ children }) {
       }
       return next
     })
-  }, [])
+  }, [disabledIds])
 
   const selectMany = useCallback((ids) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
       for (const id of ids) {
-        next.add(id)
+        if (!disabledIds.has(id)) {
+          next.add(id)
+        }
       }
       return next
     })
-  }, [])
+  }, [disabledIds])
 
   const deselectMany = useCallback((ids) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
       for (const id of ids) {
+        next.delete(id)
+      }
+      return next
+    })
+  }, [])
+
+  const registerSelectable = useCallback((id, isDisabled) => {
+    setDisabledIds(prev => {
+      const next = new Set(prev)
+      if (isDisabled) {
+        next.add(id)
+      } else {
         next.delete(id)
       }
       return next
@@ -61,6 +77,7 @@ export function SelectionProvider({ children }) {
     toggle,
     selectMany,
     deselectMany,
+    registerSelectable,
     clear,
     isSelected,
   }

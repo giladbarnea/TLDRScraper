@@ -6,12 +6,16 @@ import { useLongPress } from '../hooks/useLongPress'
 function Selectable({ id, descendantIds = [], disabled = false, children }) {
   const { isSelectMode, toggle, selectMany, deselectMany, isSelected } = useSelection()
   const isParent = descendantIds.length > 0
-  const selected = isParent ? descendantIds.every((descendantId) => isSelected(descendantId)) : isSelected(id)
+  const allDescendantsSelected = isParent
+    ? descendantIds.length > 0 && descendantIds.every((descendantId) => isSelected(descendantId))
+    : false
+  const selected = !isParent && isSelected(id)
   const wrapperRef = useRef(null)
 
   const handleSelect = useCallback(() => {
+    if (disabled) return
     if (isParent) {
-      if (selected) {
+      if (allDescendantsSelected) {
         deselectMany(descendantIds)
       } else {
         selectMany(descendantIds)
@@ -19,7 +23,7 @@ function Selectable({ id, descendantIds = [], disabled = false, children }) {
       return
     }
     toggle(id)
-  }, [isParent, selected, deselectMany, selectMany, descendantIds, toggle, id])
+  }, [disabled, isParent, allDescendantsSelected, deselectMany, selectMany, descendantIds, toggle, id])
 
   const longPress = useLongPress(handleSelect, { disabled })
 
