@@ -135,6 +135,5 @@ pnpm-debug.log*
 ngrok
 .gemini-clipboard
 
-.claude/skills
 .codex/
 /core
