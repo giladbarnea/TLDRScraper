@@ -232,7 +232,7 @@ function TldrError({ message }) {
 }
 
 function ArticleCard({ article }) {
-  const { isSelectMode } = useSelection()
+  const { isSelectMode, registerSelectable } = useSelection()
   const { isRead, isRemoved, toggleRemove, markAsRemoved, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
@@ -284,6 +284,11 @@ function ArticleCard({ article }) {
   }
 
   const componentId = `article-${article.url}`
+
+  useEffect(() => {
+    registerSelectable(componentId, isRemoved)
+    return () => registerSelectable(componentId, false)
+  }, [componentId, isRemoved, registerSelectable])
 
   return (
     <Selectable id={componentId} disabled={isRemoved}>

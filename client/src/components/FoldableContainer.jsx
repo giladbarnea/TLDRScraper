@@ -22,6 +22,7 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
       <div className={`flex items-center ${headerClassName}`}>
         <div
           onClick={() => setIsFolded(!isFolded)}
+          data-fold-toggle
           className="cursor-pointer group select-none flex items-center flex-1"
         >
           <div className="flex-grow-0">
