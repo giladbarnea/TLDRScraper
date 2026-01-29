@@ -3,7 +3,7 @@ description: Create detailed implementation plans based on thorough research and
 model: inherit
 argument-hint: [optional_requirements_file_path_and_additional_instructions]
 name: plan
-last_updated: 2026-01-22 11:53, 57cd914
+last_updated: 2026-01-29 09:01, 24971aa
 ---
 # Implementation Plan
 
