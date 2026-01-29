@@ -48,7 +48,7 @@ function Section({ date, newsletterTitle, sectionKey, articles }) {
   const allRemoved = articles.every(a => a.removed)
   const sectionEmoji = articles[0].sectionEmoji
   const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
-  const articleIds = articles.map(a => `article-${a.url}`)
+  const articleIds = articles.filter(a => !a.removed).map(a => `article-${a.url}`)
 
   return (
     <FoldableContainer
@@ -79,7 +79,7 @@ function SectionsList({ date, title, sections, sortedSectionKeys }) {
 }
 
 function NewsletterDayTitle({ title, articles }) {
-  const articleIds = articles.map(a => `article-${a.url}`)
+  const articleIds = articles.filter(a => !a.removed).map(a => `article-${a.url}`)
   return (
     <SelectionTrigger articleIds={articleIds}>
       <div className="flex items-center gap-3 py-2">

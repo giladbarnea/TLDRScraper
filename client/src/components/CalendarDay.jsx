@@ -64,7 +64,7 @@ function CalendarDay({ payload }) {
   const issues = livePayload?.issues ?? payload.issues ?? []
 
   const allArticlesRemoved = articles.length > 0 && articles.every(a => a.removed)
-  const articleIds = articles.map(a => `article-${a.url}`)
+  const articleIds = articles.filter(a => !a.removed).map(a => `article-${a.url}`)
 
   return (
     <section className="animate-slide-up mb-12">
