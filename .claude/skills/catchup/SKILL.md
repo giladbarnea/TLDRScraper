@@ -1,6 +1,7 @@
 ---
 name: catchup
 description: Establish continuity with recent work. Catch up on recent project context and progress. Use when starting a session on an ongoing project or effort, when wider context is helpful, or when user asks to get up to speed.
+last_updated: 2026-01-29 07:45, f22a99c
 ---
 1. **Run `setup.sh` Synchronously**. Wait for it to finish. It generates documentation.
 
