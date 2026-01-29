@@ -69,13 +69,15 @@ export function useLongPress(onLongPress, { threshold = 500, disabled = false } 
   }, [clear])
 
   return {
-    onTouchStart,
-    onTouchMove,
-    onTouchEnd,
-    onMouseDown,
-    onMouseMove,
-    onMouseUp,
-    onMouseLeave,
+    handlers: {
+      onTouchStart,
+      onTouchMove,
+      onTouchEnd,
+      onMouseDown,
+      onMouseMove,
+      onMouseUp,
+      onMouseLeave,
+    },
     isLongPressRef,
   }
 }
