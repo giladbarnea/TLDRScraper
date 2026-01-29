@@ -37,6 +37,7 @@ export function useLongPress(onLongPress, { threshold = 500, disabled = false } 
   }, [clear])
 
   const onTouchStart = useCallback((e) => {
+    e.stopPropagation()
     const touch = e.touches[0]
     start(touch.clientX, touch.clientY)
   }, [start])
@@ -51,6 +52,7 @@ export function useLongPress(onLongPress, { threshold = 500, disabled = false } 
   }, [clear])
 
   const onMouseDown = useCallback((e) => {
+    e.stopPropagation()
     start(e.clientX, e.clientY)
   }, [start])
 
