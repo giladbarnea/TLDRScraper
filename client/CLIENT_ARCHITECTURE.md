@@ -1,7 +1,7 @@
 ---
 name: client architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-01-24 08:11, 6967463
+last_updated: 2026-01-28 19:44
 ---
 # Client Architecture
 
@@ -57,6 +57,39 @@ The client is built as a Single Page Application (SPA) using React and Vite. It 
 
 ---
 
+## Selectable Pattern
+
+Components that need podcast source selection capability use the `Selectable` wrapper. This is a render-props composition pattern that encapsulates:
+- Menu open/close state
+- Three-dot menu button
+- Bottom sheet with "Select" action
+- localStorage persistence for podcast source tracking
+
+**Usage:**
+```jsx
+<Selectable id={componentId} title={displayTitle}>
+  {({ menuButton, openMenu }) => (
+    <FoldableContainer rightContent={menuButton}>
+      {/* component content */}
+    </FoldableContainer>
+  )}
+</Selectable>
+```
+
+**Render props provided:**
+- `menuButton` - Pre-configured ThreeDotMenuButton, place in layout
+- `openMenu` - Function to programmatically open the menu (e.g., from ZenModeOverlay)
+
+**ID formats for podcast source selection:**
+| Component | ID Pattern | Example |
+|-----------|------------|---------|
+| CalendarDay | `calendar-{date}` | `calendar-2026-01-28` |
+| NewsletterDay | `newsletter-{date}-{source_id}` | `newsletter-2026-01-28-tldr_tech` |
+| Section | `section-{date}-{source_id}-{sectionKey}` | `section-2026-01-28-tldr_tech-AI` |
+| ArticleCard | `article-{url}` | `article-https://example.com/article` |
+
+---
+
 ## Call Graph
 > Focus: Component dependency and execution hierarchy.
 
@@ -76,20 +109,28 @@ main()
 │   └── Feed (Main Content)
 │       └── CalendarDay (Iterated by Date)
 │           ├── useSupabaseStorage(scrapes:date)  ← seeds cache, no fetch
-│           └── FoldableContainer
-│               └── NewsletterDay (Iterated by Issue)
-│                   ├── FoldableContainer
-│                   └── ArticleList
-│                       └── ArticleCard (Iterated by Article)
-│                           ├── useArticleState()
-│                           ├── useSummary()
-│                           ├── useSwipeToRemove()
-│                           │   └── useAnimation(Framer Motion)
-│                           │
-│                           └── ZenModeOverlay (Conditional Render)
-│                               ├── useScrollProgress()
-│                               ├── useOverscrollUp()
-│                               └── usePullToClose()
+│           └── Selectable (render props: menuButton, openMenu)
+│               └── FoldableContainer
+│                   └── NewsletterDay (Iterated by Issue)
+│                       └── Selectable
+│                           └── FoldableContainer
+│                               ├── Section (If newsletter has sections)
+│                               │   └── Selectable
+│                               │       └── FoldableContainer
+│                               │           └── ArticleList
+│                               │
+│                               └── ArticleList (If no sections)
+│                                   └── ArticleCard (Iterated by Article)
+│                                       └── Selectable
+│                                           ├── useArticleState()
+│                                           ├── useSummary()
+│                                           ├── useSwipeToRemove()
+│                                           │   └── useAnimation(Framer Motion)
+│                                           │
+│                                           └── ZenModeOverlay (Conditional)
+│                                               ├── useScrollProgress()
+│                                               ├── useOverscrollUp()
+│                                               └── usePullToClose()
 ```
 ---
 

@@ -1,9 +1,7 @@
-import { useState } from 'react'
 import ArticleList from './ArticleList'
-import BottomSheet from './BottomSheet'
 import FoldableContainer from './FoldableContainer'
 import ReadStatsBadge from './ReadStatsBadge'
-import ThreeDotMenuButton from './ThreeDotMenuButton'
+import Selectable from './Selectable'
 
 function groupArticlesBySection(articles) {
   return articles.reduce((acc, article) => {
@@ -34,8 +32,7 @@ function IssueSubtitle({ issue, allRemoved }) {
   )
 }
 
-function SectionTitle({ sectionKey, sectionEmoji }) {
-  const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
+function SectionTitle({ displayTitle }) {
   return (
     <div className="flex items-center gap-3">
       <h4 className="font-display font-bold text-lg text-slate-700">
@@ -45,31 +42,39 @@ function SectionTitle({ sectionKey, sectionEmoji }) {
   )
 }
 
-function Section({ date, newsletterTitle, sectionKey, articles }) {
+function Section({ date, sourceId, newsletterTitle, sectionKey, articles }) {
   const allRemoved = articles.every(a => a.removed)
   const sectionEmoji = articles[0].sectionEmoji
+  const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
+  const componentId = `section-${date}-${sourceId}-${sectionKey}`
 
   return (
-    <FoldableContainer
-      key={`${newsletterTitle}-${sectionKey}`}
-      id={`section-${date}-${newsletterTitle}-${sectionKey}`}
-      title={<SectionTitle sectionKey={sectionKey} sectionEmoji={sectionEmoji} />}
-      headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
-      defaultFolded={allRemoved}
-      className="mb-4"
-    >
-      <div className={`space-y-4 mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
-        <ArticleList articles={articles} showSectionHeaders={false} />
-      </div>
-    </FoldableContainer>
+    <Selectable id={componentId} title={displayTitle}>
+      {({ menuButton }) => (
+        <FoldableContainer
+          key={`${newsletterTitle}-${sectionKey}`}
+          id={`section-${date}-${newsletterTitle}-${sectionKey}`}
+          title={<SectionTitle displayTitle={displayTitle} />}
+          headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+          defaultFolded={allRemoved}
+          className="mb-4"
+          rightContent={menuButton}
+        >
+          <div className={`space-y-4 mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
+            <ArticleList articles={articles} showSectionHeaders={false} />
+          </div>
+        </FoldableContainer>
+      )}
+    </Selectable>
   )
 }
 
-function SectionsList({ date, title, sections, sortedSectionKeys }) {
+function SectionsList({ date, sourceId, title, sections, sortedSectionKeys }) {
   return sortedSectionKeys.map(sectionKey => (
     <Section
       key={`${title}-${sectionKey}`}
       date={date}
+      sourceId={sourceId}
       newsletterTitle={title}
       sectionKey={sectionKey}
       articles={sections[sectionKey]}
@@ -78,76 +83,54 @@ function SectionsList({ date, title, sections, sortedSectionKeys }) {
 }
 
 function NewsletterDay({ date, title, issue, articles }) {
-  const [menuOpen, setMenuOpen] = useState(false)
   const allRemoved = articles.length > 0 && articles.every(a => a.removed)
   const hasSections = articles.some(a => a.section)
 
   const sections = hasSections ? groupArticlesBySection(articles) : {}
   const sortedSectionKeys = hasSections ? getSortedSectionKeys(sections) : []
 
-  const handleSelect = () => {
-    const storageKey = 'podcastSources-1'
-    const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    // IMPORTANT: Use unified ID that's stable across frontend and backend.
-    // For newsletter issues, we use (date, source_id) which matches the backend's
-    // composite key design. The backend uses (date, source_id, category) for issues,
-    // but date+source_id is sufficient since each source_id only publishes once per day.
-    // We use issue.source_id (e.g., "tldr_tech") NOT title/category (e.g., "TLDR Tech")
-    // because source_id is the canonical, stable identifier defined in newsletter_config.py.
-    const componentId = `newsletter-${date}-${issue.source_id}`
-    if (!existing.includes(componentId)) {
-      existing.push(componentId)
-      localStorage.setItem(storageKey, JSON.stringify(existing))
-    }
-    setMenuOpen(false)
-  }
+  // Use unified ID that's stable across frontend and backend.
+  // For newsletter issues, we use (date, source_id) which matches the backend's
+  // composite key design. We use issue.source_id (e.g., "tldr_tech") NOT title/category
+  // (e.g., "TLDR Tech") because source_id is the canonical, stable identifier.
+  const componentId = `newsletter-${date}-${issue.source_id}`
 
   return (
-    <>
-      <FoldableContainer
-        id={`newsletter-${date}-${title}`}
-        headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
-        title={
-          <div className="flex items-center gap-3 py-2">
-            <h3 className="font-display font-bold text-xl text-slate-800">
-              {title}
-            </h3>
-            <ReadStatsBadge articles={articles} />
-          </div>
-        }
-        defaultFolded={allRemoved}
-        className="mb-8"
-        rightContent={<ThreeDotMenuButton onClick={() => setMenuOpen(true)} />}
-      >
-        <div className="space-y-6 mt-4">
-          <IssueSubtitle issue={issue} allRemoved={allRemoved} />
-
-          {hasSections ? (
-            <SectionsList
-              date={date}
-              title={title}
-              sections={sections}
-              sortedSectionKeys={sortedSectionKeys}
-            />
-          ) : (
-            <ArticleList articles={articles} showSectionHeaders={false} />
-          )}
-        </div>
-      </FoldableContainer>
-
-      <BottomSheet
-        isOpen={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        title={title}
-      >
-        <button
-          onClick={handleSelect}
-          className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-medium transition-colors"
+    <Selectable id={componentId} title={title}>
+      {({ menuButton }) => (
+        <FoldableContainer
+          id={`newsletter-${date}-${title}`}
+          headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+          title={
+            <div className="flex items-center gap-3 py-2">
+              <h3 className="font-display font-bold text-xl text-slate-800">
+                {title}
+              </h3>
+              <ReadStatsBadge articles={articles} />
+            </div>
+          }
+          defaultFolded={allRemoved}
+          className="mb-8"
+          rightContent={menuButton}
         >
-          Select
-        </button>
-      </BottomSheet>
-    </>
+          <div className="space-y-6 mt-4">
+            <IssueSubtitle issue={issue} allRemoved={allRemoved} />
+
+            {hasSections ? (
+              <SectionsList
+                date={date}
+                sourceId={issue.source_id}
+                title={title}
+                sections={sections}
+                sortedSectionKeys={sortedSectionKeys}
+              />
+            ) : (
+              <ArticleList articles={articles} showSectionHeaders={false} />
+            )}
+          </div>
+        </FoldableContainer>
+      )}
+    </Selectable>
   )
 }
 
