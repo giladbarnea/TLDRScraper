@@ -1,7 +1,7 @@
 import ArticleList from './ArticleList'
 import FoldableContainer from './FoldableContainer'
 import ReadStatsBadge from './ReadStatsBadge'
-import Selectable from './Selectable'
+import SelectionTrigger from './SelectionTrigger'
 
 function groupArticlesBySection(articles) {
   return articles.reduce((acc, article) => {
@@ -32,52 +32,64 @@ function IssueSubtitle({ issue, allRemoved }) {
   )
 }
 
-function SectionTitle({ displayTitle }) {
+function SectionTitle({ displayTitle, articleIds }) {
   return (
-    <div className="flex items-center gap-3">
-      <h4 className="font-display font-bold text-lg text-slate-700">
-        {displayTitle}
-      </h4>
-    </div>
+    <SelectionTrigger articleIds={articleIds}>
+      <div className="flex items-center gap-3">
+        <h4 className="font-display font-bold text-lg text-slate-700">
+          {displayTitle}
+        </h4>
+      </div>
+    </SelectionTrigger>
   )
 }
 
-function Section({ date, sourceId, newsletterTitle, sectionKey, articles }) {
+function Section({ date, newsletterTitle, sectionKey, articles }) {
   const allRemoved = articles.every(a => a.removed)
   const sectionEmoji = articles[0].sectionEmoji
   const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
-  const componentId = `section-${date}-${sourceId}-${sectionKey}`
-  const descendantIds = articles.map(a => `article-${a.url}`)
+  const articleIds = articles.map(a => `article-${a.url}`)
 
   return (
-    <Selectable id={componentId} descendantIds={descendantIds}>
-      <FoldableContainer
-        key={`${newsletterTitle}-${sectionKey}`}
-        id={`section-${date}-${newsletterTitle}-${sectionKey}`}
-        title={<SectionTitle displayTitle={displayTitle} />}
-        headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
-        defaultFolded={allRemoved}
-        className="mb-4"
-      >
-        <div className={`space-y-4 mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
-          <ArticleList articles={articles} showSectionHeaders={false} />
-        </div>
-      </FoldableContainer>
-    </Selectable>
+    <FoldableContainer
+      key={`${newsletterTitle}-${sectionKey}`}
+      id={`section-${date}-${newsletterTitle}-${sectionKey}`}
+      title={<SectionTitle displayTitle={displayTitle} articleIds={articleIds} />}
+      headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+      defaultFolded={allRemoved}
+      className="mb-4"
+    >
+      <div className={`space-y-4 mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
+        <ArticleList articles={articles} showSectionHeaders={false} />
+      </div>
+    </FoldableContainer>
   )
 }
 
-function SectionsList({ date, sourceId, title, sections, sortedSectionKeys }) {
+function SectionsList({ date, title, sections, sortedSectionKeys }) {
   return sortedSectionKeys.map(sectionKey => (
     <Section
       key={`${title}-${sectionKey}`}
       date={date}
-      sourceId={sourceId}
       newsletterTitle={title}
       sectionKey={sectionKey}
       articles={sections[sectionKey]}
     />
   ))
+}
+
+function NewsletterDayTitle({ title, articles }) {
+  const articleIds = articles.map(a => `article-${a.url}`)
+  return (
+    <SelectionTrigger articleIds={articleIds}>
+      <div className="flex items-center gap-3 py-2">
+        <h3 className="font-display font-bold text-xl text-slate-800">
+          {title}
+        </h3>
+        <ReadStatsBadge articles={articles} />
+      </div>
+    </SelectionTrigger>
+  )
 }
 
 function NewsletterDay({ date, title, issue, articles }) {
@@ -87,42 +99,29 @@ function NewsletterDay({ date, title, issue, articles }) {
   const sections = hasSections ? groupArticlesBySection(articles) : {}
   const sortedSectionKeys = hasSections ? getSortedSectionKeys(sections) : []
 
-  const componentId = `newsletter-${date}-${issue.source_id}`
-  const descendantIds = articles.map(a => `article-${a.url}`)
-
   return (
-    <Selectable id={componentId} descendantIds={descendantIds}>
-      <FoldableContainer
-        id={`newsletter-${date}-${title}`}
-        headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
-        title={
-          <div className="flex items-center gap-3 py-2">
-            <h3 className="font-display font-bold text-xl text-slate-800">
-              {title}
-            </h3>
-            <ReadStatsBadge articles={articles} />
-          </div>
-        }
-        defaultFolded={allRemoved}
-        className="mb-8"
-      >
-        <div className="space-y-6 mt-4">
-          <IssueSubtitle issue={issue} allRemoved={allRemoved} />
+    <FoldableContainer
+      id={`newsletter-${date}-${title}`}
+      headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+      title={<NewsletterDayTitle title={title} articles={articles} />}
+      defaultFolded={allRemoved}
+      className="mb-8"
+    >
+      <div className="space-y-6 mt-4">
+        <IssueSubtitle issue={issue} allRemoved={allRemoved} />
 
-          {hasSections ? (
-            <SectionsList
-              date={date}
-              sourceId={issue.source_id}
-              title={title}
-              sections={sections}
-              sortedSectionKeys={sortedSectionKeys}
-            />
-          ) : (
-            <ArticleList articles={articles} showSectionHeaders={false} />
-          )}
-        </div>
-      </FoldableContainer>
-    </Selectable>
+        {hasSections ? (
+          <SectionsList
+            date={date}
+            title={title}
+            sections={sections}
+            sortedSectionKeys={sortedSectionKeys}
+          />
+        ) : (
+          <ArticleList articles={articles} showSectionHeaders={false} />
+        )}
+      </div>
+    </FoldableContainer>
   )
 }
 

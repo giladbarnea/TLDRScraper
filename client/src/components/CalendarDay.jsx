@@ -3,7 +3,7 @@ import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import FoldableContainer from './FoldableContainer'
 import NewsletterDay from './NewsletterDay'
 import ReadStatsBadge from './ReadStatsBadge'
-import Selectable from './Selectable'
+import SelectionTrigger from './SelectionTrigger'
 
 function formatDateDisplay(dateStr) {
   const dateObj = new Date(dateStr)
@@ -12,16 +12,18 @@ function formatDateDisplay(dateStr) {
   return { displayText: isToday ? 'Today' : niceDate, isToday }
 }
 
-function CalendarDayTitle({ dateStr, loading, articles }) {
+function CalendarDayTitle({ dateStr, loading, articles, articleIds }) {
   const { displayText } = formatDateDisplay(dateStr)
   return (
-    <div className="flex items-center gap-3 py-4">
-      <h2 className="font-display text-2xl font-bold text-slate-900 tracking-tight">
-        {displayText}
-      </h2>
-      <ReadStatsBadge articles={articles} />
-      {loading && <span className="text-xs font-medium text-brand-500 animate-pulse">Syncing...</span>}
-    </div>
+    <SelectionTrigger articleIds={articleIds}>
+      <div className="flex items-center gap-3 py-4">
+        <h2 className="font-display text-2xl font-bold text-slate-900 tracking-tight">
+          {displayText}
+        </h2>
+        <ReadStatsBadge articles={articles} />
+        {loading && <span className="text-xs font-medium text-brand-500 animate-pulse">Syncing...</span>}
+      </div>
+    </SelectionTrigger>
   )
 }
 
@@ -62,24 +64,20 @@ function CalendarDay({ payload }) {
   const issues = livePayload?.issues ?? payload.issues ?? []
 
   const allArticlesRemoved = articles.length > 0 && articles.every(a => a.removed)
-
-  const componentId = `calendar-${date}`
-  const descendantIds = articles.map(a => `article-${a.url}`)
+  const articleIds = articles.map(a => `article-${a.url}`)
 
   return (
-    <Selectable id={componentId} descendantIds={descendantIds}>
-      <section className="animate-slide-up mb-12">
-        <FoldableContainer
-          id={`calendar-${date}`}
-          title={<CalendarDayTitle dateStr={date} loading={loading} articles={articles} />}
-          defaultFolded={allArticlesRemoved}
-          headerClassName="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/60"
-          contentClassName="mt-4"
-        >
-          <NewsletterList date={date} issues={issues} articles={articles} />
-        </FoldableContainer>
-      </section>
-    </Selectable>
+    <section className="animate-slide-up mb-12">
+      <FoldableContainer
+        id={`calendar-${date}`}
+        title={<CalendarDayTitle dateStr={date} loading={loading} articles={articles} articleIds={articleIds} />}
+        defaultFolded={allArticlesRemoved}
+        headerClassName="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/60"
+        contentClassName="mt-4"
+      >
+        <NewsletterList date={date} issues={issues} articles={articles} />
+      </FoldableContainer>
+    </section>
   )
 }
 

@@ -38,6 +38,16 @@ export function SelectionProvider({ children }) {
     })
   }, [])
 
+  const deselectMany = useCallback((ids) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      for (const id of ids) {
+        next.delete(id)
+      }
+      return next
+    })
+  }, [])
+
   const clear = useCallback(() => {
     setSelectedIds(new Set())
   }, [])
@@ -49,6 +59,7 @@ export function SelectionProvider({ children }) {
     isSelectMode,
     toggle,
     selectMany,
+    deselectMany,
     clear,
     isSelected,
   }

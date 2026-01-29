@@ -1,27 +1,15 @@
 import { Check } from 'lucide-react'
-import { useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import { useSelection } from '../contexts/SelectionContext'
 import { useLongPress } from '../hooks/useLongPress'
 
-function Selectable({ id, descendantIds = [], disabled = false, children }) {
-  const { isSelectMode, toggle, selectMany, isSelected } = useSelection()
+function Selectable({ id, disabled = false, children }) {
+  const { isSelectMode, toggle, isSelected } = useSelection()
   const selected = isSelected(id)
-  const wrapperRef = useRef(null)
 
-  const handleSelect = useCallback(() => {
-    if (descendantIds.length > 0) {
-      selectMany([id, ...descendantIds])
-    } else {
-      toggle(id)
-    }
-  }, [id, descendantIds, selectMany, toggle])
-
-  const longPress = useLongPress(handleSelect, { disabled })
+  const longPress = useLongPress(() => toggle(id), { disabled })
 
   const handleClickCapture = useCallback((e) => {
-    const closestSelectable = e.target.closest('[data-selectable]')
-    if (closestSelectable !== wrapperRef.current) return
-
     if (longPress.isLongPressRef.current) {
       e.stopPropagation()
       e.preventDefault()
@@ -31,14 +19,12 @@ function Selectable({ id, descendantIds = [], disabled = false, children }) {
     if (isSelectMode) {
       e.stopPropagation()
       e.preventDefault()
-      handleSelect()
+      toggle(id)
     }
-  }, [isSelectMode, handleSelect, longPress.isLongPressRef])
+  }, [isSelectMode, toggle, id, longPress.isLongPressRef])
 
   return (
     <div
-      ref={wrapperRef}
-      data-selectable
       className="relative"
       onClickCapture={handleClickCapture}
       {...longPress}
