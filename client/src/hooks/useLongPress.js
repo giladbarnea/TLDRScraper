@@ -4,6 +4,8 @@ export function useLongPress(onLongPress, { threshold = 500, disabled = false } 
   const timerRef = useRef(null)
   const startPosRef = useRef(null)
   const isLongPressRef = useRef(false)
+  const ignoreMouseRef = useRef(false)
+  const mouseBlockTimerRef = useRef(null)
 
   const clear = useCallback(() => {
     if (timerRef.current) {
@@ -12,6 +14,16 @@ export function useLongPress(onLongPress, { threshold = 500, disabled = false } 
     }
     startPosRef.current = null
   }, [])
+
+  const scheduleMouseReset = useCallback(() => {
+    if (mouseBlockTimerRef.current) {
+      clearTimeout(mouseBlockTimerRef.current)
+    }
+    mouseBlockTimerRef.current = setTimeout(() => {
+      ignoreMouseRef.current = false
+      mouseBlockTimerRef.current = null
+    }, threshold + 100)
+  }, [threshold])
 
   const start = useCallback((clientX, clientY) => {
     if (disabled) return
@@ -38,9 +50,11 @@ export function useLongPress(onLongPress, { threshold = 500, disabled = false } 
 
   const onTouchStart = useCallback((e) => {
     e.stopPropagation()
+    ignoreMouseRef.current = true
+    scheduleMouseReset()
     const touch = e.touches[0]
     start(touch.clientX, touch.clientY)
-  }, [start])
+  }, [start, scheduleMouseReset])
 
   const onTouchMove = useCallback((e) => {
     const touch = e.touches[0]
@@ -49,22 +63,27 @@ export function useLongPress(onLongPress, { threshold = 500, disabled = false } 
 
   const onTouchEnd = useCallback(() => {
     clear()
-  }, [clear])
+    scheduleMouseReset()
+  }, [clear, scheduleMouseReset])
 
   const onMouseDown = useCallback((e) => {
+    if (ignoreMouseRef.current) return
     e.stopPropagation()
     start(e.clientX, e.clientY)
   }, [start])
 
   const onMouseMove = useCallback((e) => {
+    if (ignoreMouseRef.current) return
     move(e.clientX, e.clientY)
   }, [move])
 
   const onMouseUp = useCallback(() => {
+    if (ignoreMouseRef.current) return
     clear()
   }, [clear])
 
   const onMouseLeave = useCallback(() => {
+    if (ignoreMouseRef.current) return
     clear()
   }, [clear])
 

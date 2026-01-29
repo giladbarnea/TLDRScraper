@@ -30,13 +30,13 @@ function Selectable({ id, descendantIds = [], disabled = false, children }) {
   const handleClickCapture = useCallback((e) => {
     const closestSelectable = e.target.closest('[data-selectable]')
     if (closestSelectable !== wrapperRef.current) return
-    if (e.target.closest('[data-fold-toggle]')) return
 
     if (longPress.isLongPressRef.current) {
       e.stopPropagation()
       e.preventDefault()
       return
     }
+    if (e.target.closest('[data-fold-toggle]')) return
 
     if (isSelectMode) {
       e.stopPropagation()
