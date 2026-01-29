@@ -1,5 +1,5 @@
 ---
-description: Create detailed implementation plans based on thorough research and deep thinking
+description: Create detailed implementation plans based on thorough research and deep thinking. Use this skill when the user tells you to plan.
 model: inherit
 argument-hint: [optional_requirements_file_path_and_additional_instructions]
 name: plan
@@ -9,34 +9,16 @@ last_updated: 2026-01-22 11:53, 57cd914
 
 You are tasked with creating detailed implementation plans through an interactive, iterative process. You should be skeptical, thorough, and work collaboratively with the user to produce high-quality technical specifications.
 
-## Initial Response
+## If the user provided extra context:
 
-When this command is invoked:
-
-1. **Check if parameters were provided**:
-   - If a file path or task reference was provided as a parameter, skip the default message
    - Immediately read any provided files FULLY
    - Begin the research process
-
-2. **If no parameters provided**, respond with:
-```
-I'll help you create a detailed implementation plan. Let me start by understanding what we're building.
-
-Please provide:
-1. The task description (or reference to a task/requirements file)
-2. Any relevant context, constraints, or specific requirements
-3. Links to related research or previous implementations
-
-I'll analyze this information and work with you to create a comprehensive plan.
-```
-
-Then wait for the user's input.
 
 ## Process Steps
 
 ### Step 1: Context Gathering & Initial Analysis
 
-1. **If the user mentioned any files, reads all of them immediately and FULLY**:
+1. **If the user mentioned any files, read all of them immediately and FULLY**:
    - Task files (e.g., `thoughts/yy-mm-dd-ENG-1234/ticket.md`)
    - Research documents
    - Related implementation plans
@@ -47,9 +29,9 @@ Then wait for the user's input.
 
 2. **Spawn initial research tasks to gather context**:
    Before asking the user any questions, use specialized agents to research in parallel:
-
-   - Use the **codebase-locator** agent to find all files related to the task
-   - Use the **codebase-analyzer:multiple-subsystems** agent to understand how the current implementation works
+<deep-context-grokking-method>
+   - **codebase-locator(model=haiku)** - To find all the files that have to do with the discussed behavior (e.g., "find all files concerning this and that")
+   - **codebase-analyzer:multiple-subsystems** - To understand all the details of the given scope (e.g., "analyze how such and such works")
 
    These agents will:
    - Find relevant source files, configs, and tests
@@ -57,9 +39,10 @@ Then wait for the user's input.
    - Return detailed explanations with file:line references
 
 3. **Read all files identified by research tasks**:
-   - After research tasks complete, read ALL files they identified as relevant
+   - After research tasks complete, read ALL files they referenced
    - Read them FULLY into the main context
    - This ensures you have complete understanding before proceeding
+</deep-context-grokking-method>
 
 4. **Analyze and verify understanding**:
    - Cross-reference the requirements with actual code
@@ -96,23 +79,11 @@ Then wait for the user's input.
 
 2. **Create a research todo list** using TodoWrite to track exploration tasks
 
-3. **Spawn parallel sub-tasks for comprehensive research**:
-   - Create multiple Task agents to research different aspects concurrently
-   - Use the right agent for each type of research:
+3. **Spawn parallel sub-tasks for comprehensive research**: apply the 'deep-context-grokking-method' as described above.
 
-   **For deeper investigation:**
-   - **codebase-locator** - To find more specific files (e.g., "find all files that handle [specific component]")
-   - **codebase-analyzer:multiple-subsystems** - To understand implementation details (e.g., "analyze how [system] works")
-   - **codebase-pattern-finder** - To find similar features we can model after
-
-   **For historical context:**
-
-   Each agent knows how to:
-   - Find the right files and code patterns
-   - Identify conventions and patterns to follow
-   - Look for integration points and dependencies
-   - Return specific file:line references
-   - Find tests and examples
+<how-to-prompt-subagents>
+Do not tell the agents how to do their jobs, nor spoon feed them with actionable steps. The agents have extensive and well designed system prompt - they know the job out of the box. Only shortly tell them the wider context of what we're doing, what's the end value you need from their research (declarative), and why you need that added value (purpose). Even a prompt as short as e.g., "I need to understand how the scraping mechanism works, as well as how it relates to the client page load." is a good example for how to prompt a sub agent — note how there's only a short description of your needs and zero micro-management.
+</how-to-prompt-subagents>
 
 4. **Wait for ALL sub-tasks to complete** before proceeding
 
@@ -148,12 +119,11 @@ Once aligned on approach:
 
    ## Implementation Phases:
    1. [Phase name] - [what it accomplishes]
-   2. [Phase name] - [what it accomplishes]
-   3. [Phase name] - [what it accomplishes]
+   (Optional, only if justified) 2. [Phase name] - [what it accomplishes]
 
    Does this phasing make sense? Should I adjust the order or granularity?
    ```
-   Note: can be any number of phases, in relation to the complexity of the task, as you see fit.
+   Note: can be any number of phases, in relation to the complexity of the task, as you see fit. One phase is commonly enough. Extra complex efforts may require two phases.
 
 2. **Get feedback on structure** before writing details
 
@@ -161,12 +131,11 @@ Once aligned on approach:
 
 After structure approval:
 
-1. **Write the plan** to `thoughts/YY-MM-DD-ENG-XXXX/plans/description.md`
-   - Format: `thoughts/YY-MM-DD-ENG-XXXX/plans/description.md` where:
+1. **Write the plan** to `thoughts/YY-MM-DD-foo-bar/plans/plan.md`
+   - Format: `thoughts/YY-MM-DD-foo-bar/plans/plan.md` where:
      - YY-MM-DD is today's date
-     - ENG-XXXX is the ticket number
-     - description is a brief kebab-case description
-   - Example: `thoughts/25-01-08-ENG-1478/plans/parent-child-tracking.md`
+     - foo-bar is the kebab-case effort name
+   - Example: `thoughts/25-01-08-selectable-cards/plans/plan.md`
 2. **Use this template structure**:
 
 <plan-template>
@@ -221,9 +190,10 @@ After structure approval:
 {% endfor %}
 
 #### Manual Verification
-- [ ] Feature works as expected when tested via the user interface or API
+- [ ] Feature works as expected when tested via the user interface and API
 - [ ] Edge case handling verified manually
 - [ ] No regressions in rest of project's functionality
+</plan-template>
 
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for manual confirmation from the human that the manual testing was successful before proceeding to the next phase.
 
@@ -231,7 +201,7 @@ After structure approval:
 
 ## (If applicable) Phase 2: [Descriptive Name]
 
-[Similar structure with both automated and manual success criteria...]
+[Similar structure as Phase 1.]
 
 ---
 
@@ -251,11 +221,10 @@ After structure approval:
 
 ## References
 
-- Original ticket: `thoughts/yy-mm-dd-ENG-XXXX/ticket.md`
-- Related research: `thoughts/yy-mm-dd-ENG-1234/research/topic.md`
-- Similar implementation: `[file:line]`
+- Original requirements: `thoughts/.../.../...md.`
+- Related research: `thoughts/.../.../...md.`
+- ...
 ```
-</plan-template>
 
 ### Step 5: Sync and Review
 
@@ -265,7 +234,7 @@ After structure approval:
 2. **Present the draft plan location**:
    ```markdown
    I've created the initial implementation plan at:
-   `thoughts/YY-MM-DD-ENG-XXXX/plans/description.md`
+   `thoughts/YY-MM-DD-foo-bar/plans/plan.md`
 
    Please review it and let me know:
    - Are the phases properly scoped?
@@ -292,13 +261,13 @@ After structure approval:
 
 2. **Be Interactive**:
    - Don't write the full plan in one shot
-   - Get buy-in at each major step
+   - Get buy-in at major steps
    - Allow course corrections
    - Work collaboratively
 
 3. **Be Thorough**:
    - Read all context files COMPLETELY before planning
-   - Research actual code patterns using parallel sub-tasks
+   - Utilize sub-tasks as instructed  above
    - Include specific file paths and line numbers
    - Write measurable success criteria with clear automated vs manual distinction
 
@@ -306,6 +275,10 @@ After structure approval:
    - Focus on incremental, testable changes
    - Think about edge cases
    - Include "what we're NOT doing"
+
+5. **Crucial research methodology**: all research consists of 2-phases: 
+  a) Explore to have a map of the entire search space. What domains does it include? (codebase-locator)
+  b) Deep dive into each domain: unearth all the details to fully grok the entire scope (multi-subsystems)
 
 5. **Track Progress**:
    - Use TodoWrite to track planning tasks
@@ -318,72 +291,3 @@ After structure approval:
    - Do NOT write the plan with unresolved questions
    - The implementation plan must be complete and actionable
    - Every decision must be made before finalizing the plan
-
-## Common Patterns
-
-### For Database Changes:
-- Start with schema/migration
-- Add data access methods
-- Update business logic
-- Expose via API
-- Update clients
-
-### For New Features:
-- Research existing patterns first
-- Start with data model
-- Build backend logic
-- Add API endpoints
-- Implement UI last
-
-### For Refactoring:
-- Document current behavior
-- Plan incremental changes
-- Include migration strategy
-
-## Sub-task Spawning Best Practices
-
-When spawning research sub-tasks:
-
-1. **Spawn multiple tasks in parallel** for efficiency
-2. **Each task should be focused** on a specific area
-3. **Provide detailed instructions** including:
-   - Exactly what to search for
-   - Which directories to focus on
-   - What information to extract
-   - Expected output format
-4. **Be EXTREMELY specific about directories**:
-   - Include the full path context in your prompts
-5. **Specify read-only tools** to use
-6. **Request specific file:line references** in responses
-7. **Wait for all tasks to complete** before synthesizing
-8. **Verify sub-task results**:
-   - If a sub-task returns unexpected results, spawn follow-up tasks
-   - Cross-check findings against the actual codebase
-   - Don't accept results that seem incorrect
-
-Example of spawning multiple tasks:
-```
-# Spawn these tasks concurrently:
-tasks = [
-    Task("Research database schema", db_research_prompt),
-    Task("Find API patterns", api_research_prompt),
-    Task("Investigate UI components", ui_research_prompt),
-    Task("Check test patterns", test_research_prompt)
-]
-```
-
-## Example Interaction Flow
-
-```
-User: /plan
-Assistant: I'll help you create a detailed implementation plan...
-
-User: We need to add parent-child tracking for Claude sub-tasks. See thoughts/yy-mm-dd-ENG-1478/ticket.md
-Assistant: Let me read that requirements file completely first...
-
-[Reads file fully]
-
-Based on the requirements, I understand we need to track parent-child relationships for Claude sub-task events in the daemon. Before I start planning, I have some questions...
-
-[Interactive process continues...]
-```
