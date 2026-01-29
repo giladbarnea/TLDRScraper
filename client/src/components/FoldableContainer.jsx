@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 
-function FoldableContainer({ id, title, children, defaultFolded = false, className = '', headerClassName = '', contentClassName = '', dataAttributes = {}, rightContent = null }) {
+function FoldableContainer({ id, title, children, defaultFolded = false, className = '', headerClassName = '', contentClassName = '', dataAttributes = {} }) {
   const [isFolded, setIsFolded] = useLocalStorage(id, defaultFolded)
   const prevDefaultFolded = useRef(defaultFolded)
 
@@ -35,8 +35,6 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
             <ChevronRight size={20} />
           </div>
         </div>
-
-        {rightContent}
       </div>
 
       <div className={`

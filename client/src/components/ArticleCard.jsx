@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
-import { AlertCircle, ArrowDownCircle, Check, CheckCircle, ChevronDown, Loader2, MoreVertical, Trash2 } from 'lucide-react'
+import { AlertCircle, ArrowDownCircle, Check, CheckCircle, ChevronDown, Loader2, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useSelection } from '../contexts/SelectionContext'
 import { useArticleState } from '../hooks/useArticleState'
 import { useOverscrollUp } from '../hooks/useOverscrollUp'
 import { usePullToClose } from '../hooks/usePullToClose'
@@ -26,7 +27,7 @@ function ErrorToast({ message, onDismiss }) {
   )
 }
 
-function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkDone, onOpenMenu }) {
+function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkDone }) {
   const [hasScrolled, setHasScrolled] = useState(false)
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
@@ -39,7 +40,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
   })
 
   const truncatedMeta = articleMeta && articleMeta.length > 22
-    ? articleMeta.slice(0, 22) + '...'
+    ? `${articleMeta.slice(0, 22)}...`
     : articleMeta
 
   useEffect(() => {
@@ -106,24 +107,12 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
             </span>
           </a>
 
-          <div className="flex items-center gap-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onOpenMenu()
-              }}
-              className="shrink-0 p-2 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
-            >
-              <MoreVertical size={20} />
-            </button>
-
-            <button
-              onClick={onMarkDone}
-              className="shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
-            >
-              <Check size={20} />
-            </button>
-          </div>
+          <button
+            onClick={onMarkDone}
+            className="shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
+          >
+            <Check size={20} />
+          </button>
 
           {/* Progress Bar */}
           <div
@@ -243,6 +232,7 @@ function TldrError({ message }) {
 }
 
 function ArticleCard({ article }) {
+  const { isSelectMode } = useSelection()
   const { isRead, isRemoved, toggleRemove, markAsRemoved, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
@@ -260,6 +250,8 @@ function ArticleCard({ article }) {
     stateLoading,
     onSwipeComplete: handleSwipeComplete,
   })
+
+  const swipeEnabled = canDrag && !isSelectMode
 
   const fullUrl = article.url.startsWith('http://') || article.url.startsWith('https://')
     ? article.url
@@ -291,107 +283,97 @@ function ArticleCard({ article }) {
     tldr.toggle()
   }
 
-  // Use unified ID that's stable across frontend and backend.
-  // For articles, we use the canonical URL which is the backend's unique identifier.
   const componentId = `article-${article.url}`
 
   return (
-    <Selectable id={componentId} title={article.title}>
-      {({ menuButton, openMenu }) => (
-        <>
-          <motion.div
-            layout
-            className={`relative ${tldr.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
-          >
-            <div className={`absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8 transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
-              <Trash2 className="text-red-400" size={20} />
-            </div>
+    <Selectable id={componentId} disabled={isRemoved}>
+      <motion.div
+        layout
+        className={`relative ${tldr.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
+      >
+        <div className={`absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8 transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
+          <Trash2 className="text-red-400" size={20} />
+        </div>
 
-            <motion.div
-              drag={canDrag ? "x" : false}
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={{ left: 0.5, right: 0.1 }}
-              dragMomentum={false}
-              dragListener={canDrag}
-              animate={controls}
-              initial={{ opacity: 1, filter: 'grayscale(0%)', scale: 1, x: 0 }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              whileHover={canDrag ? { scale: 1.005 } : undefined}
-              whileTap={canDrag ? { scale: 0.99 } : undefined}
-              onClick={handleCardClick}
-              style={{ touchAction: canDrag ? "pan-y" : "auto" }}
-              data-article-title={article.title}
-              data-article-url={article.url}
-              data-article-date={article.issueDate}
-              data-article-category={article.category}
-              data-article-source={article.sourceId}
-              data-read={isRead}
-              data-removed={isRemoved}
-              data-state-loading={stateLoading}
-              data-tldr-status={tldr.status}
-              data-tldr-expanded={tldr.expanded}
-              data-tldr-available={isAvailable}
-              data-dragging={isDragging}
-              data-can-drag={canDrag}
-              className={`
-                relative z-10
-                rounded-[20px] border border-white/40
-                shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)]
-                backdrop-blur-xl
-                cursor-pointer select-none
-                ${isRemoved ? 'bg-slate-50' : 'bg-white'}
-                ${stateLoading ? 'pointer-events-none' : ''}
-                ${tldr.expanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
-              `}
-            >
-              <div className="p-5 flex flex-col gap-2">
-                <div className="flex items-start justify-between gap-2">
-                  <ArticleTitle
-                    isRead={isRead}
-                    title={article.title}
-                  />
-                  {!isRemoved && menuButton}
-                </div>
+        <motion.div
+          drag={swipeEnabled ? "x" : false}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={{ left: 0.5, right: 0.1 }}
+          dragMomentum={false}
+          dragListener={swipeEnabled}
+          animate={controls}
+          initial={{ opacity: 1, filter: 'grayscale(0%)', scale: 1, x: 0 }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          whileHover={swipeEnabled ? { scale: 1.005 } : undefined}
+          whileTap={swipeEnabled ? { scale: 0.99 } : undefined}
+          onClick={handleCardClick}
+          style={{ touchAction: swipeEnabled ? "pan-y" : "auto" }}
+          data-article-title={article.title}
+          data-article-url={article.url}
+          data-article-date={article.issueDate}
+          data-article-category={article.category}
+          data-article-source={article.sourceId}
+          data-read={isRead}
+          data-removed={isRemoved}
+          data-state-loading={stateLoading}
+          data-tldr-status={tldr.status}
+          data-tldr-expanded={tldr.expanded}
+          data-tldr-available={isAvailable}
+          data-dragging={isDragging}
+          data-can-drag={swipeEnabled}
+          className={`
+            relative z-10
+            rounded-[20px] border border-white/40
+            shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)]
+            backdrop-blur-xl
+            cursor-pointer select-none
+            ${isRemoved ? 'bg-slate-50' : 'bg-white'}
+            ${stateLoading ? 'pointer-events-none' : ''}
+            ${tldr.expanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
+          `}
+        >
+          <div className="p-5 flex flex-col gap-2">
+            <ArticleTitle
+              isRead={isRead}
+              title={article.title}
+            />
 
-                {!isRemoved && (
-                  <ArticleMeta
-                    domain={displayDomain}
-                    hostname={hostname}
-                    articleMeta={article.articleMeta}
-                    tldrLoading={tldr.loading}
-                    tldrAvailable={isAvailable}
-                    isRead={isRead}
-                  />
-                )}
+            {!isRemoved && (
+              <ArticleMeta
+                domain={displayDomain}
+                hostname={hostname}
+                articleMeta={article.articleMeta}
+                tldrLoading={tldr.loading}
+                tldrAvailable={isAvailable}
+                isRead={isRead}
+              />
+            )}
 
-                {!isRemoved && tldr.status === 'error' && (
-                  <TldrError message={tldr.errorMessage} />
-                )}
+            {!isRemoved && tldr.status === 'error' && (
+              <TldrError message={tldr.errorMessage} />
+            )}
 
-                {!isRemoved && tldr.expanded && tldr.html && (
-                  <ZenModeOverlay
-                    url={fullUrl}
-                    html={tldr.html}
-                    hostname={hostname}
-                    displayDomain={displayDomain}
-                    articleMeta={article.articleMeta}
-                    onClose={() => tldr.collapse()}
-                    onMarkDone={() => {
-                      tldr.collapse()
-                      markAsRemoved()
-                    }}
-                    onOpenMenu={openMenu}
-                  />
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
+            {!isRemoved && tldr.expanded && tldr.html && (
+              <ZenModeOverlay
+                url={fullUrl}
+                html={tldr.html}
+                hostname={hostname}
+                displayDomain={displayDomain}
+                articleMeta={article.articleMeta}
+                onClose={() => tldr.collapse()}
+                onMarkDone={() => {
+                  tldr.collapse()
+                  markAsRemoved()
+                }}
+              />
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
 
-          {dragError && <ErrorToast message={dragError} onDismiss={clearDragError} />}
-        </>
-      )}
+      {dragError && <ErrorToast message={dragError} onDismiss={clearDragError} />}
     </Selectable>
   )
 }

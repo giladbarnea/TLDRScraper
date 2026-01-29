@@ -1,40 +1,56 @@
-import { useState } from 'react'
-import BottomSheet from './BottomSheet'
-import ThreeDotMenuButton from './ThreeDotMenuButton'
+import { Check } from 'lucide-react'
+import { useCallback } from 'react'
+import { useSelection } from '../contexts/SelectionContext'
+import { useLongPress } from '../hooks/useLongPress'
 
-function Selectable({ id, title, children }) {
-  const [menuOpen, setMenuOpen] = useState(false)
+function Selectable({ id, descendantIds = [], disabled = false, children }) {
+  const { isSelectMode, toggle, selectMany, isSelected } = useSelection()
+  const selected = isSelected(id)
 
-  const handleSelect = () => {
-    const storageKey = 'podcastSources-1'
-    const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    if (!existing.includes(id)) {
-      existing.push(id)
-      localStorage.setItem(storageKey, JSON.stringify(existing))
+  const handleLongPress = useCallback(() => {
+    if (descendantIds.length > 0) {
+      selectMany([id, ...descendantIds])
+    } else {
+      toggle(id)
     }
-    setMenuOpen(false)
-  }
+  }, [id, descendantIds, selectMany, toggle])
 
-  const openMenu = () => setMenuOpen(true)
-  const menuButton = <ThreeDotMenuButton onClick={openMenu} />
+  const longPress = useLongPress(handleLongPress, { disabled })
+
+  const handleClick = useCallback((e) => {
+    if (longPress.isLongPressRef.current) {
+      e.stopPropagation()
+      e.preventDefault()
+      return
+    }
+
+    if (isSelectMode) {
+      e.stopPropagation()
+      e.preventDefault()
+      if (descendantIds.length > 0) {
+        selectMany([id, ...descendantIds])
+      } else {
+        toggle(id)
+      }
+    }
+  }, [isSelectMode, id, descendantIds, selectMany, toggle, longPress.isLongPressRef])
 
   return (
-    <>
-      {children({ menuButton, openMenu })}
+    <div
+      className="relative"
+      onClickCapture={handleClick}
+      {...longPress}
+    >
+      <div className={selected ? 'ring-4 ring-slate-300 rounded-[20px]' : ''}>
+        {children}
+      </div>
 
-      <BottomSheet
-        isOpen={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        title={title}
-      >
-        <button
-          onClick={handleSelect}
-          className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-medium transition-colors"
-        >
-          Select
-        </button>
-      </BottomSheet>
-    </>
+      {selected && (
+        <div className="absolute top-2 left-2 z-20 w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center shadow-md animate-check-enter">
+          <Check size={16} className="text-white" strokeWidth={3} />
+        </div>
+      )}
+    </div>
   )
 }
 

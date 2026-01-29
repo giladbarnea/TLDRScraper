@@ -2,6 +2,8 @@ import { Calendar } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Feed from './components/Feed'
 import ScrapeForm from './components/ScrapeForm'
+import SelectionCounterPill from './components/SelectionCounterPill'
+import { SelectionProvider } from './contexts/SelectionContext'
 import { scrapeNewsletters } from './lib/scraper'
 
 function App() {
@@ -58,6 +60,7 @@ function App() {
   })
 
   return (
+    <SelectionProvider>
     <div className="min-h-screen flex justify-center font-sans bg-[#f8fafc] text-slate-900 selection:bg-brand-100 selection:text-brand-900">
       <div className="w-full max-w-3xl relative">
 
@@ -75,8 +78,9 @@ function App() {
               </p>
             </div>
 
-            <div className="flex gap-2">
-               <button
+            <div className="flex items-center gap-3">
+              <SelectionCounterPill />
+              <button
                 onClick={() => setShowSettings(!showSettings)}
                 className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${showSettings ? 'bg-brand-50 text-brand-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
                 title="Date Range & Settings"
@@ -119,6 +123,7 @@ function App() {
 
       </div>
     </div>
+    </SelectionProvider>
   )
 }
 

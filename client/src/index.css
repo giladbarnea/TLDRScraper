@@ -62,28 +62,17 @@
   animation: zen-enter 300ms var(--ease-springy) forwards;
 }
 
-@keyframes sheet-enter {
+@keyframes check-enter {
   from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-@keyframes sheet-backdrop-enter {
-  from {
+    transform: scale(0);
     opacity: 0;
   }
   to {
+    transform: scale(1);
     opacity: 1;
   }
 }
 
-@utility animate-sheet-enter {
-  animation: sheet-enter 300ms var(--ease-springy) forwards;
-}
-
-@utility animate-sheet-backdrop {
-  animation: sheet-backdrop-enter 200ms ease-out forwards;
+@utility animate-check-enter {
+  animation: check-enter 150ms var(--ease-springy) forwards;
 }
