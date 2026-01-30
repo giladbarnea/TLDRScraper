@@ -1,3 +1,6 @@
+---
+last_updated: 2026-01-30 15:12, 46f9c07
+---
 # Discussion: Cross-domain (cross state-machine) Reducer pattern state management
 
 The most obvious next place is the ArticleCard “interaction stack” (the card + TLDR expansion + Zen overlay + swipe-to-remove + read/removed transitions + error toast).
