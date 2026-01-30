@@ -47,24 +47,22 @@ function Section({ date, sourceId, newsletterTitle, sectionKey, articles }) {
   const sectionEmoji = articles[0].sectionEmoji
   const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
   const componentId = `section-${date}-${sourceId}-${sectionKey}`
+  const descendantIds = articles.map(a => `article-${a.url}`)
 
   return (
-    <Selectable id={componentId} title={displayTitle}>
-      {({ menuButton }) => (
-        <FoldableContainer
-          key={`${newsletterTitle}-${sectionKey}`}
-          id={`section-${date}-${newsletterTitle}-${sectionKey}`}
-          title={<SectionTitle displayTitle={displayTitle} />}
-          headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
-          defaultFolded={allRemoved}
-          className="mb-4"
-          rightContent={menuButton}
-        >
-          <div className={`space-y-4 mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
-            <ArticleList articles={articles} showSectionHeaders={false} />
-          </div>
-        </FoldableContainer>
-      )}
+    <Selectable id={componentId} descendantIds={descendantIds}>
+      <FoldableContainer
+        key={`${newsletterTitle}-${sectionKey}`}
+        id={componentId}
+        title={<SectionTitle displayTitle={displayTitle} />}
+        headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+        defaultFolded={allRemoved}
+        className="mb-4"
+      >
+        <div className={`space-y-4 mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
+          <ArticleList articles={articles} showSectionHeaders={false} />
+        </div>
+      </FoldableContainer>
     </Selectable>
   )
 }
@@ -89,47 +87,41 @@ function NewsletterDay({ date, title, issue, articles }) {
   const sections = hasSections ? groupArticlesBySection(articles) : {}
   const sortedSectionKeys = hasSections ? getSortedSectionKeys(sections) : []
 
-  // Use unified ID that's stable across frontend and backend.
-  // For newsletter issues, we use (date, source_id) which matches the backend's
-  // composite key design. We use issue.source_id (e.g., "tldr_tech") NOT title/category
-  // (e.g., "TLDR Tech") because source_id is the canonical, stable identifier.
   const componentId = `newsletter-${date}-${issue.source_id}`
+  const descendantIds = articles.map(a => `article-${a.url}`)
 
   return (
-    <Selectable id={componentId} title={title}>
-      {({ menuButton }) => (
-        <FoldableContainer
-          id={`newsletter-${date}-${title}`}
-          headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
-          title={
-            <div className="flex items-center gap-3 py-2">
-              <h3 className="font-display font-bold text-xl text-slate-800">
-                {title}
-              </h3>
-              <ReadStatsBadge articles={articles} />
-            </div>
-          }
-          defaultFolded={allRemoved}
-          className="mb-8"
-          rightContent={menuButton}
-        >
-          <div className="space-y-6 mt-4">
-            <IssueSubtitle issue={issue} allRemoved={allRemoved} />
-
-            {hasSections ? (
-              <SectionsList
-                date={date}
-                sourceId={issue.source_id}
-                title={title}
-                sections={sections}
-                sortedSectionKeys={sortedSectionKeys}
-              />
-            ) : (
-              <ArticleList articles={articles} showSectionHeaders={false} />
-            )}
+    <Selectable id={componentId} descendantIds={descendantIds}>
+      <FoldableContainer
+        id={componentId}
+        headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+        title={
+          <div className="flex items-center gap-3 py-2">
+            <h3 className="font-display font-bold text-xl text-slate-800">
+              {title}
+            </h3>
+            <ReadStatsBadge articles={articles} />
           </div>
-        </FoldableContainer>
-      )}
+        }
+        defaultFolded={allRemoved}
+        className="mb-8"
+      >
+        <div className="space-y-6 mt-4">
+          <IssueSubtitle issue={issue} allRemoved={allRemoved} />
+
+          {hasSections ? (
+            <SectionsList
+              date={date}
+              sourceId={issue.source_id}
+              title={title}
+              sections={sections}
+              sortedSectionKeys={sortedSectionKeys}
+            />
+          ) : (
+            <ArticleList articles={articles} showSectionHeaders={false} />
+          )}
+        </div>
+      </FoldableContainer>
     </Selectable>
   )
 }

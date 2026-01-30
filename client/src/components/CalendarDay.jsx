@@ -62,29 +62,23 @@ function CalendarDay({ payload }) {
   const issues = livePayload?.issues ?? payload.issues ?? []
 
   const allArticlesRemoved = articles.length > 0 && articles.every(a => a.removed)
-  const { displayText } = formatDateDisplay(date)
 
-  // Use unified ID that's stable across frontend and backend.
-  // For calendar days, we use the ISO date (YYYY-MM-DD) which is already
-  // a canonical identifier matching the backend's date handling.
   const componentId = `calendar-${date}`
+  const descendantIds = articles.map(a => `article-${a.url}`)
 
   return (
-    <Selectable id={componentId} title={displayText}>
-      {({ menuButton }) => (
-        <section className="animate-slide-up mb-12">
-          <FoldableContainer
-            id={`calendar-${date}`}
-            title={<CalendarDayTitle dateStr={date} loading={loading} articles={articles} />}
-            defaultFolded={allArticlesRemoved}
-            headerClassName="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/60"
-            contentClassName="mt-4"
-            rightContent={menuButton}
-          >
-            <NewsletterList date={date} issues={issues} articles={articles} />
-          </FoldableContainer>
-        </section>
-      )}
+    <Selectable id={componentId} descendantIds={descendantIds}>
+      <section className="animate-slide-up mb-12">
+        <FoldableContainer
+          id={`calendar-${date}`}
+          title={<CalendarDayTitle dateStr={date} loading={loading} articles={articles} />}
+          defaultFolded={allArticlesRemoved}
+          headerClassName="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/60"
+          contentClassName="mt-4"
+        >
+          <NewsletterList date={date} issues={issues} articles={articles} />
+        </FoldableContainer>
+      </section>
     </Selectable>
   )
 }

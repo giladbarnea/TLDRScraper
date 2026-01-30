@@ -1,17 +1,17 @@
 import { ChevronRight } from 'lucide-react'
-import { useEffect, useRef } from 'react'
-import { useLocalStorage } from '../hooks/useLocalStorage'
+import { useEffect } from 'react'
+import { useInteraction } from '../contexts/InteractionContext'
 
-function FoldableContainer({ id, title, children, defaultFolded = false, className = '', headerClassName = '', contentClassName = '', dataAttributes = {}, rightContent = null }) {
-  const [isFolded, setIsFolded] = useLocalStorage(id, defaultFolded)
-  const prevDefaultFolded = useRef(defaultFolded)
+function FoldableContainer({ id, title, children, defaultFolded = false, className = '', headerClassName = '', contentClassName = '', dataAttributes = {} }) {
+  const { isExpanded, containerShortPress, setExpanded } = useInteraction()
+  const expanded = isExpanded(id)
+  const isFolded = !expanded
 
   useEffect(() => {
-    if (defaultFolded && !prevDefaultFolded.current) {
-      setIsFolded(true)
+    if (defaultFolded) {
+      setExpanded(id, false)
     }
-    prevDefaultFolded.current = defaultFolded
-  }, [defaultFolded, setIsFolded])
+  }, [defaultFolded, id, setExpanded])
 
   return (
     <div
@@ -21,7 +21,8 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
     >
       <div className={`flex items-center ${headerClassName}`}>
         <div
-          onClick={() => setIsFolded(!isFolded)}
+          onClick={() => containerShortPress(id)}
+          data-fold-toggle
           className="cursor-pointer group select-none flex items-center flex-1"
         >
           <div className="flex-grow-0">
@@ -35,8 +36,6 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
             <ChevronRight size={20} />
           </div>
         </div>
-
-        {rightContent}
       </div>
 
       <div className={`

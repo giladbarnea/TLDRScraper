@@ -1,40 +1,76 @@
-import { useState } from 'react'
-import BottomSheet from './BottomSheet'
-import ThreeDotMenuButton from './ThreeDotMenuButton'
+import { Check } from 'lucide-react'
+import { useCallback, useMemo, useRef } from 'react'
+import { useInteraction } from '../contexts/InteractionContext'
+import { useLongPress } from '../hooks/useLongPress'
 
-function Selectable({ id, title, children }) {
-  const [menuOpen, setMenuOpen] = useState(false)
+function Selectable({ id, descendantIds = [], disabled = false, children }) {
+  const {
+    isSelected,
+    itemLongPress,
+    containerLongPress,
+  } = useInteraction()
+  const isParent = descendantIds.length > 0
+  const selected = useMemo(() => {
+    return !isParent && isSelected(id)
+  }, [isParent, isSelected, id])
+  const wrapperRef = useRef(null)
 
-  const handleSelect = () => {
-    const storageKey = 'podcastSources-1'
-    const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    if (!existing.includes(id)) {
-      existing.push(id)
-      localStorage.setItem(storageKey, JSON.stringify(existing))
+  const onLongPress = useCallback(() => {
+    if (disabled) return
+    if (isParent) {
+      containerLongPress(id, descendantIds)
+      return
     }
-    setMenuOpen(false)
-  }
+    itemLongPress(id)
+  }, [disabled, isParent, containerLongPress, id, descendantIds, itemLongPress])
 
-  const openMenu = () => setMenuOpen(true)
-  const menuButton = <ThreeDotMenuButton onClick={openMenu} />
+  const longPress = useLongPress(onLongPress, { disabled })
+
+  const isSelfEvent = useCallback((event) => {
+    return event.target?.closest?.('[data-selectable]') === wrapperRef.current
+  }, [])
+
+  const handlePointerDown = useCallback((event) => {
+    if (!isSelfEvent(event)) return
+    longPress.handlers.onPointerDown(event)
+  }, [isSelfEvent, longPress.handlers])
+
+  const handlePointerMove = useCallback((event) => {
+    longPress.handlers.onPointerMove(event)
+  }, [longPress.handlers])
+
+  const handlePointerUp = useCallback((event) => {
+    longPress.handlers.onPointerUp(event)
+  }, [longPress.handlers])
+
+  const handlePointerCancel = useCallback((event) => {
+    longPress.handlers.onPointerCancel(event)
+  }, [longPress.handlers])
 
   return (
-    <>
-      {children({ menuButton, openMenu })}
+    <div
+      ref={wrapperRef}
+      data-selectable
+      className="relative"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onContextMenu={(event) => {
+        if (isSelfEvent(event)) event.preventDefault()
+      }}
+      style={{ touchAction: 'pan-y' }}
+    >
+      <div className={selected ? 'ring-4 ring-slate-300 rounded-[20px]' : ''}>
+        {children}
+      </div>
 
-      <BottomSheet
-        isOpen={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        title={title}
-      >
-        <button
-          onClick={handleSelect}
-          className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-medium transition-colors"
-        >
-          Select
-        </button>
-      </BottomSheet>
-    </>
+      {selected && (
+        <div className="absolute top-2 left-2 z-20 w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center shadow-md animate-check-enter">
+          <Check size={16} className="text-white" strokeWidth={3} />
+        </div>
+      )}
+    </div>
   )
 }
 
