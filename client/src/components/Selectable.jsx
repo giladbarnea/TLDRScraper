@@ -1,97 +1,65 @@
 import { Check } from 'lucide-react'
-import { useCallback, useRef } from 'react'
-import { useSelection } from '../contexts/SelectionContext'
+import { useCallback, useMemo, useRef } from 'react'
+import { useInteraction } from '../contexts/InteractionContext'
 import { useLongPress } from '../hooks/useLongPress'
 
 function Selectable({ id, descendantIds = [], disabled = false, children }) {
-  const { isSelectMode, toggle, selectMany, deselectMany, isSelected } = useSelection()
+  const {
+    isSelected,
+    itemLongPress,
+    containerLongPress,
+  } = useInteraction()
   const isParent = descendantIds.length > 0
-  const allDescendantsSelected = isParent
-    ? descendantIds.length > 0 && descendantIds.every((descendantId) => isSelected(descendantId))
-    : false
-  const selected = !isParent && isSelected(id)
+  const selected = useMemo(() => {
+    return !isParent && isSelected(id)
+  }, [isParent, isSelected, id])
   const wrapperRef = useRef(null)
-  const activePressRef = useRef(false)
 
-  const handleSelect = useCallback(() => {
+  const onLongPress = useCallback(() => {
     if (disabled) return
     if (isParent) {
-      if (allDescendantsSelected) {
-        deselectMany(descendantIds)
-      } else {
-        selectMany(descendantIds)
-      }
+      containerLongPress(id, descendantIds)
       return
     }
-    toggle(id)
-  }, [disabled, isParent, allDescendantsSelected, deselectMany, selectMany, descendantIds, toggle, id])
+    itemLongPress(id)
+  }, [disabled, isParent, containerLongPress, id, descendantIds, itemLongPress])
 
-  const longPress = useLongPress(handleSelect, { disabled })
+  const longPress = useLongPress(onLongPress, { disabled })
 
   const isSelfEvent = useCallback((event) => {
     return event.target?.closest?.('[data-selectable]') === wrapperRef.current
   }, [])
 
-  const handleClickCapture = useCallback((e) => {
-    const closestSelectable = e.target.closest('[data-selectable]')
-    if (closestSelectable !== wrapperRef.current) return
+  const handlePointerDown = useCallback((event) => {
+    if (!isSelfEvent(event)) return
+    longPress.handlers.onPointerDown(event)
+  }, [isSelfEvent, longPress.handlers])
 
-    if (longPress.isLongPressRef.current) {
-      e.stopPropagation()
-      e.preventDefault()
-      return
-    }
+  const handlePointerMove = useCallback((event) => {
+    longPress.handlers.onPointerMove(event)
+  }, [longPress.handlers])
 
-    if (isSelectMode && !isParent && !disabled) {
-      e.stopPropagation()
-      e.preventDefault()
-      handleSelect()
-    }
-  }, [isSelectMode, isParent, disabled, handleSelect, longPress.isLongPressRef])
+  const handlePointerUp = useCallback((event) => {
+    longPress.handlers.onPointerUp(event)
+  }, [longPress.handlers])
 
-  const longPressHandlers = {
-    onTouchStart: (e) => {
-      if (!isSelfEvent(e)) return
-      activePressRef.current = true
-      longPress.handlers.onTouchStart(e)
-    },
-    onTouchMove: (e) => {
-      if (!activePressRef.current) return
-      longPress.handlers.onTouchMove(e)
-    },
-    onTouchEnd: (e) => {
-      if (!activePressRef.current) return
-      activePressRef.current = false
-      longPress.handlers.onTouchEnd(e)
-    },
-    onMouseDown: (e) => {
-      if (!isSelfEvent(e)) return
-      activePressRef.current = true
-      longPress.handlers.onMouseDown(e)
-    },
-    onMouseMove: (e) => {
-      if (!activePressRef.current) return
-      longPress.handlers.onMouseMove(e)
-    },
-    onMouseUp: (e) => {
-      if (!activePressRef.current) return
-      activePressRef.current = false
-      longPress.handlers.onMouseUp(e)
-    },
-    onMouseLeave: (e) => {
-      if (!activePressRef.current) return
-      activePressRef.current = false
-      longPress.handlers.onMouseLeave(e)
-    },
-  }
+  const handlePointerCancel = useCallback((event) => {
+    longPress.handlers.onPointerCancel(event)
+  }, [longPress.handlers])
 
   return (
     <div
       ref={wrapperRef}
       data-selectable
       className="relative"
-      onClickCapture={handleClickCapture}
-      {...longPressHandlers}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onContextMenu={(event) => {
+        if (isSelfEvent(event)) event.preventDefault()
+      }}
+      style={{ touchAction: 'pan-y' }}
     >
       <div className={selected ? 'ring-4 ring-slate-300 rounded-[20px]' : ''}>
         {children}

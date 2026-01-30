@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { AlertCircle, ArrowDownCircle, Check, CheckCircle, ChevronDown, Loader2, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useSelection } from '../contexts/SelectionContext'
+import { useInteraction } from '../contexts/InteractionContext'
 import { useArticleState } from '../hooks/useArticleState'
 import { useOverscrollUp } from '../hooks/useOverscrollUp'
 import { usePullToClose } from '../hooks/usePullToClose'
@@ -232,13 +232,15 @@ function TldrError({ message }) {
 }
 
 function ArticleCard({ article }) {
-  const { isSelectMode, registerSelectable } = useSelection()
+  const { isSelectMode, registerDisabled, itemShortPress } = useInteraction()
   const { isRead, isRemoved, toggleRemove, markAsRemoved, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
   )
   const tldr = useSummary(article.issueDate, article.url, 'tldr')
   const { isAvailable } = tldr
+
+  const componentId = `article-${article.url}`
 
   const handleSwipeComplete = () => {
     if (!isRemoved && tldr.expanded) tldr.collapse()
@@ -280,15 +282,16 @@ function ArticleCard({ article }) {
     const selection = window.getSelection()
     if (selection.toString().length > 0) return
 
-    tldr.toggle()
+    const shouldOpen = itemShortPress(componentId)
+    if (shouldOpen) {
+      tldr.toggle()
+    }
   }
 
-  const componentId = `article-${article.url}`
-
   useEffect(() => {
-    registerSelectable(componentId, isRemoved)
-    return () => registerSelectable(componentId, false)
-  }, [componentId, isRemoved, registerSelectable])
+    registerDisabled(componentId, isRemoved)
+    return () => registerDisabled(componentId, false)
+  }, [componentId, isRemoved, registerDisabled])
 
   return (
     <Selectable id={componentId} disabled={isRemoved}>

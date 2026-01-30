@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import Feed from './components/Feed'
 import ScrapeForm from './components/ScrapeForm'
 import SelectionCounterPill from './components/SelectionCounterPill'
-import { SelectionProvider } from './contexts/SelectionContext'
+import { InteractionProvider } from './contexts/InteractionContext'
 import { scrapeNewsletters } from './lib/scraper'
 
 function App() {
@@ -60,7 +60,7 @@ function App() {
   })
 
   return (
-    <SelectionProvider>
+    <InteractionProvider>
     <div className="min-h-screen flex justify-center font-sans bg-[#f8fafc] text-slate-900 selection:bg-brand-100 selection:text-brand-900">
       <div className="w-full max-w-3xl relative">
 
@@ -123,7 +123,7 @@ function App() {
 
       </div>
     </div>
-    </SelectionProvider>
+    </InteractionProvider>
   )
 }
 

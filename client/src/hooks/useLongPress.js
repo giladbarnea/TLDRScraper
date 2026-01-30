@@ -3,79 +3,75 @@ import { useCallback, useRef } from 'react'
 export function useLongPress(onLongPress, { threshold = 500, disabled = false } = {}) {
   const timerRef = useRef(null)
   const startPosRef = useRef(null)
-  const isLongPressRef = useRef(false)
+  const activePointerIdRef = useRef(null)
+  const didLongPressRef = useRef(false)
 
-  const clear = useCallback(() => {
+  const clearTimer = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current)
       timerRef.current = null
     }
-    startPosRef.current = null
   }, [])
 
-  const start = useCallback((clientX, clientY) => {
+  const start = useCallback((pointerId, clientX, clientY) => {
     if (disabled) return
 
-    isLongPressRef.current = false
+    activePointerIdRef.current = pointerId
     startPosRef.current = { x: clientX, y: clientY }
+    didLongPressRef.current = false
 
+    clearTimer()
     timerRef.current = setTimeout(() => {
-      isLongPressRef.current = true
+      didLongPressRef.current = true
       onLongPress()
     }, threshold)
-  }, [disabled, onLongPress, threshold])
+  }, [disabled, clearTimer, onLongPress, threshold])
 
-  const move = useCallback((clientX, clientY) => {
+  const move = useCallback((pointerId, clientX, clientY) => {
+    if (activePointerIdRef.current !== pointerId) return
     if (!startPosRef.current) return
 
     const dx = Math.abs(clientX - startPosRef.current.x)
     const dy = Math.abs(clientY - startPosRef.current.y)
 
     if (dx > 10 || dy > 10) {
-      clear()
+      clearTimer()
+      startPosRef.current = null
     }
-  }, [clear])
+  }, [clearTimer])
 
-  const onTouchStart = useCallback((e) => {
-    const touch = e.touches[0]
-    start(touch.clientX, touch.clientY)
+  const end = useCallback((pointerId) => {
+    if (activePointerIdRef.current !== pointerId) return
+    clearTimer()
+    startPosRef.current = null
+    activePointerIdRef.current = null
+  }, [clearTimer])
+
+  const onPointerDown = useCallback((e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    start(e.pointerId, e.clientX, e.clientY)
   }, [start])
 
-  const onTouchMove = useCallback((e) => {
-    const touch = e.touches[0]
-    move(touch.clientX, touch.clientY)
+  const onPointerMove = useCallback((e) => {
+    move(e.pointerId, e.clientX, e.clientY)
   }, [move])
 
-  const onTouchEnd = useCallback(() => {
-    clear()
-  }, [clear])
+  const onPointerUp = useCallback((e) => {
+    end(e.pointerId)
+  }, [end])
 
-  const onMouseDown = useCallback((e) => {
-    start(e.clientX, e.clientY)
-  }, [start])
-
-  const onMouseMove = useCallback((e) => {
-    move(e.clientX, e.clientY)
-  }, [move])
-
-  const onMouseUp = useCallback(() => {
-    clear()
-  }, [clear])
-
-  const onMouseLeave = useCallback(() => {
-    clear()
-  }, [clear])
+  const onPointerCancel = useCallback((e) => {
+    end(e.pointerId)
+    didLongPressRef.current = false
+  }, [end])
 
   return {
     handlers: {
-      onTouchStart,
-      onTouchMove,
-      onTouchEnd,
-      onMouseDown,
-      onMouseMove,
-      onMouseUp,
-      onMouseLeave,
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+      onPointerCancel,
     },
-    isLongPressRef,
+    didLongPressRef,
   }
 }

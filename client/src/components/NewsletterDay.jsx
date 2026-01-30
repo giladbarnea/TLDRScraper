@@ -53,7 +53,7 @@ function Section({ date, sourceId, newsletterTitle, sectionKey, articles }) {
     <Selectable id={componentId} descendantIds={descendantIds}>
       <FoldableContainer
         key={`${newsletterTitle}-${sectionKey}`}
-        id={`section-${date}-${newsletterTitle}-${sectionKey}`}
+        id={componentId}
         title={<SectionTitle displayTitle={displayTitle} />}
         headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
         defaultFolded={allRemoved}
@@ -93,7 +93,7 @@ function NewsletterDay({ date, title, issue, articles }) {
   return (
     <Selectable id={componentId} descendantIds={descendantIds}>
       <FoldableContainer
-        id={`newsletter-${date}-${title}`}
+        id={componentId}
         headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
         title={
           <div className="flex items-center gap-3 py-2">
