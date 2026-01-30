@@ -4,19 +4,33 @@ import { useSelection } from '../contexts/SelectionContext'
 import { useLongPress } from '../hooks/useLongPress'
 
 function Selectable({ id, descendantIds = [], disabled = false, children }) {
-  const { isSelectMode, toggle, selectMany, isSelected } = useSelection()
-  const selected = isSelected(id)
+  const { isSelectMode, toggle, selectMany, deselectMany, isSelected } = useSelection()
+  const isParent = descendantIds.length > 0
+  const allDescendantsSelected = isParent
+    ? descendantIds.length > 0 && descendantIds.every((descendantId) => isSelected(descendantId))
+    : false
+  const selected = !isParent && isSelected(id)
   const wrapperRef = useRef(null)
+  const activePressRef = useRef(false)
 
   const handleSelect = useCallback(() => {
-    if (descendantIds.length > 0) {
-      selectMany([id, ...descendantIds])
-    } else {
-      toggle(id)
+    if (disabled) return
+    if (isParent) {
+      if (allDescendantsSelected) {
+        deselectMany(descendantIds)
+      } else {
+        selectMany(descendantIds)
+      }
+      return
     }
-  }, [id, descendantIds, selectMany, toggle])
+    toggle(id)
+  }, [disabled, isParent, allDescendantsSelected, deselectMany, selectMany, descendantIds, toggle, id])
 
   const longPress = useLongPress(handleSelect, { disabled })
+
+  const isSelfEvent = useCallback((event) => {
+    return event.target?.closest?.('[data-selectable]') === wrapperRef.current
+  }, [])
 
   const handleClickCapture = useCallback((e) => {
     const closestSelectable = e.target.closest('[data-selectable]')
@@ -28,12 +42,48 @@ function Selectable({ id, descendantIds = [], disabled = false, children }) {
       return
     }
 
-    if (isSelectMode) {
+    if (isSelectMode && !isParent && !disabled) {
       e.stopPropagation()
       e.preventDefault()
       handleSelect()
     }
-  }, [isSelectMode, handleSelect, longPress.isLongPressRef])
+  }, [isSelectMode, isParent, disabled, handleSelect, longPress.isLongPressRef])
+
+  const longPressHandlers = {
+    onTouchStart: (e) => {
+      if (!isSelfEvent(e)) return
+      activePressRef.current = true
+      longPress.handlers.onTouchStart(e)
+    },
+    onTouchMove: (e) => {
+      if (!activePressRef.current) return
+      longPress.handlers.onTouchMove(e)
+    },
+    onTouchEnd: (e) => {
+      if (!activePressRef.current) return
+      activePressRef.current = false
+      longPress.handlers.onTouchEnd(e)
+    },
+    onMouseDown: (e) => {
+      if (!isSelfEvent(e)) return
+      activePressRef.current = true
+      longPress.handlers.onMouseDown(e)
+    },
+    onMouseMove: (e) => {
+      if (!activePressRef.current) return
+      longPress.handlers.onMouseMove(e)
+    },
+    onMouseUp: (e) => {
+      if (!activePressRef.current) return
+      activePressRef.current = false
+      longPress.handlers.onMouseUp(e)
+    },
+    onMouseLeave: (e) => {
+      if (!activePressRef.current) return
+      activePressRef.current = false
+      longPress.handlers.onMouseLeave(e)
+    },
+  }
 
   return (
     <div
@@ -41,7 +91,7 @@ function Selectable({ id, descendantIds = [], disabled = false, children }) {
       data-selectable
       className="relative"
       onClickCapture={handleClickCapture}
-      {...longPress}
+      {...longPressHandlers}
     >
       <div className={selected ? 'ring-4 ring-slate-300 rounded-[20px]' : ''}>
         {children}
