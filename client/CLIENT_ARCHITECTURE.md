@@ -1,27 +1,28 @@
 ---
 name: client architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-01-30 00:00, selection-state-machine
+last_updated: 2026-01-30 12:38
 ---
 # Client Architecture
 
 
-Overview
+## Overview
 
 This document maps the frontend architecture of the Newsletter Aggregator. It details:
-	•	System Boundaries: How the React client interacts with the backend API.
-	•	Rendering Hierarchy: The component tree structure and dependencies.
-	•	Interaction Flow: The chronological steps of user actions (Scraping, Reading, Archiving).
-	•	Data Transformation: How raw API payloads are enriched with user state and persisted.
+- **System Boundaries**: How the React client interacts with the backend API.
+- **Rendering Hierarchy**: The component tree structure and dependencies.
+- **Interaction Flow**: The chronological steps of user actions (Scraping, Reading, Archiving).
+- **Data Transformation**: How raw API payloads are enriched with user state and persisted.
 
-⸻
+---
 
 The client is built as a Single Page Application (SPA) using React and Vite. It relies heavily on an Optimistic UI pattern where local state updates immediately for the user while syncing asynchronously to the backend via useSupabaseStorage. The architecture uses scrape-first hydration: /api/scrape is the authoritative data source, and CalendarDay seeds the storage cache with this payload on mount—eliminating redundant per-day storage fetches while preserving pub/sub reactivity for state changes. The architecture emphasizes “Zen Mode” reading, dividing the view into a Feed (browsing) and an Overlay (reading).
 
-Architecture Diagram
+## Architecture Diagram
 
-Focus: Structural boundaries, State management, and External relationships.
+> Focus: Structural boundaries, State management, and External relationships.
 
+```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  BROWSER / CLIENT                                                       │
 │                                                                         │
@@ -55,165 +56,162 @@ Focus: Structural boundaries, State management, and External relationships.
 │         │ /scrape  │          │ /storage │        │ /tldr-url │         │
 │         └──────────┘          └──────────┘        └───────────┘         │
 └─────────────────────────────────────────────────────────────────────────┘
+```
 
+---
 
-⸻
+## Selection and Interaction Architecture
 
-Selection and Interaction Architecture
+### Goals
 
-Goals
+Selection behavior is implemented as a **declarative state machine** with a small set of events. The implementation goals are:
+- Make selection mode deterministic and easy to reason about.
+- Keep container expand/collapse **orthogonal** to selection.
+- Ensure long-press never accidentally triggers the short-press behavior ("double fire").
 
-Selection behavior is implemented as a declarative state machine with a small set of events. The implementation goals are:
-	•	Make selection mode deterministic and easy to reason about.
-	•	Keep container expand/collapse orthogonal to selection.
-	•	Ensure long-press never accidentally triggers the short-press behavior (“double fire”).
+### Key modules
+- `contexts/InteractionContext.jsx`
+  - Provides `useInteraction()`: UI-facing functions (short press / long press) and selectors (isSelectMode, isSelected, isExpanded).
+- `reducers/interactionReducer.js`
+  - The single source of truth for transitions.
+  - Implements suppression of the short press immediately following a long press on the same target.
+- `hooks/useLongPress.js`
+  - Pointer-event long press detection for mobile and desktop.
 
-Key modules
-	•	contexts/InteractionContext.jsx
-	•	Provides useInteraction(): UI-facing functions (short press / long press) and selectors (isSelectMode, isSelected, isExpanded).
-	•	reducers/interactionReducer.js
-	•	The single source of truth for transitions.
-	•	Implements suppression of the short press immediately following a long press on the same target.
-	•	hooks/useLongPress.js
-	•	Pointer-event long press detection for mobile and desktop.
+### Component responsibilities
+- **Selectable**
+  - Detects long press and dispatches LONG_PRESS events to the interaction layer.
+  - Renders selection checkmark for items (and can be extended for container UI states if desired).
+- **ArticleCard**
+  - On click, calls `itemShortPress(articleId)`:
+    - In Normal mode: returns "should open" → opens TLDR/Zen overlay.
+    - In Select mode: toggles selection (no open).
+- **FoldableContainer**
+  - On click, calls `containerShortPress(containerId)` to expand/collapse, regardless of selection mode.
 
-Component responsibilities
-	•	Selectable
-	•	Detects long press and dispatches LONG_PRESS events to the interaction layer.
-	•	Renders selection checkmark for items (and can be extended for container UI states if desired).
-	•	ArticleCard
-	•	On click, calls itemShortPress(articleId):
-	•	In Normal mode: returns “should open” → opens TLDR/Zen overlay.
-	•	In Select mode: toggles selection (no open).
-	•	FoldableContainer
-	•	On click, calls containerShortPress(containerId) to expand/collapse, regardless of selection mode.
+---
 
-⸻
+## Interaction State Machine Prose
 
-Interaction State Machine Prose
+### Normal mode
 
-Normal mode
+#### Short press
 
-Short press
+**Item**
+- **Action:** `openItem(itemId)` (navigate to full-screen item view / open overlay)
+- **Selection:** no change
+- **Mode:** stays Normal
 
-Item
-	•	Action: openItem(itemId) (navigate to full-screen item view / open overlay)
-	•	Selection: no change
-	•	Mode: stays Normal
+**Container**
+- **Action:** `toggleExpand(containerId)` (expand ↔ collapse)
+- **Selection:** no change
+- **Mode:** stays Normal
+- **Note:** expand/collapse is orthogonal to selection (still works in Select mode too)
 
-Container
-	•	Action: toggleExpand(containerId) (expand ↔ collapse)
-	•	Selection: no change
-	•	Mode: stays Normal
-	•	Note: expand/collapse is orthogonal to selection (still works in Select mode too)
+#### Long press
 
-Long press
+**Item**
+- **Action:** `toggleSelect(itemId)`
+- **Mode rule:** if selection becomes non-empty → enter Select; if empty → remain/return to Normal
+- **UI:** checkmark appears; selection counter appears if selection non-empty
 
-Item
-	•	Action: toggleSelect(itemId)
-	•	Mode rule: if selection becomes non-empty → enter Select; if empty → remain/return to Normal
-	•	UI: checkmark appears; selection counter appears if selection non-empty
+**Container**
+- **Action:** `toggleSelectAllChildren(containerId)`
+  - If all children currently selected → deselect them all
+  - Else → select them all
+- **Mode rule:** same as above (non-empty selection ⇒ Select, empty ⇒ Normal
+- **UI:** checkmarks apply to affected children; counter updates
 
-Container
-	•	Action: toggleSelectAllChildren(containerId)
-	•	If all children currently selected → deselect them all
-	•	Else → select them all
-	•	Mode rule: same as above (non-empty selection ⇒ Select, empty ⇒ Normal
-	•	UI: checkmarks apply to affected children; counter updates
+---
 
-⸻
+### Select mode
 
-Select mode
+#### Short press
 
-Short press
+**Item**
+- **Action:** `toggleSelect(itemId)` (same effect as long press on an item)
+- **Mode rule:** if selection becomes empty → exit to Normal; else stay Select
 
-Item
-	•	Action: toggleSelect(itemId) (same effect as long press on an item)
-	•	Mode rule: if selection becomes empty → exit to Normal; else stay Select
+**Container**
+- **Action:** `toggleExpand(containerId)` (same as in Normal)
+- **Selection:** no change
+- **Mode:** stays Select (unless something else empties selection)
 
-Container
-	•	Action: toggleExpand(containerId) (same as in Normal)
-	•	Selection: no change
-	•	Mode: stays Select (unless something else empties selection)
+#### Long press
 
-Long press
+**Item**
+- **Action:** `toggleSelect(itemId)` (identical to short press in Select mode)
 
-Item
-	•	Action: toggleSelect(itemId) (identical to short press in Select mode)
+**Container**
+- **Action:** `toggleSelectAllChildren(containerId)` (identical to long press in Normal mode)
 
-Container
-	•	Action: toggleSelectAllChildren(containerId) (identical to long press in Normal mode)
+---
 
-⸻
-
-Interaction Reducer Pseudocode
+## Interaction Reducer Pseudocode
 
 The reducer is the canonical definition of behavior. The app dispatches only these events:
-	•	ITEM_SHORT_PRESS(itemId)
-	•	ITEM_LONG_PRESS(itemId)
-	•	CONTAINER_SHORT_PRESS(containerId)
-	•	CONTAINER_LONG_PRESS(containerId, childIds)
-	•	CLEAR_SELECTION
-	•	REGISTER_DISABLED(id, isDisabled)
+- `ITEM_SHORT_PRESS(itemId)`
+- `ITEM_LONG_PRESS(itemId)`
+- `CONTAINER_SHORT_PRESS(containerId)`
+- `CONTAINER_LONG_PRESS(containerId, childIds)`
+- `CLEAR_SELECTION`
+- `REGISTER_DISABLED(id, isDisabled)`
 
 Pseudocode (intentionally not language syntax):
-	1.	Derived mode:
 
-	•	mode = (selectedIds is empty) ? Normal : Select
+1. **Derived mode:**
+   - `mode = (selectedIds is empty) ? Normal : Select`
 
-	2.	Long press rules (always selection-related):
+2. **Long press rules (always selection-related):**
+   - On `ITEM_LONG_PRESS(itemId)`:
+     - Toggle `itemId` in `selectedIds`
+     - Latch: "suppress the next SHORT_PRESS for this same itemId"
+   - On `CONTAINER_LONG_PRESS(containerId, childIds)`:
+     - If all selectable childIds are selected:
+       - Remove all those childIds from `selectedIds`
+     - Else:
+       - Add all selectable childIds to `selectedIds`
+     - Latch: "suppress the next SHORT_PRESS for this same containerId"
 
-	•	On ITEM_LONG_PRESS(itemId):
-	•	Toggle itemId in selectedIds
-	•	Latch: “suppress the next SHORT_PRESS for this same itemId”
-	•	On CONTAINER_LONG_PRESS(containerId, childIds):
-	•	If all selectable childIds are selected:
-	•	Remove all those childIds from selectedIds
-	•	Else:
-	•	Add all selectable childIds to selectedIds
-	•	Latch: “suppress the next SHORT_PRESS for this same containerId”
+3. **Short press rules:**
+   - On `CONTAINER_SHORT_PRESS(containerId)`:
+     - If suppression latch matches containerId, consume latch and do nothing
+     - Else toggle expand/collapse for containerId
+     - (Selection does not change)
+   - On `ITEM_SHORT_PRESS(itemId)`:
+     - If suppression latch matches itemId, consume latch and do nothing
+     - Else if mode == Select:
+       - Toggle `itemId` in `selectedIds`
+     - Else (mode == Normal):
+       - Do not mutate selection; return a decision "shouldOpenItem = true"
 
-	3.	Short press rules:
+4. **Disabled IDs:**
+   - On `REGISTER_DISABLED(id, isDisabled)`:
+     - Maintain a `disabledIds` set
+     - If something becomes disabled, ensure it is not selected
 
-	•	On CONTAINER_SHORT_PRESS(containerId):
-	•	If suppression latch matches containerId, consume latch and do nothing
-	•	Else toggle expand/collapse for containerId
-	•	(Selection does not change)
-	•	On ITEM_SHORT_PRESS(itemId):
-	•	If suppression latch matches itemId, consume latch and do nothing
-	•	Else if mode == Select:
-	•	Toggle itemId in selectedIds
-	•	Else (mode == Normal):
-	•	Do not mutate selection; return a decision “shouldOpenItem = true”
+5. **Clearing selection:**
+   - On `CLEAR_SELECTION`:
+     - Clear `selectedIds` (therefore exiting select mode)
 
-	4.	Disabled IDs:
+---
 
-	•	On REGISTER_DISABLED(id, isDisabled):
-	•	Maintain a disabledIds set
-	•	If something becomes disabled, ensure it is not selected
+## Selectable Pattern (Updated)
 
-	5.	Clearing selection:
-
-	•	On CLEAR_SELECTION:
-	•	Clear selectedIds (therefore exiting select mode)
-
-⸻
-
-Selectable Pattern (Updated)
-
-Components that support selection behavior are wrapped in Selectable. This is a composition wrapper that encapsulates:
-	•	Long press gesture detection (useLongPress)
-	•	Dispatching selection events to the interaction reducer (useInteraction)
-	•	Rendering a checkmark overlay for selected items
+Components that support selection behavior are wrapped in `Selectable`. This is a composition wrapper that encapsulates:
+- Long press gesture detection (`useLongPress`)
+- Dispatching selection events to the interaction reducer (`useInteraction`)
+- Rendering a checkmark overlay for selected items
 
 Important behavioral rule:
-	•	Long press toggles selection in any mode.
-	•	Short press behavior is owned by the interactive child:
-	•	Items: handled by ArticleCard (calls itemShortPress)
-	•	Containers: handled by FoldableContainer (calls containerShortPress)
+- Long press toggles selection in any mode.
+- Short press behavior is owned by the interactive child:
+  - Items: handled by `ArticleCard` (calls `itemShortPress`)
+  - Containers: handled by `FoldableContainer` (calls `containerShortPress`)
 
-Usage (container):
+### Usage (container):
 
+```jsx
 // ... existing code ...
 <Selectable id={componentId} descendantIds={descendantIds}>
   <FoldableContainer id={componentId} /* ... existing props ... */>
@@ -221,30 +219,34 @@ Usage (container):
   </FoldableContainer>
 </Selectable>
 // ... existing code ...
+```
 
-Usage (item):
+### Usage (item):
 
+```jsx
 // ... existing code ...
 <Selectable id={articleId} disabled={isRemoved}>
   <ArticleCard /* ... existing props ... */ />
 </Selectable>
 // ... existing code ...
+```
 
-ID formats (selection + containers):
+### ID formats (selection + containers):
 
-Component	ID Pattern	Example
-CalendarDay	calendar-{date}	calendar-2026-01-28
-NewsletterDay	newsletter-{date}-{source_id}	newsletter-2026-01-28-tldr_tech
-Section	section-{date}-{source_id}-{sectionKey}	section-2026-01-28-tldr_tech-AI
-ArticleCard	article-{url}	article-https://example.com/article
+| Component     | ID Pattern                             | Example                                  |
+|---------------|----------------------------------------|------------------------------------------|
+| CalendarDay   | `calendar-{date}`                      | `calendar-2026-01-28`                   |
+| NewsletterDay | `newsletter-{date}-{source_id}`        | `newsletter-2026-01-28-tldr_tech`       |
+| Section       | `section-{date}-{source_id}-{sectionKey}` | `section-2026-01-28-tldr_tech-AI`     |
+| ArticleCard   | `article-{url}`                        | `article-https://example.com/article`   |
 
+---
 
-⸻
+## Call Graph
 
-Call Graph
+> Focus: Component dependency and execution hierarchy.
 
-Focus: Component dependency and execution hierarchy.
-
+```
 main()
 ├── App (Root)
 │   ├── useEffect (Initial Load)
@@ -283,14 +285,15 @@ main()
 │                                               ├── useScrollProgress()
 │                                               ├── useOverscrollUp()
 │                                               └── usePullToClose()
+```
 
+---
 
-⸻
+## Sequence Diagram
 
-Sequence Diagram
+> Focus: The "Reading Flow"—from clicking a card to marking it as done.
 
-Focus: The “Reading Flow”—from clicking a card to marking it as done.
-
+```
 TIME   ACTOR              ACTION                                TARGET
 │
 ├───►  User               Clicks Article Card               ──► ArticleCard
@@ -317,9 +320,13 @@ TIME   ACTOR              ACTION                                TARGET
 │                         3. Animates Card Exit             ──► Framer Motion
 │
 └───►  useArticleState    Persists State Change             ──► API (/storage)
+```
 
-Data Flow Diagram
-Focus: Transformation of data from Raw API Payload to Persisted User State.
+## Data Flow Diagram
+
+> Focus: Transformation of data from Raw API Payload to Persisted User State.
+
+```
 [ SOURCE ]           [ CACHE SEED ]         [ PRESENTATION ]       [ PERSISTENCE ]
 (/api/scrape)        (No extra fetch)       (UI Rendering)         (Syncing)
 
@@ -340,3 +347,4 @@ Focus: Transformation of data from Raw API Payload to Persisted User State.
                      │ API /storage   │     │ All components │
                      │ (persist)      │     │ re-render      │
                      └────────────────┘     └────────────────┘
+```
