@@ -8,6 +8,9 @@ import {
 const InteractionContext = createContext(null)
 
 const EXPANDED_STORAGE_KEY = 'expandedContainers:v1'
+const INTERNAL = Object.freeze({
+  REPLACE_STATE: '__REPLACE_STATE__',
+})
 
 function loadExpandedFromStorage() {
   try {
@@ -34,9 +37,14 @@ function init() {
 }
 
 export function InteractionProvider({ children }) {
-  const [state, rawDispatch] = useReducer((currentState, event) => {
+  const reducerWrapper = useCallback((currentState, event) => {
+    if (event?.type === INTERNAL.REPLACE_STATE) {
+      return event.nextState
+    }
     return interactionReduce(currentState, event).state
-  }, undefined, init)
+  }, [])
+
+  const [state, rawDispatch] = useReducer(reducerWrapper, undefined, init)
 
   useEffect(() => {
     saveExpandedToStorage(state.expandedContainerIds)
@@ -45,14 +53,10 @@ export function InteractionProvider({ children }) {
   const isSelectMode = state.selectedIds.size > 0
 
   const dispatchWithDecision = useCallback((event) => {
-    let decision = null
-    rawDispatch((prev) => {
-      const result = interactionReduce(prev, event)
-      decision = result.decision
-      return result.state
-    })
-    return decision
-  }, [rawDispatch])
+    const result = interactionReduce(state, event)
+    rawDispatch({ type: INTERNAL.REPLACE_STATE, nextState: result.state })
+    return result.decision
+  }, [state, rawDispatch])
 
   const registerDisabled = useCallback((id, isDisabled) => {
     rawDispatch({ type: InteractionEventType.REGISTER_DISABLED, id, isDisabled })
