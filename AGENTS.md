@@ -16,7 +16,7 @@ Newsletter aggregator that scrapes tech newsletters from multiple sources, displ
 - Storage: Project uses Supabase Database (PostgreSQL) for all data persistence (newsletters, article states, settings, scrape results). Data is stored server-side with client hooks managing async operations.
 - Cache mechanism: Server-side storage with cache-first scraping for past dates (early return if cached). Today always scrapes and unions with cache to capture new articles published later in the day. Daily payloads stored as JSONB in PostgreSQL.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
+Study [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
 </project-overview>
 
 ## Environment
@@ -47,6 +47,15 @@ env | grep -E -o '^[A-Z_]+' | grep -e TOKEN -e API -e KEY -e SUPABASE -e VERCEL 
 
 This is true both for local and production environments.
 </environment>
+
+## Agentic Ecosystem
+
+<agentic-ecosystem>
+Powerful tools are available to you out of the box.
+- `claude/skills/` contains pre-packaged abilites.
+- `claude/agents/` contains ready-to-fire specialized agents for various use cases.
+Be aware of what each of these directories have to offer.
+</agentic-ecosystem>
 
 ## Context Gathering
 <context-gathering>
