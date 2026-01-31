@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-01-06 07:50, 73ae2b8
+last_updated: 2026-01-31 08:54, a2d7ae2
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
