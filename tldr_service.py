@@ -171,19 +171,22 @@ def scrape_newsletters_in_date_range(
     payloads_by_date: dict[str, dict] = {}
     dates_to_write: set[str] = set()
 
+    # Batch fetch all cached payloads in one query
+    cached_payloads_list = storage_service.get_daily_payloads_range(
+        start_date_text,
+        end_date_text,
+    )
+    cache_map = {payload['date']: payload for payload in cached_payloads_list}
+
     if all(
         util.format_date_for_url(current_date) != today_str
-        and storage_service.is_date_cached(util.format_date_for_url(current_date))
+        and util.format_date_for_url(current_date) in cache_map
         for current_date in dates
     ):
-        cached_payloads = storage_service.get_daily_payloads_range(
-            start_date_text,
-            end_date_text,
-        )
         return {
             "success": True,
-            "payloads": cached_payloads,
-            "stats": _build_stats_from_payloads(cached_payloads, total_network_fetches),
+            "payloads": cached_payloads_list,
+            "stats": _build_stats_from_payloads(cached_payloads_list, 0),
             "source": "cache",
         }
 
@@ -191,7 +194,7 @@ def scrape_newsletters_in_date_range(
         date_str = util.format_date_for_url(current_date)
 
         if date_str == today_str:
-            cached_payload = storage_service.get_daily_payload(date_str)
+            cached_payload = cache_map.get(date_str)
             cached_urls: set[str] = set()
 
             if cached_payload:
@@ -216,7 +219,7 @@ def scrape_newsletters_in_date_range(
                 payloads_by_date[date_str] = new_payload
             dates_to_write.add(date_str)
         else:
-            cached_payload = storage_service.get_daily_payload(date_str)
+            cached_payload = cache_map.get(date_str)
             if cached_payload:
                 payloads_by_date[date_str] = cached_payload
             else:
