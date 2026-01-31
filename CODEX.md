@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-01-31 08:54, a2d7ae2
+last_updated: 2026-01-31 09:01, e515bb1
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -20,7 +20,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions do
 
 ## Environment
 
-*Note*: The `source setup.sh` command is mentioned multiple times in this document with different described effects. This is intentional: sourcing it triggers a chain of idempotent setup operations.
+*Note*: The `./setup.sh` command is mentioned multiple times in this document with different described effects. This is intentional: sourcing it triggers a chain of idempotent setup operations.
 
 The single source of truth for what is available locally is the output of:
 
@@ -28,7 +28,7 @@ The single source of truth for what is available locally is the output of:
 env | grep -E -o '^[A-Z_]+' | grep -e TOKEN -e API -e KEY -e SUPABASE -e VERCEL | sort -u  # Should print the names of all environment variables without values on a need-to-know basis.
 ```
 
-**Run `source ./setup.sh` first thing to install all server and client dependencies and tooling, build the client, verify your environment and provide you with convenience functions and crucial context for the project.**
+**Run `./setup.sh` first thing to install all server and client dependencies and tooling, build the client, verify your environment and provide you with convenience functions and crucial context for the project.**
 
 ### Expected Environment Variables for AI Agents (Claude, Codex, Gemini, etc.)
 
@@ -46,14 +46,18 @@ env | grep -E -o '^[A-Z_]+' | grep -e TOKEN -e API -e KEY -e SUPABASE -e VERCEL 
 
 This is true both for local and production environments.
 
+## Context Gathering
+
+This is a crucial step: run the `/catchup` skill (`.claude/skills/catchup/SKILL.md`) right after `./setup.sh` is finished.
+
 ## Development & Setup
 
-### Running the server and logs watchdog in a background process
+### Running the server in a background process
 ```bash
 # Install dependencies, build client, generate docs and and verify the environment.
 ./setup.sh
 
-BackgroundShell("uv run serve.py")  # Or improvise an equivalent
+BackgroundShell("uv run serve.py")  # Or improvise equivalent shell functionality if you don't have the built in tool
 
 # Exercise the API with curl requests.
 curl http://localhost:5001/api/scrape
@@ -210,12 +214,12 @@ for word in response.words or []:
 5. Do not write comments in code, unless they are critical for understanding. Especially, do not write "journaling" comments saying "modified: foo", "added: bar" or "new implementation", as if to leave a modification trail behind.
 6. For simple tasks that could be performed straight away, do not think much. Just do it. For more complex tasks that would benefit from thinking, think deeper, proportionally to the task's complexity. Regardless, always present your final response in a direct and concise manner. No fluff.
 7. Do NOT fix linter errors unless instructed by the user to do so.
-8. Docstrings should be few and far between. When you do write one, keep it to 1-2 sentences max.
+8. Docstrings should be succinct and direct. Should start with 1-2 sentences max of what the function does and its role in its larger calling scope. No need to document arguments and return type: use type annotations for that. Do document if it intentionally raises exceptions.
 
 ## Crucial Important Rules: How To Approach a Task.
 
 The following points are close to my heart:
-1. Before starting your task, you must understand how big the affected scope is. Will the change affect the entire stack & flow, from the db architecture to the client logic? Map out the moving parts and coupling instances before thinking and planning.
+1. Before starting your task, you must understand how big the affected scope is. Will the change affect the entire stack & flow, from the db architecture to the client logic? Map out the moving parts and coupling instances before thinking and planning. Utilize the appropriate agents for that.
 2. If you are fixing a bug, hypothesize of the root cause before planning your changes.
 3. Plan step-by-step. Account for the moving parts and coupling you found in step (1).
 4. When making changes, be absolutely SURGICAL. Every line of code you add incurs a small debt; this debt compounds over time through maintenance costs, potential bugs, and cognitive load for everyone who must understand it later. Therefore, make only laser-focused changes.
