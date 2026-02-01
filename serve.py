@@ -11,7 +11,7 @@ import os
 import util
 import tldr_app
 import storage_service
-from summarizer import DEFAULT_MODEL, DEFAULT_TLDR_REASONING_EFFORT
+from summarizer import DEFAULT_MODEL, DEFAULT_SUMMARY_EFFORT
 from source_routes import source_bp
 
 # Configure Flask to serve React build output
@@ -75,18 +75,18 @@ def scrape_newsletters_in_date_range():
         return jsonify({"success": False, "error": str(error)}), 500
 
 
-@app.route("/api/tldr-url", methods=["POST"])
-def tldr_url(model: str = DEFAULT_MODEL):
-    """Create a TLDR of the content at a URL.
+@app.route("/api/summarize-url", methods=["POST"])
+def summarize_url_endpoint(model: str = DEFAULT_MODEL):
+    """Create a summary of the content at a URL.
 
-    Requires 'url'. Optional: 'summary_effort' to set the reasoning effort level, 'model' query param to specify OpenAI model.
+    Requires 'url'. Optional: 'summarize_effort' to set the reasoning effort level, 'model' query param to specify Gemini model.
     """
     try:
         data = request.get_json() or {}
         model_param = request.args.get("model", DEFAULT_MODEL)
-        result = tldr_app.tldr_url(
+        result = tldr_app.summarize_url(
             data.get("url", ""),
-            summary_effort=data.get("summary_effort", DEFAULT_TLDR_REASONING_EFFORT),
+            summarize_effort=data.get("summarize_effort", DEFAULT_SUMMARY_EFFORT),
             model=model_param,
         )
 

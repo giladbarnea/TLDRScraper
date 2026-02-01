@@ -7,7 +7,7 @@ scope: Strictly high level, no implementation details. Inter-layer, inter-subsys
 
 ## Overview
 
-TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered TLDRs. The architecture follows a React 19 + Vite frontend communicating with a Flask backend via REST API, with all state and cache data persisted server-side in Supabase PostgreSQL.
+TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered summaries. The architecture follows a React 19 + Vite frontend communicating with a Flask backend via REST API, with all state and cache data persisted server-side in Supabase PostgreSQL.
 
 ## Technology Stack
 
@@ -25,7 +25,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - Jina Reader API (web scraping fallback)
 - Firecrawl API (web scraping fallback, optional)
 - MarkItDown (HTML → Markdown conversion)
-- Google Gemini 3 Pro (Generative Language API for TLDRs)
+- Google Gemini 3 Pro (Generative Language API for summaries)
 
 ## Architecture Diagram
 
@@ -57,7 +57,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │                          Flask Backend (Python)                          │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │                         serve.py (Routes)                         │  │
-│  │  POST /api/scrape             POST /api/tldr-url                 │  │
+│  │  POST /api/scrape             POST /api/summarize-url            │  │
 │  │  GET/POST /api/storage/setting/<key>                             │  │
 │  │  GET/POST /api/storage/daily/<date>                              │  │
 │  │  POST /api/storage/daily-range                                   │  │
@@ -108,7 +108,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  └──────────────────────────────────────────────────────────────────┘  │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────┐   │
 │  │  TLDR News   │  │ HackerNews   │  │  Google Gemini 3 Pro API   │   │
-│  │  Newsletter  │  │  API         │  │  (TLDR summaries)          │   │
+│  │  Newsletter  │  │  API         │  │  (summaries)               │   │
 │  │  Archives    │  │              │  │                            │   │
 │  └──────────────┘  └──────────────┘  └────────────────────────────┘   │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────┐   │
@@ -148,15 +148,15 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - Trash icon always visible on mobile devices
 - Article states persist in Supabase daily_cache table
 
-### 4. TLDR Generation
-**User Action:** Click "TLDR" button on article OR click article card body
+### 4. Summary Generation
+**User Action:** Click "Summary" button on article OR click article card body
 
 **Available Interactions:**
-- Click "TLDR" button → Fetch TLDR from API (if not available) OR toggle visibility (if available)
-- Click article card body → Toggle TLDR visibility (only when TLDR content already exists)
-- TLDR displayed inline below article
-- Cached TLDRs show "Available" (green)
-- Card shows pointer cursor when TLDR content is available for toggling
+- Click "Summary" button → Fetch summary from API (if not available) OR toggle visibility (if available)
+- Click article card body → Toggle summary visibility (only when summary content already exists)
+- Summary displayed inline below article
+- Cached summaries show "Available" (green)
+- Card shows pointer cursor when summary content is available for toggling
 
 ### 5. Results Display with Feed Component
 **User Action:** View scraped results
@@ -240,7 +240,7 @@ idle
   │    │         │
   │    │         ├─ Success
   │    │         │    ↓
-  │    │         │  merging_cache (client preserves user state: tldr, read, removed)
+  │    │         │  merging_cache (client preserves user state: summary, read, removed)
   │    │         │    ↓ POST /api/storage/daily/{date}
   │    │         │  complete
   │    │         │
@@ -355,12 +355,12 @@ removed
 
 ---
 
-### Feature 4: TLDR Generation
+### Feature 4: Summary Generation
 
-#### States (per article TLDR)
-1. **unknown** - TLDR not yet requested
+#### States (per article summary)
+1. **unknown** - Summary not yet requested
 2. **creating** - API request in progress
-3. **available** - TLDR cached and ready
+3. **available** - Summary cached and ready
 4. **error** - API request failed
 
 #### State Transitions
@@ -368,19 +368,19 @@ removed
 ```
 unknown
   │
-  └─ User clicks "TLDR"
+  └─ User clicks "Summary"
        ↓
      creating
        │
-       ├─ POST /api/tldr-url { url, summary_effort }
+       ├─ POST /api/summarize-url { url, summarize_effort }
        │
        ├─ Success
        │    ↓
        │  available
        │    │
-       │    ├─ tldr.status = 'available'
-       │    ├─ tldr.markdown = response.tldr_markdown
-       │    ├─ tldr.expanded = true
+       │    ├─ summary.status = 'available'
+       │    ├─ summary.markdown = response.summary_markdown
+       │    ├─ summary.expanded = true
        │    ├─ Mark article as read
        │    │
        │    └─ POST /api/storage/daily/{date} → Supabase upsert
@@ -389,8 +389,8 @@ unknown
             ↓
           error
             │
-            ├─ tldr.status = 'error'
-            ├─ tldr.errorMessage = error text
+            ├─ summary.status = 'error'
+            ├─ summary.errorMessage = error text
             │
             └─ POST /api/storage/daily/{date} → Supabase upsert
 
@@ -402,12 +402,12 @@ available
 ```
 
 #### Key State Data (per article)
-- **tldr.status**: 'unknown' | 'creating' | 'available' | 'error'
-- **tldr.markdown**: string
-- **tldr.html**: computed (marked + DOMPurify)
-- **tldr.effort**: 'minimal' | 'low' | 'medium' | 'high'
-- **tldr.expanded**: boolean (UI state)
-- **tldr.errorMessage**: string | null
+- **summary.status**: 'unknown' | 'creating' | 'available' | 'error'
+- **summary.markdown**: string
+- **summary.html**: computed (marked + DOMPurify)
+- **summary.effort**: 'minimal' | 'low' | 'medium' | 'high'
+- **summary.expanded**: boolean (UI state)
+- **summary.errorMessage**: string | null
 
 ---
 
@@ -589,7 +589,7 @@ User clicks "Scrape Newsletters"
   │              │    │
   │              │    ├─ If cached data exists:
   │              │    │    │
-  │              │    │    └─ Merge articles (preserve tldr, read, removed)
+  │              │    │    └─ Merge articles (preserve summary, read, removed)
   │              │    │
   │              │    └─ POST /api/storage/daily/{date} (save to Supabase)
   │              │
@@ -622,10 +622,10 @@ User clicks "Scrape Newsletters"
 
 ---
 
-### Feature 4: TLDR Generation - Complete Flow
+### Feature 4: Summary Generation - Complete Flow
 
 ```
-User clicks "TLDR" button OR clicks article card body
+User clicks "Summary" button OR clicks article card body
   │
   ├─ BUTTON CLICK PATH
   │    │
@@ -633,33 +633,33 @@ User clicks "TLDR" button OR clicks article card body
   │    │    │
   │    │    └─ useSummary hook toggle()
   │    │         │
-  │    │         ├─ If TLDR already available: Toggle visibility only
+  │    │         ├─ If summary already available: Toggle visibility only
   │    │         │
-  │    │         └─ If TLDR not available: Fetch from API
+  │    │         └─ If summary not available: Fetch from API
   │    │              │
-  │    │              └─ window.fetch('/api/tldr-url?model=gemini-3-pro-preview', {
+  │    │              └─ window.fetch('/api/summarize-url?model=gemini-3-pro-preview', {
   │    │                   method: 'POST',
-  │    │                   body: JSON.stringify({ url, summary_effort })
+  │    │                   body: JSON.stringify({ url, summarize_effort })
   │    │                 })
   │    │                   │
   │    │                   └─ Server receives request...
   │    │                        │
-  │    │                        ├─ serve.py:72 tldr_url()
+  │    │                        ├─ serve.py:78 summarize_url_endpoint()
   │    │                        │    │
-  │    │                        │    └─ tldr_app.py:32 tldr_url(url, summary_effort)
+  │    │                        │    └─ tldr_app.py:29 summarize_url(url, summarize_effort)
   │    │                        │         │
-  │    │                        │         └─ tldr_service.py:79 tldr_url_content(url, summary_effort)
+  │    │                        │         └─ tldr_service.py:315 summarize_url_content(url, summarize_effort)
   │    │                        │              │
   │    │                        │              ├─ util.canonicalize_url(url)
   │    │                        │              │
-  │    │                        │              └─ summarizer.py:279 tldr_url(url, summary_effort)
+  │    │                        │              └─ summarizer.py:286 summarize_url(url, summarize_effort)
   │    │                        │                   │
   │    │                        │                   ├─ url_to_markdown(url)
   │    │                        │                   │    (scrapes and converts URL content to markdown)
   │    │                        │                   │
-  │    │                        │                   ├─ Fetch TLDR prompt template:
+  │    │                        │                   ├─ Fetch summary prompt template:
   │    │                        │                   │    │
-  │    │                        │                   │    └─ _fetch_tldr_prompt()
+  │    │                        │                   │    └─ _fetch_summary_prompt()
   │    │                        │                   │         │
   │    │                        │                   │         └─ Fetch from GitHub:
   │    │                        │                   │              "https://api.github.com/repos/giladbarnea/llm-templates/contents/text/tldr.md"
@@ -669,17 +669,17 @@ User clicks "TLDR" button OR clicks article card body
   │    │                        │                   │
       │    │                        │                   └─ Call LLM:
       │    │                        │                        │
-      │    │                        │                        └─ _call_llm(prompt, summary_effort)
+      │    │                        │                        └─ _call_llm(prompt, summarize_effort)
       │    │                        │                             (calls Google Gemini 3 Pro API)
   │    │                        │
-  │    │                        └─ Return { success, tldr_markdown, canonical_url, summary_effort }
+  │    │                        └─ Return { success, summary_markdown, canonical_url, summarize_effort }
   │    │
   │    └─ Client receives response:
   │         │
   │         ├─ Update article state:
   │         │    {
   │         │      status: 'available',
-  │         │      markdown: result.tldr_markdown,
+  │         │      markdown: result.summary_markdown,
   │         │      effort: summaryEffort,
   │         │      checkedAt: timestamp,
   │         │      errorMessage: null
@@ -688,7 +688,7 @@ User clicks "TLDR" button OR clicks article card body
   │         ├─ Set expanded state to true
   │         ├─ Mark article as read (if not already)
   │         │
-  │         └─ Display inline TLDR
+  │         └─ Display inline summary
   │
   └─ CARD CLICK PATH
        │
@@ -696,10 +696,10 @@ User clicks "TLDR" button OR clicks article card body
        │    │
        │    └─ useSummary hook toggle()
        │         │
-       │         ├─ Only acts if TLDR content already exists (isAvailable)
+       │         ├─ Only acts if summary content already exists (isAvailable)
        │         └─ Toggles expanded state (no API call)
        │
-       └─ TLDR content shown/hidden (no server interaction)
+       └─ Summary content shown/hidden (no server interaction)
 ```
 
 ---
@@ -929,13 +929,13 @@ async function mergeWithCache(payloads) {
     const existing = await storageApi.getDailyPayload(payload.date)
 
     if (existing) {
-      // Merge: preserve user state (read, removed) and AI content (tldr)
+      // Merge: preserve user state (read, removed) and AI content (summary)
       const mergedPayload = {
         ...payload,
         articles: payload.articles.map(article => {
           const existingArticle = existing.articles?.find(a => a.url === article.url)
           return existingArticle
-            ? { ...article, tldr: existingArticle.tldr,
+            ? { ...article, summary: existingArticle.summary,
                 read: existingArticle.read, removed: existingArticle.removed }
             : article
         })
@@ -999,7 +999,7 @@ CREATE TABLE daily_cache (
   date: '2024-01-01',
   payload: {
     date: '2024-01-01',
-    articles: [{url, title, read, removed, tldr, ...}, ...],
+    articles: [{url, title, read, removed, summary, ...}, ...],
     issues: [{date, source_id, category, ...}, ...]
   },
   cached_at: '2024-01-01T12:00:00Z'
@@ -1011,7 +1011,7 @@ CREATE TABLE daily_cache (
 1. **Initial Scrape**: API response → Build payloads → POST /api/storage/daily/{date} → Supabase upsert
 2. **Cache Hit**: POST /api/storage/daily-range → Read from Supabase → Skip scrape API call
 3. **User Interaction**: Modify article state → POST /api/storage/daily/{date} → Supabase upsert → Dispatches 'supabase-storage-change' event
-4. **Summary/TLDR**: Fetch from API → Update article → POST /api/storage/daily/{date} → Supabase upsert
+4. **Summary**: Fetch from API → Update article → POST /api/storage/daily/{date} → Supabase upsert
 5. **cached_at contract**: Only scrape writes advance cached_at; user-state updates must not mutate cached_at so it remains a scrape freshness signal.
 
 ### Storage Key Patterns

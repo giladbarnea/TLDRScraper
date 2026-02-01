@@ -186,12 +186,12 @@ function ArticleTitle({ isRead, title }) {
   )
 }
 
-function ArticleMeta({ domain, hostname, articleMeta, tldrLoading, tldrAvailable, isRead }) {
-  const stateIndicator = tldrLoading ? (
+function ArticleMeta({ domain, hostname, articleMeta, summaryLoading, summaryAvailable, isRead }) {
+  const stateIndicator = summaryLoading ? (
     <Loader2 size={14} className="animate-spin text-brand-500 shrink-0" />
   ) : isRead ? (
     <CheckCircle size={14} className="text-slate-300 shrink-0" />
-  ) : tldrAvailable ? (
+  ) : summaryAvailable ? (
     <ArrowDownCircle size={14} className="text-slate-300 shrink-0" />
   ) : null
 
@@ -223,7 +223,7 @@ function ArticleMeta({ domain, hostname, articleMeta, tldrLoading, tldrAvailable
   )
 }
 
-function TldrError({ message }) {
+function SummaryError({ message }) {
   return (
     <div className="mt-4 text-xs text-red-500 bg-red-50 p-3 rounded-lg">
       {message || 'Failed to load summary.'}
@@ -237,13 +237,13 @@ function ArticleCard({ article }) {
     article.issueDate,
     article.url
   )
-  const tldr = useSummary(article.issueDate, article.url, 'tldr')
-  const { isAvailable } = tldr
+  const summary = useSummary(article.issueDate, article.url)
+  const { isAvailable } = summary
 
   const componentId = `article-${article.url}`
 
   const handleSwipeComplete = () => {
-    if (!isRemoved && tldr.expanded) tldr.collapse()
+    if (!isRemoved && summary.expanded) summary.collapse()
     toggleRemove()
   }
 
@@ -284,7 +284,7 @@ function ArticleCard({ article }) {
 
     const shouldOpen = itemShortPress(componentId)
     if (shouldOpen) {
-      tldr.toggle()
+      summary.toggle()
     }
   }
 
@@ -297,7 +297,7 @@ function ArticleCard({ article }) {
     <Selectable id={componentId} disabled={isRemoved}>
       <motion.div
         layout
-        className={`relative ${tldr.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
+        className={`relative ${summary.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
       >
         <div className={`absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8 transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
           <Trash2 className="text-red-400" size={20} />
@@ -326,9 +326,9 @@ function ArticleCard({ article }) {
           data-read={isRead}
           data-removed={isRemoved}
           data-state-loading={stateLoading}
-          data-tldr-status={tldr.status}
-          data-tldr-expanded={tldr.expanded}
-          data-tldr-available={isAvailable}
+          data-summary-status={summary.status}
+          data-summary-expanded={summary.expanded}
+          data-summary-available={isAvailable}
           data-dragging={isDragging}
           data-can-drag={swipeEnabled}
           className={`
@@ -339,7 +339,7 @@ function ArticleCard({ article }) {
             cursor-pointer select-none
             ${isRemoved ? 'bg-slate-50' : 'bg-white'}
             ${stateLoading ? 'pointer-events-none' : ''}
-            ${tldr.expanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
+            ${summary.expanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
           `}
         >
           <div className="p-5 flex flex-col gap-2">
@@ -353,26 +353,26 @@ function ArticleCard({ article }) {
                 domain={displayDomain}
                 hostname={hostname}
                 articleMeta={article.articleMeta}
-                tldrLoading={tldr.loading}
-                tldrAvailable={isAvailable}
+                summaryLoading={summary.loading}
+                summaryAvailable={isAvailable}
                 isRead={isRead}
               />
             )}
 
-            {!isRemoved && tldr.status === 'error' && (
-              <TldrError message={tldr.errorMessage} />
+            {!isRemoved && summary.status === 'error' && (
+              <SummaryError message={summary.errorMessage} />
             )}
 
-            {!isRemoved && tldr.expanded && tldr.html && (
+            {!isRemoved && summary.expanded && summary.html && (
               <ZenModeOverlay
                 url={fullUrl}
-                html={tldr.html}
+                html={summary.html}
                 hostname={hostname}
                 displayDomain={displayDomain}
                 articleMeta={article.articleMeta}
-                onClose={() => tldr.collapse()}
+                onClose={() => summary.collapse()}
                 onMarkRemoved={() => {
-                  tldr.collapse()
+                  summary.collapse()
                   markAsRemoved()
                 }}
               />

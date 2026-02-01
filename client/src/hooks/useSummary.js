@@ -22,11 +22,7 @@ function releaseZenLock(url) {
   }
 }
 
-export function useSummary(date, url, type = 'tldr') {
-  if (type === 'summary') {
-    throw new Error('Summary feature has been removed. Use type="tldr" instead.')
-  }
-
+export function useSummary(date, url, type = 'summary') {
   const { article, updateArticle, isRead, markAsRead } = useArticleState(date, url)
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -55,7 +51,7 @@ export function useSummary(date, url, type = 'tldr') {
   const isLoading = status === 'creating' || loading
   const isError = status === 'error'
 
-  const fetchTldr = async (summaryEffort = effort) => {
+  const fetchSummary = async (summaryEffort = effort) => {
     if (!article) return
 
     if (abortControllerRef.current) {
@@ -67,7 +63,7 @@ export function useSummary(date, url, type = 'tldr') {
     setLoading(true)
     setEffort(summaryEffort)
 
-    const endpoint = '/api/tldr-url'
+    const endpoint = '/api/summarize-url'
 
     try {
       const response = await window.fetch(endpoint, {
@@ -75,7 +71,7 @@ export function useSummary(date, url, type = 'tldr') {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url,
-          summary_effort: summaryEffort
+          summarize_effort: summaryEffort
         }),
         signal: controller.signal
       })
@@ -86,7 +82,7 @@ export function useSummary(date, url, type = 'tldr') {
         updateArticle(() => ({
           [type]: {
             status: 'available',
-            markdown: result[`${type}_markdown`] || '',
+            markdown: result.summary_markdown || '',
             effort: summaryEffort,
             checkedAt: new Date().toISOString(),
             errorMessage: null
@@ -131,7 +127,7 @@ export function useSummary(date, url, type = 'tldr') {
         setExpanded(true)
       }
     } else {
-      fetchTldr(summaryEffort)
+      fetchSummary(summaryEffort)
     }
   }
 
@@ -164,7 +160,7 @@ export function useSummary(date, url, type = 'tldr') {
     effort,
     isAvailable,
     isError,
-    fetch: fetchTldr,
+    fetch: fetchSummary,
     toggle,
     collapse,
     expand

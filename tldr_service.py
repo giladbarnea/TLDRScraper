@@ -15,10 +15,10 @@ from newsletter_scraper import (
 )
 from summarizer import (
     DEFAULT_MODEL,
-    DEFAULT_TLDR_REASONING_EFFORT,
-    _fetch_tldr_prompt,
-    normalize_summary_effort,
-    tldr_url,
+    DEFAULT_SUMMARY_EFFORT,
+    _fetch_summary_prompt,
+    normalize_summarize_effort,
+    summarize_url,
 )
 
 logger = logging.getLogger("tldr_service")
@@ -308,14 +308,14 @@ def scrape_newsletters_in_date_range(
     }
 
 
-def fetch_tldr_prompt_template() -> str:
-    return _fetch_tldr_prompt()
+def fetch_summary_prompt_template() -> str:
+    return _fetch_summary_prompt()
 
 
-def tldr_url_content(
+def summarize_url_content(
     url: str,
     *,
-    summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT,
+    summarize_effort: str = DEFAULT_SUMMARY_EFFORT,
     model: str = DEFAULT_MODEL,
 ) -> dict:
     cleaned_url = (url or "").strip()
@@ -323,12 +323,12 @@ def tldr_url_content(
         raise ValueError("Missing url")
 
     canonical_url = util.canonicalize_url(cleaned_url)
-    normalized_effort = normalize_summary_effort(summary_effort)
+    normalized_effort = normalize_summarize_effort(summarize_effort)
 
     try:
-        tldr_markdown = tldr_url(
+        summary_markdown = summarize_url(
             canonical_url,
-            summary_effort=normalized_effort,
+            summarize_effort=normalized_effort,
             model=model,
         )
     except requests.RequestException as error:
@@ -340,7 +340,7 @@ def tldr_url_content(
         raise
 
     return {
-        "tldr_markdown": tldr_markdown,
+        "summary_markdown": summary_markdown,
         "canonical_url": canonical_url,
-        "summary_effort": normalized_effort,
+        "summarize_effort": normalized_effort,
     }
