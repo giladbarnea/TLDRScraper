@@ -1,18 +1,18 @@
 ---
-last_updated: 2026-01-31 11:58, c9ae98e
+last_updated: 2026-02-01 21:15, a4e9d66
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
 
 ## Project overview
 <project-overview>
-Newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered TLDRs.
+Newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered summaries.
 
 - Stack:
    * Python: Flask backend, serverless on Vercel
    * React 19 + Vite (frontend) (in `client/`)
    * Supabase PostgreSQL for all data persistence
-   * Gemini 3 Pro Preview for TLDRs
+   * Gemini 3 Pro Preview for summaries
 - Storage: Project uses Supabase Database (PostgreSQL) for all data persistence (newsletters, article states, settings, scrape results). Data is stored server-side with client hooks managing async operations.
 - Cache mechanism: Server-side storage with cache-first scraping for past dates (early return if cached). Today always scrapes and unions with cache to capture new articles published later in the day. Daily payloads stored as JSONB in PostgreSQL.
 
@@ -73,7 +73,7 @@ BackgroundShell("uv run serve.py")  # Or improvise equivalent shell functionalit
 
 # Exercise the API with curl requests.
 curl http://localhost:5001/api/scrape
-curl http://localhost:5001/api/tldr-url
+curl http://localhost:5001/api/summarize-url
 curl ...additional endpoints that may be relevant...
 ```
 
@@ -121,7 +121,7 @@ PY
   b. Running transient Python programs in a check-verify-trial-and-error process
   c. Importing functions from the source to simulate actual flows and isolate root causes
 
-Run `./setup.sh` to verify the environment and dependencies are set up correctly. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/tldr-url`) and run temp python scripts throughout the development process to catch regressions early.
+Run `./setup.sh` to verify the environment and dependencies are set up correctly. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/summarize-url`) and run temp python scripts throughout the development process to catch regressions early.
 - Verify every new behavior, fix or modification you make by utilizing your shell. If possible, execute the modified flow to ensure nothing is broken.
 </practical-guidance>
 
@@ -173,7 +173,7 @@ Be generous in giving the agent wider context—understanding *why* it's perform
 
 <Bad: fallback-rich, squirmy code>
 ```py
-@app.route("/api/tldr-url", methods=["POST"])
+@app.route("/api/summarize-url", methods=["POST"])
 def tldr_url():
     """Requires 'url' in request body"""
     # Unnecessarily defends against broken upstream guarantees.
@@ -185,7 +185,7 @@ def tldr_url():
 
 <Good: straightforward, upstream-trusting code>
 ```py
-@app.route("/api/tldr-url", methods=["POST"])
+@app.route("/api/summarize-url", methods=["POST"])
 def tldr_url():
     """Requires 'url' in request body"""
     # Assumes upstream guarantees are upheld (inputs are valid and complete) — thus keeps the state machine simpler.
