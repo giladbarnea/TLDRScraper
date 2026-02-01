@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-01 21:30, 7a9f8f1
+last_updated: 2026-02-01 21:38, eb4325f
 ---
 # ArticleCard interaction states: suggestion + rationale
 
