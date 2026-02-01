@@ -6,13 +6,13 @@ description: Fundamental instructions for AI coding agents.
 
 ## Project overview
 <project-overview>
-Newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered TLDRs.
+Newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered summaries.
 
 - Stack:
    * Python: Flask backend, serverless on Vercel
    * React 19 + Vite (frontend) (in `client/`)
    * Supabase PostgreSQL for all data persistence
-   * Gemini 3 Pro Preview for TLDRs
+   * Gemini 3 Pro Preview for summaries
 - Storage: Project uses Supabase Database (PostgreSQL) for all data persistence (newsletters, article states, settings, scrape results). Data is stored server-side with client hooks managing async operations.
 - Cache mechanism: Server-side storage with cache-first scraping for past dates (early return if cached). Today always scrapes and unions with cache to capture new articles published later in the day. Daily payloads stored as JSONB in PostgreSQL.
 

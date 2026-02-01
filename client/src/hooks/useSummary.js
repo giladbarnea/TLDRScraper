@@ -51,7 +51,7 @@ export function useSummary(date, url, type = 'summary') {
   const isLoading = status === 'creating' || loading
   const isError = status === 'error'
 
-  const fetchTldr = async (tldrEffort = effort) => {
+  const fetchSummary = async (summaryEffort = effort) => {
     if (!article) return
 
     if (abortControllerRef.current) {
@@ -61,7 +61,7 @@ export function useSummary(date, url, type = 'summary') {
     abortControllerRef.current = controller
 
     setLoading(true)
-    setEffort(tldrEffort)
+    setEffort(summaryEffort)
 
     const endpoint = '/api/summarize-url'
 
@@ -71,7 +71,7 @@ export function useSummary(date, url, type = 'summary') {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url,
-          summarize_effort: tldrEffort
+          summarize_effort: summaryEffort
         }),
         signal: controller.signal
       })
@@ -83,7 +83,7 @@ export function useSummary(date, url, type = 'summary') {
           [type]: {
             status: 'available',
             markdown: result.summary_markdown || '',
-            effort: tldrEffort,
+            effort: summaryEffort,
             checkedAt: new Date().toISOString(),
             errorMessage: null
           }
@@ -119,7 +119,7 @@ export function useSummary(date, url, type = 'summary') {
     }
   }
 
-  const toggle = (tldrEffort) => {
+  const toggle = (summaryEffort) => {
     if (isAvailable) {
       if (expanded) {
         collapse()
@@ -127,7 +127,7 @@ export function useSummary(date, url, type = 'summary') {
         setExpanded(true)
       }
     } else {
-      fetchTldr(tldrEffort)
+      fetchSummary(summaryEffort)
     }
   }
 
@@ -160,7 +160,7 @@ export function useSummary(date, url, type = 'summary') {
     effort,
     isAvailable,
     isError,
-    fetch: fetchTldr,
+    fetch: fetchSummary,
     toggle,
     collapse,
     expand
