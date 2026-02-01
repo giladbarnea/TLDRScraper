@@ -53,7 +53,7 @@ The client is built as a Single Page Application (SPA) using React and Vite. It 
 ╞══════════════│══════════════════════│═══════════════════│═══════════════╡
 │  BACKEND API ▼                      ▼                   ▼               │
 │         ┌──────────┐          ┌──────────┐        ┌───────────┐         │
-│         │ /scrape  │          │ /storage │        │ /tldr-url │         │
+│         │ /scrape  │          │ /storage │        │ /summarize-url │         │
 │         └──────────┘          └──────────┘        └───────────┘         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -303,7 +303,7 @@ TIME   ACTOR              ACTION                                TARGET
 │
 ├───►  ArticleCard        Checks TLDR availability          ──► useSummary
 │      │
-│      ├── (If missing)   Request TLDR Generation           ──► API (/tldr-url)
+│      ├── (If missing)   Request TLDR Generation           ──► API (/summarize-url)
 │      │   API            Returns Markdown/HTML             ──► useSummary
 │      │
 │      └── (If ready)     Expands Overlay                   ──► ZenModeOverlay

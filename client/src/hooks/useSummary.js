@@ -67,7 +67,7 @@ export function useSummary(date, url, type = 'tldr') {
     setLoading(true)
     setEffort(tldrEffort)
 
-    const endpoint = '/api/tldr-url'
+    const endpoint = '/api/summarize-url'
 
     try {
       const response = await window.fetch(endpoint, {
@@ -75,7 +75,7 @@ export function useSummary(date, url, type = 'tldr') {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url,
-          tldr_effort: tldrEffort
+          summarize_effort: tldrEffort
         }),
         signal: controller.signal
       })
@@ -86,7 +86,7 @@ export function useSummary(date, url, type = 'tldr') {
         updateArticle(() => ({
           [type]: {
             status: 'available',
-            markdown: result[`${type}_markdown`] || '',
+            markdown: result.summary_markdown || '',
             effort: tldrEffort,
             checkedAt: new Date().toISOString(),
             errorMessage: null

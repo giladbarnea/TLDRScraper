@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 
 import tldr_service
-from summarizer import DEFAULT_MODEL, DEFAULT_TLDR_REASONING_EFFORT
+from summarizer import DEFAULT_MODEL, DEFAULT_SUMMARY_EFFORT
 
 logger = logging.getLogger("tldr_app")
 
@@ -26,30 +26,30 @@ def scrape_newsletters(
     )
 
 
-def tldr_url(
+def summarize_url(
     url: str,
     *,
-    tldr_effort: str = DEFAULT_TLDR_REASONING_EFFORT,
+    summarize_effort: str = DEFAULT_SUMMARY_EFFORT,
     model: str = DEFAULT_MODEL,
 ) -> dict:
-    result = tldr_service.tldr_url_content(
+    result = tldr_service.summarize_url_content(
         url,
-        tldr_effort=tldr_effort,
+        summarize_effort=summarize_effort,
         model=model,
     )
 
     payload: dict[str, Optional[str]] = {
         "success": True,
-        "tldr_markdown": result["tldr_markdown"],
+        "summary_markdown": result["summary_markdown"],
     }
 
     canonical_url = result.get("canonical_url")
     if canonical_url:
         payload["canonical_url"] = canonical_url
 
-    tldr_effort_value = result.get("tldr_effort")
-    if tldr_effort_value:
-        payload["tldr_effort"] = tldr_effort_value
+    summarize_effort_value = result.get("summarize_effort")
+    if summarize_effort_value:
+        payload["summarize_effort"] = summarize_effort_value
 
     return payload
 

@@ -31,7 +31,7 @@ source ./setup.sh && print_server_and_watchdog_pids
 
 # Exercise the API with curl requests.
 curl http://localhost:5001/api/scrape
-curl http://localhost:5001/api/tldr-url
+curl http://localhost:5001/api/summarize-url
 curl ...additional endpoints that may be relevant...
 
 # Stop the server and watchdog.

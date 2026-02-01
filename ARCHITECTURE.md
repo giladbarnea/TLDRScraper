@@ -57,7 +57,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │                          Flask Backend (Python)                          │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │                         serve.py (Routes)                         │  │
-│  │  POST /api/scrape             POST /api/tldr-url                 │  │
+│  │  POST /api/scrape             POST /api/summarize-url            │  │
 │  │  GET/POST /api/storage/setting/<key>                             │  │
 │  │  GET/POST /api/storage/daily/<date>                              │  │
 │  │  POST /api/storage/daily-range                                   │  │
@@ -372,14 +372,14 @@ unknown
        ↓
      creating
        │
-       ├─ POST /api/tldr-url { url, tldr_effort }
+       ├─ POST /api/summarize-url { url, summarize_effort }
        │
        ├─ Success
        │    ↓
        │  available
        │    │
        │    ├─ tldr.status = 'available'
-       │    ├─ tldr.markdown = response.tldr_markdown
+       │    ├─ tldr.markdown = response.summary_markdown
        │    ├─ tldr.expanded = true
        │    ├─ Mark article as read
        │    │
@@ -637,29 +637,29 @@ User clicks "TLDR" button OR clicks article card body
   │    │         │
   │    │         └─ If TLDR not available: Fetch from API
   │    │              │
-  │    │              └─ window.fetch('/api/tldr-url?model=gemini-3-pro-preview', {
+  │    │              └─ window.fetch('/api/summarize-url?model=gemini-3-pro-preview', {
   │    │                   method: 'POST',
-  │    │                   body: JSON.stringify({ url, tldr_effort })
+  │    │                   body: JSON.stringify({ url, summarize_effort })
   │    │                 })
   │    │                   │
   │    │                   └─ Server receives request...
   │    │                        │
-  │    │                        ├─ serve.py:72 tldr_url()
+  │    │                        ├─ serve.py:78 summarize_url_endpoint()
   │    │                        │    │
-  │    │                        │    └─ tldr_app.py:32 tldr_url(url, tldr_effort)
+  │    │                        │    └─ tldr_app.py:29 summarize_url(url, summarize_effort)
   │    │                        │         │
-  │    │                        │         └─ tldr_service.py:79 tldr_url_content(url, tldr_effort)
+  │    │                        │         └─ tldr_service.py:315 summarize_url_content(url, summarize_effort)
   │    │                        │              │
   │    │                        │              ├─ util.canonicalize_url(url)
   │    │                        │              │
-  │    │                        │              └─ summarizer.py:279 tldr_url(url, tldr_effort)
+  │    │                        │              └─ summarizer.py:286 summarize_url(url, summarize_effort)
   │    │                        │                   │
   │    │                        │                   ├─ url_to_markdown(url)
   │    │                        │                   │    (scrapes and converts URL content to markdown)
   │    │                        │                   │
-  │    │                        │                   ├─ Fetch TLDR prompt template:
+  │    │                        │                   ├─ Fetch summary prompt template:
   │    │                        │                   │    │
-  │    │                        │                   │    └─ _fetch_tldr_prompt()
+  │    │                        │                   │    └─ _fetch_summary_prompt()
   │    │                        │                   │         │
   │    │                        │                   │         └─ Fetch from GitHub:
   │    │                        │                   │              "https://api.github.com/repos/giladbarnea/llm-templates/contents/text/tldr.md"
@@ -669,17 +669,17 @@ User clicks "TLDR" button OR clicks article card body
   │    │                        │                   │
       │    │                        │                   └─ Call LLM:
       │    │                        │                        │
-      │    │                        │                        └─ _call_llm(prompt, tldr_effort)
+      │    │                        │                        └─ _call_llm(prompt, summarize_effort)
       │    │                        │                             (calls Google Gemini 3 Pro API)
   │    │                        │
-  │    │                        └─ Return { success, tldr_markdown, canonical_url, tldr_effort }
+  │    │                        └─ Return { success, summary_markdown, canonical_url, summarize_effort }
   │    │
   │    └─ Client receives response:
   │         │
   │         ├─ Update article state:
   │         │    {
   │         │      status: 'available',
-  │         │      markdown: result.tldr_markdown,
+  │         │      markdown: result.summary_markdown,
   │         │      effort: tldrEffort,
   │         │      checkedAt: timestamp,
   │         │      errorMessage: null
