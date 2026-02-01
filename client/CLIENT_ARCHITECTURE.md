@@ -291,7 +291,7 @@ main()
 
 ## Sequence Diagram
 
-> Focus: The "Reading Flow"—from clicking a card to marking it as done.
+> Focus: The "Reading Flow"—from clicking a card to marking it as removed.
 
 ```
 TIME   ACTOR              ACTION                                TARGET
