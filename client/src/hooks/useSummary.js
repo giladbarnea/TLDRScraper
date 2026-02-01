@@ -22,11 +22,7 @@ function releaseZenLock(url) {
   }
 }
 
-export function useSummary(date, url, type = 'tldr') {
-  if (type === 'summary') {
-    throw new Error('Summary feature has been removed. Use type="tldr" instead.')
-  }
-
+export function useSummary(date, url, type = 'summary') {
   const { article, updateArticle, isRead, markAsRead } = useArticleState(date, url)
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState(false)

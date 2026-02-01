@@ -237,7 +237,7 @@ function ArticleCard({ article }) {
     article.issueDate,
     article.url
   )
-  const tldr = useSummary(article.issueDate, article.url, 'tldr')
+  const tldr = useSummary(article.issueDate, article.url)
   const { isAvailable } = tldr
 
   const componentId = `article-${article.url}`
