@@ -1,4 +1,5 @@
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
+import { ArticleLifecycleEventType, deriveArticleLifecycleState, reduceArticleLifecycle } from '../reducers/articleLifecycleReducer'
 import { useSupabaseStorage } from './useSupabaseStorage'
 
 export function useArticleState(date, url) {
@@ -7,8 +8,9 @@ export function useArticleState(date, url) {
 
   const article = payload?.articles?.find(a => a.url === url) || null
 
-  const isRead = article?.read?.isRead ?? false
-  const isRemoved = Boolean(article?.removed)
+  const lifecycleState = deriveArticleLifecycleState(article)
+  const isRead = lifecycleState === 'read'
+  const isRemoved = lifecycleState === 'removed'
 
   const updateArticle = (updater) => {
     if (!article) return
@@ -25,16 +27,19 @@ export function useArticleState(date, url) {
     })
   }
 
+  const updateLifecycle = (event) => {
+    updateArticle(current => reduceArticleLifecycle(current, event))
+  }
+
   const markAsRead = () => {
-    updateArticle(() => ({
-      read: { isRead: true, markedAt: new Date().toISOString() }
-    }))
+    updateLifecycle({
+      type: ArticleLifecycleEventType.READ_MARKED,
+      markedAt: new Date().toISOString(),
+    })
   }
 
   const markAsUnread = () => {
-    updateArticle(() => ({
-      read: { isRead: false, markedAt: null }
-    }))
+    updateLifecycle({ type: ArticleLifecycleEventType.READ_CLEARED })
   }
 
   const toggleRead = () => {
@@ -43,11 +48,11 @@ export function useArticleState(date, url) {
   }
 
   const markAsRemoved = () => {
-    updateArticle(() => ({ removed: true }))
+    updateLifecycle({ type: ArticleLifecycleEventType.REMOVED_MARKED })
   }
 
   const toggleRemove = () => {
-    updateArticle(() => ({ removed: !isRemoved }))
+    updateLifecycle({ type: ArticleLifecycleEventType.REMOVED_TOGGLED })
   }
 
   return {
