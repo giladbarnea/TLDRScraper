@@ -3,9 +3,9 @@ last_updated: 2026-02-01 21:30, 7a9f8f1
 ---
 # ArticleCard interaction states: suggestion + rationale
 
-## Context update
-- Project naming has moved from **"tldr"** to **"summary"**.
-- Zen overlay completion is now **pull-to-remove**, which maps directly to the card-level **removed** state.
+## Context terminology update
+- What used to be "TLDR" in the "summary" sense — not the TLDR newsletter, not  this project's name — has been renamed to **"summary"**.
+- Zen overlay completion is now **pull-to-remove**, which maps directly to the card-level **removed** state (no longer called "done")
 
 ---
 
