@@ -27,7 +27,7 @@ function ErrorToast({ message, onDismiss }) {
   )
 }
 
-function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkDone }) {
+function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
   const [hasScrolled, setHasScrolled] = useState(false)
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
@@ -35,7 +35,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
   const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose })
   const { overscrollOffset, isOverscrolling, progress: overscrollProgress, isComplete: overscrollComplete } = useOverscrollUp({
     scrollRef,
-    onComplete: onMarkDone,
+    onComplete: onMarkRemoved,
     threshold: 60
   })
 
@@ -108,7 +108,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
           </a>
 
           <button
-            onClick={onMarkDone}
+            onClick={onMarkRemoved}
             className="shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
           >
             <Check size={20} />
@@ -371,7 +371,7 @@ function ArticleCard({ article }) {
                 displayDomain={displayDomain}
                 articleMeta={article.articleMeta}
                 onClose={() => tldr.collapse()}
-                onMarkDone={() => {
+                onMarkRemoved={() => {
                   tldr.collapse()
                   markAsRemoved()
                 }}
