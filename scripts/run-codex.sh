@@ -35,7 +35,7 @@ function main(){
         return 1
     fi
     
-    codex --model=gpt-5.2 --ask-for-approval=never exec --config='model_reasoning_effort=xhigh' --skip-git-repo-check --sandbox danger-full-access -- "$(cat "$prompt_file")"
+    codex --model=gpt-5.2 --ask-for-approval=never exec --config='model_reasoning_effort=medium' --skip-git-repo-check --sandbox danger-full-access -- "$(cat "$prompt_file")"
 }
 
 main "${@}"
