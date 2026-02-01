@@ -17,7 +17,7 @@ from summarizer import (
     DEFAULT_MODEL,
     DEFAULT_TLDR_REASONING_EFFORT,
     _fetch_tldr_prompt,
-    normalize_summary_effort,
+    normalize_tldr_effort,
     tldr_url,
 )
 
@@ -315,7 +315,7 @@ def fetch_tldr_prompt_template() -> str:
 def tldr_url_content(
     url: str,
     *,
-    summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT,
+    tldr_effort: str = DEFAULT_TLDR_REASONING_EFFORT,
     model: str = DEFAULT_MODEL,
 ) -> dict:
     cleaned_url = (url or "").strip()
@@ -323,12 +323,12 @@ def tldr_url_content(
         raise ValueError("Missing url")
 
     canonical_url = util.canonicalize_url(cleaned_url)
-    normalized_effort = normalize_summary_effort(summary_effort)
+    normalized_effort = normalize_tldr_effort(tldr_effort)
 
     try:
         tldr_markdown = tldr_url(
             canonical_url,
-            summary_effort=normalized_effort,
+            tldr_effort=normalized_effort,
             model=model,
         )
     except requests.RequestException as error:
@@ -342,5 +342,5 @@ def tldr_url_content(
     return {
         "tldr_markdown": tldr_markdown,
         "canonical_url": canonical_url,
-        "summary_effort": normalized_effort,
+        "tldr_effort": normalized_effort,
     }

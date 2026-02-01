@@ -79,14 +79,14 @@ def scrape_newsletters_in_date_range():
 def tldr_url(model: str = DEFAULT_MODEL):
     """Create a TLDR of the content at a URL.
 
-    Requires 'url'. Optional: 'summary_effort' to set the reasoning effort level, 'model' query param to specify OpenAI model.
+    Requires 'url'. Optional: 'tldr_effort' to set the reasoning effort level, 'model' query param to specify OpenAI model.
     """
     try:
         data = request.get_json() or {}
         model_param = request.args.get("model", DEFAULT_MODEL)
         result = tldr_app.tldr_url(
             data.get("url", ""),
-            summary_effort=data.get("summary_effort", DEFAULT_TLDR_REASONING_EFFORT),
+            tldr_effort=data.get("tldr_effort", DEFAULT_TLDR_REASONING_EFFORT),
             model=model_param,
         )
 

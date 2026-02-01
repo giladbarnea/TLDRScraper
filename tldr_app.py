@@ -29,12 +29,12 @@ def scrape_newsletters(
 def tldr_url(
     url: str,
     *,
-    summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT,
+    tldr_effort: str = DEFAULT_TLDR_REASONING_EFFORT,
     model: str = DEFAULT_MODEL,
 ) -> dict:
     result = tldr_service.tldr_url_content(
         url,
-        summary_effort=summary_effort,
+        tldr_effort=tldr_effort,
         model=model,
     )
 
@@ -47,9 +47,9 @@ def tldr_url(
     if canonical_url:
         payload["canonical_url"] = canonical_url
 
-    summary_effort_value = result.get("summary_effort")
-    if summary_effort_value:
-        payload["summary_effort"] = summary_effort_value
+    tldr_effort_value = result.get("tldr_effort")
+    if tldr_effort_value:
+        payload["tldr_effort"] = tldr_effort_value
 
     return payload
 

@@ -23,18 +23,18 @@ h.single_line_break = True  # Use single line breaks
 
 _TLDR_PROMPT_CACHE = None
 
-SUMMARY_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
+TLDR_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
 DEFAULT_TLDR_REASONING_EFFORT = "low"
 DEFAULT_MODEL = "gemini-3-pro-preview"
 
 
-def normalize_summary_effort(value: str) -> str:
-    """Normalize summary effort value to a supported option."""
+def normalize_tldr_effort(value: str) -> str:
+    """Normalize TLDR effort value to a supported option."""
     if not isinstance(value, str):
         return DEFAULT_TLDR_REASONING_EFFORT
 
     normalized = value.strip().lower()
-    if normalized in SUMMARY_EFFORT_OPTIONS:
+    if normalized in TLDR_EFFORT_OPTIONS:
         return normalized
 
     return DEFAULT_TLDR_REASONING_EFFORT
@@ -283,23 +283,23 @@ def url_to_markdown(url: str) -> str:
     return markdown
 
 
-def tldr_url(url: str, summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT, model: str = DEFAULT_MODEL) -> str:
+def tldr_url(url: str, tldr_effort: str = DEFAULT_TLDR_REASONING_EFFORT, model: str = DEFAULT_MODEL) -> str:
     """Get markdown content from URL and create a TLDR with LLM.
 
     Args:
         url: The URL to TLDR
-        summary_effort: Reasoning effort level (minimal, low, medium, high)
+        tldr_effort: Reasoning effort level (minimal, low, medium, high)
         model: Gemini model to use
 
     Returns:
         The TLDR markdown
     """
-    effort = normalize_summary_effort(summary_effort)
+    effort = normalize_tldr_effort(tldr_effort)
     markdown = url_to_markdown(url)
 
     template = _fetch_tldr_prompt()
     prompt = f"{template}\n\n<tldr this>\n{markdown}/n</tldr this>"
-    tldr = _call_llm(prompt, summary_effort=effort, model=model)
+    tldr = _call_llm(prompt, tldr_effort=effort, model=model)
 
     return tldr
 
@@ -373,7 +373,7 @@ def _fetch_tldr_prompt(
     )
 
 
-def _map_reasoning_effort_to_thinking_level(summary_effort: str) -> str:
+def _map_reasoning_effort_to_thinking_level(tldr_effort: str) -> str:
     """Map OpenAI reasoning effort levels to Gemini thinking_level.
 
     >>> _map_reasoning_effort_to_thinking_level("minimal")
@@ -385,13 +385,13 @@ def _map_reasoning_effort_to_thinking_level(summary_effort: str) -> str:
     >>> _map_reasoning_effort_to_thinking_level("high")
     'high'
     """
-    effort = normalize_summary_effort(summary_effort)
+    effort = normalize_tldr_effort(tldr_effort)
     if effort in ("minimal", "low"):
         return "low"
     return "high"
 
 
-def _call_llm(prompt: str, summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT, model: str = DEFAULT_MODEL) -> str:
+def _call_llm(prompt: str, tldr_effort: str = DEFAULT_TLDR_REASONING_EFFORT, model: str = DEFAULT_MODEL) -> str:
     """Call Gemini API with prompt."""
     api_key = util.resolve_env_var("GEMINI_API_KEY", "")
     if not api_key:
@@ -399,7 +399,7 @@ def _call_llm(prompt: str, summary_effort: str = DEFAULT_TLDR_REASONING_EFFORT, 
     if not prompt.strip():
         raise ValueError("Prompt is empty")
 
-    thinking_level = _map_reasoning_effort_to_thinking_level(summary_effort)
+    thinking_level = _map_reasoning_effort_to_thinking_level(tldr_effort)
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     headers = {

@@ -372,7 +372,7 @@ unknown
        ↓
      creating
        │
-       ├─ POST /api/tldr-url { url, summary_effort }
+       ├─ POST /api/tldr-url { url, tldr_effort }
        │
        ├─ Success
        │    ↓
@@ -639,20 +639,20 @@ User clicks "TLDR" button OR clicks article card body
   │    │              │
   │    │              └─ window.fetch('/api/tldr-url?model=gemini-3-pro-preview', {
   │    │                   method: 'POST',
-  │    │                   body: JSON.stringify({ url, summary_effort })
+  │    │                   body: JSON.stringify({ url, tldr_effort })
   │    │                 })
   │    │                   │
   │    │                   └─ Server receives request...
   │    │                        │
   │    │                        ├─ serve.py:72 tldr_url()
   │    │                        │    │
-  │    │                        │    └─ tldr_app.py:32 tldr_url(url, summary_effort)
+  │    │                        │    └─ tldr_app.py:32 tldr_url(url, tldr_effort)
   │    │                        │         │
-  │    │                        │         └─ tldr_service.py:79 tldr_url_content(url, summary_effort)
+  │    │                        │         └─ tldr_service.py:79 tldr_url_content(url, tldr_effort)
   │    │                        │              │
   │    │                        │              ├─ util.canonicalize_url(url)
   │    │                        │              │
-  │    │                        │              └─ summarizer.py:279 tldr_url(url, summary_effort)
+  │    │                        │              └─ summarizer.py:279 tldr_url(url, tldr_effort)
   │    │                        │                   │
   │    │                        │                   ├─ url_to_markdown(url)
   │    │                        │                   │    (scrapes and converts URL content to markdown)
@@ -669,10 +669,10 @@ User clicks "TLDR" button OR clicks article card body
   │    │                        │                   │
       │    │                        │                   └─ Call LLM:
       │    │                        │                        │
-      │    │                        │                        └─ _call_llm(prompt, summary_effort)
+      │    │                        │                        └─ _call_llm(prompt, tldr_effort)
       │    │                        │                             (calls Google Gemini 3 Pro API)
   │    │                        │
-  │    │                        └─ Return { success, tldr_markdown, canonical_url, summary_effort }
+  │    │                        └─ Return { success, tldr_markdown, canonical_url, tldr_effort }
   │    │
   │    └─ Client receives response:
   │         │
@@ -680,7 +680,7 @@ User clicks "TLDR" button OR clicks article card body
   │         │    {
   │         │      status: 'available',
   │         │      markdown: result.tldr_markdown,
-  │         │      effort: summaryEffort,
+  │         │      effort: tldrEffort,
   │         │      checkedAt: timestamp,
   │         │      errorMessage: null
   │         │    }
