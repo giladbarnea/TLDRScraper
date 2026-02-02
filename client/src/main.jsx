@@ -5,9 +5,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import { initQuakeConsole } from './lib/quakeConsole'
 
-if (import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')) {
-  initQuakeConsole()
-}
+initQuakeConsole()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
