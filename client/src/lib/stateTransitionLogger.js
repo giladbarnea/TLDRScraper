@@ -6,13 +6,6 @@
  * Domain D: Gesture (idle, dragging)
  */
 
-const DOMAIN_COLORS = {
-  lifecycle: '#8be9fd',
-  'summary-data': '#ffb86c',
-  'summary-view': '#ff79c6',
-  gesture: '#bd93f9'
-}
-
 function truncateUrl(url) {
   if (!url) return '?'
   try {
@@ -26,14 +19,12 @@ function truncateUrl(url) {
 
 export function logTransition(domain, url, from, to, extra = '') {
   const label = truncateUrl(url)
-  const color = DOMAIN_COLORS[domain] || '#fff'
   const extraStr = extra ? ` (${extra})` : ''
-  console.log(`%c[${domain}]%c ${label}: ${from} → ${to}${extraStr}`, `color:${color};font-weight:bold`, 'color:inherit')
+  console.log(`[${domain}] ${label}: ${from} → ${to}${extraStr}`)
 }
 
 export function logTransitionSuccess(domain, url, to, extra = '') {
   const label = truncateUrl(url)
-  const color = DOMAIN_COLORS[domain] || '#fff'
   const extraStr = extra ? ` (${extra})` : ''
-  console.log(`%c[${domain}]%c ${label}: → ${to} %c\u2713${extraStr}`, `color:${color};font-weight:bold`, 'color:inherit', 'color:#50fa7b')
+  console.log(`[${domain}] ${label}: → ${to} ✓${extraStr}`)
 }
