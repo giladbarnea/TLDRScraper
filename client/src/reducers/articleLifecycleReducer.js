@@ -13,11 +13,14 @@ export const ArticleLifecycleEventType = Object.freeze({
   RESTORE: 'RESTORE',
 })
 
-function buildReadPatch(isRead) {
+function buildReadPatch(isRead, markedAt) {
+  if (isRead && !markedAt) {
+    throw new Error('markedAt is required when setting read state.')
+  }
   return {
     read: {
       isRead,
-      markedAt: isRead ? new Date().toISOString() : null,
+      markedAt: isRead ? markedAt : null,
     },
   }
 }
@@ -37,22 +40,22 @@ export function reduceArticleLifecycle(article, event) {
     case ArticleLifecycleEventType.MARK_READ:
       return {
         state: isRemoved ? ArticleLifecycleState.REMOVED : ArticleLifecycleState.READ,
-        patch: buildReadPatch(true),
+        patch: buildReadPatch(true, event.markedAt),
       }
     case ArticleLifecycleEventType.MARK_UNREAD:
       return {
         state: isRemoved ? ArticleLifecycleState.REMOVED : ArticleLifecycleState.UNREAD,
-        patch: buildReadPatch(false),
+        patch: buildReadPatch(false, null),
       }
     case ArticleLifecycleEventType.TOGGLE_READ:
       return isRead
         ? {
             state: isRemoved ? ArticleLifecycleState.REMOVED : ArticleLifecycleState.UNREAD,
-            patch: buildReadPatch(false),
+            patch: buildReadPatch(false, null),
           }
         : {
             state: isRemoved ? ArticleLifecycleState.REMOVED : ArticleLifecycleState.READ,
-            patch: buildReadPatch(true),
+            patch: buildReadPatch(true, event.markedAt),
           }
     case ArticleLifecycleEventType.MARK_REMOVED:
       return { state: ArticleLifecycleState.REMOVED, patch: { removed: true } }
