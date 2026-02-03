@@ -12,6 +12,10 @@ Tracking file: `/tmp/claude-blocking-state.json`
 {"setup_sh_interacted": false, "catchup_skill_interacted": false}
 ```
 
+Notes:
+- Blocking is only active while the tracking file exists.
+- The hook counts any tool input that references the paths (e.g. `Read`/`Edit` file paths, `Glob` patterns, `Grep` paths, `Bash` commands containing the path).
+
 ## Usage
 
 Enable:

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Initialize two-layer blocking system
-# Usage: ./require-reads.sh [--init]  # Enable blocking
+# Usage: ./require-reads.sh           # Enable blocking
 #        ./require-reads.sh --clear   # Disable blocking
 
 set -euo pipefail
