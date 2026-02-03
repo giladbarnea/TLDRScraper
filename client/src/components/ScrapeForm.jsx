@@ -1,7 +1,7 @@
 import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react'
 import { useActionState, useState } from 'react'
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
-import { scrapeNewsletters } from '../lib/scraper'
+import { fetchCachedPayloadsRange, scrapeNewsletters } from '../lib/scraper'
 
 function validateDateRange(startDate, endDate) {
   const startDateObj = new Date(startDate)
@@ -117,6 +117,18 @@ function ScrapeForm({ onResults }) {
       }, 500)
 
       try {
+        if (cacheEnabled) {
+          try {
+            const cachedResult = await fetchCachedPayloadsRange(start, end)
+            if (cachedResult.payloads.length > 0) {
+              setProgress(30)
+              onResults(cachedResult)
+            }
+          } catch (error) {
+            console.error('Failed to prefetch cached payloads:', error)
+          }
+        }
+
         const results = await scrapeNewsletters(start, end, cacheEnabled)
         clearInterval(interval)
         setProgress(100)

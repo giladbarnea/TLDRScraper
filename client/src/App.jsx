@@ -1,16 +1,24 @@
 import { Calendar } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Feed from './components/Feed'
 import ScrapeForm from './components/ScrapeForm'
 import SelectionCounterPill from './components/SelectionCounterPill'
 import { InteractionProvider } from './contexts/InteractionContext'
-import { scrapeNewsletters } from './lib/scraper'
+import { useSupabaseStorage } from './hooks/useSupabaseStorage'
+import { fetchCachedPayloadsRange, scrapeNewsletters } from './lib/scraper'
 
 function App() {
   const [results, setResults] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [cacheEnabled, , , cacheStatus] = useSupabaseStorage('cache:enabled', true)
+  const hasFetchedInitialRange = useRef(false)
 
   useEffect(() => {
+    if (cacheStatus.loading || hasFetchedInitialRange.current) {
+      return
+    }
+
+    hasFetchedInitialRange.current = true
     const controller = new AbortController()
 
     const today = new Date()
@@ -32,8 +40,22 @@ function App() {
       }
     }
 
-    scrapeNewsletters(startDate, endDate, true, controller.signal)
-      .then(result => {
+    const fetchResults = async () => {
+      if (cacheEnabled) {
+        try {
+          const cachedResult = await fetchCachedPayloadsRange(startDate, endDate, controller.signal)
+          if (cachedResult.payloads.length > 0) {
+            setResults(cachedResult)
+          }
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            console.error('Failed to prefetch cached payloads:', error)
+          }
+        }
+      }
+
+      try {
+        const result = await scrapeNewsletters(startDate, endDate, cacheEnabled, controller.signal)
         setResults(result)
         try {
           sessionStorage.setItem(cacheKey, JSON.stringify({
@@ -41,17 +63,19 @@ function App() {
             data: result
           }))
         } catch {}
-      })
-      .catch(err => {
-        if (err.name === 'AbortError') return
-        console.error('Failed to load results:', err)
+      } catch (error) {
+        if (error.name === 'AbortError') return
+        console.error('Failed to load results:', error)
         setResults({ payloads: [], stats: null })
-      })
+      }
+    }
+
+    fetchResults()
 
     return () => {
       controller.abort()
     }
-  }, [])
+  }, [cacheEnabled, cacheStatus.loading])
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
