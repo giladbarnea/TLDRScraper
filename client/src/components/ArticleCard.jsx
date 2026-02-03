@@ -373,7 +373,7 @@ function ArticleCard({ article }) {
                 articleMeta={article.articleMeta}
                 onClose={() => summary.collapse()}
                 onMarkRemoved={() => {
-                  summary.collapse()
+                  summary.collapse(false)
                   markAsRemoved()
                 }}
               />
