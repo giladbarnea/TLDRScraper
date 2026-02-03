@@ -1,3 +1,6 @@
+---
+last_updated: 2026-02-03 06:49, 0f84214
+---
 # Two-Layer Blocking Hook
 
 PreToolUse hook enforcing path-based interaction before allowing tool use.
