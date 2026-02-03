@@ -2,6 +2,7 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import markedKatex from 'marked-katex-extension'
 import { useEffect, useRef, useState } from 'react'
+import { logTransition, logTransitionSuccess } from '../lib/stateTransitionLogger'
 import { useArticleState } from './useArticleState'
 
 marked.use(markedKatex({ throwOnError: false }))
@@ -60,6 +61,7 @@ export function useSummary(date, url, type = 'summary') {
     const controller = new AbortController()
     abortControllerRef.current = controller
 
+    logTransition('summary-data', url, status, 'loading', `effort=${summaryEffort}`)
     setLoading(true)
     setEffort(summaryEffort)
 
@@ -79,6 +81,7 @@ export function useSummary(date, url, type = 'summary') {
       const result = await response.json()
 
       if (result.success) {
+        logTransitionSuccess('summary-data', url, 'available')
         updateArticle(() => ({
           [type]: {
             status: 'available',
@@ -89,9 +92,11 @@ export function useSummary(date, url, type = 'summary') {
           }
         }))
         if (acquireZenLock(url)) {
+          logTransition('summary-view', url, 'collapsed', 'expanded')
           setExpanded(true)
         }
       } else {
+        logTransition('summary-data', url, 'loading', 'error', result.error)
         updateArticle((current) => ({
           [type]: {
             ...(current[type] || {}),
@@ -102,6 +107,7 @@ export function useSummary(date, url, type = 'summary') {
       }
     } catch (error) {
       if (error.name === 'AbortError') return
+      logTransition('summary-data', url, 'loading', 'error', error.message)
       updateArticle((current) => ({
         [type]: {
           ...(current[type] || {}),
@@ -111,8 +117,6 @@ export function useSummary(date, url, type = 'summary') {
       }))
       console.error(`Failed to fetch ${type}:`, error)
     } finally {
-      // Only reset loading if this fetch wasn't aborted. In practice, abort only happens
-      // when a NEW fetch starts (line 56-57), so a successor fetch always completes and resets loading.
       if (!controller.signal.aborted) {
         setLoading(false)
       }
@@ -124,6 +128,7 @@ export function useSummary(date, url, type = 'summary') {
       if (expanded) {
         collapse()
       } else if (acquireZenLock(url)) {
+        logTransition('summary-view', url, 'collapsed', 'expanded')
         setExpanded(true)
       }
     } else {
@@ -132,6 +137,7 @@ export function useSummary(date, url, type = 'summary') {
   }
 
   const collapse = () => {
+    logTransition('summary-view', url, 'expanded', 'collapsed')
     releaseZenLock(url)
     setExpanded(false)
     if (!isRead) markAsRead()
@@ -139,6 +145,7 @@ export function useSummary(date, url, type = 'summary') {
 
   const expand = () => {
     if (acquireZenLock(url)) {
+      logTransition('summary-view', url, 'collapsed', 'expanded')
       setExpanded(true)
     }
   }

@@ -251,6 +251,7 @@ function ArticleCard({ article }) {
     isRemoved,
     stateLoading,
     onSwipeComplete: handleSwipeComplete,
+    url: article.url,
   })
 
   const swipeEnabled = canDrag && !isSelectMode

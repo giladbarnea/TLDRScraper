@@ -1,4 +1,5 @@
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
+import { logTransition } from '../lib/stateTransitionLogger'
 import { useSupabaseStorage } from './useSupabaseStorage'
 
 export function useArticleState(date, url) {
@@ -26,12 +27,14 @@ export function useArticleState(date, url) {
   }
 
   const markAsRead = () => {
+    logTransition('lifecycle', url, 'unread', 'read')
     updateArticle(() => ({
       read: { isRead: true, markedAt: new Date().toISOString() }
     }))
   }
 
   const markAsUnread = () => {
+    logTransition('lifecycle', url, 'read', 'unread')
     updateArticle(() => ({
       read: { isRead: false, markedAt: null }
     }))
@@ -43,10 +46,15 @@ export function useArticleState(date, url) {
   }
 
   const markAsRemoved = () => {
+    const from = isRead ? 'read' : 'unread'
+    logTransition('lifecycle', url, from, 'removed')
     updateArticle(() => ({ removed: true }))
   }
 
   const toggleRemove = () => {
+    const from = isRemoved ? 'removed' : (isRead ? 'read' : 'unread')
+    const to = isRemoved ? (isRead ? 'read' : 'unread') : 'removed'
+    logTransition('lifecycle', url, from, to)
     updateArticle(() => ({ removed: !isRemoved }))
   }
 

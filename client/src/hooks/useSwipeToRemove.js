@@ -1,7 +1,8 @@
 import { useAnimation } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { logTransition } from '../lib/stateTransitionLogger'
 
-export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete }) {
+export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete, url }) {
   const [isDragging, setIsDragging] = useState(false)
   const [dragError, setDragError] = useState(null)
   const controls = useAnimation()
@@ -17,11 +18,13 @@ export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete }) {
   }, [isRemoved, stateLoading, controls])
 
   const handleDragStart = () => {
+    logTransition('gesture', url, 'idle', 'dragging')
     setIsDragging(true)
     setDragError(null)
   }
 
   const handleDragEnd = async (_event, info) => {
+    logTransition('gesture', url, 'dragging', 'idle')
     setIsDragging(false)
     try {
       const { offset, velocity } = info
