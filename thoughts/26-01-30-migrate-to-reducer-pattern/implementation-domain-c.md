@@ -1,41 +1,41 @@
-# Technique suggestion: Domain C (Summary view reducer)
+# Implementation: Domain C (Summary view reducer)
 
-## Intent
-Domain C focuses on the summary view UI (`collapsed` ↔ `expanded`). A reducer for this domain could keep the overlay/view logic explicit while staying closed and easy to coordinate with Domain B (summary data) and Domain A (lifecycle). The approach below is meant as a small, low-ceremony technique that might reduce coordination friction.
+## Status
+✅ **Implemented**
 
-## Proposed technique (advisory)
-### 1) Keep Domain C narrowly scoped
-A minimal state shape could be something like:
-- `mode: 'collapsed' | 'expanded'`
-- `expandedBy: 'tap' | 'summary-loaded' | null` (optional, for analytics or debugging)
+## Overview
+Domain C (summary view UI: `collapsed` ↔ `expanded`) now uses a closed reducer to centralize view transitions in one place while keeping the hook responsible for side effects and cross-domain coordination. The reducer owns the view mode and the reason it opened, while the hook handles lock acquisition, summary data fetches, and article persistence.
 
-Events could be deliberately small:
-- `SUMMARY_VIEW_OPEN_REQUESTED`
-- `SUMMARY_VIEW_CLOSE_REQUESTED`
-- `SUMMARY_DATA_AVAILABLE` (from Domain B)
-- `ARTICLE_REMOVED` (from Domain A)
+## Files Added
+- `client/src/reducers/summaryViewReducer.js`
+  - Exports `SummaryViewMode` enum (`COLLAPSED`, `EXPANDED`)
+  - Exports `SummaryViewEventType` enum (`OPEN_REQUESTED`, `CLOSE_REQUESTED`)
+  - Exports `reduceSummaryView(state, event)` returning `{ state }`
 
-The reducer can stay closed by only reacting to those events and returning `{ state, commands }` without reading other domains directly.
+## Files Modified
+- `client/src/hooks/useSummary.js`
+  - Replaced the ad-hoc `expanded` boolean with reducer state (`summaryViewState`)
+  - Added `dispatchSummaryViewEvent` to log and apply view transitions
+  - Preserved the single-owner lock and summary data flow while routing view transitions through events
 
-### 2) Favor a “command emission” pattern over direct effects
-When the view is opened from a tap, the reducer could emit a command such as `ENSURE_SUMMARY_DATA`. The runtime (hook) would interpret that command and ask Domain B to fetch if needed. This might keep Domain C simple while still making “open → fetch if missing → render” feasible.
+## Decisions (for and against)
 
-### 3) Use outcome-based coordination
-If Domain B emits `SUMMARY_DATA_AVAILABLE`, Domain C could treat that as a soft open signal (or ignore it, depending on desired behavior). This allows you to test two variants with minimal code churn:
-- **Variant A:** Auto-open on `SUMMARY_DATA_AVAILABLE` (might feel “smart” but could surprise users).
-- **Variant B:** Only open on explicit user action (might feel more predictable, especially on mobile).
+### ✅ Adopted: Closed reducer for view mode
+**Why:** The view state is a pure input/output concern, so a small reducer keeps the logic explicit and testable without pulling in other domains. It also aligns with the existing Domain A migration style.
 
-A mediator could translate Domain B outcomes into Domain C events without the reducers reading each other.
+### ✅ Adopted: Minimal event surface (`OPEN_REQUESTED`, `CLOSE_REQUESTED`)
+**Why:** These two events map directly to the existing behavior and keep the reducer closed and low-ceremony. More events would be premature until Domain B is migrated.
 
-### 4) Consider a “single-owner” overlay lock
-If you need to prevent multiple expanded summaries, Domain C could track `expandedArticleId` in its state. That might reduce UI edge cases (e.g., overlapping overlays), but it may also make transitions slightly more verbose. You could treat this as an experiment: if the UI starts to feel inconsistent, a single-owner lock might be a low-risk fix.
+### ❌ Deferred: Command emission for data fetch
+**Why:** The current flow already fetches summary data inside the hook, and introducing commands would add boilerplate without immediate payoff. The hook still serves as the runtime that can evolve later if Domain B adopts a reducer.
 
-## Hypothesized outcomes (not guaranteed)
-- The reducer might make the summary overlay behavior easier to reason about, especially under rapid tap/swipe interactions.
-- A command-based bridge could lower the risk of accidental coupling between Domain C and Domain B.
-- A single-owner lock might reduce overlay glitches, though it could also introduce new UX expectations (e.g., tapping a different article implicitly closes the current overlay).
+### ❌ Deferred: Cross-domain mediator events (e.g., `SUMMARY_DATA_AVAILABLE`)
+**Why:** The only auto-open path today is a direct consequence of a user action that triggered the fetch. The hook already has that context, so adding mediator events now would increase complexity without improving behavior.
 
-## Open questions worth discussing
-- Should `SUMMARY_DATA_AVAILABLE` auto-expand or simply enable tap-to-expand?
-- If the user removes an article while expanded, should the overlay close immediately or after a brief animation?
-- Do we need telemetry for view transitions, or can we keep Domain C purely behavioral for now?
+### ✅ Retained: Single-owner lock in the hook
+**Why:** The lock is inherently global and side-effectful, so keeping it out of the reducer preserves the closed reducer constraint while preventing multiple overlays.
+
+## Behavioral Notes
+- A successful summary fetch still auto-expands the view if the lock can be acquired.
+- User taps open/close the view through events; view transitions are logged only on real mode changes.
+- The reducer is intentionally scoped to view mode and does not read or mutate summary data or lifecycle state.
