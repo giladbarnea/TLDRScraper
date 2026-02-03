@@ -1,5 +1,10 @@
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import { logTransition } from '../lib/stateTransitionLogger'
+import {
+  ArticleLifecycleEventType,
+  getArticleLifecycleState,
+  reduceArticleLifecycle
+} from '../reducers/articleLifecycleReducer'
 import { useSupabaseStorage } from './useSupabaseStorage'
 
 export function useArticleState(date, url) {
@@ -8,6 +13,7 @@ export function useArticleState(date, url) {
 
   const article = payload?.articles?.find(a => a.url === url) || null
 
+  const lifecycleState = getArticleLifecycleState(article)
   const isRead = article?.read?.isRead ?? false
   const isRemoved = Boolean(article?.removed)
 
@@ -26,42 +32,48 @@ export function useArticleState(date, url) {
     })
   }
 
+  const dispatchLifecycleEvent = (event) => {
+    updateArticle((current) => {
+      const fromState = getArticleLifecycleState(current)
+      const { state: toState, patch } = reduceArticleLifecycle(current, event)
+      if (fromState !== toState) {
+        logTransition('lifecycle', url, fromState, toState)
+      }
+      return patch || {}
+    })
+  }
+
   const markAsRead = () => {
-    logTransition('lifecycle', url, 'unread', 'read')
-    updateArticle(() => ({
-      read: { isRead: true, markedAt: new Date().toISOString() }
-    }))
+    dispatchLifecycleEvent({
+      type: ArticleLifecycleEventType.MARK_READ,
+      markedAt: new Date().toISOString()
+    })
   }
 
   const markAsUnread = () => {
-    logTransition('lifecycle', url, 'read', 'unread')
-    updateArticle(() => ({
-      read: { isRead: false, markedAt: null }
-    }))
+    dispatchLifecycleEvent({ type: ArticleLifecycleEventType.MARK_UNREAD })
   }
 
   const toggleRead = () => {
-    if (isRead) markAsUnread()
-    else markAsRead()
+    dispatchLifecycleEvent({
+      type: ArticleLifecycleEventType.TOGGLE_READ,
+      markedAt: new Date().toISOString()
+    })
   }
 
   const markAsRemoved = () => {
-    const from = isRead ? 'read' : 'unread'
-    logTransition('lifecycle', url, from, 'removed')
-    updateArticle(() => ({ removed: true }))
+    dispatchLifecycleEvent({ type: ArticleLifecycleEventType.MARK_REMOVED })
   }
 
   const toggleRemove = () => {
-    const from = isRemoved ? 'removed' : (isRead ? 'read' : 'unread')
-    const to = isRemoved ? (isRead ? 'read' : 'unread') : 'removed'
-    logTransition('lifecycle', url, from, to)
-    updateArticle(() => ({ removed: !isRemoved }))
+    dispatchLifecycleEvent({ type: ArticleLifecycleEventType.TOGGLE_REMOVED })
   }
 
   return {
     article,
     isRead,
     isRemoved,
+    lifecycleState,
     loading,
     error,
     markAsRead,
