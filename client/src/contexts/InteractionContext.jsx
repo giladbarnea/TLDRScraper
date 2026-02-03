@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer } from 'react'
 import {
   createInitialInteractionState,
-  interactionReduce,
   InteractionEventType,
+  interactionReduce,
 } from '../reducers/interactionReducer'
 
 const InteractionContext = createContext(null)
