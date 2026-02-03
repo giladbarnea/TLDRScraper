@@ -1,22 +1,47 @@
 #!/bin/bash
-# PreToolUse hook that blocks all tool execution until a specific set of files are read
+# PreToolUse hook with two-layer blocking:
+# Layer 1: Block ALL tools (including Read) until setup.sh has been run
+# Layer 2: Block all tools except Read until required files are read
+#
+# Setup flag: $HOME/.cache/tech-news-scraper/setup-complete
 # Tracking file: /tmp/claude-required-reads.json
 # Format: {"files": {"/path/to/file1": false, "/path/to/file2": true, ...}}
 
 set -euo pipefail
 
+SETUP_FLAG="$HOME/.cache/tech-news-scraper/setup-complete"
 TRACKING_FILE="/tmp/claude-required-reads.json"
 
 # Read hook input from stdin
 INPUT=$(cat)
 
+# Parse tool name early for both checks
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""')
+
+# LAYER 1: Check if setup.sh has been run
+if [[ ! -f "$SETUP_FLAG" ]]; then
+    ERROR_MSG="🚫 Setup required before any tool use.
+
+Please run setup.sh first:
+  source ./setup.sh
+
+Or if in a non-interactive shell:
+  ./setup.sh --quiet
+
+This installs dependencies, builds the client, and prepares the environment.
+After setup completes, you can proceed with tool operations."
+
+    echo "$ERROR_MSG" >&2
+    exit 2
+fi
+
+# LAYER 2: Check required file reads
 # If tracking file doesn't exist, allow everything (normal behavior)
 if [[ ! -f "$TRACKING_FILE" ]]; then
     exit 0
 fi
 
-# Parse hook input
-TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""')
+# Parse tool input
 TOOL_INPUT=$(echo "$INPUT" | jq -r '.tool_input // {}')
 
 # Read current tracking state

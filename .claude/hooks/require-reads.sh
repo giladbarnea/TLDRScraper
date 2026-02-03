@@ -1,11 +1,13 @@
 #!/bin/bash
 # Helper script to set up required file reads
 # Usage: ./require-reads.sh /path/to/file1 /path/to/file2 ...
-# Or:    ./require-reads.sh --clear  # Remove the tracking file
+# Or:    ./require-reads.sh --catchup    # Set up catchup skill files
+# Or:    ./require-reads.sh --clear      # Remove the tracking file
 
 set -euo pipefail
 
 TRACKING_FILE="/tmp/claude-required-reads.json"
+PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
 
 # If --clear flag, remove tracking file
 if [[ "${1:-}" == "--clear" ]]; then
@@ -18,10 +20,21 @@ if [[ "${1:-}" == "--clear" ]]; then
     exit 0
 fi
 
+# If --catchup flag, set up the files mentioned in catchup skill
+if [[ "${1:-}" == "--catchup" ]]; then
+    echo "Setting up catchup skill required reads..."
+    exec "$0" \
+        "$PROJECT_ROOT/README.md" \
+        "$PROJECT_ROOT/CLAUDE.md" \
+        "$PROJECT_ROOT/ARCHITECTURE.md" \
+        "$PROJECT_ROOT/PROJECT_STRUCTURE.md"
+fi
+
 # If no arguments, show usage
 if [[ $# -eq 0 ]]; then
     echo "Usage: $0 /path/to/file1 /path/to/file2 ..."
-    echo "   or: $0 --clear"
+    echo "   or: $0 --catchup  # Set up catchup skill files"
+    echo "   or: $0 --clear    # Remove tracking"
     echo ""
     echo "Sets up a tracking file that blocks Claude tool execution until"
     echo "all specified files are read using the Read tool."
