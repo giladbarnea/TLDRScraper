@@ -136,11 +136,11 @@ export function useSummary(date, url, type = 'summary') {
     }
   }
 
-  const collapse = () => {
+  const collapse = (markAsReadOnClose = true) => {
     logTransition('summary-view', url, 'expanded', 'collapsed')
     releaseZenLock(url)
     setExpanded(false)
-    if (!isRead) markAsRead()
+    if (markAsReadOnClose && !isRead) markAsRead()
   }
 
   const expand = () => {
