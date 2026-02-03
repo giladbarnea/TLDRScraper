@@ -2,7 +2,8 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import markedKatex from 'marked-katex-extension'
 import { useEffect, useRef, useState } from 'react'
-import { logTransition, logTransitionSuccess } from '../lib/stateTransitionLogger'
+import * as stateTransitionLogger from '../lib/stateTransitionLogger'
+import * as summaryDataReducer from '../reducers/summaryDataReducer'
 import { useArticleState } from './useArticleState'
 
 marked.use(markedKatex({ throwOnError: false }))
@@ -25,13 +26,14 @@ function releaseZenLock(url) {
 
 export function useSummary(date, url, type = 'summary') {
   const { article, updateArticle, isRead, markAsRead } = useArticleState(date, url)
-  const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [effort, setEffort] = useState('low')
   const abortControllerRef = useRef(null)
+  const requestTokenRef = useRef(null)
+  const previousSummaryDataRef = useRef(null)
 
-  const data = article?.[type]
-  const status = data?.status || 'unknown'
+  const data = article?.[type] || null
+  const status = summaryDataReducer.getSummaryDataStatus(data)
   const markdown = data?.markdown || ''
 
   const html = (() => {
@@ -48,9 +50,35 @@ export function useSummary(date, url, type = 'summary') {
   })()
 
   const errorMessage = data?.errorMessage || null
-  const isAvailable = status === 'available' && markdown
-  const isLoading = status === 'creating' || loading
-  const isError = status === 'error'
+  const isAvailable = status === summaryDataReducer.SummaryDataStatus.AVAILABLE && markdown
+  const isLoading = status === summaryDataReducer.SummaryDataStatus.LOADING
+  const isError = status === summaryDataReducer.SummaryDataStatus.ERROR
+
+  const dispatchSummaryEvent = (event, extra = '') => {
+    updateArticle((current) => {
+      const currentData = current?.[type]
+      const fromStatus = summaryDataReducer.getSummaryDataStatus(currentData)
+      const { state: toStatus, patch } = summaryDataReducer.reduceSummaryData(currentData, event)
+
+      if (fromStatus !== toStatus) {
+        if (event.type === summaryDataReducer.SummaryDataEventType.SUMMARY_LOAD_SUCCEEDED) {
+          stateTransitionLogger.logTransitionSuccess('summary-data', url, toStatus, extra)
+        } else {
+          stateTransitionLogger.logTransition('summary-data', url, fromStatus, toStatus, extra)
+        }
+      }
+
+      if (!patch) return {}
+      return {
+        [type]: {
+          ...(currentData || {}),
+          ...patch,
+        },
+      }
+    })
+  }
+
+  const createRequestToken = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
   const fetchSummary = async (summaryEffort = effort) => {
     if (!article) return
@@ -61,9 +89,18 @@ export function useSummary(date, url, type = 'summary') {
     const controller = new AbortController()
     abortControllerRef.current = controller
 
-    logTransition('summary-data', url, status, 'loading', `effort=${summaryEffort}`)
-    setLoading(true)
+    const requestToken = createRequestToken()
+    requestTokenRef.current = requestToken
+    previousSummaryDataRef.current = data ? { ...data } : null
+
     setEffort(summaryEffort)
+    dispatchSummaryEvent(
+      {
+        type: summaryDataReducer.SummaryDataEventType.SUMMARY_REQUESTED,
+        effort: summaryEffort,
+      },
+      `effort=${summaryEffort}`
+    )
 
     const endpoint = '/api/summarize-url'
 
@@ -80,46 +117,53 @@ export function useSummary(date, url, type = 'summary') {
 
       const result = await response.json()
 
+      if (requestTokenRef.current !== requestToken) return
+
       if (result.success) {
-        logTransitionSuccess('summary-data', url, 'available')
-        updateArticle(() => ({
-          [type]: {
-            status: 'available',
-            markdown: result.summary_markdown || '',
-            effort: summaryEffort,
-            checkedAt: new Date().toISOString(),
-            errorMessage: null
-          }
-        }))
+        dispatchSummaryEvent({
+          type: summaryDataReducer.SummaryDataEventType.SUMMARY_LOAD_SUCCEEDED,
+          markdown: result.summary_markdown,
+          effort: summaryEffort,
+          checkedAt: new Date().toISOString(),
+        })
+        requestTokenRef.current = null
+        previousSummaryDataRef.current = null
         if (acquireZenLock(url)) {
-          logTransition('summary-view', url, 'collapsed', 'expanded')
+          stateTransitionLogger.logTransition('summary-view', url, 'collapsed', 'expanded')
           setExpanded(true)
         }
       } else {
-        logTransition('summary-data', url, 'loading', 'error', result.error)
-        updateArticle((current) => ({
-          [type]: {
-            ...(current[type] || {}),
-            status: 'error',
-            errorMessage: result.error || `Failed to fetch ${type}`
-          }
-        }))
+        dispatchSummaryEvent(
+          {
+            type: summaryDataReducer.SummaryDataEventType.SUMMARY_LOAD_FAILED,
+            errorMessage: result.error,
+          },
+          result.error
+        )
+        requestTokenRef.current = null
+        previousSummaryDataRef.current = null
       }
     } catch (error) {
-      if (error.name === 'AbortError') return
-      logTransition('summary-data', url, 'loading', 'error', error.message)
-      updateArticle((current) => ({
-        [type]: {
-          ...(current[type] || {}),
-          status: 'error',
-          errorMessage: error.message || 'Network error'
+      if (error.name === 'AbortError') {
+        if (requestTokenRef.current === requestToken) {
+          dispatchSummaryEvent({
+            type: summaryDataReducer.SummaryDataEventType.SUMMARY_ROLLBACK,
+            previousData: previousSummaryDataRef.current,
+          })
+          requestTokenRef.current = null
         }
-      }))
-      console.error(`Failed to fetch ${type}:`, error)
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false)
+        return
       }
+      dispatchSummaryEvent(
+        {
+          type: summaryDataReducer.SummaryDataEventType.SUMMARY_LOAD_FAILED,
+          errorMessage: error.message,
+        },
+        error.message
+      )
+      requestTokenRef.current = null
+      previousSummaryDataRef.current = null
+      console.error(`Failed to fetch ${type}:`, error)
     }
   }
 
@@ -128,7 +172,7 @@ export function useSummary(date, url, type = 'summary') {
       if (expanded) {
         collapse()
       } else if (acquireZenLock(url)) {
-        logTransition('summary-view', url, 'collapsed', 'expanded')
+        stateTransitionLogger.logTransition('summary-view', url, 'collapsed', 'expanded')
         setExpanded(true)
       }
     } else {
@@ -137,7 +181,7 @@ export function useSummary(date, url, type = 'summary') {
   }
 
   const collapse = (markAsReadOnClose = true) => {
-    logTransition('summary-view', url, 'expanded', 'collapsed')
+    stateTransitionLogger.logTransition('summary-view', url, 'expanded', 'collapsed')
     releaseZenLock(url)
     setExpanded(false)
     if (markAsReadOnClose && !isRead) markAsRead()
@@ -145,7 +189,7 @@ export function useSummary(date, url, type = 'summary') {
 
   const expand = () => {
     if (acquireZenLock(url)) {
-      logTransition('summary-view', url, 'collapsed', 'expanded')
+      stateTransitionLogger.logTransition('summary-view', url, 'collapsed', 'expanded')
       setExpanded(true)
     }
   }
@@ -153,6 +197,9 @@ export function useSummary(date, url, type = 'summary') {
   useEffect(() => {
     return () => {
       releaseZenLock(url)
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
     }
   }, [url])
 
