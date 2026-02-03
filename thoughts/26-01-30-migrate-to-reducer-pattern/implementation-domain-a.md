@@ -1,3 +1,6 @@
+---
+last_updated: 2026-02-03 06:50, 4e45441
+---
 # Implementation: Domain A - Article Lifecycle State Machine
 
 ## Status
