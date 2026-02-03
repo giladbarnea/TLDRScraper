@@ -1,3 +1,5 @@
+import * as storageApi from './storageApi'
+
 /**
  * Plain JS scraper utilities for React components
  * Extracted from composables/useScraper.js
@@ -25,5 +27,16 @@ export async function scrapeNewsletters(startDate, endDate, cacheEnabled = true,
     }
   } else {
     throw new Error(data.error || 'Scraping failed')
+  }
+}
+
+export async function fetchCachedPayloadsRange(startDate, endDate, signal) {
+  const payloads = await storageApi.getDailyPayloadsRange(startDate, endDate, signal)
+
+  return {
+    success: true,
+    payloads,
+    source: 'Supabase cache',
+    stats: null
   }
 }
