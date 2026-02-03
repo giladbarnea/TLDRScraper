@@ -196,6 +196,47 @@ Pseudocode (intentionally not language syntax):
 
 ---
 
+## Article Lifecycle State Machine (Domain A)
+
+### Overview
+Article lifecycle management (`unread` → `read` → `removed`) is implemented as a **closed reducer** pattern following the guidance in `thoughts/26-01-30-migrate-to-reducer-pattern/`.
+
+### Key modules
+- `reducers/articleLifecycleReducer.js`
+  - Single source of truth for lifecycle state transitions
+  - Exports `ArticleLifecycleState` enum: `UNREAD`, `READ`, `REMOVED`
+  - Exports `ArticleLifecycleEventType` enum: `MARK_READ`, `MARK_UNREAD`, `TOGGLE_READ`, `MARK_REMOVED`, `TOGGLE_REMOVED`, `RESTORE`
+  - Pure reducer function: `reduceArticleLifecycle(article, event)` returns `{ state, patch }`
+- `hooks/useArticleState.js`
+  - Provides UI-facing functions (`markAsRead`, `markAsUnread`, `toggleRead`, `markAsRemoved`, `toggleRemove`)
+  - All functions dispatch events to the lifecycle reducer
+  - Integrates transition logging automatically
+  - Returns computed `lifecycleState` for consumers
+
+### Event-driven pattern
+Components dispatch **events** (declarative intent) rather than calling setters (imperative commands):
+```javascript
+// UI calls this:
+markAsRead()
+
+// Internally dispatches:
+dispatchLifecycleEvent({
+  type: ArticleLifecycleEventType.MARK_READ,
+  markedAt: new Date().toISOString()
+})
+
+// Reducer computes next state and storage patch:
+{ state: 'read', patch: { read: { isRead: true, markedAt: '...' } } }
+```
+
+### Storage integration
+The reducer is **closed** (no side effects, no cross-domain reads). It returns a storage `patch` that describes the minimal update. The patch is applied via the existing `updateArticle` mechanism, which syncs to Supabase storage through `useSupabaseStorage`.
+
+### Transition logging
+State transitions are logged automatically in `dispatchLifecycleEvent`. Only actual state changes are logged (no redundant logs for no-ops like marking an already-read article as read).
+
+---
+
 ## Selectable Pattern (Updated)
 
 Components that support selection behavior are wrapped in `Selectable`. This is a composition wrapper that encapsulates:
@@ -318,6 +359,9 @@ TIME   ACTOR              ACTION                                TARGET
 ├───►  ArticleCard        1. Collapses Overlay              ──► UI
 │                         2. Marks as Read & Removed        ──► useArticleState
 │                         3. Animates Card Exit             ──► Framer Motion
+│
+├───►  useArticleState    Dispatches lifecycle event        ──► articleLifecycleReducer
+│                         (MARK_REMOVED)                        (Domain A)
 │
 └───►  useArticleState    Persists State Change             ──► API (/storage)
 ```
