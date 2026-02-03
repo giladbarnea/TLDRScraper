@@ -55,7 +55,10 @@ export function useArticleState(date, url) {
   }
 
   const toggleRead = () => {
-    dispatchLifecycleEvent({ type: ArticleLifecycleEventType.TOGGLE_READ })
+    dispatchLifecycleEvent({
+      type: ArticleLifecycleEventType.TOGGLE_READ,
+      markedAt: new Date().toISOString()
+    })
   }
 
   const markAsRemoved = () => {
