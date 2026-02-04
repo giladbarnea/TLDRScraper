@@ -214,7 +214,11 @@ export function useSupabaseStorage(key, defaultValue) {
   const setValueAsync = async (nextValue) => {
     if (typeof window === 'undefined') return
 
-    const previous = valueRef.current
+    // Read from readCache (global source of truth) to avoid race conditions when
+    // multiple useSupabaseStorage instances update the same key concurrently.
+    // The subscription handler updates valueRef via microtask, so there's a window
+    // where valueRef is stale but readCache is current.
+    const previous = readCache.get(key) ?? valueRef.current
     const resolved = typeof nextValue === 'function' ? nextValue(previous) : nextValue
 
     if (resolved === previous) return
