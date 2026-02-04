@@ -57,7 +57,7 @@ export function useSummary(date, url, type = 'summary') {
 
   const errorMessage = data?.errorMessage || null
   const isAvailable = status === 'available' && markdown
-  const isLoading = status === 'creating' || loading
+  const isLoading = status === 'loading' || loading
   const isError = status === 'error'
   const isExpanded = summaryViewState.mode === SummaryViewMode.EXPANDED
 
