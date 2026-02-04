@@ -358,10 +358,10 @@ removed
 ### Feature 4: Summary Generation
 
 #### States (per article summary)
-1. **unknown** - Summary not yet requested
-2. **creating** - API request in progress
-3. **available** - Summary cached and ready
-4. **error** - API request failed
+1. **unknown** - Summary not yet requested (persisted)
+2. **loading** - API request in progress (ephemeral React state, not persisted)
+3. **available** - Summary cached and ready (persisted)
+4. **error** - API request failed (persisted)
 
 #### State Transitions
 
@@ -370,7 +370,7 @@ unknown
   │
   └─ User clicks "Summary"
        ↓
-     creating
+     loading (ephemeral)
        │
        ├─ POST /api/summarize-url { url, summarize_effort }
        │
@@ -402,7 +402,7 @@ available
 ```
 
 #### Key State Data (per article)
-- **summary.status**: 'unknown' | 'creating' | 'available' | 'error'
+- **summary.status**: 'unknown' | 'available' | 'error' (persisted; loading state is ephemeral)
 - **summary.markdown**: string
 - **summary.html**: computed (marked + DOMPurify)
 - **summary.effort**: 'minimal' | 'low' | 'medium' | 'high'
