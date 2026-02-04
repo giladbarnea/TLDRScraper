@@ -490,3 +490,8 @@ function main() {
 
 
 message "DONE setup.sh. Next immediate step: follow your basic project-context gathering instructions to completion."
+
+# Auto-run main() if script is executed (not sourced) and SKIP_MAIN is not set
+if [[ "${BASH_SOURCE[0]}" == "${0}" && "${SETUP_SH_SKIP_MAIN}" != "1" ]]; then
+  main "$@"
+fi
