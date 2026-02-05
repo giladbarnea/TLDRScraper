@@ -10,39 +10,6 @@ from datetime import datetime, timedelta
 BASE_URL = "http://localhost:5001"
 
 
-def test_1_cache_toggle():
-    """Test 1: Cache Toggle - Setting persistence across operations"""
-    print("\n=== Test 1: Cache Toggle ===")
-
-    response = requests.post(
-        f"{BASE_URL}/api/storage/setting/cache:enabled",
-        json={"value": False}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    print("✓ Cache disabled and saved to DB")
-
-    response = requests.get(f"{BASE_URL}/api/storage/setting/cache:enabled")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    assert data["value"] is False
-    print("✓ Cache setting persisted (read back as False)")
-
-    response = requests.post(
-        f"{BASE_URL}/api/storage/setting/cache:enabled",
-        json={"value": True}
-    )
-    assert response.status_code == 200
-    print("✓ Cache re-enabled")
-
-    response = requests.get(f"{BASE_URL}/api/storage/setting/cache:enabled")
-    data = response.json()
-    assert data["value"] is True
-    print("✓ Cache setting persisted (read back as True)")
-
-
 def test_2_newsletter_scraping_cache_miss():
     """Test 2: Newsletter Scraping (Cache Miss)"""
     print("\n=== Test 2: Newsletter Scraping (Cache Miss) ===")
@@ -456,7 +423,6 @@ def run_all_tests():
     print("="*60)
 
     try:
-        test_1_cache_toggle()
         test_2_newsletter_scraping_cache_miss()
         test_3_newsletter_scraping_cache_hit()
         test_4_mark_article_as_read()
@@ -471,7 +437,7 @@ def run_all_tests():
         print("ALL TESTS PASSED ✓")
         print("="*60)
         print("\nPhase 6 automated verification complete.")
-        print("All 10 test scenarios passed successfully.")
+        print("All 9 test scenarios passed successfully.")
         print("\nNext steps:")
         print("1. Frontend build verification: cd client && npm run build")
         print("2. Manual browser testing (see migration plan)")

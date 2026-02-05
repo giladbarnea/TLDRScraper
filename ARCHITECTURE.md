@@ -38,14 +38,13 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  │  App.jsx   │  │ Components   │  │    Hooks                 │  │  │
 │  │  │            │  │              │  │                          │  │  │
 │  │  │  - Root    │  │ - ScrapeForm │  │ - useArticleState        │  │  │
-│  │  │  - Hydrate │  │ - CacheToggle│  │ - useSummary             │  │  │
-│  │  │  - Results │  │ - Results    │  │ - useSupabaseStorage     │  │  │
-│  │  │    Display │  │   Display    │  │ - useLocalStorage        │  │  │
-│  │  │            │  │ - Feed       │  │                          │  │  │
-│  │  │            │  │ - CalendarDay│  │ Lib                      │  │  │
-│  │  │            │  │ - Newsletter │  │ - scraper.js             │  │  │
-│  │  │            │  │   Day        │  │ - storageApi.js          │  │  │
-│  │  │            │  │ - ArticleList│  │                          │  │  │
+│  │  │  - Hydrate │  │ - Results    │  │ - useSummary             │  │  │
+│  │  │  - Results │  │   Display    │  │ - useSupabaseStorage     │  │  │
+│  │  │    Display │  │ - Feed       │  │ - useLocalStorage        │  │  │
+│  │  │            │  │ - CalendarDay│  │                          │  │  │
+│  │  │            │  │ - Newsletter │  │ Lib                      │  │  │
+│  │  │            │  │   Day        │  │ - scraper.js             │  │  │
+│  │  │            │  │ - ArticleList│  │ - storageApi.js          │  │  │
 │  │  │            │  │ - ArticleCard│  │                          │  │  │
 │  │  └────────────┘  └──────────────┘  └──────────────────────────┘  │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
@@ -103,7 +102,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │                   Database & External Services                           │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
 │  │  Supabase PostgreSQL Database                                    │  │
-│  │  - settings table (key-value for cache:enabled, etc.)            │  │
+│  │  - settings table (key-value for UI preferences, etc.)           │  │
 │  │  - daily_cache table (JSONB payloads by date)                    │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────┐   │
@@ -131,14 +130,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - View progress bar
 - View results grouped by date/issue
 
-### 2. Cache Management
-**User Action:** Toggle cache checkbox
-
-**Available Interactions:**
-- Enable/disable cache
-- State persists in Supabase settings table
-
-### 3. Article State Management
+### 2. Article State Management
 **User Action:** Click article link / Remove button / Restore button
 
 **Available Interactions:**
@@ -148,7 +140,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - Trash icon always visible on mobile devices
 - Article states persist in Supabase daily_cache table
 
-### 4. Summary Generation
+### 3. Summary Generation
 **User Action:** Click "Summary" button on article OR click article card body
 
 **Available Interactions:**
@@ -158,7 +150,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - Cached summaries show "Available" (green)
 - Card shows pointer cursor when summary content is available for toggling
 
-### 5. Results Display with Feed Component
+### 4. Results Display with Feed Component
 **User Action:** View scraped results
 
 **Available Interactions:**
@@ -180,7 +172,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - Stats display (article count, unique URLs, dates processed)
 - Collapsible debug logs
 
-### 6. Tailwind CSS v4 Configuration
+### 5. Tailwind CSS v4 Configuration
 **Configuration Method:** CSS-first via `@theme` directive in index.css
 
 **Custom Design Tokens:**
@@ -265,40 +257,7 @@ idle
 
 ---
 
-### Feature 2: Cache Management
-
-#### States
-1. **enabled** - Cache is active
-2. **disabled** - Cache is inactive
-
-#### State Transitions
-
-```
-enabled
-  │
-  ├─ User toggles OFF
-  │    ↓
-  │  disabled
-  │    │
-  │    └─ POST /api/storage/setting/cache:enabled {value: false}
-  │         ↓ Supabase upsert to settings table
-  │
-  └─ User toggles ON
-       ↓
-     enabled
-       │
-       └─ POST /api/storage/setting/cache:enabled {value: true}
-            ↓ Supabase upsert to settings table
-```
-
-#### Key State Data
-- **enabled**: boolean (reactive, synced to Supabase settings table)
-- **loading**: boolean (during database read/write)
-- **statusText**: computed string ("(enabled)" | "(disabled)")
-
----
-
-### Feature 3: Article State Management
+### Feature 2: Article State Management
 
 #### States (per article)
 1. **unread** - Default state, bold text
@@ -355,7 +314,7 @@ removed
 
 ---
 
-### Feature 4: Summary Generation
+### Feature 3: Summary Generation
 
 Summary management uses a **reducer pattern for data** (Domain B) and **simple state for view** (ephemeral UI):
 
@@ -494,7 +453,7 @@ User clicks "Scrape Newsletters"
   │              │
   │              └─ GET /api/storage/is-cached/{date}
   │                   │
-  │                   ├─ If ALL dates cached AND cacheEnabled = true
+  │                   ├─ If ALL dates fully cached
   │                   │    │
   │                   │    └─ scraper.js loadFromCache()
   │                   │         │
@@ -503,7 +462,7 @@ User clicks "Scrape Newsletters"
   │                   │         │
   │                   │         └─ Return cached results
        │                   │
-       │                   └─ If NOT fully cached OR cache disabled
+       │                   └─ If NOT fully cached
        │                        │
        │                        └─ Continue to API call...
        │
@@ -624,7 +583,7 @@ User clicks "Scrape Newsletters"
   │              issues: [...]
   │            }]
   │
-  ├─ Step 4: Merge with Cache (if enabled)
+  ├─ Step 4: Merge with Cache
   │    │
   │    └─ scraper.js mergeWithCache(payloads)
   │         │
@@ -667,7 +626,7 @@ User clicks "Scrape Newsletters"
 
 ---
 
-### Feature 4: Summary Generation - Complete Flow
+### Feature 3: Summary Generation - Complete Flow
 
 ```
 User clicks "Summary" button OR clicks article card body
@@ -828,10 +787,6 @@ User clicks "Summary" button OR clicks article card body
 ```
 App.jsx
   │
-  ├── CacheToggle.jsx
-  │     └── useSupabaseStorage('cache:enabled')
-  │           └── GET/POST /api/storage/setting/cache:enabled
-  │
   ├── ScrapeForm.jsx
   │     └── scraper.js functions
   │           └── storageApi.js (GET/POST /api/storage/daily/*)
@@ -886,7 +841,7 @@ sequenceDiagram
     User->>ScrapeForm: Enter dates & click "Scrape"
     ScrapeForm->>useScraper: scrape(startDate, endDate)
 
-    alt Cache enabled & fully cached
+    alt Fully cached
         useScraper->>Supabase: GET /api/storage/is-cached/{date} (for each date)
         Supabase-->>useScraper: All dates cached
         useScraper->>Supabase: POST /api/storage/daily-range
@@ -910,12 +865,8 @@ sequenceDiagram
         Flask-->>useScraper: JSON response
 
         useScraper->>useScraper: buildDailyPayloadsFromScrape()
-
-        alt Cache enabled
-            useScraper->>Supabase: GET /api/storage/daily/{date} (merge)
-            useScraper->>Supabase: POST /api/storage/daily/{date} (save)
-        end
-
+        useScraper->>Supabase: GET /api/storage/daily/{date} (merge)
+        useScraper->>Supabase: POST /api/storage/daily/{date} (save)
         useScraper-->>ScrapeForm: Return results
     end
 
@@ -1027,7 +978,7 @@ CREATE TABLE settings (
 );
 
 -- Example row:
-{ key: 'cache:enabled', value: true, updated_at: '2024-01-01T12:00:00Z' }
+{ key: 'ui:theme', value: 'dark', updated_at: '2024-01-01T12:00:00Z' }
 ```
 
 ### Table: daily_cache
@@ -1061,7 +1012,7 @@ CREATE TABLE daily_cache (
 
 ### Storage Key Patterns
 
-- **Settings**: `cache:*` or `ui:*` (e.g., `cache:enabled`)
+- **Settings**: `ui:*` for UI preferences (e.g., `ui:theme`)
 - **Daily Payloads**: `newsletters:scrapes:{date}` (e.g., `newsletters:scrapes:2024-01-01`)
 - **Container Fold State**: Stored in browser localStorage (not Supabase) with keys like `calendar-{date}`, `newsletter-{date}-{title}`, `section-{date}-{title}-{section}`
   - FoldableContainer uses `useLocalStorage` hook to persist fold state per container

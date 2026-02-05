@@ -4,8 +4,8 @@ def get_setting(key):
     """
     Get setting value by key.
 
-    >>> get_setting('cache:enabled')
-    True
+    >>> get_setting('ui:theme')
+    'dark'
     """
     supabase = supabase_client.get_supabase_client()
     result = supabase.table('settings').select('value').eq('key', key).execute()
@@ -18,8 +18,8 @@ def set_setting(key, value):
     """
     Set setting value by key (upsert).
 
-    >>> set_setting('cache:enabled', False)
-    {'key': 'cache:enabled', 'value': False, ...}
+    >>> set_setting('ui:theme', 'light')
+    {'key': 'ui:theme', 'value': 'light', ...}
     """
     supabase = supabase_client.get_supabase_client()
     result = supabase.table('settings').upsert({
