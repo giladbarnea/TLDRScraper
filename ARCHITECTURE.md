@@ -357,31 +357,50 @@ removed
 
 ### Feature 4: Summary Generation
 
-#### States (per article summary)
+Summary management uses a **reducer pattern for data** (Domain B) and **simple state for view** (ephemeral UI):
+
+#### Domain B: Summary Data Lifecycle (Reducer)
+**Responsibility:** What summary data we have and its loading state
+
+**States:**
 1. **unknown** - Summary not yet requested
-2. **creating** - API request in progress
+2. **loading** - API request in progress
 3. **available** - Summary cached and ready
 4. **error** - API request failed
+
+#### View State (Simple useState)
+**Responsibility:** How the summary is displayed (UI visibility)
+
+**States:**
+- `expanded: boolean` - Summary visible (true) or hidden (false)
 
 #### State Transitions
 
 ```
-unknown
-  │
-  └─ User clicks "Summary"
-       ↓
-     creating
-       │
-       ├─ POST /api/summarize-url { url, summarize_effort }
-       │
-       ├─ Success
-       │    ↓
-       │  available
-       │    │
-       │    ├─ summary.status = 'available'
-       │    ├─ summary.markdown = response.summary_markdown
-       │    ├─ summary.expanded = true
-       │    ├─ Mark article as read
+Data Domain (B) - Reducer          View State - Simple useState
+─────────────────────────          ─────────────────────────────
+
+unknown                            expanded = false
+  │                                   │
+  └─ User clicks "Summary"            │
+       ↓                              │
+     loading                          │
+       │                              │
+       ├─ POST /api/summarize-url     │
+       │    { url, summarize_effort } │
+       │                              │
+       ├─ Success                     │
+       │    ↓                         │
+       │  available                   │
+       │    │                         │
+       │    ├─ dispatch               │
+       │    │  SUMMARY_LOAD_SUCCEEDED │
+       │    │                         └───> expanded = true
+       │    │  summary.status = 'available'  (setExpanded(true) if zen lock acquired)
+       │    │  summary.markdown = response
+       │    │  summary.effort = effort
+       │    │  summary.checkedAt = timestamp
+       │    │  Mark article as read
        │    │
        │    └─ POST /api/storage/daily/{date} → Supabase upsert
        │
@@ -389,25 +408,51 @@ unknown
             ↓
           error
             │
-            ├─ summary.status = 'error'
-            ├─ summary.errorMessage = error text
+            ├─ dispatch SUMMARY_LOAD_FAILED
+            │  summary.status = 'error'
+            │  summary.errorMessage = error text
             │
             └─ POST /api/storage/daily/{date} → Supabase upsert
 
-available
+available                          expanded = true
+  │                                   │
+  │                                   └─ User clicks
+  │                                        ↓
+  │                                      expanded = false
+  │                                       (setExpanded(false))
   │
-  └─ User clicks "Available"
+  └─ User aborts during loading
        ↓
-     (toggle expanded state, no API call)
+     ROLLBACK to previous data state
 ```
 
+#### Implementation Architecture
+
+- **summaryDataReducer.js**: Manages data state (`unknown` → `loading` → `available`/`error`)
+  - Events: `SUMMARY_REQUESTED`, `SUMMARY_LOAD_SUCCEEDED`, `SUMMARY_LOAD_FAILED`, `SUMMARY_ROLLBACK`
+  - Returns: `{ state: newStatus, patch: storageUpdate }`
+  - Closed reducer (no cross-domain reads)
+
+- **useSummary hook**: Orchestrates data and view
+  - Dispatches to data reducer for data transitions
+  - Uses simple `useState(expanded)` for view state
+  - Coordinates: when data loads successfully → auto-expand view
+  - Manages side effects: fetch, zen lock, mark as read, request tokens
+
 #### Key State Data (per article)
-- **summary.status**: 'unknown' | 'creating' | 'available' | 'error'
+
+**Persisted Data (Supabase - Domain B):**
+- **summary.status**: `'unknown'` | `'loading'` | `'available'` | `'error'`
 - **summary.markdown**: string
-- **summary.html**: computed (marked + DOMPurify)
-- **summary.effort**: 'minimal' | 'low' | 'medium' | 'high'
-- **summary.expanded**: boolean (UI state)
+- **summary.effort**: `'minimal'` | `'low'` | `'medium'` | `'high'`
+- **summary.checkedAt**: string (ISO timestamp) | null
 - **summary.errorMessage**: string | null
+
+**View State (Component - useState):**
+- **expanded**: boolean - Summary overlay visible (true) or hidden (false)
+
+**Computed:**
+- **summary.html**: DOMPurify.sanitize(marked.parse(summary.markdown))
 
 ---
 

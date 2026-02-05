@@ -237,6 +237,148 @@ State transitions are logged automatically in `dispatchLifecycleEvent`. Only act
 
 ---
 
+## Summary State Management (Domain B + Simple View State)
+
+### Overview
+Summary management uses **a reducer for complex data** (Domain B) and **simple state for UI** following React best practices:
+
+- **Domain B (Data)**: What summary data we have (`unknown` → `loading` → `available`/`error`) - **Reducer pattern**
+- **View State**: How the summary is displayed (collapsed ↔ expanded) - **Simple `useState(boolean)`**
+
+The `useSummary` hook orchestrates the data reducer and manages view state directly.
+
+### Key modules
+
+**Domain B: Summary Data Reducer**
+- `reducers/summaryDataReducer.js`
+  - Exports `SummaryDataStatus` enum: `UNKNOWN`, `LOADING`, `AVAILABLE`, `ERROR`
+  - Exports `SummaryDataEventType` enum: `SUMMARY_REQUESTED`, `SUMMARY_LOAD_SUCCEEDED`, `SUMMARY_LOAD_FAILED`, `SUMMARY_ROLLBACK`
+  - Pure reducer: `reduceSummaryData(summaryData, event)` returns `{ state, patch }`
+  - Getter: `getSummaryDataStatus(summaryData)` derives current status
+
+**Orchestrator**
+- `hooks/useSummary.js`
+  - Provides UI-facing functions (`fetch`, `toggle`, `expand`, `collapse`)
+  - Dispatches to data reducer: `dispatchSummaryEvent(event)` → data transitions (persisted)
+  - Manages view state: `useState(expanded)` → simple boolean for UI visibility
+  - Coordinates: successful data load → auto-expand view (if zen lock acquired)
+  - Manages side effects: API fetch, zen lock, mark as read, request tokens
+
+### Coordination examples
+
+**User clicks "Summary" button (data not available):**
+```javascript
+// UI calls:
+toggle()
+
+// Dispatches to data reducer:
+dispatchSummaryEvent({
+  type: SummaryDataEventType.SUMMARY_REQUESTED,
+  effort: 'low'
+})
+
+// On success, dispatches to data reducer:
+dispatchSummaryEvent({
+  type: SummaryDataEventType.SUMMARY_LOAD_SUCCEEDED,
+  markdown: result.summary_markdown,
+  effort: 'low',
+  checkedAt: new Date().toISOString()
+})
+
+// Then updates view state (if zen lock acquired):
+if (acquireZenLock(url)) {
+  logTransition('summary-view', url, 'collapsed', 'expanded', 'summary-loaded')
+  setExpanded(true)
+}
+```
+
+**User clicks when summary available (toggle visibility):**
+```javascript
+// UI calls:
+toggle()
+
+// Simply toggles view state:
+if (expanded) {
+  collapse() // calls setExpanded(false) + releaseZenLock()
+} else if (acquireZenLock(url)) {
+  logTransition('summary-view', url, 'collapsed', 'expanded', 'tap')
+  setExpanded(true)
+}
+```
+
+### Storage integration
+
+**Domain B (data)** is persisted to Supabase:
+- Reducer returns storage `patch` describing minimal update
+- Applied via `updateArticle` → syncs through `useSupabaseStorage`
+- Persisted fields: `status`, `markdown`, `effort`, `checkedAt`, `errorMessage`
+
+**View state** is component-local:
+- Not persisted (ephemeral UI state)
+- Simple `useState(expanded)` boolean in `useSummary` hook
+- Reset on component unmount
+
+### Request token pattern
+
+Domain B implements request tokens to prevent stale updates:
+```javascript
+const requestToken = createRequestToken()
+requestTokenRef.current = requestToken
+
+// Later, when response arrives:
+if (requestTokenRef.current !== requestToken) return  // Ignore stale response
+```
+
+This ensures rapid tap-abort-tap sequences don't corrupt state with out-of-order responses.
+
+### Rollback on abort
+
+When a fetch is aborted, Domain B rolls back to previous state:
+```javascript
+if (error.name === 'AbortError') {
+  dispatchSummaryEvent({
+    type: SummaryDataEventType.SUMMARY_ROLLBACK,
+    previousData: previousSummaryDataRef.current
+  })
+}
+```
+
+This prevents cached summaries from being stuck in perpetual loading state.
+
+### Transition logging
+
+Both data and view transitions are logged automatically:
+- Domain B: Logs data state changes (`unknown` → `loading` → `available`)
+- View state: Logs expand/collapse with reason (`tap`, `summary-loaded`)
+- Only actual state transitions are logged (no redundant logs)
+
+### Design rationale
+
+**Why a reducer for Domain B?**
+- Complex async state machine with multiple events and invariants
+- Rollback-on-abort requires careful state management
+- Request tokens need coordination with transitions
+- Benefits from the guarantees a reducer provides
+
+**Why simple useState for view?**
+- It's a boolean toggle (collapsed ↔ expanded)
+- No complex invariants or business logic
+- Ephemeral UI state (doesn't persist)
+- Using a reducer would be over-engineering
+
+**Why not a view reducer?**
+- Violates "simplest thing that works" principle
+- Adds ~40 lines of code for a one-line useState
+- No proportional benefit to the added complexity
+- Inconsistent with React idioms (useState for simple state)
+
+**Why request tokens instead of persisting them?**
+- Tokens are transient runtime state with no user value
+- Would pollute cached data in Supabase
+- Component-local refs are sufficient for preventing stale updates
+
+---
+
 ## Selectable Pattern (Updated)
 
 Components that support selection behavior are wrapped in `Selectable`. This is a composition wrapper that encapsulates:

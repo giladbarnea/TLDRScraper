@@ -2,7 +2,7 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import markedKatex from 'marked-katex-extension'
 import { useEffect, useRef, useState } from 'react'
-import * as stateTransitionLogger from '../lib/stateTransitionLogger'
+import { logTransition, logTransitionSuccess } from '../lib/stateTransitionLogger'
 import * as summaryDataReducer from '../reducers/summaryDataReducer'
 import { useArticleState } from './useArticleState'
 
@@ -62,9 +62,9 @@ export function useSummary(date, url, type = 'summary') {
 
       if (fromStatus !== toStatus) {
         if (event.type === summaryDataReducer.SummaryDataEventType.SUMMARY_LOAD_SUCCEEDED) {
-          stateTransitionLogger.logTransitionSuccess('summary-data', url, toStatus, extra)
+          logTransitionSuccess('summary-data', url, toStatus, extra)
         } else {
-          stateTransitionLogger.logTransition('summary-data', url, fromStatus, toStatus, extra)
+          logTransition('summary-data', url, fromStatus, toStatus, extra)
         }
       }
 
@@ -129,7 +129,7 @@ export function useSummary(date, url, type = 'summary') {
         requestTokenRef.current = null
         previousSummaryDataRef.current = null
         if (acquireZenLock(url)) {
-          stateTransitionLogger.logTransition('summary-view', url, 'collapsed', 'expanded')
+          logTransition('summary-view', url, 'collapsed', 'expanded', 'summary-loaded')
           setExpanded(true)
         }
       } else {
@@ -172,7 +172,7 @@ export function useSummary(date, url, type = 'summary') {
       if (expanded) {
         collapse()
       } else if (acquireZenLock(url)) {
-        stateTransitionLogger.logTransition('summary-view', url, 'collapsed', 'expanded')
+        logTransition('summary-view', url, 'collapsed', 'expanded', 'tap')
         setExpanded(true)
       }
     } else {
@@ -181,7 +181,7 @@ export function useSummary(date, url, type = 'summary') {
   }
 
   const collapse = (markAsReadOnClose = true) => {
-    stateTransitionLogger.logTransition('summary-view', url, 'expanded', 'collapsed')
+    logTransition('summary-view', url, 'expanded', 'collapsed')
     releaseZenLock(url)
     setExpanded(false)
     if (markAsReadOnClose && !isRead) markAsRead()
@@ -189,7 +189,7 @@ export function useSummary(date, url, type = 'summary') {
 
   const expand = () => {
     if (acquireZenLock(url)) {
-      stateTransitionLogger.logTransition('summary-view', url, 'collapsed', 'expanded')
+      logTransition('summary-view', url, 'collapsed', 'expanded', 'tap')
       setExpanded(true)
     }
   }
