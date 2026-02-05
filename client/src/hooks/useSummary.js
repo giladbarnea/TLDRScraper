@@ -2,8 +2,13 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import markedKatex from 'marked-katex-extension'
 import { useEffect, useRef, useState } from 'react'
-import * as stateTransitionLogger from '../lib/stateTransitionLogger'
+import { logTransition, logTransitionSuccess } from '../lib/stateTransitionLogger'
 import * as summaryDataReducer from '../reducers/summaryDataReducer'
+import {
+  SummaryViewEventType,
+  SummaryViewMode,
+  reduceSummaryView,
+} from '../reducers/summaryViewReducer'
 import { useArticleState } from './useArticleState'
 
 marked.use(markedKatex({ throwOnError: false }))
@@ -26,7 +31,10 @@ function releaseZenLock(url) {
 
 export function useSummary(date, url, type = 'summary') {
   const { article, updateArticle, isRead, markAsRead } = useArticleState(date, url)
-  const [expanded, setExpanded] = useState(false)
+  const [summaryViewState, setSummaryViewState] = useState({
+    mode: SummaryViewMode.COLLAPSED,
+    expandedBy: null,
+  })
   const [effort, setEffort] = useState('low')
   const abortControllerRef = useRef(null)
   const requestTokenRef = useRef(null)
@@ -53,6 +61,17 @@ export function useSummary(date, url, type = 'summary') {
   const isAvailable = status === summaryDataReducer.SummaryDataStatus.AVAILABLE && markdown
   const isLoading = status === summaryDataReducer.SummaryDataStatus.LOADING
   const isError = status === summaryDataReducer.SummaryDataStatus.ERROR
+  const isExpanded = summaryViewState.mode === SummaryViewMode.EXPANDED
+
+  const dispatchSummaryViewEvent = (event) => {
+    setSummaryViewState((current) => {
+      const { state: next } = reduceSummaryView(current, event)
+      if (current.mode !== next.mode) {
+        logTransition('summary-view', url, current.mode, next.mode)
+      }
+      return next
+    })
+  }
 
   const dispatchSummaryEvent = (event, extra = '') => {
     updateArticle((current) => {
@@ -62,9 +81,9 @@ export function useSummary(date, url, type = 'summary') {
 
       if (fromStatus !== toStatus) {
         if (event.type === summaryDataReducer.SummaryDataEventType.SUMMARY_LOAD_SUCCEEDED) {
-          stateTransitionLogger.logTransitionSuccess('summary-data', url, toStatus, extra)
+          logTransitionSuccess('summary-data', url, toStatus, extra)
         } else {
-          stateTransitionLogger.logTransition('summary-data', url, fromStatus, toStatus, extra)
+          logTransition('summary-data', url, fromStatus, toStatus, extra)
         }
       }
 
@@ -129,8 +148,10 @@ export function useSummary(date, url, type = 'summary') {
         requestTokenRef.current = null
         previousSummaryDataRef.current = null
         if (acquireZenLock(url)) {
-          stateTransitionLogger.logTransition('summary-view', url, 'collapsed', 'expanded')
-          setExpanded(true)
+          dispatchSummaryViewEvent({
+            type: SummaryViewEventType.OPEN_REQUESTED,
+            reason: 'summary-loaded',
+          })
         }
       } else {
         dispatchSummaryEvent(
@@ -169,11 +190,13 @@ export function useSummary(date, url, type = 'summary') {
 
   const toggle = (summaryEffort) => {
     if (isAvailable) {
-      if (expanded) {
+      if (isExpanded) {
         collapse()
       } else if (acquireZenLock(url)) {
-        stateTransitionLogger.logTransition('summary-view', url, 'collapsed', 'expanded')
-        setExpanded(true)
+        dispatchSummaryViewEvent({
+          type: SummaryViewEventType.OPEN_REQUESTED,
+          reason: 'tap',
+        })
       }
     } else {
       fetchSummary(summaryEffort)
@@ -181,16 +204,17 @@ export function useSummary(date, url, type = 'summary') {
   }
 
   const collapse = (markAsReadOnClose = true) => {
-    stateTransitionLogger.logTransition('summary-view', url, 'expanded', 'collapsed')
     releaseZenLock(url)
-    setExpanded(false)
+    dispatchSummaryViewEvent({ type: SummaryViewEventType.CLOSE_REQUESTED })
     if (markAsReadOnClose && !isRead) markAsRead()
   }
 
   const expand = () => {
     if (acquireZenLock(url)) {
-      stateTransitionLogger.logTransition('summary-view', url, 'collapsed', 'expanded')
-      setExpanded(true)
+      dispatchSummaryViewEvent({
+        type: SummaryViewEventType.OPEN_REQUESTED,
+        reason: 'tap',
+      })
     }
   }
 
@@ -210,7 +234,7 @@ export function useSummary(date, url, type = 'summary') {
     html,
     errorMessage,
     loading: isLoading,
-    expanded,
+    expanded: isExpanded,
     effort,
     isAvailable,
     isError,
