@@ -379,6 +379,61 @@ Both data and view transitions are logged automatically:
 
 ---
 
+## Gesture Interaction State Management (Domain D)
+
+### Overview
+Swipe-to-remove gesture state (`idle` → `dragging` with error handling) is implemented as a **closed reducer** pattern following the migration effort documented in `thoughts/done/26-01-30-migrate-to-reducer-pattern.md`.
+
+### Key modules
+- `reducers/gestureReducer.js`
+  - Single source of truth for gesture drag state transitions
+  - Exports `GestureState` enum: `IDLE`, `DRAGGING`, `ERROR`
+  - Exports `GestureEventType` enum: `DRAG_STARTED`, `DRAG_FINISHED`, `DRAG_FAILED`, `CLEAR_ERROR`
+  - Pure reducer function: `reduceGesture(state, event)` returns new state
+- `hooks/useSwipeToRemove.js`
+  - Provides UI-facing gesture handling integrated with Framer Motion
+  - Dispatches events to gesture reducer: `dispatchGestureEvent(event)`
+  - Manages side effects: animation controls, completion callbacks, error handling
+  - Integrates with existing `onSwipeComplete` callback and zen lock
+
+### Event-driven pattern
+Components dispatch **events** (declarative intent) rather than mutating local state:
+```javascript
+// On pointer down:
+dispatchGestureEvent({ type: GestureEventType.DRAG_STARTED })
+
+// On successful drag completion:
+dispatchGestureEvent({ type: GestureEventType.DRAG_FINISHED })
+
+// On drag failure:
+dispatchGestureEvent({
+  type: GestureEventType.DRAG_FAILED,
+  errorMessage: 'Failed to remove article'
+})
+```
+
+### Design rationale
+
+**Why a reducer for Domain D?**
+- Explicit transition modeling for drag lifecycle prevents impossible states
+- Error state management benefits from centralized logic
+- Integration with existing interaction patterns (drag thresholds, animation timing)
+- Maintains consistency with other domain reducers (A, B)
+
+**Why keep scope local to swipe behavior?**
+- Select-mode already managed globally in `interactionReducer`
+- Gesture drag state is component-local concern
+- Avoids cross-domain orchestration overhead
+- Maintains separation of concerns
+
+### Storage integration
+Gesture state is **ephemeral** (not persisted):
+- Component-local state reset on unmount
+- No Supabase sync required
+- Error state shown temporarily then cleared
+
+---
+
 ## Selectable Pattern (Updated)
 
 Components that support selection behavior are wrapped in `Selectable`. This is a composition wrapper that encapsulates:
