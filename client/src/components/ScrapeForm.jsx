@@ -1,6 +1,5 @@
 import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react'
 import { useActionState, useState } from 'react'
-import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 import { scrapeNewsletters } from '../lib/scraper'
 
 function validateDateRange(startDate, endDate) {
@@ -15,14 +14,6 @@ function validateDateRange(startDate, endDate) {
     return { valid: false, error: 'Date range cannot exceed 31 days.' }
   }
   return { valid: true }
-}
-
-function CacheBadge({ enabled }) {
-  return (
-    <div className="text-xs font-medium text-brand-600 bg-brand-50 px-3 py-1 rounded-full">
-      {enabled ? 'Cache Active' : 'Live Mode'}
-    </div>
-  )
 }
 
 function DateInput({ id, label, value, onChange }) {
@@ -98,7 +89,6 @@ function ScrapeForm({ onResults }) {
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
     return twoDaysAgo.toISOString().split('T')[0]
   })
-  const [cacheEnabled] = useSupabaseStorage('cache:enabled', true)
   const [progress, setProgress] = useState(0)
 
   const [state, formAction, isPending] = useActionState(
@@ -117,7 +107,7 @@ function ScrapeForm({ onResults }) {
       }, 500)
 
       try {
-        const results = await scrapeNewsletters(start, end, cacheEnabled)
+        const results = await scrapeNewsletters(start, end)
         clearInterval(interval)
         setProgress(100)
         onResults(results)
@@ -133,10 +123,7 @@ function ScrapeForm({ onResults }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="font-display font-bold text-lg text-slate-900">Sync Settings</h3>
-        <CacheBadge enabled={cacheEnabled} />
-      </div>
+      <h3 className="font-display font-bold text-lg text-slate-900">Sync Settings</h3>
 
       <form action={formAction} className="space-y-5">
         <div className="grid grid-cols-2 gap-4">

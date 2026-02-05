@@ -3,7 +3,7 @@
  * Extracted from composables/useScraper.js
  */
 
-export async function scrapeNewsletters(startDate, endDate, cacheEnabled = true, signal) {
+export async function scrapeNewsletters(startDate, endDate, signal) {
   const response = await window.fetch('/api/scrape', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

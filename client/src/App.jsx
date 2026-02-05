@@ -32,7 +32,7 @@ function App() {
       }
     }
 
-    scrapeNewsletters(startDate, endDate, true, controller.signal)
+    scrapeNewsletters(startDate, endDate, controller.signal)
       .then(result => {
         setResults(result)
         try {
