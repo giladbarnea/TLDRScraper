@@ -237,6 +237,147 @@ State transitions are logged automatically in `dispatchLifecycleEvent`. Only act
 
 ---
 
+## Summary State Machines (Domain B + Domain C)
+
+### Overview
+Summary management is split into **two orthogonal state machines** following the guidance in `thoughts/26-01-30-migrate-to-reducer-pattern/`. Each manages an independent concern:
+
+- **Domain B (Data)**: What summary data we have (`unknown` → `loading` → `available`/`error`)
+- **Domain C (View)**: How the summary is displayed (`collapsed` ↔ `expanded`)
+
+The `useSummary` hook acts as a **mediator** that coordinates between both domains while keeping them closed and independent.
+
+### Key modules
+
+**Domain B: Summary Data Reducer**
+- `reducers/summaryDataReducer.js`
+  - Exports `SummaryDataStatus` enum: `UNKNOWN`, `LOADING`, `AVAILABLE`, `ERROR`
+  - Exports `SummaryDataEventType` enum: `SUMMARY_REQUESTED`, `SUMMARY_LOAD_SUCCEEDED`, `SUMMARY_LOAD_FAILED`, `SUMMARY_ROLLBACK`
+  - Pure reducer: `reduceSummaryData(summaryData, event)` returns `{ state, patch }`
+  - Getter: `getSummaryDataStatus(summaryData)` derives current status
+
+**Domain C: Summary View Reducer**
+- `reducers/summaryViewReducer.js`
+  - Exports `SummaryViewMode` enum: `COLLAPSED`, `EXPANDED`
+  - Exports `SummaryViewEventType` enum: `OPEN_REQUESTED`, `CLOSE_REQUESTED`
+  - Pure reducer: `reduceSummaryView(state, event)` returns `{ state }`
+  - Tracks expand reason: `'tap'`, `'summary-loaded'`, etc.
+
+**Mediator**
+- `hooks/useSummary.js`
+  - Provides UI-facing functions (`fetch`, `toggle`, `expand`, `collapse`)
+  - Maintains two separate dispatchers:
+    - `dispatchSummaryEvent(event)` → data transitions (persisted)
+    - `dispatchSummaryViewEvent(event)` → view transitions (component state)
+  - Coordinates domains: successful data load → auto-expand view
+  - Manages side effects: API fetch, zen lock, mark as read, request tokens
+
+### Event-driven coordination
+
+**User clicks "Summary" button (data not available):**
+```javascript
+// UI calls:
+toggle()
+
+// Dispatches to Domain B (data):
+dispatchSummaryEvent({
+  type: SummaryDataEventType.SUMMARY_REQUESTED,
+  effort: 'low'
+})
+
+// On success, dispatches to Domain B again:
+dispatchSummaryEvent({
+  type: SummaryDataEventType.SUMMARY_LOAD_SUCCEEDED,
+  markdown: result.summary_markdown,
+  effort: 'low',
+  checkedAt: new Date().toISOString()
+})
+
+// Then dispatches to Domain C (view):
+dispatchSummaryViewEvent({
+  type: SummaryViewEventType.OPEN_REQUESTED,
+  reason: 'summary-loaded'
+})
+```
+
+**User clicks when summary available (toggle visibility):**
+```javascript
+// UI calls:
+toggle()
+
+// Only dispatches to Domain C:
+dispatchSummaryViewEvent({
+  type: isExpanded ? SummaryViewEventType.CLOSE_REQUESTED
+                   : SummaryViewEventType.OPEN_REQUESTED,
+  reason: 'tap'
+})
+```
+
+### Storage integration
+
+**Domain B (data)** is persisted to Supabase:
+- Reducer returns storage `patch` describing minimal update
+- Applied via `updateArticle` → syncs through `useSupabaseStorage`
+- Persisted fields: `status`, `markdown`, `effort`, `checkedAt`, `errorMessage`
+
+**Domain C (view)** is component-local:
+- Not persisted (UI state only)
+- Managed via `useState` in `useSummary` hook
+- Reset on component unmount
+
+### Request token pattern
+
+Domain B implements request tokens to prevent stale updates:
+```javascript
+const requestToken = createRequestToken()
+requestTokenRef.current = requestToken
+
+// Later, when response arrives:
+if (requestTokenRef.current !== requestToken) return  // Ignore stale response
+```
+
+This ensures rapid tap-abort-tap sequences don't corrupt state with out-of-order responses.
+
+### Rollback on abort
+
+When a fetch is aborted, Domain B rolls back to previous state:
+```javascript
+if (error.name === 'AbortError') {
+  dispatchSummaryEvent({
+    type: SummaryDataEventType.SUMMARY_ROLLBACK,
+    previousData: previousSummaryDataRef.current
+  })
+}
+```
+
+This prevents cached summaries from being stuck in perpetual loading state.
+
+### Transition logging
+
+Both domains log transitions automatically:
+- Domain B: Logs data state changes (`unknown` → `loading` → `available`)
+- Domain C: Logs view mode changes (`collapsed` ↔ `expanded`)
+- Only actual state transitions are logged (no redundant logs)
+
+### Design rationale
+
+**Why separate reducers?**
+- Data and view are **orthogonal concerns** with different lifecycles
+- Data persists to database, view is ephemeral UI state
+- Allows independent reasoning about each domain
+
+**Why mediator pattern?**
+- Keeps reducers **closed** (no cross-domain reads)
+- Centralizes coordination logic in one place (the hook)
+- Hook manages side effects while reducers stay pure
+
+**Why request tokens instead of persisting them?**
+- Tokens are transient runtime state with no user value
+- Would pollute cached data in Supabase
+- Component-local refs are sufficient for preventing stale updates
+
+---
+
 ## Selectable Pattern (Updated)
 
 Components that support selection behavior are wrapped in `Selectable`. This is a composition wrapper that encapsulates:

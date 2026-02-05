@@ -357,31 +357,51 @@ removed
 
 ### Feature 4: Summary Generation
 
-#### States (per article summary)
+Summary management is split into **two orthogonal state machines** managed by separate reducers, coordinated by the `useSummary` hook as a mediator:
+
+#### Domain B: Summary Data Lifecycle
+**Responsibility:** What summary data we have and its loading state
+
+**States:**
 1. **unknown** - Summary not yet requested
-2. **creating** - API request in progress
+2. **loading** - API request in progress
 3. **available** - Summary cached and ready
 4. **error** - API request failed
 
-#### State Transitions
+#### Domain C: Summary View State
+**Responsibility:** How the summary is displayed (UI visibility)
+
+**States:**
+1. **collapsed** - Summary hidden
+2. **expanded** - Summary visible
+
+#### State Transitions (Coordinated)
 
 ```
-unknown
-  │
-  └─ User clicks "Summary"
-       ↓
-     creating
-       │
-       ├─ POST /api/summarize-url { url, summarize_effort }
-       │
-       ├─ Success
-       │    ↓
-       │  available
-       │    │
-       │    ├─ summary.status = 'available'
-       │    ├─ summary.markdown = response.summary_markdown
-       │    ├─ summary.expanded = true
-       │    ├─ Mark article as read
+Data Domain (B)                    View Domain (C)
+─────────────────                  ───────────────
+
+unknown                            collapsed
+  │                                   │
+  └─ User clicks "Summary"            │
+       ↓                              │
+     loading                          │
+       │                              │
+       ├─ POST /api/summarize-url     │
+       │    { url, summarize_effort } │
+       │                              │
+       ├─ Success                     │
+       │    ↓                         │
+       │  available                   │
+       │    │                         │
+       │    ├─ dispatch               │
+       │    │  SUMMARY_LOAD_SUCCEEDED │
+       │    │                         └───> expanded
+       │    │  summary.status = 'available'  (dispatch OPEN_REQUESTED,
+       │    │  summary.markdown = response    reason: 'summary-loaded')
+       │    │  summary.effort = effort
+       │    │  summary.checkedAt = timestamp
+       │    │  Mark article as read
        │    │
        │    └─ POST /api/storage/daily/{date} → Supabase upsert
        │
@@ -389,25 +409,57 @@ unknown
             ↓
           error
             │
-            ├─ summary.status = 'error'
-            ├─ summary.errorMessage = error text
+            ├─ dispatch SUMMARY_LOAD_FAILED
+            │  summary.status = 'error'
+            │  summary.errorMessage = error text
             │
             └─ POST /api/storage/daily/{date} → Supabase upsert
 
-available
+available                          expanded
+  │                                   │
+  │                                   └─ User clicks
+  │                                        ↓
+  │                                      collapsed
+  │                                       (dispatch CLOSE_REQUESTED)
   │
-  └─ User clicks "Available"
+  └─ User aborts during loading
        ↓
-     (toggle expanded state, no API call)
+     ROLLBACK to previous data state
 ```
 
+#### Reducer Architecture
+
+Both reducers are **closed** (no cross-domain reads) and coordinate via the hook:
+
+- **summaryDataReducer.js**: Manages data state (`unknown` → `loading` → `available`/`error`)
+  - Events: `SUMMARY_REQUESTED`, `SUMMARY_LOAD_SUCCEEDED`, `SUMMARY_LOAD_FAILED`, `SUMMARY_ROLLBACK`
+  - Returns: `{ state: newStatus, patch: storageUpdate }`
+
+- **summaryViewReducer.js**: Manages view state (`collapsed` ↔ `expanded`)
+  - Events: `OPEN_REQUESTED`, `CLOSE_REQUESTED`
+  - Tracks expand reason: `'tap'`, `'summary-loaded'`, etc.
+  - Returns: `{ state: { mode, expandedBy } }`
+
+- **useSummary hook**: Acts as mediator
+  - Dispatches to appropriate reducer based on event type
+  - Coordinates: when data loads successfully → auto-expand view
+  - Manages side effects: fetch, zen lock, mark as read
+
 #### Key State Data (per article)
-- **summary.status**: 'unknown' | 'creating' | 'available' | 'error'
+
+**Persisted Data (Supabase - Domain B):**
+- **summary.status**: `'unknown'` | `'loading'` | `'available'` | `'error'`
 - **summary.markdown**: string
-- **summary.html**: computed (marked + DOMPurify)
-- **summary.effort**: 'minimal' | 'low' | 'medium' | 'high'
-- **summary.expanded**: boolean (UI state)
+- **summary.effort**: `'minimal'` | `'low'` | `'medium'` | `'high'`
+- **summary.checkedAt**: string (ISO timestamp) | null
 - **summary.errorMessage**: string | null
+
+**View State (Component - Domain C):**
+- **summaryViewState.mode**: `'collapsed'` | `'expanded'`
+- **summaryViewState.expandedBy**: `'tap'` | `'summary-loaded'` | null
+
+**Computed:**
+- **summary.html**: DOMPurify.sanitize(marked.parse(summary.markdown))
 
 ---
 
