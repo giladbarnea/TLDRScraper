@@ -1,11 +1,24 @@
 import { useAnimation } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { logTransition } from '../lib/stateTransitionLogger'
+import {
+  createInitialGestureState,
+  GestureEventType,
+  GestureMode,
+  reduceGesture,
+} from '../reducers/gestureReducer'
 
 export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete, url }) {
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragError, setDragError] = useState(null)
+  const reducerWrapper = useCallback((currentState, event) => {
+    if (event?.type === '__REPLACE_STATE__') {
+      return event.nextState
+    }
+    return reduceGesture(currentState, event).state
+  }, [])
+
+  const [state, rawDispatch] = useReducer(reducerWrapper, undefined, createInitialGestureState)
   const controls = useAnimation()
+  const previousModeRef = useRef(state.mode)
 
   const canDrag = !isRemoved && !stateLoading
 
@@ -17,21 +30,34 @@ export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete, url
     })
   }, [isRemoved, stateLoading, controls])
 
-  const handleDragStart = () => {
-    logTransition('gesture', url, 'idle', 'dragging')
-    setIsDragging(true)
-    setDragError(null)
-  }
+  useEffect(() => {
+    const previousMode = previousModeRef.current
+    if (previousMode !== state.mode) {
+      logTransition('gesture', url, previousMode, state.mode)
+      previousModeRef.current = state.mode
+    }
+  }, [state.mode, url])
 
-  const handleDragEnd = async (_event, info) => {
-    logTransition('gesture', url, 'dragging', 'idle')
-    setIsDragging(false)
+  const dispatchWithDecision = useCallback((event) => {
+    const result = reduceGesture(state, event)
+    rawDispatch({ type: '__REPLACE_STATE__', nextState: result.state })
+    return result.decision
+  }, [state, rawDispatch])
+
+  const handleDragStart = useCallback(() => {
+    rawDispatch({ type: GestureEventType.DRAG_START })
+  }, [rawDispatch])
+
+  const handleDragEnd = useCallback(async (_event, info) => {
     try {
       const { offset, velocity } = info
-      const swipeThreshold = -100
-      const velocityThreshold = -300
+      const decision = dispatchWithDecision({
+        type: GestureEventType.DRAG_END,
+        offsetX: offset.x,
+        velocityX: velocity.x,
+      })
 
-      if (offset.x < swipeThreshold || velocity.x < velocityThreshold) {
+      if (decision?.shouldComplete) {
         await controls.start({
           x: -window.innerWidth,
           opacity: 0,
@@ -42,16 +68,21 @@ export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete, url
         controls.start({ x: 0 })
       }
     } catch (error) {
-      setDragError(`Drag error: ${error.message}`)
+      dispatchWithDecision({
+        type: GestureEventType.DRAG_ERROR,
+        message: `Drag error: ${error.message}`,
+      })
       controls.start({ x: 0 })
     }
-  }
+  }, [controls, dispatchWithDecision, onSwipeComplete])
 
-  const clearDragError = () => setDragError(null)
+  const clearDragError = useCallback(() => {
+    rawDispatch({ type: GestureEventType.CLEAR_ERROR })
+  }, [rawDispatch])
 
   return {
-    isDragging,
-    dragError,
+    isDragging: state.mode === GestureMode.DRAGGING,
+    dragError: state.errorMessage,
     clearDragError,
     controls,
     canDrag,
