@@ -1,3 +1,6 @@
+---
+last_updated: 2026-02-05 10:25, 03bb4c7
+---
 # Domains B and C: Rethought Design
 
 ## Current State Assessment

@@ -1,3 +1,6 @@
+---
+last_updated: 2026-02-05 10:25, 03bb4c7
+---
 # Dependency Graph: Domain B + C Simplification (Remove Domain C reducer)
 
 This document maps the concrete dependency tree and “area of effect” for the proposal in `thoughts/26-01-30-migrate-to-reducer-pattern/domains-b-and-c-rethought.md`: delete `client/src/reducers/summaryViewReducer.js` and simplify Domain C (summary view) inside `client/src/hooks/useSummary.js` to a plain `useState(boolean)`.
