@@ -1,10 +1,19 @@
 import { useAnimation } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useReducer } from 'react'
+import {
+  createInitialGestureState,
+  GestureEventType,
+  GestureMode,
+  reduceGesture,
+} from '../reducers/gestureReducer'
 import { logTransition } from '../lib/stateTransitionLogger'
 
 export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete, url }) {
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragError, setDragError] = useState(null)
+  const [gestureState, dispatchGestureEvent] = useReducer(
+    reduceGesture,
+    undefined,
+    createInitialGestureState,
+  )
   const controls = useAnimation()
 
   const canDrag = !isRemoved && !stateLoading
@@ -18,14 +27,14 @@ export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete, url
   }, [isRemoved, stateLoading, controls])
 
   const handleDragStart = () => {
-    logTransition('gesture', url, 'idle', 'dragging')
-    setIsDragging(true)
-    setDragError(null)
+    logTransition('gesture', url, GestureMode.IDLE, GestureMode.DRAGGING)
+    dispatchGestureEvent({ type: GestureEventType.DRAG_STARTED })
   }
 
   const handleDragEnd = async (_event, info) => {
-    logTransition('gesture', url, 'dragging', 'idle')
-    setIsDragging(false)
+    logTransition('gesture', url, GestureMode.DRAGGING, GestureMode.IDLE)
+    dispatchGestureEvent({ type: GestureEventType.DRAG_FINISHED })
+
     try {
       const { offset, velocity } = info
       const swipeThreshold = -100
@@ -35,23 +44,26 @@ export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete, url
         await controls.start({
           x: -window.innerWidth,
           opacity: 0,
-          transition: { duration: 0.2, ease: "easeOut" }
+          transition: { duration: 0.2, ease: 'easeOut' },
         })
         onSwipeComplete()
       } else {
         controls.start({ x: 0 })
       }
     } catch (error) {
-      setDragError(`Drag error: ${error.message}`)
+      dispatchGestureEvent({
+        type: GestureEventType.DRAG_FAILED,
+        errorMessage: `Drag error: ${error.message}`,
+      })
       controls.start({ x: 0 })
     }
   }
 
-  const clearDragError = () => setDragError(null)
+  const clearDragError = () => dispatchGestureEvent({ type: GestureEventType.CLEAR_ERROR })
 
   return {
-    isDragging,
-    dragError,
+    isDragging: gestureState.mode === GestureMode.DRAGGING,
+    dragError: gestureState.errorMessage,
     clearDragError,
     controls,
     canDrag,
