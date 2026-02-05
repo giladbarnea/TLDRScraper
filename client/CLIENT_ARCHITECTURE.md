@@ -237,15 +237,15 @@ State transitions are logged automatically in `dispatchLifecycleEvent`. Only act
 
 ---
 
-## Summary State Machines (Domain B + Domain C)
+## Summary State Management (Domain B + Simple View State)
 
 ### Overview
-Summary management is split into **two orthogonal state machines** following the guidance in `thoughts/26-01-30-migrate-to-reducer-pattern/`. Each manages an independent concern:
+Summary management uses **a reducer for complex data** (Domain B) and **simple state for UI** following React best practices:
 
-- **Domain B (Data)**: What summary data we have (`unknown` → `loading` → `available`/`error`)
-- **Domain C (View)**: How the summary is displayed (`collapsed` ↔ `expanded`)
+- **Domain B (Data)**: What summary data we have (`unknown` → `loading` → `available`/`error`) - **Reducer pattern**
+- **View State**: How the summary is displayed (collapsed ↔ expanded) - **Simple `useState(boolean)`**
 
-The `useSummary` hook acts as a **mediator** that coordinates between both domains while keeping them closed and independent.
+The `useSummary` hook orchestrates the data reducer and manages view state directly.
 
 ### Key modules
 
@@ -256,36 +256,28 @@ The `useSummary` hook acts as a **mediator** that coordinates between both domai
   - Pure reducer: `reduceSummaryData(summaryData, event)` returns `{ state, patch }`
   - Getter: `getSummaryDataStatus(summaryData)` derives current status
 
-**Domain C: Summary View Reducer**
-- `reducers/summaryViewReducer.js`
-  - Exports `SummaryViewMode` enum: `COLLAPSED`, `EXPANDED`
-  - Exports `SummaryViewEventType` enum: `OPEN_REQUESTED`, `CLOSE_REQUESTED`
-  - Pure reducer: `reduceSummaryView(state, event)` returns `{ state }`
-  - Tracks expand reason: `'tap'`, `'summary-loaded'`, etc.
-
-**Mediator**
+**Orchestrator**
 - `hooks/useSummary.js`
   - Provides UI-facing functions (`fetch`, `toggle`, `expand`, `collapse`)
-  - Maintains two separate dispatchers:
-    - `dispatchSummaryEvent(event)` → data transitions (persisted)
-    - `dispatchSummaryViewEvent(event)` → view transitions (component state)
-  - Coordinates domains: successful data load → auto-expand view
+  - Dispatches to data reducer: `dispatchSummaryEvent(event)` → data transitions (persisted)
+  - Manages view state: `useState(expanded)` → simple boolean for UI visibility
+  - Coordinates: successful data load → auto-expand view (if zen lock acquired)
   - Manages side effects: API fetch, zen lock, mark as read, request tokens
 
-### Event-driven coordination
+### Coordination examples
 
 **User clicks "Summary" button (data not available):**
 ```javascript
 // UI calls:
 toggle()
 
-// Dispatches to Domain B (data):
+// Dispatches to data reducer:
 dispatchSummaryEvent({
   type: SummaryDataEventType.SUMMARY_REQUESTED,
   effort: 'low'
 })
 
-// On success, dispatches to Domain B again:
+// On success, dispatches to data reducer:
 dispatchSummaryEvent({
   type: SummaryDataEventType.SUMMARY_LOAD_SUCCEEDED,
   markdown: result.summary_markdown,
@@ -293,11 +285,11 @@ dispatchSummaryEvent({
   checkedAt: new Date().toISOString()
 })
 
-// Then dispatches to Domain C (view):
-dispatchSummaryViewEvent({
-  type: SummaryViewEventType.OPEN_REQUESTED,
-  reason: 'summary-loaded'
-})
+// Then updates view state (if zen lock acquired):
+if (acquireZenLock(url)) {
+  logTransition('summary-view', url, 'collapsed', 'expanded', 'summary-loaded')
+  setExpanded(true)
+}
 ```
 
 **User clicks when summary available (toggle visibility):**
@@ -305,12 +297,13 @@ dispatchSummaryViewEvent({
 // UI calls:
 toggle()
 
-// Only dispatches to Domain C:
-dispatchSummaryViewEvent({
-  type: isExpanded ? SummaryViewEventType.CLOSE_REQUESTED
-                   : SummaryViewEventType.OPEN_REQUESTED,
-  reason: 'tap'
-})
+// Simply toggles view state:
+if (expanded) {
+  collapse() // calls setExpanded(false) + releaseZenLock()
+} else if (acquireZenLock(url)) {
+  logTransition('summary-view', url, 'collapsed', 'expanded', 'tap')
+  setExpanded(true)
+}
 ```
 
 ### Storage integration
@@ -320,9 +313,9 @@ dispatchSummaryViewEvent({
 - Applied via `updateArticle` → syncs through `useSupabaseStorage`
 - Persisted fields: `status`, `markdown`, `effort`, `checkedAt`, `errorMessage`
 
-**Domain C (view)** is component-local:
-- Not persisted (UI state only)
-- Managed via `useState` in `useSummary` hook
+**View state** is component-local:
+- Not persisted (ephemeral UI state)
+- Simple `useState(expanded)` boolean in `useSummary` hook
 - Reset on component unmount
 
 ### Request token pattern
@@ -354,22 +347,30 @@ This prevents cached summaries from being stuck in perpetual loading state.
 
 ### Transition logging
 
-Both domains log transitions automatically:
+Both data and view transitions are logged automatically:
 - Domain B: Logs data state changes (`unknown` → `loading` → `available`)
-- Domain C: Logs view mode changes (`collapsed` ↔ `expanded`)
+- View state: Logs expand/collapse with reason (`tap`, `summary-loaded`)
 - Only actual state transitions are logged (no redundant logs)
 
 ### Design rationale
 
-**Why separate reducers?**
-- Data and view are **orthogonal concerns** with different lifecycles
-- Data persists to database, view is ephemeral UI state
-- Allows independent reasoning about each domain
+**Why a reducer for Domain B?**
+- Complex async state machine with multiple events and invariants
+- Rollback-on-abort requires careful state management
+- Request tokens need coordination with transitions
+- Benefits from the guarantees a reducer provides
 
-**Why mediator pattern?**
-- Keeps reducers **closed** (no cross-domain reads)
-- Centralizes coordination logic in one place (the hook)
-- Hook manages side effects while reducers stay pure
+**Why simple useState for view?**
+- It's a boolean toggle (collapsed ↔ expanded)
+- No complex invariants or business logic
+- Ephemeral UI state (doesn't persist)
+- Using a reducer would be over-engineering
+
+**Why not a view reducer?**
+- Violates "simplest thing that works" principle
+- Adds ~40 lines of code for a one-line useState
+- No proportional benefit to the added complexity
+- Inconsistent with React idioms (useState for simple state)
 
 **Why request tokens instead of persisting them?**
 - Tokens are transient runtime state with no user value

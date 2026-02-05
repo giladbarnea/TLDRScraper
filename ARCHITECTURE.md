@@ -357,9 +357,9 @@ removed
 
 ### Feature 4: Summary Generation
 
-Summary management is split into **two orthogonal state machines** managed by separate reducers, coordinated by the `useSummary` hook as a mediator:
+Summary management uses a **reducer pattern for data** (Domain B) and **simple state for view** (ephemeral UI):
 
-#### Domain B: Summary Data Lifecycle
+#### Domain B: Summary Data Lifecycle (Reducer)
 **Responsibility:** What summary data we have and its loading state
 
 **States:**
@@ -368,20 +368,19 @@ Summary management is split into **two orthogonal state machines** managed by se
 3. **available** - Summary cached and ready
 4. **error** - API request failed
 
-#### Domain C: Summary View State
+#### View State (Simple useState)
 **Responsibility:** How the summary is displayed (UI visibility)
 
 **States:**
-1. **collapsed** - Summary hidden
-2. **expanded** - Summary visible
+- `expanded: boolean` - Summary visible (true) or hidden (false)
 
-#### State Transitions (Coordinated)
+#### State Transitions
 
 ```
-Data Domain (B)                    View Domain (C)
-─────────────────                  ───────────────
+Data Domain (B) - Reducer          View State - Simple useState
+─────────────────────────          ─────────────────────────────
 
-unknown                            collapsed
+unknown                            expanded = false
   │                                   │
   └─ User clicks "Summary"            │
        ↓                              │
@@ -396,9 +395,9 @@ unknown                            collapsed
        │    │                         │
        │    ├─ dispatch               │
        │    │  SUMMARY_LOAD_SUCCEEDED │
-       │    │                         └───> expanded
-       │    │  summary.status = 'available'  (dispatch OPEN_REQUESTED,
-       │    │  summary.markdown = response    reason: 'summary-loaded')
+       │    │                         └───> expanded = true
+       │    │  summary.status = 'available'  (setExpanded(true) if zen lock acquired)
+       │    │  summary.markdown = response
        │    │  summary.effort = effort
        │    │  summary.checkedAt = timestamp
        │    │  Mark article as read
@@ -415,35 +414,30 @@ unknown                            collapsed
             │
             └─ POST /api/storage/daily/{date} → Supabase upsert
 
-available                          expanded
+available                          expanded = true
   │                                   │
   │                                   └─ User clicks
   │                                        ↓
-  │                                      collapsed
-  │                                       (dispatch CLOSE_REQUESTED)
+  │                                      expanded = false
+  │                                       (setExpanded(false))
   │
   └─ User aborts during loading
        ↓
      ROLLBACK to previous data state
 ```
 
-#### Reducer Architecture
-
-Both reducers are **closed** (no cross-domain reads) and coordinate via the hook:
+#### Implementation Architecture
 
 - **summaryDataReducer.js**: Manages data state (`unknown` → `loading` → `available`/`error`)
   - Events: `SUMMARY_REQUESTED`, `SUMMARY_LOAD_SUCCEEDED`, `SUMMARY_LOAD_FAILED`, `SUMMARY_ROLLBACK`
   - Returns: `{ state: newStatus, patch: storageUpdate }`
+  - Closed reducer (no cross-domain reads)
 
-- **summaryViewReducer.js**: Manages view state (`collapsed` ↔ `expanded`)
-  - Events: `OPEN_REQUESTED`, `CLOSE_REQUESTED`
-  - Tracks expand reason: `'tap'`, `'summary-loaded'`, etc.
-  - Returns: `{ state: { mode, expandedBy } }`
-
-- **useSummary hook**: Acts as mediator
-  - Dispatches to appropriate reducer based on event type
+- **useSummary hook**: Orchestrates data and view
+  - Dispatches to data reducer for data transitions
+  - Uses simple `useState(expanded)` for view state
   - Coordinates: when data loads successfully → auto-expand view
-  - Manages side effects: fetch, zen lock, mark as read
+  - Manages side effects: fetch, zen lock, mark as read, request tokens
 
 #### Key State Data (per article)
 
@@ -454,9 +448,8 @@ Both reducers are **closed** (no cross-domain reads) and coordinate via the hook
 - **summary.checkedAt**: string (ISO timestamp) | null
 - **summary.errorMessage**: string | null
 
-**View State (Component - Domain C):**
-- **summaryViewState.mode**: `'collapsed'` | `'expanded'`
-- **summaryViewState.expandedBy**: `'tap'` | `'summary-loaded'` | null
+**View State (Component - useState):**
+- **expanded**: boolean - Summary overlay visible (true) or hidden (false)
 
 **Computed:**
 - **summary.html**: DOMPurify.sanitize(marked.parse(summary.markdown))
