@@ -6,6 +6,7 @@ import SelectionCounterPill from './components/SelectionCounterPill'
 import { InteractionProvider } from './contexts/InteractionContext'
 import { mergeIntoCache } from './hooks/useSupabaseStorage'
 import { scrapeNewsletters } from './lib/scraper'
+import { logTransition } from './lib/stateTransitionLogger'
 import { getDailyPayloadsRange } from './lib/storageApi'
 import { getNewsletterScrapeKey } from './lib/storageKeys'
 
@@ -40,10 +41,13 @@ function App() {
     const cacheKey = `scrapeResults:${startDate}:${endDate}`
     const TTL_MS = 10 * 60 * 1000
 
+    const range = `${startDate}..${endDate}`
+
     const sessionCached = sessionStorage.getItem(cacheKey)
     if (sessionCached) {
       const { timestamp, data } = JSON.parse(sessionCached)
       if (Date.now() - timestamp < TTL_MS) {
+        logTransition('feed', range, 'idle', 'ready', 'sessionStorage')
         setResults(data)
         return
       }
@@ -52,6 +56,7 @@ function App() {
     async function loadFeed() {
       let phase1Rendered = false
 
+      logTransition('feed', range, 'idle', 'fetching')
       const cachePromise = getDailyPayloadsRange(startDate, endDate, signal).catch(() => [])
       const scrapePromise = scrapeNewsletters(startDate, endDate, signal)
 
@@ -60,6 +65,8 @@ function App() {
       if (signal.aborted) return
       if (cachedPayloads.length > 0) {
         phase1Rendered = true
+        const articleCount = cachedPayloads.reduce((sum, p) => sum + p.articles.length, 0)
+        logTransition('feed', range, 'fetching', 'cached', `${cachedPayloads.length} days, ${articleCount} articles`)
         setResults({ payloads: cachedPayloads, stats: null })
       }
 
@@ -69,8 +76,14 @@ function App() {
 
       if (phase1Rendered) {
         const cachedDates = new Set(cachedPayloads.map(p => p.date))
+        const cachedUrlsByDate = new Map(
+          cachedPayloads.map(p => [p.date, new Set(p.articles.map(a => a.url))])
+        )
+        let newArticleCount = 0
         for (const freshPayload of result.payloads) {
           if (cachedDates.has(freshPayload.date)) {
+            const cachedUrls = cachedUrlsByDate.get(freshPayload.date)
+            newArticleCount += freshPayload.articles.filter(a => !cachedUrls.has(a.url)).length
             mergeIntoCache(
               getNewsletterScrapeKey(freshPayload.date),
               local => mergePreservingLocalState(freshPayload, local)
@@ -84,7 +97,10 @@ function App() {
             payloads: [...(prev?.payloads || []), ...newDayPayloads]
           }))
         }
+        logTransition('feed', range, 'cached', 'merged', `${newArticleCount} new articles, ${newDayPayloads.length} new days`)
       } else {
+        const articleCount = result.payloads.reduce((sum, p) => sum + p.articles.length, 0)
+        logTransition('feed', range, 'fetching', 'ready', `${result.payloads.length} days, ${articleCount} articles`)
         setResults(result)
       }
 
