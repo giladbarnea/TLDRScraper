@@ -1,3 +1,6 @@
+---
+last_updated: 2026-02-06 11:43, 6fd30cd
+---
 # Background Rescrape Design
 
 ## Problem
