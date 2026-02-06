@@ -16,7 +16,7 @@ This document maps the frontend architecture of the Newsletter Aggregator. It de
 
 ---
 
-The client is built as a Single Page Application (SPA) using React and Vite. It relies heavily on an Optimistic UI pattern where local state updates immediately for the user while syncing asynchronously to the backend via useSupabaseStorage. The architecture uses scrape-first hydration: /api/scrape is the authoritative data source, and CalendarDay seeds the storage cache with this payload on mount—eliminating redundant per-day storage fetches while preserving pub/sub reactivity for state changes. The architecture emphasizes “Zen Mode” reading, dividing the view into a Feed (browsing) and an Overlay (reading).
+The client is built as a Single Page Application (SPA) using React and Vite. It relies heavily on an Optimistic UI pattern where local state updates immediately for the user while syncing asynchronously to the backend via useSupabaseStorage. The architecture uses cache-first hydration: on mount, cached payloads are fetched from `/api/storage/daily-range` and rendered immediately, then `/api/scrape` runs in the background and merges new articles into the live display via `mergeIntoCache`. CalendarDay seeds the storage cache with the payload it receives on mount—eliminating redundant per-day storage fetches while preserving pub/sub reactivity for state changes. The architecture emphasizes "Zen Mode" reading, dividing the view into a Feed (browsing) and an Overlay (reading).
 
 ## Architecture Diagram
 
@@ -489,8 +489,11 @@ main()
 ├── App (Root)
 │   ├── useEffect (Initial Load)
 │   │   ├── sessionStorage cache check (10min TTL)
-│   │   └── scrapeNewsletters() [if cache miss/stale]
-│   │       └── fetch('/api/scrape')
+│   │   └── loadFeed() [if cache miss/stale]
+│   │       ├── getDailyPayloadsRange() → setResults (immediate render)
+│   │       │   └── fetch('/api/storage/daily-range')
+│   │       └── scrapeNewsletters() → mergeIntoCache (background)
+│   │           └── fetch('/api/scrape')
 │   │
 │   ├── Header Area
 │   │   ├── SelectionCounterPill (visible iff selectedIds.size > 0)
@@ -568,17 +571,28 @@ TIME   ACTOR              ACTION                                TARGET
 > Focus: Transformation of data from Raw API Payload to Persisted User State.
 
 ```
-[ SOURCE ]           [ CACHE SEED ]         [ PRESENTATION ]       [ PERSISTENCE ]
-(/api/scrape)        (No extra fetch)       (UI Rendering)         (Syncing)
+[ PHASE 1: CACHE ]      [ CACHE SEED ]         [ PRESENTATION ]       [ PERSISTENCE ]
+(/api/storage/           (No extra fetch)       (UI Rendering)         (Syncing)
+ daily-range)
 
 ┌──────────────┐     ┌──────────────────┐   ┌────────────────┐     ┌──────────────┐
-│ API Response │────►│ CalendarDay      │──►│ Feed Grouping  │────►│ DOM Output   │
-│ (Newsletters)│     │ seeds readCache  │   │ (Date/Issue)   │     │ (HTML)       │
-└──────────────┘     └────────┬─────────┘   └────────────────┘     └──────────────┘
-                              │
-                              │ (User Action: Read/Remove)
-                              │
-                     ┌────────▼─────────┐   ┌────────────────┐
+│ Cached       │────►│ CalendarDay      │──►│ Feed Grouping  │────►│ DOM Output   │
+│ Payloads     │     │ seeds readCache  │   │ (Date/Issue)   │     │ (HTML)       │
+└──────────────┘     └──────────────────┘   └────────────────┘     └──────────────┘
+
+[ PHASE 2: SCRAPE ]
+(/api/scrape,
+ background)
+
+┌──────────────┐     ┌──────────────────┐   ┌────────────────┐
+│ Fresh        │────►│ mergeIntoCache() │──►│ emitChange()   │──► All subscribers re-render
+│ Payloads     │     │ overlay local    │   │ notifies subs  │    (new articles appear)
+└──────────────┘     │ user state       │   └────────────────┘
+                     └──────────────────┘
+
+[ USER ACTIONS ]
+
+                     ┌──────────────────┐   ┌────────────────┐
                      │ setValueAsync()  │──►│ emitChange()   │
                      │ updates cache    │   │ notifies subs  │
                      └────────┬─────────┘   └───────┬────────┘
@@ -589,3 +603,29 @@ TIME   ACTOR              ACTION                                TARGET
                      │ (persist)      │     │ re-render      │
                      └────────────────┘     └────────────────┘
 ```
+
+## Two-Phase Loading (Background Rescrape)
+
+On mount, `App.jsx` loads the feed in two phases so that cached articles display immediately while a background rescrape runs for stale dates (today).
+
+### Phase 1 — Cache read (~100ms)
+`getDailyPayloadsRange(startDate, endDate)` fetches cached payloads from Supabase. If data exists, `setResults` renders the feed immediately. CalendarDay components mount and seed `readCache` with these payloads.
+
+### Phase 2 — Background scrape (seconds)
+`scrapeNewsletters(startDate, endDate)` fires concurrently with phase 1. When it resolves:
+- For dates already rendered: `mergeIntoCache(key, mergeFn)` writes the merged payload into `readCache` and calls `emitChange`. All `useSupabaseStorage` subscribers for that key re-render — new articles appear in place.
+- For new dates not in the cache: appended to `results.payloads` so Feed renders additional CalendarDay components.
+
+### Merge strategy (`mergePreservingLocalState`)
+The merge overlays local user state (`tldr`, `read`, `removed`) on top of the server's fresh payload. This prevents the background scrape from reverting optimistic changes the user made during the scrape window.
+
+### `mergeIntoCache` (useSupabaseStorage.js)
+Module-level export that writes directly to `readCache` and calls `emitChange`, bypassing the "seed only if empty" guard that CalendarDay uses. This is the mechanism for pushing data into already-mounted components from outside the hook.
+
+### Logging
+Feed-level transitions are logged via `logTransition('feed', range, from, to, extra)` and appear in the quake console:
+- `idle → ready` (sessionStorage hit)
+- `idle → fetching` (cache miss, requests fired)
+- `fetching → cached` (phase 1 rendered)
+- `cached → merged` (phase 2 complete, with new article/day counts)
+- `fetching → ready` (no cache existed, direct render from scrape)
