@@ -4,7 +4,23 @@ import Feed from './components/Feed'
 import ScrapeForm from './components/ScrapeForm'
 import SelectionCounterPill from './components/SelectionCounterPill'
 import { InteractionProvider } from './contexts/InteractionContext'
+import { mergeIntoCache } from './hooks/useSupabaseStorage'
 import { scrapeNewsletters } from './lib/scraper'
+import { getDailyPayloadsRange } from './lib/storageApi'
+import { getNewsletterScrapeKey } from './lib/storageKeys'
+
+function mergePreservingLocalState(freshPayload, localPayload) {
+  if (!localPayload) return freshPayload
+  const localByUrl = new Map(localPayload.articles.map(a => [a.url, a]))
+  return {
+    ...freshPayload,
+    articles: freshPayload.articles.map(article => {
+      const local = localByUrl.get(article.url)
+      if (!local) return article
+      return { ...article, tldr: local.tldr, read: local.read, removed: local.removed }
+    })
+  }
+}
 
 function App() {
   const [results, setResults] = useState(null)
@@ -12,6 +28,7 @@ function App() {
 
   useEffect(() => {
     const controller = new AbortController()
+    const { signal } = controller
 
     const today = new Date()
     const twoDaysAgo = new Date(today)
@@ -23,34 +40,66 @@ function App() {
     const cacheKey = `scrapeResults:${startDate}:${endDate}`
     const TTL_MS = 10 * 60 * 1000
 
-    const cached = sessionStorage.getItem(cacheKey)
-    if (cached) {
-      const { timestamp, data } = JSON.parse(cached)
+    const sessionCached = sessionStorage.getItem(cacheKey)
+    if (sessionCached) {
+      const { timestamp, data } = JSON.parse(sessionCached)
       if (Date.now() - timestamp < TTL_MS) {
         setResults(data)
         return
       }
     }
 
-    scrapeNewsletters(startDate, endDate, controller.signal)
-      .then(result => {
-        setResults(result)
-        try {
-          sessionStorage.setItem(cacheKey, JSON.stringify({
-            timestamp: Date.now(),
-            data: result
-          }))
-        } catch {}
-      })
-      .catch(err => {
-        if (err.name === 'AbortError') return
-        console.error('Failed to load results:', err)
-        setResults({ payloads: [], stats: null })
-      })
+    async function loadFeed() {
+      let phase1Rendered = false
 
-    return () => {
-      controller.abort()
+      const cachePromise = getDailyPayloadsRange(startDate, endDate, signal).catch(() => [])
+      const scrapePromise = scrapeNewsletters(startDate, endDate, signal)
+
+      // Phase 1: render cached data immediately
+      const cachedPayloads = await cachePromise
+      if (signal.aborted) return
+      if (cachedPayloads.length > 0) {
+        phase1Rendered = true
+        setResults({ payloads: cachedPayloads, stats: null })
+      }
+
+      // Phase 2: merge background scrape results
+      const result = await scrapePromise
+      if (signal.aborted) return
+
+      if (phase1Rendered) {
+        const cachedDates = new Set(cachedPayloads.map(p => p.date))
+        for (const freshPayload of result.payloads) {
+          if (cachedDates.has(freshPayload.date)) {
+            mergeIntoCache(
+              getNewsletterScrapeKey(freshPayload.date),
+              local => mergePreservingLocalState(freshPayload, local)
+            )
+          }
+        }
+        const newDayPayloads = result.payloads.filter(p => !cachedDates.has(p.date))
+        if (newDayPayloads.length > 0) {
+          setResults(prev => ({
+            ...result,
+            payloads: [...(prev?.payloads || []), ...newDayPayloads]
+          }))
+        }
+      } else {
+        setResults(result)
+      }
+
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: result }))
+      } catch {}
     }
+
+    loadFeed().catch(err => {
+      if (err.name === 'AbortError') return
+      console.error('Failed to load feed:', err)
+      setResults(prev => prev ?? { payloads: [], stats: null })
+    })
+
+    return () => controller.abort()
   }, [])
 
   const currentDate = new Date().toLocaleDateString('en-US', {

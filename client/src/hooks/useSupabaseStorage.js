@@ -247,3 +247,11 @@ export function useSupabaseStorage(key, defaultValue) {
 
   return [value, setValueAsync, remove, { loading, error }]
 }
+
+export function mergeIntoCache(key, mergeFn) {
+  const current = readCache.get(key)
+  const merged = mergeFn(current)
+  if (merged === current) return
+  readCache.set(key, merged)
+  emitChange(key)
+}
