@@ -233,7 +233,8 @@ def _fetch_github_readme(url: str) -> str:
         logger.info(
             f"Raw fetch succeeded for {raw_url}",
         )
-        return h.handle(response.text)
+        markdown = h.handle(response.text)
+        return _absolutize_markdown_urls(markdown, url)
     except requests.HTTPError as e:
         if e.response and e.response.status_code == 404:
             master_url = (
@@ -252,7 +253,8 @@ def _fetch_github_readme(url: str) -> str:
                 logger.info(
                     f"Master branch fetch succeeded for {master_url}",
                 )
-                return h.handle(response.text)
+                markdown = h.handle(response.text)
+                return _absolutize_markdown_urls(markdown, url)
             except Exception:
                 logger.warning(
                     f"Master branch fetch failed for {master_url}",
@@ -260,12 +262,39 @@ def _fetch_github_readme(url: str) -> str:
                 raise
 
     response = scrape_url(url)
-    content = h.handle(response.text)
+    markdown = h.handle(response.text)
 
     logger.info(
         f"Direct fetch succeeded for {url}",
     )
-    return content
+    return _absolutize_markdown_urls(markdown, url)
+
+
+def _absolutize_markdown_urls(markdown: str, base_url: str) -> str:
+    """Convert all relative URLs in markdown links to absolute URLs.
+
+    >>> _absolutize_markdown_urls('[link](</path/>)', 'https://example.com/')
+    '[link](https://example.com/path/)'
+    >>> _absolutize_markdown_urls('[link](https://other.com/x)', 'https://example.com/')
+    '[link](https://other.com/x)'
+    >>> _absolutize_markdown_urls('[link](path/to/page)', 'https://example.com/base/')
+    '[link](https://example.com/base/path/to/page)'
+    """
+    def replace_link(match):
+        text = match.group(1)
+        url = match.group(2)
+
+        # Remove angle brackets if present (markdown syntax for URLs with special chars)
+        url = url.strip('<>')
+
+        # Convert relative URLs to absolute
+        absolute_url = urlparse.urljoin(base_url, url)
+
+        return f'[{text}]({absolute_url})'
+
+    # Match markdown links: [text](url) or [text](<url>)
+    pattern = r'\[([^\]]+)\]\(<?([^)>]+)>?\)'
+    return re.sub(pattern, replace_link, markdown)
 
 
 def url_to_markdown(url: str) -> str:
@@ -279,6 +308,9 @@ def url_to_markdown(url: str) -> str:
 
     response = scrape_url(url)
     markdown = h.handle(response.text)
+
+    # Convert relative URLs to absolute before returning
+    markdown = _absolutize_markdown_urls(markdown, url)
 
     return markdown
 
