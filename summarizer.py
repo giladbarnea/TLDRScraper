@@ -283,6 +283,38 @@ def url_to_markdown(url: str) -> str:
     return markdown
 
 
+def _convert_relative_to_absolute_urls(markdown: str, base_url: str) -> str:
+    """Convert relative URLs in markdown links to absolute URLs.
+
+    Args:
+        markdown: Markdown text containing links
+        base_url: Base URL to resolve relative links against
+
+    Returns:
+        Markdown with relative URLs converted to absolute
+
+    >>> _convert_relative_to_absolute_urls('[link](</path/to/page>)', 'https://example.com/article')
+    '[link](https://example.com/path/to/page)'
+    >>> _convert_relative_to_absolute_urls('[link](https://other.com/page)', 'https://example.com')
+    '[link](https://other.com/page)'
+    """
+    parsed_base = urlparse.urlparse(base_url)
+    base_origin = f"{parsed_base.scheme}://{parsed_base.netloc}"
+
+    def replace_link(match):
+        link_text = match.group(1)
+        link_url = match.group(2).strip('<>')
+
+        if link_url.startswith('/'):
+            absolute_url = urlparse.urljoin(base_origin, link_url)
+            return f"[{link_text}]({absolute_url})"
+
+        return match.group(0)
+
+    link_pattern = r'\[([^\]]+)\]\(([^\)]+)\)'
+    return re.sub(link_pattern, replace_link, markdown)
+
+
 def summarize_url(url: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, model: str = DEFAULT_MODEL) -> str:
     """Get markdown content from URL and create a summary with LLM.
 
@@ -300,6 +332,8 @@ def summarize_url(url: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, mode
     template = _fetch_summary_prompt()
     prompt = f"{template}\n\n<tldr this>\n{markdown}/n</tldr this>"
     summary = _call_llm(prompt, summarize_effort=effort, model=model)
+
+    summary = _convert_relative_to_absolute_urls(summary, url)
 
     return summary
 
