@@ -300,7 +300,7 @@ function ArticleCard({ article }) {
         layout
         className={`relative ${summary.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
       >
-        <div className={`absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8 transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
+        <div className={`absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8 pointer-events-none transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
           <Trash2 className="text-red-400" size={20} />
         </div>
 
