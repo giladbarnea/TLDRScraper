@@ -488,5 +488,9 @@ function main() {
   echo 1 >"$HOME/.cache/tech-news-scraper/setup-complete"
 }
 
-
-message "DONE setup.sh. Next immediate step: follow your basic project-context gathering instructions to completion."
+# Auto-call main() if script is executed (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+else
+  message "DONE setup.sh. Next immediate step: follow your basic project-context gathering instructions to completion."
+fi
