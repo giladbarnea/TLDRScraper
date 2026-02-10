@@ -262,7 +262,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"articles": "InfoQ"},
-        sort_order=13,  # 3.8/week
+        sort_order=22,  # 3.8/week - deprioritized
     ),
     "bytebytego": NewsletterSourceConfig(
         source_id="bytebytego",
