@@ -261,6 +261,233 @@ def skip_to_end_of_statement(lines: List[str], start: int) -> int:
     return i
 
 
+def extract_component_definitions(filepath: pathlib.Path) -> List[str]:
+    """Extract React component names defined in a file.
+
+    Looks for:
+    - function ComponentName(...)
+    - const ComponentName = (...) =>
+    - class ComponentName
+    """
+    with open(filepath, encoding='utf-8') as f:
+        content = f.read()
+
+    components = []
+
+    # Match function declarations: function ComponentName(
+    for match in re.finditer(r'^\s*(?:export\s+(?:default\s+)?)?function\s+([A-Z]\w*)\s*\(', content, re.MULTILINE):
+        components.append(match.group(1))
+
+    # Match arrow function declarations: const ComponentName = (...) =>
+    for match in re.finditer(r'^\s*(?:export\s+(?:default\s+)?)?const\s+([A-Z]\w*)\s*=\s*(?:\([^)]*\)|[\w]+)\s*=>', content, re.MULTILINE):
+        components.append(match.group(1))
+
+    # Match class declarations: class ComponentName
+    for match in re.finditer(r'^\s*(?:export\s+(?:default\s+)?)?class\s+([A-Z]\w*)', content, re.MULTILINE):
+        components.append(match.group(1))
+
+    return list(set(components))
+
+
+def extract_hook_definitions(filepath: pathlib.Path) -> List[str]:
+    """Extract custom React hook names defined in a file.
+
+    Custom hooks are functions that start with 'use' (React convention).
+    """
+    with open(filepath, encoding='utf-8') as f:
+        content = f.read()
+
+    hooks = []
+
+    # Match function declarations: function useHookName(
+    for match in re.finditer(r'^\s*(?:export\s+(?:default\s+)?)?function\s+(use[A-Z]\w*)\s*\(', content, re.MULTILINE):
+        hooks.append(match.group(1))
+
+    # Match arrow function declarations: const useHookName = (...) =>
+    for match in re.finditer(r'^\s*(?:export\s+(?:default\s+)?)?const\s+(use[A-Z]\w*)\s*=\s*(?:\([^)]*\)|[\w]+)\s*=>', content, re.MULTILINE):
+        hooks.append(match.group(1))
+
+    return list(set(hooks))
+
+
+def find_component_usage(component_name: str, filepath: pathlib.Path) -> List[tuple]:
+    """Find JSX usages of a component with full prop information.
+
+    Returns list of (line_number, usage_lines) tuples where usage_lines may span multiple lines.
+    """
+    with open(filepath, encoding='utf-8') as f:
+        lines = f.readlines()
+
+    usages = []
+    pattern = re.compile(rf'<{component_name}(?:\s|>|/)')
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+
+        if pattern.search(line):
+            # Capture the full JSX tag (may span multiple lines)
+            usage_lines = [line.rstrip()]
+            line_num = i + 1
+
+            # Check if tag is self-closing or has closing bracket on same line
+            if '/>' in line or '>' in line and not line.rstrip().endswith(('{', ',')):
+                usages.append((line_num, usage_lines[0]))
+                i += 1
+                continue
+
+            # Multi-line JSX tag - continue until we find the closing
+            i += 1
+            depth = 1  # Track bracket depth for complex props
+            while i < len(lines) and depth > 0:
+                next_line = lines[i].rstrip()
+                usage_lines.append(next_line)
+
+                # Simple heuristic: look for closing > or />
+                if '/>' in next_line or ('>' in next_line and '{' not in next_line):
+                    break
+
+                i += 1
+
+            # Join the lines for display (limit to reasonable length)
+            full_usage = ' '.join(usage_lines)
+            if len(full_usage) > 200:
+                full_usage = full_usage[:200] + '...'
+
+            usages.append((line_num, full_usage))
+
+        i += 1
+
+    return usages
+
+
+def find_hook_usage(hook_name: str, filepath: pathlib.Path) -> List[tuple]:
+    """Find calls to a hook in a file.
+
+    Returns list of (line_number, usage_line) tuples.
+    """
+    with open(filepath, encoding='utf-8') as f:
+        lines = f.readlines()
+
+    usages = []
+    pattern = re.compile(rf'\b{hook_name}\s*\(')
+
+    for i, line in enumerate(lines, start=1):
+        stripped = line.strip()
+
+        # Skip comment lines
+        if stripped.startswith('//') or stripped.startswith('/*') or stripped.startswith('*'):
+            continue
+
+        if pattern.search(line):
+            usages.append((i, stripped))
+
+    return usages
+
+
+def build_call_site_maps(client_dir: pathlib.Path) -> tuple:
+    """Build component and hook definition -> usage maps for the entire client directory.
+
+    Returns (component_map, hook_map) where each map is:
+        {
+            'Name': {
+                'defined_in': 'relative/path/to/file.jsx',
+                'used_in': [('file.jsx', line_num, usage_str), ...]
+            }
+        }
+    """
+    if not client_dir.exists():
+        return {}, {}
+
+    js_files = list(client_dir.rglob('*.js')) + list(client_dir.rglob('*.jsx'))
+    js_files = [f for f in js_files if f.is_file() and 'node_modules' not in f.parts]
+
+    component_map = {}
+    hook_map = {}
+
+    # Step 1: Find all definitions
+    for filepath in js_files:
+        rel_path = filepath.relative_to(client_dir.parent)
+
+        # Find components
+        components = extract_component_definitions(filepath)
+        for component in components:
+            if component not in component_map:
+                component_map[component] = {
+                    'defined_in': str(rel_path),
+                    'used_in': []
+                }
+
+        # Find hooks
+        hooks = extract_hook_definitions(filepath)
+        for hook in hooks:
+            if hook not in hook_map:
+                hook_map[hook] = {
+                    'defined_in': str(rel_path),
+                    'used_in': []
+                }
+
+    # Step 2: Find all usages
+    for filepath in js_files:
+        rel_path = filepath.relative_to(client_dir.parent)
+
+        # Find component usages
+        for component_name in component_map.keys():
+            usages = find_component_usage(component_name, filepath)
+            for line_num, usage_str in usages:
+                component_map[component_name]['used_in'].append((str(rel_path), line_num, usage_str))
+
+        # Find hook usages
+        for hook_name in hook_map.keys():
+            usages = find_hook_usage(hook_name, filepath)
+            for line_num, usage_str in usages:
+                # Don't count the definition itself as a usage
+                if str(rel_path) != hook_map[hook_name]['defined_in'] or not usage_str.startswith(('function', 'const', 'export')):
+                    hook_map[hook_name]['used_in'].append((str(rel_path), line_num, usage_str))
+
+    return component_map, hook_map
+
+
+def append_call_sites_to_signatures(signatures: str, filepath: pathlib.Path, component_map: dict, hook_map: dict, root_dir: pathlib.Path) -> str:
+    """Append call site information to the signatures output."""
+    rel_path = str(filepath.relative_to(root_dir))
+
+    # Find components and hooks defined in this file
+    components_in_file = [name for name, info in component_map.items() if info['defined_in'] == rel_path]
+    hooks_in_file = [name for name, info in hook_map.items() if info['defined_in'] == rel_path]
+
+    if not components_in_file and not hooks_in_file:
+        return signatures
+
+    call_sites = ['\n', '// === Call Sites ===', '']
+
+    # Add component call sites
+    for component_name in sorted(components_in_file):
+        info = component_map[component_name]
+        if info['used_in']:
+            call_sites.append(f"// {component_name} is used in:")
+            for file_path, line_num, usage in info['used_in'][:5]:  # Show first 5
+                call_sites.append(f"//   {file_path}:{line_num}")
+                call_sites.append(f"//     {usage}")
+            if len(info['used_in']) > 5:
+                call_sites.append(f"//   ... and {len(info['used_in']) - 5} more places")
+            call_sites.append('')
+
+    # Add hook call sites
+    for hook_name in sorted(hooks_in_file):
+        info = hook_map[hook_name]
+        if info['used_in']:
+            call_sites.append(f"// {hook_name} is called in:")
+            for file_path, line_num, usage in info['used_in'][:5]:  # Show first 5
+                call_sites.append(f"//   {file_path}:{line_num}")
+                call_sites.append(f"//     {usage}")
+            if len(info['used_in']) > 5:
+                call_sites.append(f"//   ... and {len(info['used_in']) - 5} more places")
+            call_sites.append('')
+
+    return signatures + '\n'.join(call_sites)
+
+
 def should_exclude(path: pathlib.Path, excludes: Set[str]) -> bool:
     """Check if path should be excluded."""
     parts = path.parts
@@ -332,9 +559,14 @@ def generate_client_context(root_dir: pathlib.Path, no_body: bool = False) -> st
     files = find_files_recursive(client_dir, CLIENT_EXTENSIONS, COMMON_EXCLUDES)
 
     if no_body:
+        # Build call site maps for components and hooks
+        component_map, hook_map = build_call_site_maps(client_dir)
+
         def content_getter(filepath: pathlib.Path) -> str:
             if filepath.suffix in {'.js', '.jsx'}:
-                return get_js_signatures(filepath)
+                signatures = get_js_signatures(filepath)
+                # Append call site information
+                return append_call_sites_to_signatures(signatures, filepath, component_map, hook_map, root_dir)
             return read_file_content(filepath)
         return format_files_output(files, root_dir, content_getter)
 
