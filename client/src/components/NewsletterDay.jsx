@@ -26,7 +26,7 @@ function IssueSubtitle({ issue, allRemoved }) {
   if (!issue?.subtitle || issue.subtitle === issue.title) return null
 
   return (
-    <div className={`mb-6 text-xs text-slate-400 tracking-wide transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
+    <div className={`mb-3 text-xs text-slate-400 tracking-wide transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
       <span>{issue.subtitle}</span>
     </div>
   )
@@ -34,8 +34,8 @@ function IssueSubtitle({ issue, allRemoved }) {
 
 function SectionTitle({ displayTitle }) {
   return (
-    <div className="flex items-center gap-3">
-      <h4 className="font-display font-bold text-lg text-slate-700">
+    <div className="flex items-center gap-2">
+      <h4 className="font-semibold text-xs uppercase tracking-wider text-slate-400">
         {displayTitle}
       </h4>
     </div>
@@ -57,9 +57,9 @@ function Section({ date, sourceId, newsletterTitle, sectionKey, articles }) {
         title={<SectionTitle displayTitle={displayTitle} />}
         headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
         defaultFolded={allRemoved}
-        className="mb-4"
+        className="mb-3"
       >
-        <div className={`space-y-4 mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
+        <div className={`mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
           <ArticleList articles={articles} showSectionHeaders={false} />
         </div>
       </FoldableContainer>
@@ -96,17 +96,17 @@ function NewsletterDay({ date, title, issue, articles }) {
         id={componentId}
         headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
         title={
-          <div className="flex items-center gap-3 py-2">
-            <h3 className="font-display font-bold text-xl text-slate-800">
+          <div className="flex items-center gap-2.5 py-1.5">
+            <h3 className="font-display font-semibold text-[17px] text-slate-900">
               {title}
             </h3>
             <ReadStatsBadge articles={articles} />
           </div>
         }
         defaultFolded={allRemoved}
-        className="mb-8"
+        className="mb-6"
       >
-        <div className="space-y-6 mt-4">
+        <div className="space-y-4 mt-3">
           <IssueSubtitle issue={issue} allRemoved={allRemoved} />
 
           {hasSections ? (

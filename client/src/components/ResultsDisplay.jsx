@@ -1,7 +1,6 @@
 import { useSupabaseStorage } from '../hooks/useSupabaseStorage'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import ArticleList from './ArticleList'
-import './ResultsDisplay.css'
 
 function enrichArticlesWithOrder(articles) {
   return articles.map((article, index) => ({
@@ -13,7 +12,7 @@ function enrichArticlesWithOrder(articles) {
 function StatCard({ label, value }) {
   return (
     <div>
-      <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+      <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
         {label}
       </div>
       <div className="text-2xl font-bold text-slate-900 mt-1">
@@ -25,7 +24,7 @@ function StatCard({ label, value }) {
 
 function StatsGrid({ stats }) {
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-soft border border-slate-100 mb-8">
+    <div className="bg-white rounded-xl p-5 shadow-card border border-slate-200/60 mb-6">
       <div className="grid grid-cols-3 gap-6">
         <StatCard label="Articles" value={stats.total_articles} />
         <StatCard label="Unique URLs" value={stats.unique_urls} />

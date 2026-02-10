@@ -30,10 +30,10 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
           </div>
 
           <div className={`
-            text-slate-400 transition-all duration-300 transform ml-4
+            text-slate-400 transition-all duration-300 transform ml-2
             ${isFolded ? '' : 'rotate-90'}
           `}>
-            <ChevronRight size={20} />
+            <ChevronRight size={18} />
           </div>
         </div>
       </div>

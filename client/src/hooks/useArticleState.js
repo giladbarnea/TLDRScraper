@@ -1,5 +1,5 @@
-import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import { logTransition } from '../lib/stateTransitionLogger'
+import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import {
   ArticleLifecycleEventType,
   getArticleLifecycleState,

@@ -1,12 +1,12 @@
 import { useAnimation } from 'framer-motion'
 import { useEffect, useReducer } from 'react'
+import { logTransition } from '../lib/stateTransitionLogger'
 import {
   createInitialGestureState,
   GestureEventType,
   GestureMode,
   reduceGesture,
 } from '../reducers/gestureReducer'
-import { logTransition } from '../lib/stateTransitionLogger'
 
 export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete, url }) {
   const [gestureState, dispatchGestureEvent] = useReducer(

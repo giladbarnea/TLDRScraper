@@ -61,7 +61,7 @@ function Selectable({ id, descendantIds = [], disabled = false, children }) {
       }}
       style={{ touchAction: 'pan-y' }}
     >
-      <div className={selected ? 'ring-4 ring-slate-300 rounded-[20px]' : ''}>
+      <div className={selected ? 'ring-4 ring-slate-300 rounded-xl' : ''}>
         {children}
       </div>
 
