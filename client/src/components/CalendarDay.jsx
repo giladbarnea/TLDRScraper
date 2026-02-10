@@ -27,7 +27,7 @@ function CalendarDayTitle({ dateStr, loading, articles }) {
 
 function NewsletterList({ date, issues, articles }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {issues.map(issue => {
         const newsletterName = issue.category
         const newsletterArticles = articles.filter(a => a.category === newsletterName)

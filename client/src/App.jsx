@@ -130,7 +130,7 @@ function App() {
       <div className="w-full max-w-3xl relative">
 
         {/* Header */}
-        <header className="relative z-40 px-6 pt-6 pb-2 bg-transparent">
+        <header className="relative z-40 px-6 pt-6 pb-4 bg-transparent">
           <div className="flex justify-between items-center">
             <div>
               <a href="/api/source" className="inline-block">

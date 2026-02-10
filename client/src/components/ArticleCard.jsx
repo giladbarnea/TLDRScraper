@@ -209,10 +209,10 @@ function ArticleMeta({ domain, hostname, articleMeta, summaryLoading, summaryAva
           </div>
         )}
         <div className="flex items-baseline gap-1.5 text-xs leading-none min-w-0">
-          <span className="font-medium text-slate-500 shrink-0">
+          <span className="font-medium text-slate-400 shrink-0">
             {domain && domain}
           </span>
-          <span className="text-slate-300 shrink-0">|</span>
+          <span className="text-slate-300 shrink-0">·</span>
           <span className="font-normal text-slate-400 truncate">
             {articleMeta}
           </span>
