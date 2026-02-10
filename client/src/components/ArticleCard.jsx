@@ -1,12 +1,10 @@
 import { motion } from 'framer-motion'
-import { AlertCircle, ArrowDownCircle, Check, CheckCircle, ChevronDown, Loader2, Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Check, X } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useInteraction } from '../contexts/InteractionContext'
 import { useArticleState } from '../hooks/useArticleState'
-import { useOverscrollUp } from '../hooks/useOverscrollUp'
 import { usePullToClose } from '../hooks/usePullToClose'
-import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
 import Selectable from './Selectable'
@@ -27,21 +25,10 @@ function ErrorToast({ message, onDismiss }) {
   )
 }
 
-function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
-  const [hasScrolled, setHasScrolled] = useState(false)
+function ZenModeOverlay({ html, hostname, displayDomain, title, onClose, onMarkRemoved }) {
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
-  const progress = useScrollProgress(scrollRef)
   const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose })
-  const { overscrollOffset, isOverscrolling, progress: overscrollProgress, isComplete: overscrollComplete } = useOverscrollUp({
-    scrollRef,
-    onComplete: onMarkRemoved,
-    threshold: 60
-  })
-
-  const truncatedMeta = articleMeta && articleMeta.length > 22
-    ? `${articleMeta.slice(0, 22)}...`
-    : articleMeta
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -50,184 +37,93 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
     }
     document.addEventListener('keydown', handleEscape)
 
-    const scrollEl = scrollRef.current
-    const handleScroll = () => {
-      setHasScrolled(scrollEl.scrollTop > 10)
-    }
-    scrollEl?.addEventListener('scroll', handleScroll, { passive: true })
-
     return () => {
       document.body.style.overflow = ''
       document.removeEventListener('keydown', handleEscape)
-      scrollEl?.removeEventListener('scroll', handleScroll)
     }
   }, [onClose])
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[100]"
+    <motion.div
+      initial={{ opacity: 0, y: 100 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 100 }}
+      transition={{ type: "spring", damping: 25, stiffness: 200 }}
+      className="fixed inset-0 z-50 bg-white flex flex-col"
       style={{
         transform: `translateY(${pullOffset}px)`,
         transition: pullOffset === 0 ? 'transform 0.3s ease-out' : 'none'
       }}
     >
-      <div ref={containerRef} className="w-full h-full bg-white flex flex-col animate-zen-enter">
-        {/* Header */}
-        <div
-          className={`
-            relative shrink-0 z-10
-            flex items-center justify-between p-4
-            transition-all duration-200
-            ${hasScrolled ? 'bg-white/80 backdrop-blur-md border-b border-slate-100' : 'bg-white'}
-          `}
+      <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
+          Reading Mode
+        </span>
+        <button
+          onClick={onClose}
+          className="p-2 -mr-2 text-gray-400 hover:text-gray-900 transition-colors"
         >
-          <button
-            onClick={onClose}
-            className="shrink-0 p-2 rounded-full hover:bg-slate-200/80 text-slate-500 hover:text-slate-700 transition-colors"
-          >
-            <ChevronDown size={20} />
-          </button>
+          <X size={20} />
+        </button>
+      </div>
 
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 hover:opacity-70 transition-opacity"
-          >
+      <div ref={containerRef} className="flex-1 overflow-y-auto bg-white">
+        <div ref={scrollRef} className="max-w-xl mx-auto px-6 py-12">
+          <h1 className="font-sans font-bold text-3xl text-gray-900 leading-tight mb-4">
+            {title}
+          </h1>
+          <div className="flex items-center gap-2 mb-10 text-sm text-gray-500 font-medium">
             {hostname && (
               <img
-                src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
-                className="w-[18px] h-[18px] rounded-full border border-slate-200"
+                src={`https://www.google.com/s2/favicons?domain=${hostname}`}
                 alt=""
+                className="w-4 h-4 opacity-70"
               />
             )}
-            <span className="text-sm text-slate-500 font-medium">
-              {displayDomain}
-              {truncatedMeta && <span className="text-slate-400"> · {truncatedMeta}</span>}
-            </span>
-          </a>
-
-          <button
-            onClick={onMarkRemoved}
-            className="shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
-          >
-            <Check size={20} />
-          </button>
-
-          {/* Progress Bar */}
-          <div
-            className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 origin-left transition-transform duration-100"
-            style={{ transform: `scaleX(${progress})` }}
-          />
-        </div>
-
-        {/* Content Area */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto bg-white">
-          <div
-            className="p-6 md:p-8"
-            style={{
-              transform: `translateY(-${overscrollOffset * 0.4}px)`,
-              transition: isOverscrolling ? 'none' : 'transform 0.2s ease-out'
-            }}
-          >
-            <div className="max-w-3xl mx-auto">
-              <div
-                className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900"
-                dangerouslySetInnerHTML={{ __html: html }}
-              />
-            </div>
+            {displayDomain}
           </div>
 
-          {/* Overscroll completion zone */}
           <div
-            className={`
-              flex items-center justify-center py-16 transition-all duration-150
-              ${isOverscrolling ? 'opacity-100' : 'opacity-0'}
-            `}
-            style={{
-              transform: `translateY(${isOverscrolling ? 0 : 20}px)`,
-            }}
-          >
-            <div
-              className={`
-                w-12 h-12 rounded-full flex items-center justify-center transition-all duration-150
-                ${overscrollComplete
-                  ? 'bg-green-500 text-white scale-110'
-                  : 'bg-slate-100 text-slate-400'}
-              `}
-            >
-              <CheckCircle
-                size={24}
-                style={{
-                  opacity: 0.3 + overscrollProgress * 0.7,
-                  transform: `scale(${0.8 + overscrollProgress * 0.2})`
-                }}
-              />
-            </div>
+            className="zen-content prose prose-lg prose-gray font-serif text-gray-800"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+
+          <div className="h-32 flex items-center justify-center mt-12 border-t border-gray-100">
+            <button onClick={onMarkRemoved} className="flex flex-col items-center gap-2 text-gray-400 hover:text-green-600 transition-colors">
+              <div className="w-12 h-12 rounded-full border-2 border-current flex items-center justify-center">
+                <Check size={24} />
+              </div>
+              <span className="text-xs font-sans font-bold uppercase tracking-widest">Mark Done</span>
+            </button>
           </div>
         </div>
       </div>
-    </div>,
+    </motion.div>,
     document.body
   )
 }
 
-function ArticleTitle({ isRead, title }) {
+function MetaRow({ domain }) {
   return (
-    <span
-      className={`
-        text-[17px] font-display font-semibold leading-snug text-slate-900
-        block tracking-tight
-        ${isRead ? 'text-slate-500 font-normal' : ''}
-      `}
-    >
+    <div className="flex items-center gap-2 mb-1.5">
+      <span className="text-meta text-[10px] text-ink-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
+        {domain}
+      </span>
+      <span className="text-[10px] text-ink-500">•</span>
+      <span className="text-[10px] text-ink-500 font-medium">
+        TODAY
+      </span>
+    </div>
+  )
+}
+
+function ArticleTitle({ title, isRead }) {
+  return (
+    <h3 className={`text-base font-semibold leading-snug transition-colors ${
+      isRead ? 'text-ink-500 line-through decoration-ink-200' : 'text-ink-900'
+    }`}>
       {title}
-    </span>
-  )
-}
-
-function ArticleMeta({ domain, hostname, articleMeta, summaryLoading, summaryAvailable, isRead }) {
-  const stateIndicator = summaryLoading ? (
-    <Loader2 size={14} className="animate-spin text-brand-500 shrink-0" />
-  ) : isRead ? (
-    <CheckCircle size={14} className="text-slate-300 shrink-0" />
-  ) : summaryAvailable ? (
-    <ArrowDownCircle size={14} className="text-slate-300 shrink-0" />
-  ) : null
-
-  return (
-    <div className="mb-1 flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2 min-w-0">
-        {hostname && (
-          <div className="w-[18px] h-[18px] rounded-full bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
-            <img
-              src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
-              alt={domain}
-              className="w-full h-full object-cover"
-              onError={(e) => { e.target.style.display = 'none' }}
-            />
-          </div>
-        )}
-        <div className="flex items-baseline gap-2 text-xs leading-none min-w-0">
-          <span className="font-medium text-slate-600 shrink-0">
-            {domain && domain}
-          </span>
-          <span className="text-slate-300 shrink-0">|</span>
-          <span className="font-normal text-slate-400 truncate">
-            {articleMeta}
-          </span>
-        </div>
-      </div>
-      {stateIndicator}
-    </div>
-  )
-}
-
-function SummaryError({ message }) {
-  return (
-    <div className="mt-4 text-xs text-red-500 bg-red-50 p-3 rounded-lg">
-      {message || 'Failed to load summary.'}
-    </div>
+    </h3>
   )
 }
 
@@ -238,7 +134,6 @@ function ArticleCard({ article }) {
     article.url
   )
   const summary = useSummary(article.issueDate, article.url)
-  const { isAvailable } = summary
 
   const componentId = `article-${article.url}`
 
@@ -247,7 +142,7 @@ function ArticleCard({ article }) {
     toggleRemove()
   }
 
-  const { isDragging, dragError, clearDragError, controls, canDrag, handleDragStart, handleDragEnd } = useSwipeToRemove({
+  const { dragError, clearDragError, canDrag, handleDragStart } = useSwipeToRemove({
     isRemoved,
     stateLoading,
     onSwipeComplete: handleSwipeComplete,
@@ -295,95 +190,45 @@ function ArticleCard({ article }) {
   }, [componentId, isRemoved, registerDisabled])
 
   return (
-    <Selectable id={componentId} disabled={isRemoved}>
-      <motion.div
-        layout
-        className={`relative ${summary.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
-      >
-        <div className={`absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8 pointer-events-none transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
-          <Trash2 className="text-red-400" size={20} />
-        </div>
-
+    <>
+      <Selectable id={componentId} disabled={isRemoved}>
         <motion.div
-          drag={swipeEnabled ? "x" : false}
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={{ left: 0.5, right: 0.1 }}
-          dragMomentum={false}
-          dragListener={swipeEnabled}
-          animate={controls}
-          initial={{ opacity: 1, filter: 'grayscale(0%)', scale: 1, x: 0 }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          whileHover={swipeEnabled ? { scale: 1.005 } : undefined}
-          whileTap={swipeEnabled ? { scale: 0.99 } : undefined}
-          onClick={handleCardClick}
-          style={{ touchAction: swipeEnabled ? "pan-y" : "auto" }}
-          data-article-title={article.title}
-          data-article-url={article.url}
-          data-article-date={article.issueDate}
-          data-article-category={article.category}
-          data-article-source={article.sourceId}
-          data-read={isRead}
-          data-removed={isRemoved}
-          data-state-loading={stateLoading}
-          data-summary-status={summary.status}
-          data-summary-expanded={summary.expanded}
-          data-summary-available={isAvailable}
-          data-dragging={isDragging}
-          data-can-drag={swipeEnabled}
-          className={`
-            relative z-10
-            rounded-[20px] border border-white/40
-            shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)]
-            backdrop-blur-xl
-            cursor-pointer select-none
-            ${isRemoved ? 'bg-slate-50' : 'bg-white'}
-            ${stateLoading ? 'pointer-events-none' : ''}
-            ${summary.expanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
-          `}
+          style={{ x: 0 }}
+          onPan={swipeEnabled ? handleDragStart : undefined}
+          layout
+          className="group relative mb-3 last:mb-0"
         >
-          <div className="p-5 flex flex-col gap-2">
-            <ArticleTitle
-              isRead={isRead}
-              title={article.title}
-            />
-
-            {!isRemoved && (
-              <ArticleMeta
-                domain={displayDomain}
-                hostname={hostname}
-                articleMeta={article.articleMeta}
-                summaryLoading={summary.loading}
-                summaryAvailable={isAvailable}
-                isRead={isRead}
-              />
-            )}
-
-            {!isRemoved && summary.status === 'error' && (
-              <SummaryError message={summary.errorMessage} />
-            )}
-
-            {!isRemoved && summary.expanded && summary.html && (
-              <ZenModeOverlay
-                url={fullUrl}
-                html={summary.html}
-                hostname={hostname}
-                displayDomain={displayDomain}
-                articleMeta={article.articleMeta}
-                onClose={() => summary.collapse()}
-                onMarkRemoved={() => {
-                  summary.collapse(false)
-                  markAsRemoved()
-                }}
-              />
-            )}
+          <div
+            onClick={handleCardClick}
+            className={`
+              card-base overflow-hidden relative cursor-pointer
+              ${summary.expanded ? 'ring-1 ring-black/5 shadow-sm' : 'hover:border-gray-300'}
+            `}
+          >
+            <div className="p-4">
+              <MetaRow domain={displayDomain} />
+              <ArticleTitle title={article.title} isRead={isRead} />
+            </div>
           </div>
         </motion.div>
-      </motion.div>
+      </Selectable>
+
+      {!isRemoved && summary.expanded && summary.html && (
+        <ZenModeOverlay
+          html={summary.html}
+          hostname={hostname}
+          displayDomain={displayDomain}
+          title={article.title}
+          onClose={() => summary.collapse()}
+          onMarkRemoved={() => {
+            summary.collapse(false)
+            markAsRemoved()
+          }}
+        />
+      )}
 
       {dragError && <ErrorToast message={dragError} onDismiss={clearDragError} />}
-    </Selectable>
+    </>
   )
 }
 
