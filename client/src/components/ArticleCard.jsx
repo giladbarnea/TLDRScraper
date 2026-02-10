@@ -124,7 +124,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
         {/* Content Area */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto bg-white">
           <div
-            className="px-6 py-5 md:px-8 md:py-6"
+            className="px-6 pt-2 pb-5 md:px-8 md:pt-3 md:pb-6"
             style={{
               transform: `translateY(-${overscrollOffset * 0.4}px)`,
               transition: isOverscrolling ? 'none' : 'transform 0.2s ease-out'
@@ -132,7 +132,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
           >
             <div className="max-w-3xl mx-auto">
               <div
-                className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900"
+                className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900 prose-headings:tracking-tight prose-h1:text-2xl prose-h1:font-bold prose-h2:text-xl prose-h2:font-semibold prose-h3:text-lg prose-h3:font-semibold prose-blockquote:border-slate-200 prose-strong:text-slate-900"
                 dangerouslySetInnerHTML={{ __html: html }}
               />
             </div>

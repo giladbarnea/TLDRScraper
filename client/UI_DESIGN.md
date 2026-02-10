@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-10 11:18
+last_updated: 2026-02-10 11:31
 ---
 # UI Design Principles
 
@@ -85,6 +85,16 @@ Shadows work with borders, not instead of them. The original cards had `shadow-[
 The full-screen summary overlay uses `font-serif` (Lora) for its prose content — an editorial choice that creates a reading-focused mood. But everything *around* the prose shares the same design language as the feed: same favicon size, same border color for the scroll-state header, same brand-blue for the progress bar, same `shadow-elevated` token.
 
 The header respects the same chrome hierarchy: `px-4 py-3` padding, `border-slate-200/60` divider on scroll, muted slate buttons (`ArticleCard.jsx:77-82`). It's recognizably the same app, just in a different mode.
+
+### Prose content obeys the system's ceiling
+
+The overlay renders third-party markdown — content we don't control. Left unconstrained, the Tailwind typography plugin generates heading sizes that blow past the system's ceiling (an h1 at ~40px dwarfs the app title at 28px). This breaks the sense of proportion the main page establishes.
+
+Prose headings are capped to sizes that sit within the system's range: h1 at 24px bold, h2 at 20px semibold, h3 at 17px semibold (`ArticleCard.jsx:135`). These echo the main page's day heading (20px) and newsletter heading (17px) levels — not identical roles, but the same visual vocabulary. Headings also get `tracking-tight` to match the main page's heading treatment.
+
+Blockquote borders use the chrome color (`border-slate-200`) and bold text uses the primary role (`text-slate-900`) — both aligned with the system rather than the prose plugin's defaults (`index.css:33-41`).
+
+The content area sits close to the header bar (`pt-2`) rather than floating below it. Dead space between the header and first line of content creates a sense of disconnection — the reader should feel they're entering the content immediately, not crossing a void to reach it.
 
 ## What this means in practice
 
