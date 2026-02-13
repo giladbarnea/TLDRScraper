@@ -15,8 +15,8 @@ function formatDateDisplay(dateStr) {
 function CalendarDayTitle({ dateStr, loading, articles }) {
   const { displayText } = formatDateDisplay(dateStr)
   return (
-    <div className="flex items-center gap-3 py-4">
-      <h2 className="font-display text-2xl font-bold text-slate-900 tracking-tight">
+    <div className="flex items-center gap-2.5 py-3">
+      <h2 className="font-display text-xl font-bold text-slate-900 tracking-tight">
         {displayText}
       </h2>
       <ReadStatsBadge articles={articles} />
@@ -27,7 +27,7 @@ function CalendarDayTitle({ dateStr, loading, articles }) {
 
 function NewsletterList({ date, issues, articles }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {issues.map(issue => {
         const newsletterName = issue.category
         const newsletterArticles = articles.filter(a => a.category === newsletterName)
@@ -68,13 +68,13 @@ function CalendarDay({ payload }) {
 
   return (
     <Selectable id={componentId} descendantIds={descendantIds}>
-      <section className="animate-slide-up mb-12">
+      <section className="animate-slide-up">
         <FoldableContainer
           id={`calendar-${date}`}
           title={<CalendarDayTitle dateStr={date} loading={loading} articles={articles} />}
           defaultFolded={allArticlesRemoved}
           headerClassName="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200/60"
-          contentClassName="mt-4"
+          contentClassName="mt-3"
         >
           <NewsletterList date={date} issues={issues} articles={articles} />
         </FoldableContainer>

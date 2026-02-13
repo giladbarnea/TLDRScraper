@@ -126,19 +126,19 @@ function App() {
 
   return (
     <InteractionProvider>
-    <div className="min-h-screen flex justify-center font-sans bg-[#f8fafc] text-slate-900 selection:bg-brand-100 selection:text-brand-900">
+    <div className="min-h-screen flex justify-center font-sans bg-slate-50 text-slate-900 selection:bg-brand-100 selection:text-brand-900">
       <div className="w-full max-w-3xl relative">
 
         {/* Header */}
-        <header className="relative z-40 px-6 py-6 bg-transparent">
+        <header className="relative z-40 px-6 pt-6 pb-4 bg-transparent">
           <div className="flex justify-between items-center">
             <div>
               <a href="/api/source" className="inline-block">
-                <h1 className="font-display text-3xl font-extrabold tracking-tight text-slate-900 hover:text-brand-600 transition-colors cursor-pointer">
+                <h1 className="font-display text-[28px] font-extrabold tracking-tight text-slate-900 hover:text-brand-600 transition-colors cursor-pointer">
                   TLDR<span className="text-brand-500">.</span>
                 </h1>
               </a>
-              <p className="text-sm font-medium text-slate-500 mt-1">
+              <p className="text-sm font-medium text-slate-500 mt-0.5">
                 {currentDate}
               </p>
             </div>
@@ -160,7 +160,7 @@ function App() {
               overflow-hidden transition-all duration-500 ease-in-out
               ${showSettings ? 'max-h-[400px] opacity-100 mt-4' : 'max-h-0 opacity-0'}
           `}>
-             <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
+             <div className="bg-white rounded-2xl p-5 shadow-elevated border border-slate-200/50">
                 <ScrapeForm onResults={(res) => { setResults(res); setShowSettings(false); }} />
              </div>
           </div>

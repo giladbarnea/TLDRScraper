@@ -18,7 +18,7 @@ function ErrorToast({ message, onDismiss }) {
   }, [onDismiss])
 
   return createPortal(
-    <div className="fixed bottom-4 left-4 right-4 z-[200] bg-red-600 text-white p-4 rounded-xl shadow-lg flex items-start gap-3">
+    <div className="fixed bottom-4 left-4 right-4 z-[200] bg-red-600 text-white p-4 rounded-lg shadow-elevated flex items-start gap-3">
       <AlertCircle size={20} className="shrink-0 mt-0.5" />
       <div className="flex-1 text-sm font-medium break-all">{message}</div>
       <button onClick={onDismiss} className="shrink-0 text-white/80 hover:text-white">✕</button>
@@ -76,9 +76,9 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
         <div
           className={`
             relative shrink-0 z-10
-            flex items-center justify-between p-4
+            flex items-center justify-between px-4 py-3
             transition-all duration-200
-            ${hasScrolled ? 'bg-white/80 backdrop-blur-md border-b border-slate-100' : 'bg-white'}
+            ${hasScrolled ? 'bg-white/80 backdrop-blur-md border-b border-slate-200/60' : 'bg-white'}
           `}
         >
           <button
@@ -97,7 +97,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
             {hostname && (
               <img
                 src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
-                className="w-[18px] h-[18px] rounded-full border border-slate-200"
+                className="w-4 h-4 rounded-full border border-slate-200"
                 alt=""
               />
             )}
@@ -116,7 +116,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
 
           {/* Progress Bar */}
           <div
-            className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 origin-left transition-transform duration-100"
+            className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500 origin-left transition-transform duration-100"
             style={{ transform: `scaleX(${progress})` }}
           />
         </div>
@@ -124,7 +124,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
         {/* Content Area */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto bg-white">
           <div
-            className="p-6 md:p-8"
+            className="px-6 pt-2 pb-5 md:px-8 md:pt-3 md:pb-6"
             style={{
               transform: `translateY(-${overscrollOffset * 0.4}px)`,
               transition: isOverscrolling ? 'none' : 'transform 0.2s ease-out'
@@ -132,7 +132,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
           >
             <div className="max-w-3xl mx-auto">
               <div
-                className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900"
+                className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900 prose-headings:tracking-tight prose-h1:text-2xl prose-h1:font-bold prose-h2:text-xl prose-h2:font-semibold prose-h3:text-lg prose-h3:font-semibold prose-blockquote:border-slate-200 prose-strong:text-slate-900"
                 dangerouslySetInnerHTML={{ __html: html }}
               />
             </div>
@@ -176,9 +176,9 @@ function ArticleTitle({ isRead, title }) {
   return (
     <span
       className={`
-        text-[17px] font-display font-semibold leading-snug text-slate-900
+        text-[15px] font-display font-medium leading-snug text-slate-900
         block tracking-tight
-        ${isRead ? 'text-slate-500 font-normal' : ''}
+        ${isRead ? 'text-slate-400 font-normal' : ''}
       `}
     >
       {title}
@@ -196,10 +196,10 @@ function ArticleMeta({ domain, hostname, articleMeta, summaryLoading, summaryAva
   ) : null
 
   return (
-    <div className="mb-1 flex items-center justify-between gap-2">
+    <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 min-w-0">
         {hostname && (
-          <div className="w-[18px] h-[18px] rounded-full bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+          <div className="w-4 h-4 rounded-full bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
             <img
               src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
               alt={domain}
@@ -208,11 +208,11 @@ function ArticleMeta({ domain, hostname, articleMeta, summaryLoading, summaryAva
             />
           </div>
         )}
-        <div className="flex items-baseline gap-2 text-xs leading-none min-w-0">
-          <span className="font-medium text-slate-600 shrink-0">
+        <div className="flex items-baseline gap-1.5 text-xs leading-none min-w-0">
+          <span className="font-medium text-slate-400 shrink-0">
             {domain && domain}
           </span>
-          <span className="text-slate-300 shrink-0">|</span>
+          <span className="text-slate-300 shrink-0">·</span>
           <span className="font-normal text-slate-400 truncate">
             {articleMeta}
           </span>
@@ -298,9 +298,9 @@ function ArticleCard({ article }) {
     <Selectable id={componentId} disabled={isRemoved}>
       <motion.div
         layout
-        className={`relative ${summary.expanded && !stateLoading ? 'mb-6' : 'mb-3'}`}
+        className={`relative ${summary.expanded && !stateLoading ? 'mb-4' : 'mb-2.5'}`}
       >
-        <div className={`absolute inset-0 rounded-[20px] bg-red-50 flex items-center justify-end pr-8 pointer-events-none transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
+        <div className={`absolute inset-0 rounded-xl bg-red-50 flex items-center justify-end pr-8 pointer-events-none transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
           <Trash2 className="text-red-400" size={20} />
         </div>
 
@@ -334,16 +334,15 @@ function ArticleCard({ article }) {
           data-can-drag={swipeEnabled}
           className={`
             relative z-10
-            rounded-[20px] border border-white/40
-            shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)]
-            backdrop-blur-xl
+            rounded-xl border border-slate-200/60
+            shadow-card
             cursor-pointer select-none
             ${isRemoved ? 'bg-slate-50' : 'bg-white'}
             ${stateLoading ? 'pointer-events-none' : ''}
-            ${summary.expanded && !stateLoading ? 'ring-1 ring-brand-100 shadow-md' : ''}
+            ${summary.expanded && !stateLoading ? 'ring-1 ring-brand-200/60 shadow-elevated' : ''}
           `}
         >
-          <div className="p-5 flex flex-col gap-2">
+          <div className="p-4 flex flex-col gap-1.5">
             <ArticleTitle
               isRead={isRead}
               title={article.title}

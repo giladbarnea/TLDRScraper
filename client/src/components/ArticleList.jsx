@@ -42,12 +42,12 @@ function ArticleList({ articles, showSectionHeaders = true }) {
   })()
 
   return (
-    <div className="space-y-4">
+    <div>
       {sectionsWithArticles.map((item) => (
         item.type === 'section' ? (
           showSectionHeaders && (
-            <div key={item.key} className="pt-6 pb-2">
-              <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400 ml-1">
+            <div key={item.key} className="pt-4 pb-1">
+              <h4 className="font-semibold text-xs uppercase tracking-wider text-slate-400 ml-1">
                 {item.label}
               </h4>
             </div>

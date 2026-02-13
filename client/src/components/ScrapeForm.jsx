@@ -19,7 +19,7 @@ function validateDateRange(startDate, endDate) {
 function DateInput({ id, label, value, onChange }) {
   return (
     <div className="space-y-2">
-      <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+      <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
         {label}
       </label>
       <input
@@ -29,7 +29,7 @@ function DateInput({ id, label, value, onChange }) {
         value={value}
         onChange={onChange}
         required
-        className="w-full bg-slate-50 border-0 rounded-lg px-4 py-3 text-slate-900 font-medium focus:ring-2 focus:ring-brand-500 transition-shadow"
+        className="w-full bg-slate-50 border-0 rounded-lg px-3.5 py-2.5 text-slate-900 font-medium text-sm focus:ring-2 focus:ring-brand-500 transition-shadow"
       />
     </div>
   )
@@ -41,10 +41,10 @@ function SubmitButton({ isPending, progress }) {
       type="submit"
       disabled={isPending}
       className={`
-        w-full py-4 rounded-xl font-bold tracking-wide text-sm flex items-center justify-center gap-2 transition-all duration-200
+        w-full py-3 rounded-lg font-semibold tracking-wide text-sm flex items-center justify-center gap-2 transition-all duration-200
         ${isPending
           ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-          : 'bg-slate-900 text-white hover:bg-brand-600 hover:shadow-lg hover:shadow-brand-500/30'}
+          : 'bg-slate-900 text-white hover:bg-brand-600 hover:shadow-elevated hover:shadow-brand-500/30'}
       `}
     >
       {isPending ? (
@@ -75,7 +75,7 @@ function ProgressBar({ progress }) {
 
 function ErrorMessage({ message }) {
   return (
-    <div className="flex items-start gap-3 p-4 bg-red-50 text-red-600 rounded-xl text-sm">
+    <div className="flex items-start gap-3 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
       <AlertCircle size={18} className="shrink-0 mt-0.5" />
       <p>{message}</p>
     </div>
@@ -122,10 +122,10 @@ function ScrapeForm({ onResults }) {
   )
 
   return (
-    <div className="space-y-6">
-      <h3 className="font-display font-bold text-lg text-slate-900">Sync Settings</h3>
+    <div className="space-y-4">
+      <h3 className="font-display font-semibold text-base text-slate-900">Sync Settings</h3>
 
-      <form action={formAction} className="space-y-5">
+      <form action={formAction} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <DateInput
             id="start_date"
