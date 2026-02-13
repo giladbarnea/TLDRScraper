@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { AlertCircle, ArrowDownCircle, Check, CheckCircle, ChevronDown, Loader2, Trash2 } from 'lucide-react'
+import { AlertCircle, ArrowDownCircle, Check, CheckCircle, Loader2, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useInteraction } from '../contexts/InteractionContext'
@@ -45,10 +45,6 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleEscape)
 
     const scrollEl = scrollRef.current
     const handleScroll = () => {
@@ -58,10 +54,9 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
 
     return () => {
       document.body.style.overflow = ''
-      document.removeEventListener('keydown', handleEscape)
       scrollEl?.removeEventListener('scroll', handleScroll)
     }
-  }, [onClose])
+  }, [])
 
   return createPortal(
     <div
@@ -81,13 +76,6 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
             ${hasScrolled ? 'bg-white/80 backdrop-blur-md border-b border-slate-200/60' : 'bg-white'}
           `}
         >
-          <button
-            onClick={onClose}
-            className="shrink-0 p-2 rounded-full hover:bg-slate-200/80 text-slate-500 hover:text-slate-700 transition-colors"
-          >
-            <ChevronDown size={20} />
-          </button>
-
           <a
             href={url}
             target="_blank"
