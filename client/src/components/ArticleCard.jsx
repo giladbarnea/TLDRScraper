@@ -46,6 +46,11 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
   useEffect(() => {
     document.body.style.overflow = 'hidden'
 
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+
     const scrollEl = scrollRef.current
     const handleScroll = () => {
       setHasScrolled(scrollEl.scrollTop > 10)
@@ -54,9 +59,10 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
 
     return () => {
       document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleEscape)
       scrollEl?.removeEventListener('scroll', handleScroll)
     }
-  }, [])
+  }, [onClose])
 
   return createPortal(
     <div
