@@ -10,6 +10,8 @@ import { logTransition } from './lib/stateTransitionLogger'
 import { getDailyPayloadsRange } from './lib/storageApi'
 import { getNewsletterScrapeKey } from './lib/storageKeys'
 
+const SERVER_ORIGIN_FIELDS = ['url', 'title', 'articleMeta', 'issueDate', 'category', 'sourceId', 'section', 'sectionEmoji', 'sectionOrder', 'newsletterType']
+
 function mergePreservingLocalState(freshPayload, localPayload) {
   if (!localPayload) return freshPayload
   const localByUrl = new Map(localPayload.articles.map(a => [a.url, a]))
@@ -18,7 +20,9 @@ function mergePreservingLocalState(freshPayload, localPayload) {
     articles: freshPayload.articles.map(article => {
       const local = localByUrl.get(article.url)
       if (!local) return article
-      return { ...article, tldr: local.tldr, read: local.read, removed: local.removed, summary: local.summary }
+      const freshFields = {}
+      for (const k of SERVER_ORIGIN_FIELDS) freshFields[k] = article[k]
+      return { ...local, ...freshFields }
     })
   }
 }

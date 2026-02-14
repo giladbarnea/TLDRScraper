@@ -63,6 +63,9 @@ def _build_default_article_state() -> dict:
     }
 
 
+_SERVER_ORIGIN_FIELDS = ("url", "title", "articleMeta", "issueDate", "category", "sourceId", "section", "sectionEmoji", "sectionOrder", "newsletterType")
+
+
 def _article_to_payload(article: dict) -> dict:
     defaults = _build_default_article_state()
     return {
@@ -100,13 +103,7 @@ def _merge_payloads(new_payload: dict, cached_payload: dict) -> dict:
         cached_article = cached_by_url.get(url)
         if cached_article:
             merged_articles.append(
-                {
-                    **article,
-                    "tldr": cached_article.get("tldr", article.get("tldr")),
-                    "read": cached_article.get("read", article.get("read")),
-                    "removed": cached_article.get("removed", article.get("removed")),
-                    "summary": cached_article.get("summary", article.get("summary")),
-                }
+                {**cached_article, **{k: article[k] for k in _SERVER_ORIGIN_FIELDS}}
             )
         else:
             merged_articles.append(article)
