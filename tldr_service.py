@@ -105,6 +105,7 @@ def _merge_payloads(new_payload: dict, cached_payload: dict) -> dict:
                     "tldr": cached_article.get("tldr", article.get("tldr")),
                     "read": cached_article.get("read", article.get("read")),
                     "removed": cached_article.get("removed", article.get("removed")),
+                    "summary": cached_article.get("summary", article.get("summary")),
                 }
             )
         else:
