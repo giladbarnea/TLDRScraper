@@ -18,7 +18,7 @@ function mergePreservingLocalState(freshPayload, localPayload) {
     articles: freshPayload.articles.map(article => {
       const local = localByUrl.get(article.url)
       if (!local) return article
-      return { ...article, tldr: local.tldr, read: local.read, removed: local.removed }
+      return { ...article, tldr: local.tldr, read: local.read, removed: local.removed, summary: local.summary }
     })
   }
 }

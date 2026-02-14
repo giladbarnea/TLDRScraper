@@ -195,6 +195,13 @@ export function useSummary(date, url, type = 'summary') {
   }
 
   useEffect(() => {
+    if (expanded && !isAvailable) {
+      releaseZenLock(url)
+      setExpanded(false)
+    }
+  }, [expanded, isAvailable, url])
+
+  useEffect(() => {
     return () => {
       releaseZenLock(url)
       if (abortControllerRef.current) {
