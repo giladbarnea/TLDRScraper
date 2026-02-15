@@ -39,6 +39,7 @@ export function useTouchPhase({ isSelectMode, isRemoved, isDragging, url }) {
   }, [])
 
   const onPointerDown = useCallback((e) => {
+    console.log('[touch-phase] onPointerDown fired', e.pointerType, e.pointerId, { isSelectMode, isRemoved, isDragging })
     if (e.pointerType === 'mouse' && e.button !== 0) return
     if (isSelectMode || isRemoved || isDragging) return
 
