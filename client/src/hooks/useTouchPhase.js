@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { LONG_PRESS_THRESHOLD_MS, POINTER_MOVE_THRESHOLD_PX, RELEASE_DURATION_MS } from '../lib/interactionConstants'
+import { POINTER_MOVE_THRESHOLD_PX, RELEASE_DURATION_MS } from '../lib/interactionConstants'
 import { logTransition } from '../lib/stateTransitionLogger'
 import { reduceTouchPhase, TouchPhase, TouchPhaseEventType } from '../reducers/touchPhaseReducer'
 
@@ -11,7 +11,6 @@ export function useTouchPhase({ isSelectMode, isRemoved, isDragging, url }) {
   const [touchPhase, setTouchPhase] = useState(TouchPhase.IDLE)
   const pointerIdRef = useRef(null)
   const startPosRef = useRef(null)
-  const cancelTimerRef = useRef(null)
   const releaseTimerRef = useRef(null)
   const previousPhaseRef = useRef(TouchPhase.IDLE)
 
@@ -28,7 +27,6 @@ export function useTouchPhase({ isSelectMode, isRemoved, isDragging, url }) {
 
   useEffect(() => {
     return () => {
-      if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current)
       if (releaseTimerRef.current) clearTimeout(releaseTimerRef.current)
     }
   }, [])
@@ -43,10 +41,6 @@ export function useTouchPhase({ isSelectMode, isRemoved, isDragging, url }) {
     if (e.pointerType === 'mouse' && e.button !== 0) return
     if (isSelectMode || isRemoved || isDragging) return
 
-    if (cancelTimerRef.current) {
-      clearTimeout(cancelTimerRef.current)
-      cancelTimerRef.current = null
-    }
     if (releaseTimerRef.current) {
       clearTimeout(releaseTimerRef.current)
       releaseTimerRef.current = null
@@ -63,11 +57,6 @@ export function useTouchPhase({ isSelectMode, isRemoved, isDragging, url }) {
     e.currentTarget.style.setProperty('--touch-angle', `${angleDeg + 90}deg`)
 
     dispatch(TouchPhaseEventType.POINTER_DOWN)
-
-    cancelTimerRef.current = setTimeout(() => {
-      dispatch(TouchPhaseEventType.AUTO_CANCEL)
-      reset()
-    }, LONG_PRESS_THRESHOLD_MS)
   }, [isSelectMode, isRemoved, isDragging, dispatch, reset])
 
   const onPointerMove = useCallback((e) => {
@@ -78,10 +67,6 @@ export function useTouchPhase({ isSelectMode, isRemoved, isDragging, url }) {
     const dy = Math.abs(e.clientY - startPosRef.current.y)
 
     if (dx > POINTER_MOVE_THRESHOLD_PX || dy > POINTER_MOVE_THRESHOLD_PX) {
-      if (cancelTimerRef.current) {
-        clearTimeout(cancelTimerRef.current)
-        cancelTimerRef.current = null
-      }
       dispatch(TouchPhaseEventType.MOVE_EXCEEDED)
       reset()
     }
@@ -90,11 +75,6 @@ export function useTouchPhase({ isSelectMode, isRemoved, isDragging, url }) {
   const onPointerUp = useCallback((e) => {
     logTransition('touch-phase', url, 'pointerUp', `id=${e.pointerId}`, `tracked=${pointerIdRef.current}`)
     if (pointerIdRef.current !== e.pointerId) return
-
-    if (cancelTimerRef.current) {
-      clearTimeout(cancelTimerRef.current)
-      cancelTimerRef.current = null
-    }
 
     dispatch(TouchPhaseEventType.POINTER_UP)
 
@@ -109,10 +89,6 @@ export function useTouchPhase({ isSelectMode, isRemoved, isDragging, url }) {
     logTransition('touch-phase', url, 'pointerCancel', `id=${e.pointerId}`, `tracked=${pointerIdRef.current}`)
     if (pointerIdRef.current !== e.pointerId) return
 
-    if (cancelTimerRef.current) {
-      clearTimeout(cancelTimerRef.current)
-      cancelTimerRef.current = null
-    }
     if (releaseTimerRef.current) {
       clearTimeout(releaseTimerRef.current)
       releaseTimerRef.current = null
