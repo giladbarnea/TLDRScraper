@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-14 17:37
+last_updated: 2026-02-15 06:30
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -308,7 +308,7 @@ removed
 
 #### Key State Data (per article)
 - **url**: string (unique identifier)
-- **issueDate**: string (storage key component)
+- **issueDate**: string (storage key component; stamped by CalendarDay from its own `date`, not carried from server data)
 - **read**: { isRead: boolean, markedAt: string | null }
 - **removed**: boolean
 
@@ -923,6 +923,8 @@ const SERVER_ORIGIN_FIELDS = ['url', 'title', 'articleMeta', 'issueDate',
 
 // Merge: spread cached article, overlay only server-origin fields from fresh scrape.
 // Client-state fields (summary, read, removed, etc.) are preserved automatically.
+// IMPORTANT: issueDate is forced to freshPayload.date (not carried from server article data)
+// because CalendarDay owns the storage key and issueDate must match it. See GOTCHAS.md 2026-02-15.
 function mergePreservingLocalState(freshPayload, localPayload) {
   if (!localPayload) return freshPayload
   const localByUrl = new Map(localPayload.articles.map(a => [a.url, a]))
@@ -930,9 +932,10 @@ function mergePreservingLocalState(freshPayload, localPayload) {
     ...freshPayload,
     articles: freshPayload.articles.map(article => {
       const local = localByUrl.get(article.url)
-      if (!local) return article
+      if (!local) return { ...article, issueDate: freshPayload.date }
       const freshFields = {}
       for (const k of SERVER_ORIGIN_FIELDS) freshFields[k] = article[k]
+      freshFields.issueDate = freshPayload.date
       return { ...local, ...freshFields }
     })
   }
