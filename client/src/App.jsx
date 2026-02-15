@@ -19,9 +19,10 @@ function mergePreservingLocalState(freshPayload, localPayload) {
     ...freshPayload,
     articles: freshPayload.articles.map(article => {
       const local = localByUrl.get(article.url)
-      if (!local) return article
+      if (!local) return { ...article, issueDate: freshPayload.date }
       const freshFields = {}
       for (const k of SERVER_ORIGIN_FIELDS) freshFields[k] = article[k]
+      freshFields.issueDate = freshPayload.date
       return { ...local, ...freshFields }
     })
   }
