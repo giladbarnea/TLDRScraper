@@ -38,7 +38,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern=r"\((\d+)\s+minute\s+read\)|\(GitHub\s+Repo\)",
         category_display_names={"tech": "TLDR Tech"},
-        sort_order=15,  # Prioritized over HN for better signal-to-noise (67.2/week)
+        sort_order=11,  # Higher priority over HN for better signal-to-noise (67.2/week)
     ),
     "tldr_ai": NewsletterSourceConfig(
         source_id="tldr_ai",
@@ -49,7 +49,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern=r"\((\d+)\s+minute\s+read\)|\(GitHub\s+Repo\)",
         category_display_names={"ai": "TLDR AI"},
-        sort_order=14,  # Prioritized over HN for better signal-to-noise (63.5/week)
+        sort_order=10,  # Higher priority over HN for better signal-to-noise (63.5/week)
     ),
     "hackernews": NewsletterSourceConfig(
         source_id="hackernews",
@@ -130,7 +130,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"newsletter": "Lenny's Newsletter"},
-        sort_order=15,  # 5.0/week - moderate
+        sort_order=14,  # 5.0/week - moderate
     ),
     "pragmatic_engineer": NewsletterSourceConfig(
         source_id="pragmatic_engineer",
@@ -273,7 +273,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern="",
         category_display_names={"newsletter": "ByteByteGo"},
-        sort_order=14,  # 4.8/week - consistent
+        sort_order=13,  # 4.8/week - consistent
     ),
     "martin_fowler": NewsletterSourceConfig(
         source_id="martin_fowler",

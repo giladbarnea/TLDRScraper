@@ -173,10 +173,10 @@ def _sort_issues(issues: list[dict]) -> list[dict]:
         config.sort_order for config in NEWSLETTER_CONFIGS.values()
     )
     # Priority weight balances deterministic ordering vs randomization:
-    # - 0.40 means 40% deterministic (based on sort_order) + 60% random
-    # - With TLDR at 14-15 and HN at 23, this gives TLDR ~70% probability
-    #   to appear before HN while maintaining feed variety
-    priority_weight = 0.40
+    # - 0.70 means 70% deterministic (based on sort_order) + 30% random
+    # - With TLDR at 10-11 and HN at 23, this gives TLDR ~99.9% probability
+    #   to appear before HN while still maintaining some feed variety
+    priority_weight = 0.70
 
     def _issue_sort_key(issue: dict) -> tuple:
         date_text = issue.get("date", "") or ""
