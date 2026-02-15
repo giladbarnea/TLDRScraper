@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-14 18:09
+last_updated: 2026-02-15 07:57
 ---
 # Summary Lifecycle Animations
 
@@ -78,3 +78,40 @@ These are two separate workstreams that should be tackled one at a time:
 2. **Visual aspect** — the actual animations, colors, border treatments, transitions. CSS keyframes, Tailwind utilities, the "magic line" border animation, the touch-phase visual feedback.
 
 Order: technical first, visual second. The technical layer defines what states and transitions exist; the visual layer skins them.
+
+---
+
+## Status
+
+### Technical aspect: COMPLETE (2026-02-15)
+
+The touch phase state machine is fully implemented and verified on device:
+
+- **`useTouchPhase` hook** — tracks `idle → pressed → released → idle` lifecycle via pointer events
+- **`touchPhaseReducer`** — pure reducer for state transitions, guards all impossible edges
+- **`interactionConstants.js`** — shared thresholds (`LONG_PRESS_THRESHOLD_MS=500`, `POINTER_MOVE_THRESHOLD_PX=10`, `RELEASE_DURATION_MS=400`)
+- **`data-touch-phase` and `data-summary-status`** — exposed as DOM data attributes on the card surface for CSS targeting
+- **Transition logging** — all phase transitions logged to quake console via `logTransition`
+- **Selectable coexistence** — pointer handlers on the card's `motion.div` coexist with Selectable's long-press handlers on the outer wrapper; no `stopPropagation` conflicts
+
+#### Key debugging findings
+
+1. **Selectable wrapper was initially blocking pointer events.** `useLongPress` in Selectable sets `touch-action: manipulation` and attaches `pointerdown`/`pointermove`/`pointerup` listeners on its own wrapper div. Early hypothesis: these might intercept events before the inner card. Verified this was NOT the issue — both layers fire independently.
+
+2. **AUTO_CANCEL timing is the gatekeeper for RELEASED.** The 500ms auto-cancel timer in `useTouchPhase` runs in parallel with Selectable's 500ms long-press timer. For taps shorter than 500ms (typical: 100-400ms), the lifecycle completes normally: `idle → pressed → released → idle`. For holds longer than 500ms, AUTO_CANCEL fires, clears the pointer tracking (`reset()`), and subsequent `pointerUp` is a no-op — `RELEASED` never occurs. This is correct behavior: long holds enter selection mode, not summary mode.
+
+3. **Verified end-to-end on device (2026-02-15 09:36):**
+   ```
+   pointerDown → id=-2035765572 type=touch
+   idle → pressed
+   pointerUp → id=-2035765572 (tracked=-2035765572)   ← pointer still tracked (tap < 500ms)
+   pressed → released
+   click: summary.toggle() fires
+   released → idle                                      ← RELEASE_DURATION_MS timer
+   summary: unknown → loading → available
+   summary-view: collapsed → expanded
+   ```
+
+### Visual aspect: IN PROGRESS
+
+Now that the technical state machine is proven, the visual layer can target the data attributes. See `visual-spec.md` for the design direction.

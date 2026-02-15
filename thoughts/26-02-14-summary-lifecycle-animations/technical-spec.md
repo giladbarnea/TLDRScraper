@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-14 18:25
+last_updated: 2026-02-15 07:57
 ---
 # Summary Lifecycle Animations — Technical Spec
 
@@ -312,3 +312,27 @@ User starts swiping horizontally after pointerDown. Framer-motion's drag handler
 - How `data-touch-phase` and `data-summary-status` map to specific CSS rules
 
 All of that belongs to the visual spec, which is a separate effort.
+
+## Implementation notes (post-implementation)
+
+### Files created/modified
+
+| File | Role |
+|------|------|
+| `hooks/useTouchPhase.js` | The hook. Tracks pointer lifecycle, dispatches to reducer. |
+| `reducers/touchPhaseReducer.js` | Pure reducer: `reduceTouchPhase(state, { type })`. Guards impossible transitions. |
+| `lib/interactionConstants.js` | Shared thresholds. `useLongPress` also imports from here (was hardcoded). |
+| `components/ArticleCard.jsx` | Consumes `useTouchPhase`, spreads `pointerHandlers` on `motion.div`, sets `data-touch-phase`. |
+
+### Deviations from spec
+
+- **Hook also accepts `url`** for transition logging via `logTransition('touch-phase', url, from, to)`. Not in the original spec but essential for quake console diagnostics.
+- **Reducer uses `reduceTouchPhase(state, event)` not `dispatch(event)`** — the hook wraps it in `setTouchPhase(current => reduceTouchPhase(current, { type: eventType }))` using the functional updater form of useState. This ensures transitions always reference the latest state.
+- **`pointerHandlers` spread on the card's inner `motion.div`** (the one with `drag`, `onClick`, etc.) rather than the outer Selectable wrapper. Both layers' pointer handlers fire independently.
+
+### Verified edge cases
+
+- **Scroll cancellation**: finger moves > 10px → `MOVE_EXCEEDED` → idle. Confirmed via `onPointerMove` threshold check.
+- **Long press → selection**: 500ms AUTO_CANCEL fires → idle. Selectable's long-press timer fires simultaneously → enters selection mode. No RELEASED phase, no summary request. Correct.
+- **Rapid re-tap**: pointerDown during RELEASED clears the release timer and re-enters PRESSED. Works naturally.
+- **pointerCancel**: browser-initiated cancel (e.g., system gesture) → dispatches `POINTER_CANCEL` → idle. Logged in quake console.
