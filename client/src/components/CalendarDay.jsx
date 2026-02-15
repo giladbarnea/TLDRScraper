@@ -57,6 +57,7 @@ function CalendarDay({ payload }) {
   const date = livePayload?.date ?? payload.date
   const articles = (livePayload?.articles ?? payload.articles).map((article, index) => ({
     ...article,
+    issueDate: date,
     originalOrder: index
   }))
   const issues = livePayload?.issues ?? payload.issues ?? []

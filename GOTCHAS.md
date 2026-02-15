@@ -1,9 +1,21 @@
 ---
-last_updated: 2026-01-31 08:44, 99cfe74
+last_updated: 2026-02-15 06:30
 ---
 # Gotchas
 
 This document catalogs recurring pitfalls in various topics, including managing client-side state persistence and reactivity, surprising design decisions, and so on.
+
+---
+
+#### 2026-02-15: Article clicks silently fail after background merge
+
+**Desired behavior that didn't work**: Clicking any article after the background rescrape merge should trigger a summarize request, same as before the merge.
+
+**What actually happened and falsified original thesis**: After the Phase 2 merge completed and new articles appeared, clicking newly merged articles did nothing—no network request, no error. Old cached articles in days/categories that received new articles also stopped responding. Articles in untouched days still worked. Opening and closing the zen overlay (from a working article) unstuck the broken ones. We initially investigated the merge algorithm itself and various state management fixes, but these didn't resolve it.
+
+**Cause & Fix**: `ArticleCard` passes `article.issueDate` to `useArticleState(date, url)`, which derives the storage key via `getNewsletterScrapeKey(date)`. The article is then looked up by URL in that day's payload. If `issueDate` doesn't match the CalendarDay's actual date (the key under which the article is stored), the lookup hits a different/empty storage key, `article` resolves to `null`, and `fetchSummary` silently returns (`if (!article) return`). After the background merge, `issueDate` could diverge from the CalendarDay's date because `SERVER_ORIGIN_FIELDS` carried whatever `issueDate` the fresh scrape returned—and some adapters set `date` from the article's publication date rather than the target scrape date. The fix was to make CalendarDay stamp `issueDate: date` on every article at render time (the authoritative source of truth for which day an article belongs to), and to force `issueDate: freshPayload.date` in `mergePreservingLocalState`.
+
+**The generalized principle**: when a component derives a storage/lookup key from a data field, that field must be set by the authority that owns the key—not carried blindly from upstream data. CalendarDay owns the storage key, so it must stamp the corresponding `issueDate`.
 
 ---
 

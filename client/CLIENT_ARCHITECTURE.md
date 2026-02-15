@@ -1,7 +1,7 @@
 ---
 name: client architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-02-06 11:43, 6fd30cd
+last_updated: 2026-02-15 06:30
 ---
 # Client Architecture
 
@@ -617,7 +617,9 @@ On mount, `App.jsx` loads the feed in two phases so that cached articles display
 - For new dates not in the cache: appended to `results.payloads` so Feed renders additional CalendarDay components.
 
 ### Merge strategy (`mergePreservingLocalState`)
-The merge overlays local user state (`tldr`, `read`, `removed`) on top of the server's fresh payload. This prevents the background scrape from reverting optimistic changes the user made during the scrape window.
+The merge spreads the cached article and overlays only server-origin fields (`SERVER_ORIGIN_FIELDS`: url, title, category, etc.) from the fresh payload. Any client-state field (`summary`, `read`, `removed`, and future additions) is preserved automatically. This prevents the background scrape from reverting optimistic changes the user made during the scrape window.
+
+**`issueDate` authority:** `issueDate` is forced to `freshPayload.date` during merge (not carried from server article data), and CalendarDay stamps `issueDate: date` on every article at render time. CalendarDay owns the storage key, so it is the authoritative source for `issueDate`. This prevents silent click failures when adapters return a `date` that differs from the payload's day. See `GOTCHAS.md` 2026-02-15.
 
 ### `mergeIntoCache` (useSupabaseStorage.js)
 Module-level export that writes directly to `readCache` and calls `emitChange`, bypassing the "seed only if empty" guard that CalendarDay uses. This is the mechanism for pushing data into already-mounted components from outside the hook.
