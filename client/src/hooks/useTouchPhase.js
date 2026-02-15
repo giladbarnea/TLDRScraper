@@ -55,6 +55,13 @@ export function useTouchPhase({ isSelectMode, isRemoved, isDragging, url }) {
     pointerIdRef.current = e.pointerId
     startPosRef.current = { x: e.clientX, y: e.clientY }
 
+    const rect = e.currentTarget.getBoundingClientRect()
+    const angleDeg = Math.atan2(
+      e.clientY - (rect.top + rect.height / 2),
+      e.clientX - (rect.left + rect.width / 2)
+    ) * (180 / Math.PI)
+    e.currentTarget.style.setProperty('--touch-angle', `${angleDeg + 90}deg`)
+
     dispatch(TouchPhaseEventType.POINTER_DOWN)
 
     cancelTimerRef.current = setTimeout(() => {
