@@ -293,7 +293,8 @@ function ArticleCard({ article }) {
 
     const shouldOpen = itemShortPress(componentId)
     if (shouldOpen) {
-      summary.toggle()
+      console.log('[touch-phase] click: delaying summary.toggle() by 2s')
+      setTimeout(() => summary.toggle(), 2000)
     }
   }
 

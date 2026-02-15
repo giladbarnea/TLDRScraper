@@ -39,7 +39,7 @@ export function useTouchPhase({ isSelectMode, isRemoved, isDragging, url }) {
   }, [])
 
   const onPointerDown = useCallback((e) => {
-    console.log('[touch-phase] onPointerDown fired', e.pointerType, e.pointerId, { isSelectMode, isRemoved, isDragging })
+    logTransition('touch-phase', url, 'pointerDown', `id=${e.pointerId} type=${e.pointerType}`, `guards: select=${isSelectMode} removed=${isRemoved} drag=${isDragging}`)
     if (e.pointerType === 'mouse' && e.button !== 0) return
     if (isSelectMode || isRemoved || isDragging) return
 
@@ -81,6 +81,7 @@ export function useTouchPhase({ isSelectMode, isRemoved, isDragging, url }) {
   }, [dispatch, reset])
 
   const onPointerUp = useCallback((e) => {
+    logTransition('touch-phase', url, 'pointerUp', `id=${e.pointerId}`, `tracked=${pointerIdRef.current}`)
     if (pointerIdRef.current !== e.pointerId) return
 
     if (cancelTimerRef.current) {
@@ -98,6 +99,7 @@ export function useTouchPhase({ isSelectMode, isRemoved, isDragging, url }) {
   }, [dispatch, reset])
 
   const onPointerCancel = useCallback((e) => {
+    logTransition('touch-phase', url, 'pointerCancel', `id=${e.pointerId}`, `tracked=${pointerIdRef.current}`)
     if (pointerIdRef.current !== e.pointerId) return
 
     if (cancelTimerRef.current) {
