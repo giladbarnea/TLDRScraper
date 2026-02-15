@@ -1,11 +1,11 @@
 ---
 name: catchup
 description: Establish continuity with recent work. Catch up on recent project context and progress. Use when starting a session on an ongoing project or effort, when wider context is helpful, or when user asks to get up to speed.
-last_updated: 2026-01-29 12:24, e9f5fa4
+last_updated: 2026-02-15 07:33
 ---
 1. **Run `setup.sh` Synchronously**. Wait for it to finish. It generates documentation.
 
-2. **Read Root Markdown Files** - `README.md`, `CLAUDE.md`, `ARCHITECTURE.md`, `PROJECT_STRUCTURE.md`. Read these files in full. Follow any context-gathering instructions in them.
+2. **Read Root Markdown Files** - `README.md`, `CLAUDE.md`, `ARCHITECTURE.md`, `PROJECT_STRUCTURE.md`, `GOTCHAS.md`. Read these files in full. Follow any context-gathering instructions in them.
   If the effort concerns the client side, also read `client/CLIENT_ARCHITECTURE.md` in full.
 
 3. **Git log** - run `git log --numstat --shortstat --all --graph -15`. Read affected files in full, as well as commit messages and branch names.
