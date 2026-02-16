@@ -82,6 +82,44 @@
   animation: check-enter 150ms var(--ease-springy) forwards;
 }
 
+/*
+ * ── Article card border glow — lifecycle animation system ──
+ *
+ * One ::after pseudo-element on [data-touch-phase] drives all border effects.
+ * Two independent state machines project onto it via data-* attributes:
+ *
+ *   Touch phase (JS → data-touch-phase):   idle → pressed → released → idle
+ *   Summary data (JS → data-summary-status): unknown → loading → available
+ *
+ * Visual timeline (what the user sees):
+ *
+ *   t=0ms     pointerDown     Border ignites at touch point (short bright arc)
+ *   0–500ms   holding         Fuse burns outward (arc grows from 6% → 32% of perimeter)
+ *   ~150ms    pointerUp       Circuit snaps shut (fast expansion to 50%, brief surge pulse)
+ *   ~150ms    loading starts  released+loading overlap: fuse crossfades into spark orbit
+ *   ~550ms    released ends   Spark orbit takes over (one bright bead lapping the border)
+ *   …         server work     Spark runs steady 2.5s laps
+ *   ~5–30s    response        Full-border arrival flash (~125ms hold), then fade out
+ *             overlay opens   Zen overlay mounts via zen-enter animation
+ *
+ * Colors: hsl(210, …) cool blue-white family. Core filament at 72–82% lightness,
+ * bright leading edges at 95% saturation. Visible on white without going neon.
+ *
+ * Custom properties (GPU-composited via @property):
+ *   --fuse-progress   <percentage>  Angular extent of the fuse arc
+ *   --border-angle    <angle>       Rotation angle for spark orbit
+ *   --spark-visibility <number>     Crossfade: 0 = fuse only, 1 = spark visible
+ *   --fuse-strength   <number>      Crossfade: 1 = fuse full, 0 = fuse hidden
+ *   --surge           <number>      Full-border brightness pulse (circuit-surge keyframes)
+ *   --touch-angle     (set by JS)   Angle from card center to touch point (gradient origin)
+ *
+ * Cancellation: scroll (move > 10px) or long-press (≥500ms) → pressed→idle,
+ * no release snap, border fades via 220ms opacity transition.
+ *
+ * prefers-reduced-motion: looping spark-orbit wrapped in no-preference query;
+ * reduced-motion users get a static angled gradient.
+ */
+
 /* ── Border glow: registered custom properties for GPU-composited animation ── */
 
 @property --fuse-progress {

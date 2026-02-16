@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-06 11:43, 6fd30cd
+last_updated: 2026-02-16 04:22
 ---
 # Rescrape “Today” in Background (Non-Blocking Feed Hydration)
 
@@ -447,3 +447,13 @@ TLDRScraper
 ├── uv.lock
 └── vercel.json
 ```
+
+---
+
+## Post-implementation bug: silent click failures after merge (2026-02-15)
+
+After the background merge completed, clicking newly merged articles silently failed—no network request, no error. Old cached articles in affected days/categories also stopped responding.
+
+**Root cause**: `ArticleCard` passes `article.issueDate` to `useArticleState(date, url)` which derives the storage key. After merge, `issueDate` could diverge from the CalendarDay's `date` because `SERVER_ORIGIN_FIELDS` carried whatever `issueDate` the fresh scrape returned. Mismatched key → `article === null` → `fetchSummary` silently returns.
+
+**Fix**: CalendarDay stamps `issueDate: date` on every article at render time; `mergePreservingLocalState` forces `issueDate: freshPayload.date`. See `GOTCHAS.md` 2026-02-15.

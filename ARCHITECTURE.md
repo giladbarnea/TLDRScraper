@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-05 21:42, 6f06367
+last_updated: 2026-02-16 04:22
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -308,7 +308,7 @@ removed
 
 #### Key State Data (per article)
 - **url**: string (unique identifier)
-- **issueDate**: string (storage key component)
+- **issueDate**: string (storage key component; stamped by CalendarDay from its own `date`, not carried from server data)
 - **read**: { isRead: boolean, markedAt: string | null }
 - **removed**: boolean
 
@@ -914,37 +914,31 @@ function computeDateRange(startDate, endDate) {
 }
 ```
 
-### 3. Cache Merge Algorithm (scraper.js)
+### 3. Cache Merge Algorithm (App.jsx `mergePreservingLocalState`)
 
 ```javascript
-// Merge new scrape results with existing cached data from Supabase
-async function mergeWithCache(payloads) {
-  const merged = []
+// Server-origin fields that get refreshed from scrape data
+const SERVER_ORIGIN_FIELDS = ['url', 'title', 'articleMeta', 'issueDate',
+  'category', 'sourceId', 'section', 'sectionEmoji', 'sectionOrder', 'newsletterType']
 
-  for (const payload of payloads) {
-    const existing = await storageApi.getDailyPayload(payload.date)
-
-    if (existing) {
-      // Merge: preserve user state (read, removed) and AI content (summary)
-      const mergedPayload = {
-        ...payload,
-        articles: payload.articles.map(article => {
-          const existingArticle = existing.articles?.find(a => a.url === article.url)
-          return existingArticle
-            ? { ...article, summary: existingArticle.summary,
-                read: existingArticle.read, removed: existingArticle.removed }
-            : article
-        })
-      }
-      await storageApi.setDailyPayload(payload.date, mergedPayload)
-      merged.push(mergedPayload)
-    } else {
-      await storageApi.setDailyPayload(payload.date, payload)
-      merged.push(payload)
-    }
+// Merge: spread cached article, overlay only server-origin fields from fresh scrape.
+// Client-state fields (summary, read, removed, etc.) are preserved automatically.
+// IMPORTANT: issueDate is forced to freshPayload.date (not carried from server article data)
+// because CalendarDay owns the storage key and issueDate must match it. See GOTCHAS.md 2026-02-15.
+function mergePreservingLocalState(freshPayload, localPayload) {
+  if (!localPayload) return freshPayload
+  const localByUrl = new Map(localPayload.articles.map(a => [a.url, a]))
+  return {
+    ...freshPayload,
+    articles: freshPayload.articles.map(article => {
+      const local = localByUrl.get(article.url)
+      if (!local) return { ...article, issueDate: freshPayload.date }
+      const freshFields = {}
+      for (const k of SERVER_ORIGIN_FIELDS) freshFields[k] = article[k]
+      freshFields.issueDate = freshPayload.date
+      return { ...local, ...freshFields }
+    })
   }
-
-  return merged
 }
 ```
 
