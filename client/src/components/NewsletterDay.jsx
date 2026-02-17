@@ -60,7 +60,7 @@ function Section({ date, sourceId, newsletterTitle, sectionKey, articles }) {
         className="mb-3"
       >
         <div className={`mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
-          <ArticleList articles={articles} showSectionHeaders={false} />
+          <ArticleList articles={articles} />
         </div>
       </FoldableContainer>
     </Selectable>
@@ -117,7 +117,7 @@ function NewsletterDay({ date, title, issue, articles }) {
               sortedSectionKeys={sortedSectionKeys}
             />
           ) : (
-            <ArticleList articles={articles} showSectionHeaders={false} />
+            <ArticleList articles={articles} />
           )}
         </div>
       </FoldableContainer>
