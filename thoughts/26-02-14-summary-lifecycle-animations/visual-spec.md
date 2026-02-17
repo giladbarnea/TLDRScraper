@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-15 06:06
+last_updated: 2026-02-17 08:01, c62aa7b
 ---
 # Summary Lifecycle Animations — Visual Spec
 

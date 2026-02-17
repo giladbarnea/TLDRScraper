@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-15 07:57
+last_updated: 2026-02-17 08:01, c62aa7b
 ---
 First, read and internalize the catchup skill at `.claude/skills/catchup/SKILL.md` and follow its instructions. Point your catchup to the `thoughts/` subdirectory so you are caught up on the ongoing effort.
 
