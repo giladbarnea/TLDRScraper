@@ -12,6 +12,7 @@
       },
       "correctness": {
         "noUnusedImports": { "level": "warn", "fix": "safe" },
+        "noUnusedFunctionParameters": "warn",
         "useHookAtTopLevel": "warn",
         "useExhaustiveDependencies": "warn",
         "noChildrenProp": "warn",
