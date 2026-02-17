@@ -69,7 +69,7 @@ function CalendarDay({ payload }) {
 
   return (
     <Selectable id={componentId} descendantIds={descendantIds}>
-      <section className="animate-slide-up">
+      <section>
         <FoldableContainer
           id={`calendar-${date}`}
           title={<CalendarDayTitle dateStr={date} loading={loading} articles={articles} />}
