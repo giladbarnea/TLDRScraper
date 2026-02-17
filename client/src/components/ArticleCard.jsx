@@ -9,6 +9,7 @@ import { usePullToClose } from '../hooks/usePullToClose'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
+import { useTouchPhase } from '../hooks/useTouchPhase'
 import Selectable from './Selectable'
 
 function ErrorToast({ message, onDismiss }) {
@@ -254,6 +255,13 @@ function ArticleCard({ article }) {
     url: article.url,
   })
 
+  const { touchPhase, pointerHandlers } = useTouchPhase({
+    isSelectMode,
+    isRemoved,
+    isDragging,
+    url: article.url,
+  })
+
   const swipeEnabled = canDrag && !isSelectMode
 
   const fullUrl = article.url.startsWith('http://') || article.url.startsWith('https://')
@@ -305,6 +313,7 @@ function ArticleCard({ article }) {
         </div>
 
         <motion.div
+          {...pointerHandlers}
           drag={swipeEnabled ? "x" : false}
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={{ left: 0.5, right: 0.1 }}
@@ -324,6 +333,7 @@ function ArticleCard({ article }) {
           data-article-date={article.issueDate}
           data-article-category={article.category}
           data-article-source={article.sourceId}
+          data-touch-phase={touchPhase}
           data-read={isRead}
           data-removed={isRemoved}
           data-state-loading={stateLoading}
@@ -352,7 +362,7 @@ function ArticleCard({ article }) {
               <ArticleMeta
                 domain={displayDomain}
                 hostname={hostname}
-                articleMeta={article.articleMeta}
+                articleMeta={touchPhase}
                 summaryLoading={summary.loading}
                 summaryAvailable={isAvailable}
                 isRead={isRead}

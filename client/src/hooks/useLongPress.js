@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react'
+import { LONG_PRESS_THRESHOLD_MS, POINTER_MOVE_THRESHOLD_PX } from '../lib/interactionConstants'
 
-export function useLongPress(onLongPress, { threshold = 500, disabled = false } = {}) {
+export function useLongPress(onLongPress, { threshold = LONG_PRESS_THRESHOLD_MS, disabled = false } = {}) {
   const timerRef = useRef(null)
   const startPosRef = useRef(null)
   const activePointerIdRef = useRef(null)
@@ -34,7 +35,7 @@ export function useLongPress(onLongPress, { threshold = 500, disabled = false } 
     const dx = Math.abs(clientX - startPosRef.current.x)
     const dy = Math.abs(clientY - startPosRef.current.y)
 
-    if (dx > 10 || dy > 10) {
+    if (dx > POINTER_MOVE_THRESHOLD_PX || dy > POINTER_MOVE_THRESHOLD_PX) {
       clearTimer()
       startPosRef.current = null
     }

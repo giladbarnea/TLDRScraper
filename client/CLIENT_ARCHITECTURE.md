@@ -1,7 +1,7 @@
 ---
 name: client architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-02-15 06:34, 6f2c5e2
+last_updated: 2026-02-16 04:22
 ---
 # Client Architecture
 
@@ -434,6 +434,57 @@ Gesture state is **ephemeral** (not persisted):
 
 ---
 
+## Touch Phase State Machine (Domain E)
+
+### Overview
+Touch phase tracks the pointer lifecycle on a card as a three-state machine: `idle → pressed → released → idle`. It is **purely additive** — it observes pointer events to produce animation state but does not modify interaction or summary data flows.
+
+### Key modules
+- `reducers/touchPhaseReducer.js`
+  - Exports `TouchPhase` enum: `IDLE`, `PRESSED`, `RELEASED`
+  - Exports `TouchPhaseEventType` enum: `POINTER_DOWN`, `POINTER_UP`, `POINTER_CANCEL`, `MOVE_EXCEEDED`, `AUTO_CANCEL`, `RELEASE_EXPIRED`
+  - Pure reducer: `reduceTouchPhase(state, event)` returns next state
+- `hooks/useTouchPhase.js`
+  - Provides `touchPhase` state and `pointerHandlers` object
+  - Guards: `!isSelectMode`, `!isRemoved`, `!isDragging`
+  - Timers: 500ms auto-cancel (aligns with long-press threshold), 400ms release duration
+
+### State diagram
+```
+                pointerDown
+                [guards pass]
+ ┌──────┐  ──────────────────►  ┌─────────┐
+ │      │                       │         │
+ │ IDLE │  ◄─────────────────── │ PRESSED │
+ │      │   move > 10px         │         │
+ └──────┘   held ≥ 500ms       └────┬────┘
+    ▲       pointerCancel           │
+    │                               │ pointerUp (< 500ms)
+    │       RELEASE_DURATION_MS     ▼
+    └────────────────────────  ┌──────────┐
+                               │ RELEASED │
+                               └──────────┘
+```
+
+### Composite with Domain B (Summary Data)
+The card's visual is a function of `(touchPhase, summaryStatus)`. Both are exposed as data attributes on the card's DOM node:
+- `data-touch-phase="idle|pressed|released"`
+- `data-summary-status="unknown|loading|available|error"`
+
+The visual layer (CSS/animations) targets combinations of these attributes.
+
+### Coexistence with Selectable
+`pointerHandlers` are spread on the card's inner `<motion.div>` (same element as `onClick` and `drag`). Selectable's `useLongPress` handlers are on the outer wrapper div. Both layers fire independently — neither calls `stopPropagation`. The 500ms auto-cancel in `useTouchPhase` aligns with `useLongPress`'s 500ms threshold via the shared `LONG_PRESS_THRESHOLD_MS` constant in `lib/interactionConstants.js`.
+
+### Shared constants (`lib/interactionConstants.js`)
+```js
+LONG_PRESS_THRESHOLD_MS = 500   // used by useLongPress + useTouchPhase
+POINTER_MOVE_THRESHOLD_PX = 10  // used by useLongPress + useTouchPhase
+RELEASE_DURATION_MS = 400       // used by useTouchPhase only
+```
+
+---
+
 ## Selectable Pattern (Updated)
 
 Components that support selection behavior are wrapped in `Selectable`. This is a composition wrapper that encapsulates:
@@ -519,6 +570,7 @@ main()
 │                                       └── Selectable (long press selection)
 │                                           ├── useArticleState()
 │                                           ├── useSummary()
+│                                           ├── useTouchPhase()
 │                                           ├── useSwipeToRemove()
 │                                           │   └── useAnimation(Framer Motion)
 │                                           │
