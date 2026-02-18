@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-17 09:24
+last_updated: 2026-02-18 16:50, 439c545
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
