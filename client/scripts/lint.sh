@@ -1,42 +1,41 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-# Single-pass lint: fix what's fixable, report what's not.
-# Configuration is in biome.json:
-#   - Rules with fix:"safe" are auto-fixed silently
-#   - Rules without fix config are reported as warnings/errors
+# Lint pipeline: knip (dead code) → biome (lint + imports)
 #
-# Fixable rules (fix:"safe"):
-#   - correctness/noUnusedImports
-#   - suspicious/noGlobalIsNan
-#   - style/useNodejsImportProtocol
-#   - complexity/useDateNow
-#   - source/organizeImports (via assist)
+# Knip: detects unused files, dependencies, and exports.
+#   --fix removes unused exports and dependencies automatically.
+#   Unused files and remaining issues are reported as warnings.
 #
-# Check-only rules (no fix, just warn):
-#   - correctness/useExhaustiveDependencies
-#   - correctness/useHookAtTopLevel
-#   - correctness/noChildrenProp
-#   - correctness/noNestedComponentDefinitions
-#   - correctness/noReactPropAssignments
-#   - correctness/noRenderReturnValue
-#   - correctness/useJsxKeyInIterable
-#   - style/useReactFunctionComponents
+# Biome: configured via biome.json.
+#   Fix mode: auto-fixes safe rules (unused imports, import ordering, etc.)
+#   Check mode (CI): reports issues, exits non-zero on errors.
 #
 # Usage:
 #   ./lint.sh              # Fix mode: auto-fix issues
-#   CI=true ./lint.sh      # Check mode: report issues, exit 1 on errors (CI auto-detects)
+#   CI=true ./lint.sh      # Check mode: report only, exit 1 on errors
 #   DRY_RUN=1 ./lint.sh    # Check mode: for pre-commit hooks
 
+IS_CHECK_MODE=false
 if [ "${CI:-false}" = "true" ] || [ "${DRY_RUN:-0}" = "1" ]; then
-  # Check mode: no modifications, exit non-zero on errors
+  IS_CHECK_MODE=true
+fi
+
+# --- Knip: dead code detection ---
+if [ "$IS_CHECK_MODE" = true ]; then
+  npx -y knip --reporter compact || true
+else
+  npx -y knip --fix --reporter compact || true
+fi
+
+# --- Biome: lint + import organization ---
+if [ "$IS_CHECK_MODE" = true ]; then
   npx -y @biomejs/biome lint .
   npx -y @biomejs/biome check \
     --formatter-enabled=false \
     --linter-enabled=false \
     --assist-enabled=true
 else
-  # Fix mode: auto-fix and organize imports
   npx -y @biomejs/biome lint --write .
   npx -y @biomejs/biome check \
     --formatter-enabled=false \
