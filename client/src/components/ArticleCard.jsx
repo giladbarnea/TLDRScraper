@@ -362,7 +362,7 @@ function ArticleCard({ article }) {
               <ArticleMeta
                 domain={displayDomain}
                 hostname={hostname}
-                articleMeta={touchPhase}
+                articleMeta={article.articleMeta}
                 summaryLoading={summary.loading}
                 summaryAvailable={isAvailable}
                 isRead={isRead}

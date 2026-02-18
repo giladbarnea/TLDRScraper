@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-17 08:01, c62aa7b
+last_updated: 2026-02-17 09:24
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -178,7 +178,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 **Custom Design Tokens:**
 - Font stacks: `--font-sans` (SF Pro Text), `--font-display` (SF Pro Display)
 - Brand colors: Sky blue palette (brand-50 through brand-900)
-- Shadows: `--shadow-soft`, `--shadow-soft-hover`
+- Shadows: `--shadow-card`, `--shadow-elevated`
 
 **Note:** No tailwind.config.js file - Tailwind v4 uses CSS-based configuration
 
