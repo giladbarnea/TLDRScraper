@@ -5,7 +5,7 @@ INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 
 if [[ "$COMMAND" == "gh" || "$COMMAND" == gh\ * ]]; then
-    echo "\`gh\` is unavailable; use https://${GITHUB_API_TOKEN}@github.com/..." >&2
+    echo '`gh` is unavailable; use https://${GITHUB_API_TOKEN}@github.com/...' >&2
     exit 2
 fi
 
