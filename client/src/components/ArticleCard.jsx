@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { AlertCircle, ArrowDownCircle, Check, CheckCircle, ChevronDown, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useInteraction } from '../contexts/InteractionContext'
 import { useArticleState } from '../hooks/useArticleState'

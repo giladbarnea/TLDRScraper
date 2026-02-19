@@ -19,7 +19,10 @@ function Selectable({ id, descendantIds = [], disabled = false, children }) {
 
   return (
     <div
-      {...handlers}
+      onPointerDown={(e) => { e.stopPropagation(); handlers.onPointerDown(e) }}
+      onPointerMove={handlers.onPointerMove}
+      onPointerUp={handlers.onPointerUp}
+      onPointerCancel={handlers.onPointerCancel}
       data-selectable
       className="relative"
       style={{ touchAction: 'pan-y' }}
