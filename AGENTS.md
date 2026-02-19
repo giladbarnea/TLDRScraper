@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-19 07:36
+last_updated: 2026-02-19 07:42
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -127,6 +127,8 @@ Run `./setup.sh` to verify the environment and dependencies are set up correctly
 
 ## Using (Sub-)Agents
 <using-sub-agents>
+Make note of the multiple available agents (`.claude/agents/**/*.md`) and use them as they describe in their frontmatter.
+
 Dispatch an agent whenever you need to either:
 a) explore a particular system or a major domain within the codebase (`codebase-analyzer:single-subsystem`); or
 b) explore multiple systems or domains up to and including the entire codebase (`codebase-analyzer:multiple-subsystems`); or
