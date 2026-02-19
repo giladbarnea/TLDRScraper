@@ -1,3 +1,2 @@
 export const LONG_PRESS_THRESHOLD_MS = 500
 export const POINTER_MOVE_THRESHOLD_PX = 10
-export const RELEASE_DURATION_MS = 400
