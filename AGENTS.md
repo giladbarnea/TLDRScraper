@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-01 21:15, a4e9d66
+last_updated: 2026-02-19 07:36
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -127,8 +127,6 @@ Run `./setup.sh` to verify the environment and dependencies are set up correctly
 
 ## Using (Sub-)Agents
 <using-sub-agents>
-Make note of the multiple available agents (`.claude/agents/**/*.md`) and use them as they describe in their frontmatter.
-
 Dispatch an agent whenever you need to either:
 a) explore a particular system or a major domain within the codebase (`codebase-analyzer:single-subsystem`); or
 b) explore multiple systems or domains up to and including the entire codebase (`codebase-analyzer:multiple-subsystems`); or
@@ -143,9 +141,9 @@ Delegating exploration and research tasks to agents leads to improved results an
 
 #### Common agent-driven workflows
 
-1) **Understanding the codebase-wide reach of a particular aspect, concept, feature, functionality, etc:**
+1) **Understanding the codebase-wide reach of a particular aspect, concept, feature, functionality, etc.:**
   codebase-locator("Find all contexts in the codebase that have to do with {thin lead}")    // Will provide a list of contexts.
-  -> codebase-analyzer:multiple-subsystems("Investigate {list of contexts}")
+  → codebase-analyzer:multiple-subsystems("Investigate {list of contexts}")
 
 2) **Wide understanding of an entire codebase or any arbitrarily large scope:**
   codebase-analyzer:multiple-subsystems("Investigate the {large scope}")    // Handles any compound set of domains, no matter how large or complex, by automatically creating as many `single-subsystem` agents as the scope requires.
@@ -155,7 +153,8 @@ Delegating exploration and research tasks to agents leads to improved results an
 
 #### How to prompt an agent
 
-Be generous in giving the agent wider context—understanding *why* it's performing the task will boost its performance. Don't micromanage nor over-instruct it. The agent already has a highly detailed system prompt. Avoid prescribing instructions or giving it "how-to" examples; just declare what kind of understanding you're seeking.
+Be generous in giving the agent wider context—understanding *why* it's performing the task will boost its performance. Don't micromanage nor over-instruct it. The agent already has a highly detailed system prompt. It is also highly intelligent, just like you, and is able to navigate around uncertainties well. Avoid prescribing instructions or giving it "how-to" examples; Avoid prescribing it which files or symbols to look at; just declare what kind of *understanding* you're seeking.
+Sharing only why it's been dispatched, and what you hope to achieve by the time the agent completes its task directly frees it up to find the best way to achieve *your* goal.
 </using-sub-agents>
 
 ## Development Conventions
