@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-04 06:58, 4e78425
+last_updated: 2026-02-20 06:13
 description: light overview over the project
 ---
 # TLDRScraper
@@ -10,7 +10,7 @@ Newsletter aggregator that scrapes tech newsletters from multiple sources, displ
 
 - **Frontend**: React 19 + Vite (in `client/`)
 - **Backend**: Flask + Python (serverless on Vercel)
-- **AI**: Google Gemini 3 Flash for summaries
+- **AI**: Google Gemini 3 Pro Preview for summaries
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
 

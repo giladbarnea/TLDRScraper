@@ -25,7 +25,7 @@ _SUMMARY_PROMPT_CACHE = None
 
 SUMMARIZE_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
 DEFAULT_SUMMARY_EFFORT = "low"
-DEFAULT_MODEL = "gemini-3-flash-preview"
+DEFAULT_MODEL = "gemini-3-pro-preview"
 
 
 def normalize_summarize_effort(value: str) -> str:
