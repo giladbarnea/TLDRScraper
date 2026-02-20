@@ -1,10 +1,14 @@
 import { Calendar } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import DigestButton from './components/DigestButton'
+import DigestOverlay from './components/DigestOverlay'
 import Feed from './components/Feed'
 import ScrapeForm from './components/ScrapeForm'
 import SelectionCounterPill from './components/SelectionCounterPill'
-import { InteractionProvider } from './contexts/InteractionContext'
+import { InteractionProvider, useInteraction } from './contexts/InteractionContext'
+import { useDigest } from './hooks/useDigest'
 import { mergeIntoCache } from './hooks/useSupabaseStorage'
+import { extractSelectedArticles } from './lib/digest'
 import { scrapeNewsletters } from './lib/scraper'
 import { logTransition } from './lib/stateTransitionLogger'
 import { getDailyPayloadsRange } from './lib/storageApi'
@@ -28,9 +32,24 @@ function mergePreservingLocalState(freshPayload, localPayload) {
   }
 }
 
-function App() {
+function AppContent() {
   const [results, setResults] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
+  const digest = useDigest()
+  const { selectedIds, clearSelection } = useInteraction()
+
+  const selectedArticles = useMemo(() => {
+    return extractSelectedArticles(selectedIds, results?.payloads || [])
+  }, [selectedIds, results?.payloads])
+
+  const handleGenerateDigest = async () => {
+    try {
+      await digest.generate(selectedArticles)
+      clearSelection()
+    } catch (error) {
+      console.error('Failed to generate digest:', error)
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -130,7 +149,6 @@ function App() {
   })
 
   return (
-    <InteractionProvider>
     <div className="min-h-screen flex justify-center font-sans bg-slate-50 text-slate-900 selection:bg-brand-100 selection:text-brand-900">
       <div className="w-full max-w-3xl relative">
 
@@ -150,6 +168,7 @@ function App() {
 
             <div className="flex items-center gap-3">
               <SelectionCounterPill />
+              <DigestButton onClick={handleGenerateDigest} loading={digest.loading} />
               <button
                 onClick={() => setShowSettings(!showSettings)}
                 className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${showSettings ? 'bg-brand-50 text-brand-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
@@ -191,8 +210,24 @@ function App() {
           )}
         </main>
 
+        {digest.expanded && digest.html && (
+          <DigestOverlay
+            digestHtml={digest.html}
+            articleCount={digest.digestData?.article_count || 0}
+            onClose={digest.collapse}
+          />
+        )}
+
       </div>
     </div>
+  )
+}
+
+
+function App() {
+  return (
+    <InteractionProvider>
+      <AppContent />
     </InteractionProvider>
   )
 }

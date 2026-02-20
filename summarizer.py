@@ -1,6 +1,7 @@
 import logging
 import json
 import re
+import hashlib
 from requests.models import Response
 from typing import Optional
 
@@ -22,6 +23,7 @@ h.protect_links = True  # Don't wrap URLs
 h.single_line_break = True  # Use single line breaks
 
 _SUMMARY_PROMPT_CACHE = None
+_DIGEST_PROMPT_CACHE = None
 
 SUMMARIZE_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
 DEFAULT_SUMMARY_EFFORT = "low"
@@ -304,6 +306,53 @@ def summarize_url(url: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, mode
     return summary
 
 
+def truncate_markdown(markdown: str, max_words: int = 35000) -> str:
+    """Truncate markdown to a max number of words.
+
+    >>> truncate_markdown("a b c", max_words=2)
+    'a b'
+    """
+    words = markdown.split()
+    if len(words) <= max_words:
+        return markdown
+    return " ".join(words[:max_words])
+
+
+def generate_digest_id(canonical_urls: list[str], summarize_effort: str) -> str:
+    """Generate a stable digest id from canonical URLs and effort.
+
+    >>> generate_digest_id(["https://a.com", "https://b.com"], "low") == generate_digest_id(["https://b.com", "https://a.com"], "low")
+    True
+    """
+    normalized_effort = normalize_summarize_effort(summarize_effort)
+    canonical_list = sorted(canonical_urls)
+    digest_source = "\n".join(canonical_list + [normalized_effort])
+    return hashlib.sha256(digest_source.encode("utf-8")).hexdigest()
+
+
+def _build_digest_prompt(articles_with_markdown: list[dict], template: str) -> str:
+    sections = []
+    for article in articles_with_markdown:
+        sections.append(
+            "\n".join(
+                [
+                    f"<article url=\"{article['url']}\" title=\"{article['title']}\" category=\"{article['category']}\">",
+                    article["markdown"],
+                    "</article>",
+                ]
+            )
+        )
+    sections_text = "\n\n".join(sections)
+    return f"{template}\n\n<articles>\n{sections_text}\n</articles>"
+
+
+def summarize_articles(articles_with_markdown: list[dict], summarize_effort: str = DEFAULT_SUMMARY_EFFORT, model: str = DEFAULT_MODEL) -> str:
+    normalized_effort = normalize_summarize_effort(summarize_effort)
+    template = _fetch_digest_prompt()
+    prompt = _build_digest_prompt(articles_with_markdown, template)
+    return _call_llm(prompt, summarize_effort=normalized_effort, model=model)
+
+
 def _fetch_prompt(
     *,
     owner: str,
@@ -370,6 +419,22 @@ def _fetch_summary_prompt(
         path=path,
         ref=ref,
         cache_attr="_SUMMARY_PROMPT_CACHE",
+    )
+
+
+def _fetch_digest_prompt(
+    owner: str = "giladbarnea",
+    repo: str = "llm-templates",
+    path: str = "text/digest.md",
+    ref: str = "main",
+) -> str:
+    """Fetch digest prompt from GitHub (cached in memory)."""
+    return _fetch_prompt(
+        owner=owner,
+        repo=repo,
+        path=path,
+        ref=ref,
+        cache_attr="_DIGEST_PROMPT_CACHE",
     )
 
 

@@ -54,3 +54,26 @@ def summarize_url(
     return payload
 
 
+
+
+def generate_digest(
+    articles: list[dict],
+    *,
+    summarize_effort: str = DEFAULT_SUMMARY_EFFORT,
+    model: str = DEFAULT_MODEL,
+) -> dict:
+    result = tldr_service.generate_digest_content(
+        articles,
+        summarize_effort=summarize_effort,
+        model=model,
+    )
+
+    return {
+        "success": True,
+        "digest_id": result["digest_id"],
+        "digest_markdown": result["digest_markdown"],
+        "article_count": result["article_count"],
+        "included_urls": result["included_urls"],
+        "skipped": result["skipped"],
+        "summarize_effort": result["summarize_effort"],
+    }

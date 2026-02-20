@@ -17,8 +17,12 @@ from summarizer import (
     DEFAULT_MODEL,
     DEFAULT_SUMMARY_EFFORT,
     _fetch_summary_prompt,
+    generate_digest_id,
     normalize_summarize_effort,
+    summarize_articles,
     summarize_url,
+    truncate_markdown,
+    url_to_markdown,
 )
 
 logger = logging.getLogger("tldr_service")
@@ -341,4 +345,90 @@ def summarize_url_content(
         "summary_markdown": summary_markdown,
         "canonical_url": canonical_url,
         "summarize_effort": normalized_effort,
+    }
+
+
+def _fetch_articles_content_parallel(articles: list[dict]) -> tuple[list[dict], list[dict]]:
+    successful_articles = []
+    skipped_articles = []
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_article = {
+            executor.submit(url_to_markdown, article["url"]): article
+            for article in articles
+        }
+        for future in as_completed(future_to_article):
+            article = future_to_article[future]
+            try:
+                markdown = truncate_markdown(future.result())
+                successful_articles.append({**article, "markdown": markdown})
+            except Exception as error:
+                logger.warning(
+                    "digest fetch failed url=%s error=%s",
+                    article["url"],
+                    repr(error),
+                )
+                skipped_articles.append({
+                    "url": article["url"],
+                    "reason": str(error),
+                })
+
+    return successful_articles, skipped_articles
+
+
+def generate_digest_content(
+    articles: list[dict],
+    *,
+    summarize_effort: str = DEFAULT_SUMMARY_EFFORT,
+    model: str = DEFAULT_MODEL,
+) -> dict:
+    if not articles:
+        raise ValueError("articles is required")
+
+    normalized_effort = normalize_summarize_effort(summarize_effort)
+    normalized_articles = [
+        {
+            "url": util.canonicalize_url(article["url"]),
+            "title": article["title"],
+            "category": article["category"],
+        }
+        for article in articles
+    ]
+    canonical_urls = [article["url"] for article in normalized_articles]
+    digest_id = generate_digest_id(canonical_urls, normalized_effort)
+    cached_digest = storage_service.get_digest(digest_id)
+    if cached_digest:
+        digest_payload = cached_digest["digest"]
+        return {
+            "digest_id": digest_id,
+            "digest_markdown": digest_payload["digest_markdown"],
+            "article_count": digest_payload["article_count"],
+            "included_urls": digest_payload["included_urls"],
+            "skipped": digest_payload["skipped"],
+            "summarize_effort": normalized_effort,
+        }
+
+    successful_articles, skipped_articles = _fetch_articles_content_parallel(normalized_articles)
+    if not successful_articles:
+        raise ValueError("Failed to fetch all articles")
+
+    digest_markdown = summarize_articles(
+        successful_articles,
+        summarize_effort=normalized_effort,
+        model=model,
+    )
+    included_urls = [article["url"] for article in successful_articles]
+
+    digest_payload = {
+        "digest_markdown": digest_markdown,
+        "article_count": len(successful_articles),
+        "included_urls": included_urls,
+        "skipped": skipped_articles,
+        "summarize_effort": normalized_effort,
+    }
+    storage_service.set_digest(digest_id, digest_payload)
+
+    return {
+        "digest_id": digest_id,
+        **digest_payload,
     }
