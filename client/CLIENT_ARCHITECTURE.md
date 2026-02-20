@@ -1,7 +1,7 @@
 ---
 name: client architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-02-17 08:01, c62aa7b
+last_updated: 2026-02-20 06:20
 ---
 # Client Architecture
 
@@ -72,22 +72,28 @@ Selection behavior is implemented as a **declarative state machine** with a smal
 ### Key modules
 - `contexts/InteractionContext.jsx`
   - Provides `useInteraction()`: UI-facing functions (short press / long press) and selectors (isSelectMode, isSelected, isExpanded).
+  - Persists `expandedContainerIds` to `localStorage` (`expandedContainers:v1` key). `selectedIds` is ephemeral (resets on page reload).
+  - `itemShortPress(itemId)` uses a `dispatchWithDecision` pattern: runs the reducer synchronously to read `decision.shouldOpenItem`, then dispatches the resulting state via an internal `REPLACE_STATE` event. This lets `ArticleCard` act on the decision without waiting for a re-render.
 - `reducers/interactionReducer.js`
   - The single source of truth for transitions.
-  - Implements suppression of the short press immediately following a long press on the same target.
+  - Suppression latch is time-windowed (800ms): set after every long press, consumed (cleared) on the next short press for the same target within the window.
 - `hooks/useLongPress.js`
   - Pointer-event long press detection for mobile and desktop.
 
 ### Component responsibilities
 - **Selectable**
   - Detects long press and dispatches LONG_PRESS events to the interaction layer.
-  - Renders selection checkmark for items (and can be extended for container UI states if desired).
+  - `isParent = descendantIds.length > 0`. Only leaf items (`isParent = false`) render the checkmark ring overlay. Containers dispatch `CONTAINER_LONG_PRESS` to toggle all descendant articles but display no selected state themselves.
+  - `onPointerDown` calls `e.stopPropagation()` before forwarding to `useLongPress`. This prevents nested Selectables from double-firing (e.g., an ArticleCard long press does not also trigger its enclosing CalendarDay Selectable).
 - **ArticleCard**
   - On click, calls `itemShortPress(articleId)`:
     - In Normal mode: returns "should open" → opens TLDR/Zen overlay.
     - In Select mode: toggles selection (no open).
+  - Calls `registerDisabled(articleId, isRemoved)` in a `useEffect`. This links article lifecycle (Domain A) to the interaction layer: when an article is removed, the reducer removes it from `selectedIds` and blocks future selection.
+  - Derives `swipeEnabled = canDrag && !isSelectMode` — disables Framer Motion drag when in select mode.
 - **FoldableContainer**
   - On click, calls `containerShortPress(containerId)` to expand/collapse, regardless of selection mode.
+  - On mount (when `defaultFolded` is true), calls `setExpanded(id, false)` to push initial collapsed state into the shared `expandedContainerIds` set.
 
 ---
 
@@ -156,6 +162,7 @@ The reducer is the canonical definition of behavior. The app dispatches only the
 - `CONTAINER_LONG_PRESS(containerId, childIds)`
 - `CLEAR_SELECTION`
 - `REGISTER_DISABLED(id, isDisabled)`
+- `SET_EXPANDED(containerId, expanded)` — direct boolean set; used by FoldableContainer's mount effect for `defaultFolded`
 
 Pseudocode (intentionally not language syntax):
 
@@ -193,6 +200,11 @@ Pseudocode (intentionally not language syntax):
 5. **Clearing selection:**
    - On `CLEAR_SELECTION`:
      - Clear `selectedIds` (therefore exiting select mode)
+
+6. **Expand/collapse (orthogonal to selection):**
+   - On `SET_EXPANDED(containerId, expanded)`:
+     - Add or remove `containerId` from `expandedContainerIds` based on the boolean
+   - On `CONTAINER_SHORT_PRESS` (no active latch): toggles expand state (see rule 3)
 
 ---
 
@@ -434,57 +446,6 @@ Gesture state is **ephemeral** (not persisted):
 
 ---
 
-## Touch Phase State Machine (Domain E)
-
-### Overview
-Touch phase tracks the pointer lifecycle on a card as a three-state machine: `idle → pressed → released → idle`. It is **purely additive** — it observes pointer events to produce animation state but does not modify interaction or summary data flows.
-
-### Key modules
-- `reducers/touchPhaseReducer.js`
-  - Exports `TouchPhase` enum: `IDLE`, `PRESSED`, `RELEASED`
-  - Exports `TouchPhaseEventType` enum: `POINTER_DOWN`, `POINTER_UP`, `POINTER_CANCEL`, `MOVE_EXCEEDED`, `AUTO_CANCEL`, `RELEASE_EXPIRED`
-  - Pure reducer: `reduceTouchPhase(state, event)` returns next state
-- `hooks/useTouchPhase.js`
-  - Provides `touchPhase` state and `pointerHandlers` object
-  - Guards: `!isSelectMode`, `!isRemoved`, `!isDragging`
-  - Timers: 500ms auto-cancel (aligns with long-press threshold), 400ms release duration
-
-### State diagram
-```
-                pointerDown
-                [guards pass]
- ┌──────┐  ──────────────────►  ┌─────────┐
- │      │                       │         │
- │ IDLE │  ◄─────────────────── │ PRESSED │
- │      │   move > 10px         │         │
- └──────┘   held ≥ 500ms       └────┬────┘
-    ▲       pointerCancel           │
-    │                               │ pointerUp (< 500ms)
-    │       RELEASE_DURATION_MS     ▼
-    └────────────────────────  ┌──────────┐
-                               │ RELEASED │
-                               └──────────┘
-```
-
-### Composite with Domain B (Summary Data)
-The card's visual is a function of `(touchPhase, summaryStatus)`. Both are exposed as data attributes on the card's DOM node:
-- `data-touch-phase="idle|pressed|released"`
-- `data-summary-status="unknown|loading|available|error"`
-
-The visual layer (CSS/animations) targets combinations of these attributes.
-
-### Coexistence with Selectable
-`pointerHandlers` are spread on the card's inner `<motion.div>` (same element as `onClick` and `drag`). Selectable's `useLongPress` handlers are on the outer wrapper div. Both layers fire independently — neither calls `stopPropagation`. The 500ms auto-cancel in `useTouchPhase` aligns with `useLongPress`'s 500ms threshold via the shared `LONG_PRESS_THRESHOLD_MS` constant in `lib/interactionConstants.js`.
-
-### Shared constants (`lib/interactionConstants.js`)
-```js
-LONG_PRESS_THRESHOLD_MS = 500   // used by useLongPress + useTouchPhase
-POINTER_MOVE_THRESHOLD_PX = 10  // used by useLongPress + useTouchPhase
-RELEASE_DURATION_MS = 400       // used by useTouchPhase only
-```
-
----
-
 ## Selectable Pattern (Updated)
 
 Components that support selection behavior are wrapped in `Selectable`. This is a composition wrapper that encapsulates:
@@ -570,7 +531,6 @@ main()
 │                                       └── Selectable (long press selection)
 │                                           ├── useArticleState()
 │                                           ├── useSummary()
-│                                           ├── useTouchPhase()
 │                                           ├── useSwipeToRemove()
 │                                           │   └── useAnimation(Framer Motion)
 │                                           │
