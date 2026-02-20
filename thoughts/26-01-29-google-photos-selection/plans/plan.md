@@ -1,308 +1,77 @@
 ---
-last_updated: 2026-01-30 13:43, 9b371ba
+last_updated: 2026-02-20 06:20
 ---
-# Google Photos-Style Selection Implementation Plan
+# Google Photos-Style Selection — Implementation Record
 
-## Overview
+## Feature Summary
 
-Replace the three-dot menu + bottom sheet interaction with Google Photos-style long-press multi-selection. All four component levels (CalendarDay, NewsletterDay, Section, ArticleCard) become selectable. Selecting a parent recursively selects all descendant articles. A selection counter pill appears in the sticky header (right end) when in select mode.
+Long-press multi-selection across all four component levels (CalendarDay, NewsletterDay, Section, ArticleCard). Selecting a parent selects all its descendant articles. A counter pill appears in the sticky header when in select mode.
 
-## Current State Analysis
+## User-Facing Behavior
 
-**Existing Components:**
-- `Selectable.jsx:5-41` - render-props component providing `menuButton` and `openMenu` to children
-- `ThreeDotMenuButton.jsx:3-17` - MoreVertical icon button with stopPropagation
-- `BottomSheet.jsx:5-58` - 66vh overlay with pull-to-close, backdrop, escape key dismiss
-- `FoldableContainer.jsx` - has `rightContent` prop for menu button placement
-
-**Current Flow:**
-1. User clicks three-dot button → BottomSheet opens
-2. User clicks "Select" → ID added to `localStorage['podcastSources-1']`
-3. BottomSheet closes
-
-**Components Using Selectable:**
-- `CalendarDay.jsx:73-88` - ID pattern: `calendar-{date}`
-- `NewsletterDay.jsx:99-133` - ID pattern: `newsletter-{date}-{source_id}`
-- `NewsletterDay.jsx:52-68` (Section) - ID pattern: `section-{date}-{sourceId}-{sectionKey}`
-- `ArticleCard.jsx:299-395` - ID pattern: `article-{url}`
-
-**Gesture Patterns Available:**
-- `usePullToClose.js` - touch gesture tracking
-- `useSwipeToRemove.js` - horizontal drag detection
-- Touch events: `touchstart`, `touchmove`, `touchend`
-
-## Desired End State
-
-1. **Long-press activation**: Long-press (500ms) on any card enters "select mode" and selects that card
-2. **Visual indicators for selected cards**:
+1. **Long-press activation**: 500ms long-press on any card or container enters select mode and selects that target
+2. **Visual indicators for selected articles**:
    - Thick grey border around the card (`ring-4 ring-slate-300`)
-   - Brand-color filled checkmark in top-left corner (absolute positioned)
-3. **Selection counter pill**: In sticky header (right end), black pill showing "✕ N" format
-4. **Select mode behavior**:
-   - Single taps select/deselect cards (no long-press needed)
-   - Tapping a selected card deselects it
+   - Brand-color filled checkmark in top-left corner (absolute positioned, animated)
+3. **Selection counter pill**: In sticky header (right end), black pill with "✕" button + count
+4. **Select mode tap behavior**:
+   - Single taps on articles toggle selection (no long-press needed)
    - Deselecting the last card exits select mode
-5. **Recursive selection**: Selecting a parent (CalendarDay/NewsletterDay/Section) selects all its descendant articles
-6. **Gesture conflicts resolved**: Swipe-to-remove disabled during select mode; long-press ignored on removed cards
+5. **Recursive selection**: Long-pressing a parent (CalendarDay/NewsletterDay/Section) selects all its descendant articles
+6. **Gesture conflicts**: Swipe-to-remove disabled during select mode; long-press disabled on removed cards
 
-**Verification:**
-- Long-press on ArticleCard → enters select mode, card shows selected styling, counter shows "✕ 1"
-- Tap another card → counter shows "✕ 2"
-- Tap selected card → deselects, counter decrements
-- Tap "✕" in counter → clears all, exits select mode
-- Long-press on Section → all articles in section become selected
-- Swipe gesture on card while in select mode → no effect (swipe disabled)
+## What Was NOT Built
 
-## What We're NOT Doing
+- No localStorage sync for `selectedIds` (selection resets on page reload)
+- No batch actions beyond select/deselect ("delete selected", "share selected", etc.)
+- No select-all button (only recursive parent selection)
+- ZenModeOverlay behavior unchanged
 
-- Not changing the localStorage key or data format (`podcastSources-1` stays as JSON array)
-- Not adding batch actions beyond select/deselect (no "delete selected", "share selected", etc.)
-- Not adding select-all button (only recursive parent selection)
-- Not modifying ZenModeOverlay behavior (it's full-screen, no selection needed there)
+## Implementation
 
-## Implementation Approach
+### Architecture
 
-1. Create a React context for selection state that all components can access
-2. Create a reusable `useLongPress` hook for gesture detection
-3. Transform `Selectable` from render-props-for-menu to a wrapper that handles long-press and visual states
-4. Parents pass their descendant IDs to Selectable for recursive selection
-5. Integrate counter pill into App header
-6. Clean up removed components
+A single `InteractionContext` (not a separate `SelectionContext`) was introduced to manage both selection state and expand/collapse state. This unified ownership simplifies the surface area and avoids two separate providers. The context is backed by `interactionReducer.js`, a pure event-driven reducer.
 
----
+`expandedContainerIds` is persisted to `localStorage` via the context (`expandedContainers:v1` key). `selectedIds` is ephemeral (resets on reload).
 
-## Phase 1: Selection State Infrastructure
+### Key Files
 
-### Overview
-Create the foundational state management and hooks needed for the new selection system.
+| File | Role |
+|------|------|
+| `contexts/InteractionContext.jsx` | Provider + `useInteraction()` hook. Exposes UI-facing functions and selectors. Persists `expandedContainerIds` to localStorage. |
+| `reducers/interactionReducer.js` | Pure reducer: all state transitions. Owns suppression latch. |
+| `hooks/useLongPress.js` | Pointer-event long press detection (pointer events, not touch/mouse). Cancels on move > 10px. |
+| `components/Selectable.jsx` | Wrapper: attaches long-press handlers, dispatches to interaction layer, renders checkmark for leaf items. |
+| `components/SelectionCounterPill.jsx` | Header pill: reads `selectedIds.size` and `clearSelection` from context. |
+| `components/FoldableContainer.jsx` | Calls `containerShortPress(id)` on click; calls `setExpanded(id, false)` on mount when `defaultFolded`. |
+| `lib/interactionConstants.js` | Shared constants: `LONG_PRESS_THRESHOLD_MS = 500`, `POINTER_MOVE_THRESHOLD_PX = 10`. |
 
-### Changes Required:
+### Suppression Latch
 
-#### 1. SelectionContext Provider
-**File**: `client/src/contexts/SelectionContext.jsx` (new file)
-**Changes**: Create context with selection state and actions
+Long-press fires first; the subsequent pointer-up generates a click event that would otherwise trigger a short press. The reducer sets a time-windowed latch (800ms) on the target ID after every long press. The short press handler consumes and clears the latch, so the open/toggle action is suppressed.
 
-```jsx
-// State shape:
-// - selectedIds: Set<string>
-// - isSelectMode: boolean (derived: selectedIds.size > 0)
+### Container vs. Item Selection
 
-// Actions:
-// - toggle(id) - add if not present, remove if present
-// - selectMany(ids[]) - add multiple IDs (for recursive selection)
-// - clear() - clear all, exit select mode
+`Selectable` determines its role via `isParent = descendantIds.length > 0`. Containers (parent selectables) dispatch `containerLongPress(id, descendantIds)` — which toggles all their direct article leaf descendants — and never show a checkmark overlay themselves. Only leaf articles (`isParent = false`) show the checkmark and ring.
 
-// localStorage sync on selectedIds change
-```
+### Wiring: Short Press Returns a Decision
 
-#### 2. useLongPress Hook
-**File**: `client/src/hooks/useLongPress.js` (new file)
-**Changes**: Create hook for long-press detection on touch and mouse
+`itemShortPress(itemId)` in the context uses a `dispatchWithDecision` pattern: it runs the reducer synchronously to get `decision.shouldOpenItem`, then dispatches the resulting state via `REPLACE_STATE`. This lets `ArticleCard` act on the decision immediately (e.g., open the TLDR overlay) without a re-render round-trip.
 
-```jsx
-// Parameters: onLongPress callback, options { threshold: 500, disabled: false }
-// Returns: { onTouchStart, onTouchEnd, onTouchMove, onMouseDown, onMouseUp, onMouseLeave }
-// Behavior:
-// - Start timer on touchstart/mousedown
-// - Clear timer on touchend/mouseup/mouseleave
-// - Clear timer on touchmove if moved > 10px (prevents scroll triggering long-press)
-// - Fire callback after threshold
-```
+### Disabled IDs
 
-#### 3. SelectionCounterPill Component
-**File**: `client/src/components/SelectionCounterPill.jsx` (new file)
-**Changes**: Create the "✕ N" pill for the header
+`ArticleCard` calls `registerDisabled(componentId, isRemoved)` in a `useEffect`. The reducer removes disabled IDs from `selectedIds` if they become disabled mid-session. `Selectable` also receives `disabled={isRemoved}`, which prevents `useLongPress` from firing on removed cards.
 
-```jsx
-// Consumes SelectionContext
-// Renders: black pill with X icon + count
-// X button calls clear()
-// Only renders when isSelectMode is true
-```
+### Swipe Conflict
 
-### Success Criteria:
+`ArticleCard` sets `swipeEnabled = canDrag && !isSelectMode`. When `isSelectMode` is true, the Framer Motion `drag` prop and `dragListener` are disabled.
 
-#### Automated Verification:
-- [ ] `cd client && npm run lint` passes
-- [ ] `cd client && npm run build` succeeds
+### ID Formats
 
-#### Manual Verification:
-- [ ] Context can be imported and provides expected shape
-- [ ] useLongPress fires callback after holding 500ms
-- [ ] SelectionCounterPill renders count correctly when given selected IDs
-
----
-
-## Phase 2: Transform Selectable Component
-
-### Overview
-Rework Selectable from render-props-for-menu to long-press-selection-wrapper with visual states.
-
-### Changes Required:
-
-#### 1. Rework Selectable.jsx
-**File**: `client/src/components/Selectable.jsx`
-**Changes**: Complete rewrite
-
-```jsx
-// New props: id, title (keep), descendantIds (new, optional array)
-// No more render props - just wraps children directly
-
-// Behavior:
-// - useLongPress to detect long-press → toggle selection (self + descendantIds if present)
-// - In select mode: onClick → toggle selection
-// - Not in select mode: onClick → pass through (let child handle)
-
-// Visual rendering:
-// - Wrap children in relative container
-// - When selected: add ring-4 ring-slate-300 border
-// - When selected: render absolute-positioned checkmark (top-left, brand-500 bg, white check icon)
-
-// Skip long-press if disabled prop is true (for removed cards)
-```
-
-#### 2. CSS for Selection Visuals
-**File**: `client/src/index.css`
-**Changes**: Add selection-related styles (checkmark animation)
-
-```css
-// @keyframes check-enter - scale-up spring animation for checkmark
-// @utility animate-check-enter
-```
-
-### Success Criteria:
-
-#### Automated Verification:
-- [ ] `cd client && npm run lint` passes
-- [ ] `cd client && npm run build` succeeds
-
-#### Manual Verification:
-- [ ] Long-press on wrapped component triggers selection
-- [ ] Selected component shows grey border and checkmark
-- [ ] Tap in select mode toggles selection
-- [ ] Tap outside select mode passes through to child onClick
-
----
-
-## Phase 3: Integrate & Clean Up
-
-### Overview
-Wire up all components, handle gesture conflicts, add counter to header, remove old components.
-
-### Changes Required:
-
-#### 1. Wrap App with SelectionProvider
-**File**: `client/src/App.jsx`
-**Changes**: Wrap app content with SelectionProvider, add SelectionCounterPill to header
-
-```jsx
-// Import SelectionProvider, SelectionCounterPill
-// Wrap return content with <SelectionProvider>
-// Add <SelectionCounterPill /> in header area (right end)
-```
-
-#### 2. Update CalendarDay
-**File**: `client/src/components/CalendarDay.jsx`
-**Changes**: Compute descendantIds from newsletters data, pass to Selectable
-
-```jsx
-// descendantIds = all article URLs from all newsletters in this calendar day
-// Flatten: newsletters → sections → articles → article.url → `article-${url}`
-// Selectable no longer uses render props, just wraps FoldableContainer
-// Remove rightContent prop from FoldableContainer (no more menu button)
-```
-
-#### 3. Update NewsletterDay
-**File**: `client/src/components/NewsletterDay.jsx`
-**Changes**: Compute descendantIds for NewsletterDay and Section, pass to Selectable
-
-```jsx
-// NewsletterDay descendantIds = all article URLs from all sections
-// Section descendantIds = all article URLs in that section
-// Remove rightContent from FoldableContainer
-```
-
-#### 4. Update ArticleCard
-**File**: `client/src/components/ArticleCard.jsx`
-**Changes**: Disable swipe in select mode, pass disabled to Selectable for removed cards
-
-```jsx
-// Import useSelection context
-// canDrag = !isRemoved && !stateLoading && !isSelectMode
-// Selectable disabled={isRemoved} (no long-press on removed)
-// Selectable has no descendantIds (articles are leaf nodes)
-// Remove menuButton from render, remove openMenu from ZenModeOverlay
-```
-
-#### 5. Update FoldableContainer
-**File**: `client/src/components/FoldableContainer.jsx`
-**Changes**: Remove rightContent prop (no longer needed)
-
-```jsx
-// Remove rightContent prop and its rendering
-// Simplify header layout
-```
-
-#### 6. Delete Obsolete Files
-**Files to delete**:
-- `client/src/components/ThreeDotMenuButton.jsx`
-- `client/src/components/BottomSheet.jsx`
-
-#### 7. Clean Up CSS
-**File**: `client/src/index.css`
-**Changes**: Remove sheet-related animations
-
-```css
-// Remove: @keyframes sheet-enter
-// Remove: @keyframes sheet-backdrop-enter
-// Remove: @utility animate-sheet-enter
-// Remove: @utility animate-sheet-backdrop
-```
-
-### Success Criteria:
-
-#### Automated Verification:
-- [ ] `cd client && npm run lint` passes
-- [ ] `cd client && npm run build` succeeds
-- [ ] No import errors (deleted files not referenced)
-
-#### Manual Verification:
-- [ ] Long-press on ArticleCard enters select mode, shows styling, counter appears in header
-- [ ] Long-press on Section selects all articles in section
-- [ ] Long-press on NewsletterDay selects all articles in newsletter
-- [ ] Long-press on CalendarDay selects all articles in that day
-- [ ] Tap in select mode toggles individual cards
-- [ ] Tap "✕" clears selection and exits select mode
-- [ ] Swipe-to-remove does NOT work while in select mode
-- [ ] Long-press does NOT work on removed cards
-- [ ] Normal tap on card (not in select mode) still opens TLDR
-- [ ] FoldableContainer fold/unfold still works
-
----
-
-## Testing Strategy
-
-### Unit Tests:
-- None required (UI-only feature, no complex logic)
-
-### Integration Tests:
-- None required
-
-### Manual Testing Steps:
-1. Load app with newsletter data
-2. Long-press an ArticleCard → verify enters select mode, card selected, counter shows "✕ 1"
-3. Tap another ArticleCard → verify selected, counter shows "✕ 2"
-4. Tap a selected card → verify deselected, counter shows "✕ 1"
-5. Tap "✕" in counter → verify all cleared, counter disappears
-6. Long-press a Section header → verify all articles in section selected
-7. Long-press a NewsletterDay header → verify all articles in newsletter selected
-8. Long-press a CalendarDay header → verify all articles in that day selected
-9. While in select mode, try to swipe an ArticleCard → verify swipe is disabled
-10. Mark an article as removed, try to long-press it → verify no selection
-11. While not in select mode, tap a card → verify TLDR opens normally
-12. Tap fold/unfold on any FoldableContainer → verify still works
-
-## References
-
-- Previous three-dot menu plan: `thoughts/26-01-27-add-three-dot-menu/plans/three-dot-menu-bottom-sheet.md`
-- Existing gesture hooks: `client/src/hooks/usePullToClose.js`, `client/src/hooks/useSwipeToRemove.js`
+| Component     | ID Pattern                                | Example                                    |
+|---------------|-------------------------------------------|--------------------------------------------|
+| CalendarDay   | `calendar-{date}`                         | `calendar-2026-01-28`                      |
+| NewsletterDay | `newsletter-{date}-{source_id}`           | `newsletter-2026-01-28-tldr_tech`          |
+| Section       | `section-{date}-{source_id}-{sectionKey}` | `section-2026-01-28-tldr_tech-AI`          |
+| ArticleCard   | `article-{url}`                           | `article-https://example.com/article`      |
