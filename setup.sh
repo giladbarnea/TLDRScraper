@@ -477,8 +477,7 @@ function main() {
     fi
   done
   if [[ "${#missing_env_vars[@]}" -gt 0 ]]; then
-    error "[$0] Environment variables missing: ${missing_env_vars[*]}. Stop and tell the user."
-    return 1
+    message "[WARNING] [$0] Environment variables missing: ${missing_env_vars[*]}."
   fi
 
   if [[ "$quiet" == false ]]; then
