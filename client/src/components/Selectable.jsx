@@ -1,18 +1,28 @@
 import { Check } from 'lucide-react'
-import { useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { useInteraction } from '../contexts/InteractionContext'
+import { useLongPress } from '../hooks/useLongPress'
 
-function Selectable({ id, descendantIds = [], children }) {
-  const { isSelected } = useInteraction()
+function Selectable({ id, descendantIds = [], disabled = false, children }) {
+  const { isSelected, itemLongPress, containerLongPress } = useInteraction()
   const isParent = descendantIds.length > 0
   const selected = useMemo(() => {
     return !isParent && isSelected(id)
   }, [isParent, isSelected, id])
-  const wrapperRef = useRef(null)
+
+  const handleLongPress = () => {
+    if (isParent) containerLongPress(id, descendantIds)
+    else itemLongPress(id)
+  }
+
+  const { handlers } = useLongPress(handleLongPress, { disabled })
 
   return (
     <div
-      ref={wrapperRef}
+      onPointerDown={(e) => { e.stopPropagation(); handlers.onPointerDown(e) }}
+      onPointerMove={handlers.onPointerMove}
+      onPointerUp={handlers.onPointerUp}
+      onPointerCancel={handlers.onPointerCancel}
       data-selectable
       className="relative"
       style={{ touchAction: 'pan-y' }}
