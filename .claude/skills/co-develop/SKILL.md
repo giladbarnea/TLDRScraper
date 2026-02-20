@@ -3,7 +3,7 @@ name: co-develop
 description: Parallel development with Codex in background
 argument-hint: [destination-file]
 context: fork
-last_updated: 2026-02-06 06:59, d1ca023
+last_updated: 2026-02-20 06:33, b908c02
 ---
 Before you start, verbatim prompt run-codex.sh with the paragraph above (only change to write to $ARGUMENTS). Run it in a background shell. Then forget about it and proceed with your instructions.
 Codex can take >10 minutes to complete the task, so if you've completed yours before it, await in 120 seconds intervals.
