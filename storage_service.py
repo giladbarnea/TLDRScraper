@@ -113,3 +113,24 @@ def is_date_cached(date):
     result = supabase.table('daily_cache').select('date').eq('date', date).execute()
 
     return len(result.data) > 0
+
+
+def get_digest(digest_id):
+    """Get digest value by digest id."""
+    supabase = supabase_client.get_supabase_client()
+    result = supabase.table('digests').select('*').eq('digest_id', digest_id).execute()
+
+    if result.data:
+        return result.data[0]
+    return None
+
+
+def set_digest(digest_id, digest):
+    """Set digest value by digest id (upsert)."""
+    supabase = supabase_client.get_supabase_client()
+    result = supabase.table('digests').upsert({
+        'digest_id': digest_id,
+        'digest': digest,
+    }).execute()
+
+    return result.data[0] if result.data else None

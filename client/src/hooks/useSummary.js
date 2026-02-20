@@ -5,24 +5,9 @@ import { useEffect, useRef, useState } from 'react'
 import { logTransition, logTransitionSuccess } from '../lib/stateTransitionLogger'
 import * as summaryDataReducer from '../reducers/summaryDataReducer'
 import { useArticleState } from './useArticleState'
+import { acquireZenOverlayLock, releaseZenOverlayLock } from './useZenOverlayLock'
 
 marked.use(markedKatex({ throwOnError: false }))
-
-let zenLockOwner = null
-
-function acquireZenLock(url) {
-  if (zenLockOwner === null) {
-    zenLockOwner = url
-    return true
-  }
-  return false
-}
-
-function releaseZenLock(url) {
-  if (zenLockOwner === url) {
-    zenLockOwner = null
-  }
-}
 
 export function useSummary(date, url, type = 'summary') {
   const { article, updateArticle, isRead, markAsRead } = useArticleState(date, url)
@@ -128,7 +113,7 @@ export function useSummary(date, url, type = 'summary') {
         })
         requestTokenRef.current = null
         previousSummaryDataRef.current = null
-        if (acquireZenLock(url)) {
+        if (acquireZenOverlayLock(url)) {
           logTransition('summary-view', url, 'collapsed', 'expanded', 'summary-loaded')
           setExpanded(true)
         }
@@ -171,7 +156,7 @@ export function useSummary(date, url, type = 'summary') {
     if (isAvailable) {
       if (expanded) {
         collapse()
-      } else if (acquireZenLock(url)) {
+      } else if (acquireZenOverlayLock(url)) {
         logTransition('summary-view', url, 'collapsed', 'expanded', 'tap')
         setExpanded(true)
       }
@@ -182,13 +167,13 @@ export function useSummary(date, url, type = 'summary') {
 
   const collapse = (markAsReadOnClose = true) => {
     logTransition('summary-view', url, 'expanded', 'collapsed')
-    releaseZenLock(url)
+    releaseZenOverlayLock(url)
     setExpanded(false)
     if (markAsReadOnClose && !isRead) markAsRead()
   }
 
   const expand = () => {
-    if (acquireZenLock(url)) {
+    if (acquireZenOverlayLock(url)) {
       logTransition('summary-view', url, 'collapsed', 'expanded', 'tap')
       setExpanded(true)
     }
@@ -196,7 +181,7 @@ export function useSummary(date, url, type = 'summary') {
 
   useEffect(() => {
     return () => {
-      releaseZenLock(url)
+      releaseZenOverlayLock(url)
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
       }
