@@ -1,7 +1,7 @@
 ---
 name: client architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-02-20 06:20
+last_updated: 2026-02-20 07:27, 6cd9c58
 ---
 # Client Architecture
 
