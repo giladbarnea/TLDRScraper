@@ -116,21 +116,28 @@ def is_date_cached(date):
 
 
 def get_digest(digest_id):
-    """Get digest value by digest id."""
+    """Get digest by digest_id. Stored in the settings table under key 'digest:{digest_id}'.
+
+    Returns {'digest_id': str, 'digest': dict} or None if not found.
+    """
     supabase = supabase_client.get_supabase_client()
-    result = supabase.table('digests').select('*').eq('digest_id', digest_id).execute()
+    result = supabase.table('settings').select('value').eq('key', f'digest:{digest_id}').execute()
 
     if result.data:
-        return result.data[0]
+        return {'digest_id': digest_id, 'digest': result.data[0]['value']}
     return None
 
 
 def set_digest(digest_id, digest):
-    """Set digest value by digest id (upsert)."""
+    """Store digest by digest_id (upsert). Stored in the settings table under key 'digest:{digest_id}'.
+
+    >>> set_digest('abc123', {'digest_markdown': '...'})  # doctest: +SKIP
+    {'key': 'digest:abc123', 'value': {...}, ...}
+    """
     supabase = supabase_client.get_supabase_client()
-    result = supabase.table('digests').upsert({
-        'digest_id': digest_id,
-        'digest': digest,
+    result = supabase.table('settings').upsert({
+        'key': f'digest:{digest_id}',
+        'value': digest,
     }).execute()
 
     return result.data[0] if result.data else None
