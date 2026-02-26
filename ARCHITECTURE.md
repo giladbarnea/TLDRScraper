@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-18 16:50, 439c545
+last_updated: 2026-02-26 06:32
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -641,7 +641,7 @@ User clicks "Summary" button OR clicks article card body
   │    │         │
   │    │         └─ If summary not available: Fetch from API
   │    │              │
-  │    │              └─ window.fetch('/api/summarize-url?model=gemini-3-pro-preview', {
+  │    │              └─ window.fetch('/api/summarize-url?model=gemini-3.1-pro-preview', {
   │    │                   method: 'POST',
   │    │                   body: JSON.stringify({ url, summarize_effort })
   │    │                 })

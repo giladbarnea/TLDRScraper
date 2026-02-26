@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-20 13:24, 99f0acd
+last_updated: 2026-02-26 06:32
 ---
 # Analysis: Summarizer & Gemini Integration
 
@@ -64,7 +64,7 @@ The summarizer module provides URL-to-summary functionality with a fallback chai
 
 **_call_llm(prompt, summarize_effort=DEFAULT_SUMMARY_EFFORT, model=DEFAULT_MODEL)**
 - **API Endpoint**: `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`
-- **Model**: `gemini-3-pro-preview` (line 28)
+- **Model**: `gemini-3.1-pro-preview` (line 28)
 - **Authentication**: `x-goog-api-key` header from GEMINI_API_KEY env var
 - **Timeout**: 600 seconds (10 minutes) - line 420
 - **Request Structure** (lines 409-418):
@@ -132,7 +132,7 @@ The summarizer module provides URL-to-summary functionality with a fallback chai
 
 ## Configuration
 
-- **Models**: Default `gemini-3-pro-preview` (line 28)
+- **Models**: Default `gemini-3.1-pro-preview` (line 28)
 - **Effort Levels**: "minimal" | "low" (default) | "medium" | "high" (line 26-27)
 - **Timeouts**:
   - Scraping: 10s (curl_cffi, jina), 60s (firecrawl) - lines 66, 87, 107, 178
