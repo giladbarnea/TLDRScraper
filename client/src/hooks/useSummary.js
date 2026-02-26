@@ -3,6 +3,7 @@ import { marked } from 'marked'
 import markedKatex from 'marked-katex-extension'
 import { useEffect, useRef, useState } from 'react'
 import { logTransition, logTransitionSuccess } from '../lib/stateTransitionLogger'
+import { emitToast } from '../lib/toastBus'
 import * as summaryDataReducer from '../reducers/summaryDataReducer'
 import { useArticleState } from './useArticleState'
 
@@ -126,6 +127,7 @@ export function useSummary(date, url, type = 'summary') {
           effort: summaryEffort,
           checkedAt: new Date().toISOString(),
         })
+        emitToast({ title: article.title, url })
         requestTokenRef.current = null
         previousSummaryDataRef.current = null
       } else {
