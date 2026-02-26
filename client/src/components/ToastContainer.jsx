@@ -1,5 +1,5 @@
 import { CheckCircle } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { subscribeToToasts } from '../lib/toastBus'
 
@@ -51,7 +51,7 @@ export default function ToastContainer() {
     setToasts(prev => [...prev, { ...toast, id: `${Date.now()}-${Math.random().toString(16).slice(2)}` }])
   }), [])
 
-  const dismiss = (id) => setToasts(prev => prev.filter(t => t.id !== id))
+  const dismiss = useCallback((id) => setToasts(prev => prev.filter(t => t.id !== id)), [])
 
   if (toasts.length === 0) return null
 
