@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { subscribeToToasts } from '../lib/toastBus'
 
-const TOAST_VISIBLE_MS = 4000
-const EXIT_ANIMATION_MS = 220
+const TOAST_VISIBLE_MS = 12000
+const EXIT_ANIMATION_MS = 350
 
-function Toast({ id, title, onDismiss }) {
+function Toast({ id, title, onOpen, onDismiss }) {
   const [exiting, setExiting] = useState(false)
 
   useEffect(() => {
@@ -18,14 +18,21 @@ function Toast({ id, title, onDismiss }) {
     }
   }, [id, onDismiss])
 
+  const handleClick = () => {
+    onOpen?.()
+    onDismiss(id)
+  }
+
   return (
     <div
+      onClick={handleClick}
       className={`
         flex items-center gap-2.5
         bg-slate-800 text-white
-        px-4 py-2.5 rounded-2xl
+        px-4 py-5 rounded-2xl
         shadow-elevated
         max-w-sm w-full
+        pointer-events-auto cursor-pointer
         ${exiting ? 'animate-toast-out' : 'animate-toast-in'}
       `}
     >

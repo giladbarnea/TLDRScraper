@@ -127,7 +127,7 @@ export function useSummary(date, url, type = 'summary') {
           effort: summaryEffort,
           checkedAt: new Date().toISOString(),
         })
-        emitToast({ title: article.title, url })
+        emitToast({ title: article.title, url, onOpen: expand })
         requestTokenRef.current = null
         previousSummaryDataRef.current = null
       } else {

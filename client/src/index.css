@@ -180,9 +180,9 @@
 }
 
 @utility animate-toast-in {
-  animation: toast-slide-in 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: toast-slide-in 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @utility animate-toast-out {
-  animation: toast-slide-out 220ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: toast-slide-out 350ms cubic-bezier(0.4, 0, 1, 1) forwards;
 }
