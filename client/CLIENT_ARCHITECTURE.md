@@ -1,7 +1,7 @@
 ---
 name: client architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-02-20 07:27, 6cd9c58
+last_updated: 2026-02-26 17:04
 ---
 # Client Architecture
 
@@ -273,7 +273,6 @@ The `useSummary` hook orchestrates the data reducer and manages view state direc
   - Provides UI-facing functions (`fetch`, `toggle`, `expand`, `collapse`)
   - Dispatches to data reducer: `dispatchSummaryEvent(event)` → data transitions (persisted)
   - Manages view state: `useState(expanded)` → simple boolean for UI visibility
-  - Coordinates: successful data load → auto-expand view (if zen lock acquired)
   - Manages side effects: API fetch, zen lock, mark as read, request tokens
 
 ### Coordination examples
@@ -296,12 +295,6 @@ dispatchSummaryEvent({
   effort: 'low',
   checkedAt: new Date().toISOString()
 })
-
-// Then updates view state (if zen lock acquired):
-if (acquireZenLock(url)) {
-  logTransition('summary-view', url, 'collapsed', 'expanded', 'summary-loaded')
-  setExpanded(true)
-}
 ```
 
 **User clicks when summary available (toggle visibility):**

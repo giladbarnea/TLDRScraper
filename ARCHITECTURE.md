@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-26 06:33, c6a2935
+last_updated: 2026-02-26 17:04
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -354,8 +354,7 @@ unknown                            expanded = false
        │    │                         │
        │    ├─ dispatch               │
        │    │  SUMMARY_LOAD_SUCCEEDED │
-       │    │                         └───> expanded = true
-       │    │  summary.status = 'available'  (setExpanded(true) if zen lock acquired)
+       │    │  summary.status = 'available'
        │    │  summary.markdown = response
        │    │  summary.effort = effort
        │    │  summary.checkedAt = timestamp
@@ -373,12 +372,16 @@ unknown                            expanded = false
             │
             └─ POST /api/storage/daily/{date} → Supabase upsert
 
-available                          expanded = true
+available                          expanded = false
   │                                   │
   │                                   └─ User clicks
   │                                        ↓
-  │                                      expanded = false
-  │                                       (setExpanded(false))
+  │                                      expanded = true
+  │                                        │
+  │                                        └─ User clicks
+  │                                             ↓
+  │                                           expanded = false
+  │                                            (setExpanded(false))
   │
   └─ User aborts during loading
        ↓
@@ -395,7 +398,6 @@ available                          expanded = true
 - **useSummary hook**: Orchestrates data and view
   - Dispatches to data reducer for data transitions
   - Uses simple `useState(expanded)` for view state
-  - Coordinates: when data loads successfully → auto-expand view
   - Manages side effects: fetch, zen lock, mark as read, request tokens
 
 #### Key State Data (per article)
