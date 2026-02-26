@@ -128,10 +128,6 @@ export function useSummary(date, url, type = 'summary') {
         })
         requestTokenRef.current = null
         previousSummaryDataRef.current = null
-        if (acquireZenLock(url)) {
-          logTransition('summary-view', url, 'collapsed', 'expanded', 'summary-loaded')
-          setExpanded(true)
-        }
       } else {
         dispatchSummaryEvent(
           {
