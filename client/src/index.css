@@ -146,17 +146,17 @@
   }
   2.4% {
     transform: translate(-1.5px, 0);
-    filter: brightness(1.04) drop-shadow(-2px 0 0 hsl(0 85% 55% / 0.35)) drop-shadow(2px 0 0 hsl(210 90% 60% / 0.35));
+    filter: brightness(1.04) drop-shadow(-2px 0 0 hsl(0 85% 55% / 0.22)) drop-shadow(2px 0 0 hsl(210 90% 60% / 0.22));
     animation-timing-function: steps(1, end);
   }
   4.8% {
     transform: translate(1.5px, 0);
-    filter: brightness(1.06) drop-shadow(-2px 0 0 hsl(0 85% 55% / 0.3)) drop-shadow(2px 0 0 hsl(210 90% 60% / 0.3));
+    filter: brightness(1.06) drop-shadow(-2px 0 0 hsl(0 85% 55% / 0.19)) drop-shadow(2px 0 0 hsl(210 90% 60% / 0.19));
     animation-timing-function: steps(1, end);
   }
   7.6% {
     transform: translate(-0.8px, 0);
-    filter: brightness(1.02) drop-shadow(-1px 0 0 hsl(0 85% 55% / 0.12)) drop-shadow(1px 0 0 hsl(210 90% 60% / 0.12));
+    filter: brightness(1.02) drop-shadow(-1px 0 0 hsl(0 85% 55% / 0.08)) drop-shadow(1px 0 0 hsl(210 90% 60% / 0.08));
     animation-timing-function: ease-out;
   }
   12%, 100% {
