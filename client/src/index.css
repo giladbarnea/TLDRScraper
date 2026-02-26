@@ -135,9 +135,21 @@
   to { --border-angle: 360deg; }
 }
 
+/* Card body resonance: pulses once per two spark cycles (5s), lasting ~160ms.
+ * The peak at 1.5% (~75ms) coincides with the spark rounding its first corner — a "fast" moment.
+ * The inset glow matches the spark's color palette, creating a single cohesive visual system. */
+@keyframes card-resonate {
+  0%, 3.2%, 100% { box-shadow: var(--shadow-card); }
+  1.5% { box-shadow: var(--shadow-card), inset 0 0 20px 0 hsl(210 90% 80% / 0.35); }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   [data-summary-status="loading"]::after {
     animation: spark-orbit 2.5s linear infinite;
+  }
+
+  [data-summary-status="loading"] {
+    animation: card-resonate 5s linear infinite;
   }
 }
 
