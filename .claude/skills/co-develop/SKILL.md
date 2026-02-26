@@ -5,7 +5,7 @@ argument-hint: [destination-file]
 context: fork
 last_updated: 2026-02-20 06:33, b908c02
 ---
-Before you start, verbatim prompt run-codex.sh with the paragraph above (only change to write to $ARGUMENTS). Run it in a background shell. Then forget about it and proceed with your instructions.
+Before you start, prompt run-codex.sh with the paragraph above verbatim (keep my prompt as is; if I asked to persist results to a path, change that path when prompting Codex). Run it in a background shell. Then forget about it and proceed with your instructions.
 Codex can take >10 minutes to complete the task, so if you've completed yours before it, await in 120 seconds intervals.
 
 Then read the file it output and consider whether there's anything to take/cherry pick from it.
