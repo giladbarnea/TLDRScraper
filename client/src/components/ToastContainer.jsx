@@ -38,7 +38,7 @@ function Toast({ id, title, onOpen, onDismiss }) {
     >
       <CheckCircle size={15} className="text-brand-400 shrink-0" />
       <span className="text-sm font-medium text-white/90 truncate">
-        {title ? `Summary ready — ${title}` : 'Summary ready'}
+        {title}
       </span>
     </div>
   )
