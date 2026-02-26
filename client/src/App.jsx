@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Feed from './components/Feed'
 import ScrapeForm from './components/ScrapeForm'
 import SelectionCounterPill from './components/SelectionCounterPill'
+import ToastContainer from './components/ToastContainer'
 import { InteractionProvider } from './contexts/InteractionContext'
 import { mergeIntoCache } from './hooks/useSupabaseStorage'
 import { scrapeNewsletters } from './lib/scraper'
@@ -131,6 +132,7 @@ function App() {
 
   return (
     <InteractionProvider>
+    <ToastContainer />
     <div className="min-h-screen flex justify-center font-sans bg-slate-50 text-slate-900 selection:bg-brand-100 selection:text-brand-900">
       <div className="w-full max-w-3xl relative">
 
