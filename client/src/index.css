@@ -135,12 +135,34 @@
   to { --border-angle: 360deg; }
 }
 
-/* Card body resonance: pulses once per two spark cycles (5s), lasting ~160ms.
- * The peak at 1.5% (~75ms) coincides with the spark rounding its first corner — a "fast" moment.
- * The inset glow matches the spark's color palette, creating a single cohesive visual system. */
-@keyframes card-resonate {
-  0%, 3.2%, 100% { box-shadow: var(--shadow-card); }
-  1.5% { box-shadow: var(--shadow-card), inset 0 0 20px 0 hsl(210 90% 80% / 0.35); }
+/* Digital distortion on card content: once every two spark cycles (5s), the text briefly
+ * RGB-splits and jitters — snappy steps simulate signal interference, ease-out recovery
+ * simulates the energy wave passing through. Total visible window: ~300ms. */
+@keyframes text-distort {
+  0% {
+    transform: translate(0, 0);
+    filter: brightness(1) drop-shadow(0 0 0 transparent) drop-shadow(0 0 0 transparent);
+    animation-timing-function: steps(1, end);
+  }
+  1.2% {
+    transform: translate(-1.5px, 0);
+    filter: brightness(1.04) drop-shadow(-2px 0 0 hsl(0 85% 55% / 0.35)) drop-shadow(2px 0 0 hsl(210 90% 60% / 0.35));
+    animation-timing-function: steps(1, end);
+  }
+  2.4% {
+    transform: translate(1.5px, 0);
+    filter: brightness(1.06) drop-shadow(-2px 0 0 hsl(0 85% 55% / 0.3)) drop-shadow(2px 0 0 hsl(210 90% 60% / 0.3));
+    animation-timing-function: steps(1, end);
+  }
+  3.8% {
+    transform: translate(-0.8px, 0);
+    filter: brightness(1.02) drop-shadow(-1px 0 0 hsl(0 85% 55% / 0.12)) drop-shadow(1px 0 0 hsl(210 90% 60% / 0.12));
+    animation-timing-function: ease-out;
+  }
+  6%, 100% {
+    transform: translate(0, 0);
+    filter: brightness(1) drop-shadow(0 0 0 transparent) drop-shadow(0 0 0 transparent);
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -148,8 +170,8 @@
     animation: spark-orbit 2.5s linear infinite;
   }
 
-  [data-summary-status="loading"] {
-    animation: card-resonate 5s linear infinite;
+  [data-summary-status="loading"] > div {
+    animation: text-distort 5s linear infinite;
   }
 }
 
