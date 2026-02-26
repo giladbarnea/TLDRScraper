@@ -40,7 +40,7 @@ function main() {
     return 1
   fi
 
-  cat "$prompt_file" | gemini -m gemini-3-pro-preview --yolo -
+  cat "$prompt_file" | gemini -m gemini-3.1-pro-preview --yolo -
 }
 
 main "${@}"

@@ -27,12 +27,12 @@ SETTINGS_TEMPLATE='{
       "enabled": true,
       "maxNumTurns": 20,
       "maxTimeMinutes": 10,
-      "model": "gemini-3-pro-preview",
+      "model": "gemini-3.1-pro-preview",
       "thinkingBudget": 32768
     }
   },
   "model": {
-    "name": "gemini-3-pro-preview",
+    "name": "gemini-3.1-pro-preview",
     "summarizeToolOutput": {
       "run_shell_command": {
         "tokenBudget": 5000
