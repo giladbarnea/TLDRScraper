@@ -34,6 +34,38 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
+    let firstFrameId = 0
+    let secondFrameId = 0
+    let idleCallbackId = 0
+    let timeoutId = 0
+
+    const warmZenOverlayFont = () => {
+      document.fonts.load('1em Lora')
+    }
+
+    const scheduleWarmup = () => {
+      if ('requestIdleCallback' in window) {
+        idleCallbackId = window.requestIdleCallback(warmZenOverlayFont, { timeout: 1500 })
+        return
+      }
+      timeoutId = window.setTimeout(warmZenOverlayFont, 0)
+    }
+
+    firstFrameId = window.requestAnimationFrame(() => {
+      secondFrameId = window.requestAnimationFrame(scheduleWarmup)
+    })
+
+    return () => {
+      window.cancelAnimationFrame(firstFrameId)
+      window.cancelAnimationFrame(secondFrameId)
+      if ('cancelIdleCallback' in window && idleCallbackId) {
+        window.cancelIdleCallback(idleCallbackId)
+      }
+      window.clearTimeout(timeoutId)
+    }
+  }, [])
+
+  useEffect(() => {
     const controller = new AbortController()
     const { signal } = controller
 
