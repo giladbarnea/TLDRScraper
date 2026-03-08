@@ -20,7 +20,7 @@ export function useSwipeToRemove({ isRemoved, stateLoading, onSwipeComplete, url
 
   useEffect(() => {
     controls.start({
-      opacity: stateLoading ? 0.4 : isRemoved ? 0.5 : 1,
+      opacity: stateLoading ? 0.4 : isRemoved ? 0.72 : 1,
       filter: stateLoading || isRemoved ? 'grayscale(100%)' : 'grayscale(0%)',
       x: 0,
     })
