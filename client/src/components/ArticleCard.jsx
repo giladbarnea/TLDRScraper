@@ -298,8 +298,8 @@ function ArticleCard({ article }) {
         layout
         className={`relative ${summary.expanded && !stateLoading ? 'mb-4' : 'mb-2.5'}`}
       >
-        <div className={`absolute inset-0 rounded-xl bg-red-50 flex items-center justify-end pr-8 pointer-events-none transition-opacity ${isDragging ? 'opacity-100' : 'opacity-50'}`}>
-          <Trash2 className="text-red-400" size={20} />
+        <div className={`absolute inset-0 rounded-xl bg-slate-100 flex items-center justify-end pr-8 pointer-events-none transition-opacity ${isDragging ? 'opacity-100' : 'opacity-0'}`}>
+          <Trash2 className="text-slate-400" size={20} />
         </div>
 
         <motion.div
@@ -335,7 +335,7 @@ function ArticleCard({ article }) {
             rounded-xl border border-slate-200/60
             shadow-card
             cursor-pointer select-none
-            ${isRemoved ? 'bg-slate-50' : 'bg-white'}
+            ${isRemoved ? 'bg-slate-100/90 border-slate-200' : 'bg-white'}
             ${stateLoading ? 'pointer-events-none' : ''}
             ${summary.expanded && !stateLoading ? 'ring-1 ring-brand-200/60 shadow-elevated' : ''}
           `}
