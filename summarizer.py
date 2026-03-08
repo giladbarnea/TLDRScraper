@@ -283,9 +283,123 @@ def url_to_markdown(url: str) -> str:
     return markdown
 
 
+def _truncate_css_whitespace(css: str) -> str:
+    """Normalize CSS spacing.
+
+    >>> _truncate_css_whitespace('body {  margin: 0;   }')
+    'body { margin: 0; }'
+    """
+    return re.sub(r"\s+", " ", css).strip()
+
+
+def _extract_css_declaration_map(declaration_block: str) -> dict[str, str]:
+    """Parse a CSS declaration block into property/value pairs.
+
+    >>> _extract_css_declaration_map('font-size: 16px; line-height: 1.7;')
+    {'font-size': '16px', 'line-height': '1.7'}
+    """
+    declaration_map: dict[str, str] = {}
+    for declaration_line in declaration_block.split(';'):
+        if ':' not in declaration_line:
+            continue
+        property_name, property_value = declaration_line.split(':', 1)
+        declaration_map[property_name.strip().lower()] = property_value.strip()
+    return declaration_map
+
+
+def _classify_selector_for_style_summary(selector: str) -> str | None:
+    """Map CSS selectors to style summary buckets.
+
+    >>> _classify_selector_for_style_summary('article p')
+    'paragraph'
+    >>> _classify_selector_for_style_summary('h2')
+    'heading_2'
+    """
+    normalized_selector = selector.strip().lower()
+    normalized_selector = re.sub(r'::?[a-z-]+(?:\([^)]*\))?', '', normalized_selector)
+
+    if normalized_selector in ('body', 'html body', 'html'):
+        return 'body'
+    if normalized_selector.endswith(' h1') or normalized_selector == 'h1':
+        return 'heading_1'
+    if normalized_selector.endswith(' h2') or normalized_selector == 'h2':
+        return 'heading_2'
+    if normalized_selector.endswith(' h3') or normalized_selector == 'h3':
+        return 'heading_3'
+    if normalized_selector.endswith(' p') or normalized_selector == 'p':
+        return 'paragraph'
+
+    if any(token in normalized_selector for token in ('article', 'main', '.entry-content', '.post-content', '.content')):
+        return 'article_container'
+
+    return None
+
+
 def llm_extract_style(css: str) -> str:
-    """Extract style hints from css. This is currently a passthrough shim."""
-    return css
+    """Extract typography and whitespace style hints from CSS."""
+    if not css.strip():
+        return ''
+
+    typography_properties = {
+        'font-family',
+        'font-size',
+        'font-weight',
+        'font-style',
+        'line-height',
+        'letter-spacing',
+        'word-spacing',
+        'text-transform',
+    }
+    whitespace_properties = {
+        'margin',
+        'margin-top',
+        'margin-bottom',
+        'margin-left',
+        'margin-right',
+        'padding',
+        'padding-top',
+        'padding-bottom',
+        'padding-left',
+        'padding-right',
+        'max-width',
+        'width',
+    }
+
+    grouped_declarations = {
+        'body': {},
+        'article_container': {},
+        'heading_1': {},
+        'heading_2': {},
+        'heading_3': {},
+        'paragraph': {},
+    }
+
+    for selector_text, declaration_text in re.findall(r'([^{}]+)\{([^{}]+)\}', css):
+        declaration_map = _extract_css_declaration_map(declaration_text)
+        if not declaration_map:
+            continue
+
+        for selector in selector_text.split(','):
+            selector_group = _classify_selector_for_style_summary(selector)
+            if selector_group is None:
+                continue
+
+            for property_name, property_value in declaration_map.items():
+                if property_name in typography_properties or property_name in whitespace_properties:
+                    grouped_declarations[selector_group][property_name] = property_value
+
+    output_lines: list[str] = []
+    for selector_group, declaration_map in grouped_declarations.items():
+        if not declaration_map:
+            continue
+
+        declaration_lines = [
+            f"{property_name}: {property_value};"
+            for property_name, property_value in declaration_map.items()
+        ]
+        output_lines.append(f"{selector_group} {{ {' '.join(declaration_lines)} }}")
+
+    return _truncate_css_whitespace('\n'.join(output_lines))[:4000]
 
 
 def _extract_inline_css(html_content: str) -> str:
@@ -324,11 +438,7 @@ def extract_article_css_from_page(page_url: str, html_content: str) -> str:
     stylesheet_chunks: list[str] = []
     for stylesheet_url in stylesheet_urls:
         try:
-            response = requests.get(
-                stylesheet_url,
-                timeout=10,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
-            )
+            response = scrape_url(stylesheet_url, timeout=10)
             response.raise_for_status()
             stylesheet_chunks.append(response.text)
         except Exception as error:
