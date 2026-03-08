@@ -27,22 +27,26 @@ function Toast({ id, title, onOpen, onDismiss }) {
     <div
       onClick={handleClick}
       className={`
+        relative overflow-hidden
         flex items-center gap-3
-        bg-white/95 text-slate-900
+        bg-gradient-to-r from-brand-50/95 to-white/95 text-slate-900
         px-4 py-3.5 rounded-2xl
-        border border-slate-200/80
+        border border-brand-200/70
+        ring-1 ring-brand-100/80
         shadow-elevated backdrop-blur-sm
         max-w-md w-full
         pointer-events-auto cursor-pointer
         ${exiting ? 'animate-toast-out' : 'animate-toast-in'}
       `}
     >
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+      <span className="absolute inset-y-0 left-0 w-1.5 bg-brand-300/80" />
+      <span className="ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700">
         <CheckCircle size={16} />
       </span>
-      <span className="text-base font-semibold text-slate-800 truncate">
-        {title}
-      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-700/90">Summary ready</p>
+        <p className="text-base font-semibold text-slate-800 truncate">{title}</p>
+      </div>
     </div>
   )
 }
