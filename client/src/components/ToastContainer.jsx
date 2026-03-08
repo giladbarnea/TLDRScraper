@@ -27,17 +27,20 @@ function Toast({ id, title, onOpen, onDismiss }) {
     <div
       onClick={handleClick}
       className={`
-        flex items-center gap-2.5
-        bg-slate-800 text-white
-        px-4 py-5 rounded-2xl
-        shadow-elevated
-        max-w-sm w-full
+        flex items-center gap-3
+        bg-white/95 text-slate-900
+        px-4 py-3.5 rounded-2xl
+        border border-slate-200/80
+        shadow-elevated backdrop-blur-sm
+        max-w-md w-full
         pointer-events-auto cursor-pointer
         ${exiting ? 'animate-toast-out' : 'animate-toast-in'}
       `}
     >
-      <CheckCircle size={15} className="text-brand-400 shrink-0" />
-      <span className="text-sm font-medium text-white/90 truncate">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+        <CheckCircle size={16} />
+      </span>
+      <span className="text-base font-semibold text-slate-800 truncate">
         {title}
       </span>
     </div>
@@ -48,7 +51,10 @@ export default function ToastContainer() {
   const [toasts, setToasts] = useState([])
 
   useEffect(() => subscribeToToasts((toast) => {
-    setToasts(prev => [...prev, { ...toast, id: `${Date.now()}-${Math.random().toString(16).slice(2)}` }])
+    setToasts(previousToasts => {
+      const nextToast = { ...toast, id: `${Date.now()}-${Math.random().toString(16).slice(2)}` }
+      return [...previousToasts, nextToast].slice(-2)
+    })
   }), [])
 
   const dismiss = useCallback((id) => setToasts(prev => prev.filter(t => t.id !== id)), [])
@@ -56,7 +62,7 @@ export default function ToastContainer() {
   if (toasts.length === 0) return null
 
   return createPortal(
-    <div className="fixed top-4 left-0 right-0 z-[300] flex flex-col items-center gap-2 pointer-events-none px-4">
+    <div className="fixed top-4 left-0 right-0 z-[300] flex flex-col items-center gap-2.5 pointer-events-none px-4">
       {toasts.map(toast => (
         <Toast key={toast.id} {...toast} onDismiss={dismiss} />
       ))}
