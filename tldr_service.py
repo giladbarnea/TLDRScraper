@@ -18,7 +18,7 @@ from summarizer import (
     DEFAULT_SUMMARY_EFFORT,
     _fetch_summary_prompt,
     normalize_summarize_effort,
-    summarize_url,
+    summarize_url_with_css,
 )
 
 logger = logging.getLogger("tldr_service")
@@ -324,7 +324,7 @@ def summarize_url_content(
     normalized_effort = normalize_summarize_effort(summarize_effort)
 
     try:
-        summary_markdown = summarize_url(
+        summary_with_css = summarize_url_with_css(
             canonical_url,
             summarize_effort=normalized_effort,
             model=model,
@@ -338,7 +338,8 @@ def summarize_url_content(
         raise
 
     return {
-        "summary_markdown": summary_markdown,
+        "summary_markdown": summary_with_css["summary_markdown"],
+        "article_css": summary_with_css["article_css"],
         "canonical_url": canonical_url,
         "summarize_effort": normalized_effort,
     }

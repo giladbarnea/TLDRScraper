@@ -3,13 +3,13 @@ import json
 import re
 from requests.models import Response
 from typing import Optional
+import urllib.parse as urlparse
 
 import requests
 from curl_cffi import requests as curl_requests
 import html2text
 
 import util
-import urllib.parse as urlparse
 
 logger = logging.getLogger("summarizer")
 
@@ -283,6 +283,65 @@ def url_to_markdown(url: str) -> str:
     return markdown
 
 
+def llm_extract_style(css: str) -> str:
+    """Extract style hints from css. This is currently a passthrough shim."""
+    return css
+
+
+def _extract_inline_css(html_content: str) -> str:
+    """Extract CSS text from <style> tags.
+
+    >>> _extract_inline_css('<style>body { margin: 0; }</style>')
+    'body { margin: 0; }'
+    """
+    style_blocks = re.findall(
+        r"<style[^>]*>(.*?)</style>",
+        html_content,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    return "\n\n".join(block.strip() for block in style_blocks if block.strip())
+
+
+def _extract_stylesheet_urls(page_url: str, html_content: str) -> list[str]:
+    """Extract stylesheet URLs from a page HTML.
+
+    >>> _extract_stylesheet_urls('https://example.com/page', '<link rel="stylesheet" href="/app.css">')
+    ['https://example.com/app.css']
+    """
+    link_hrefs = re.findall(
+        r"<link[^>]*rel=[\"'][^\"']*stylesheet[^\"']*[\"'][^>]*href=[\"']([^\"']+)[\"'][^>]*>",
+        html_content,
+        flags=re.IGNORECASE,
+    )
+    return [urlparse.urljoin(page_url, href) for href in link_hrefs]
+
+
+def extract_article_css_from_page(page_url: str, html_content: str) -> str:
+    """Extract the page CSS and pass it through style extraction shim."""
+    inline_css = _extract_inline_css(html_content)
+    stylesheet_urls = _extract_stylesheet_urls(page_url, html_content)
+
+    stylesheet_chunks: list[str] = []
+    for stylesheet_url in stylesheet_urls:
+        try:
+            response = requests.get(
+                stylesheet_url,
+                timeout=10,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; TLDR-Newsletter/1.0)"},
+            )
+            response.raise_for_status()
+            stylesheet_chunks.append(response.text)
+        except Exception as error:
+            logger.warning(
+                "Failed to fetch stylesheet url=%s error=%s",
+                stylesheet_url,
+                repr(error),
+            )
+
+    combined_css = "\n\n".join([inline_css, *stylesheet_chunks]).strip()
+    return llm_extract_style(combined_css)
+
+
 def summarize_url(url: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, model: str = DEFAULT_MODEL) -> str:
     """Get markdown content from URL and create a summary with LLM.
 
@@ -302,6 +361,33 @@ def summarize_url(url: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, mode
     summary = _call_llm(prompt, summarize_effort=effort, model=model)
 
     return summary
+
+
+def summarize_url_with_css(
+    url: str,
+    summarize_effort: str = DEFAULT_SUMMARY_EFFORT,
+    model: str = DEFAULT_MODEL,
+) -> dict[str, str]:
+    """Create summary markdown and extract article css from the same fetched response."""
+    effort = normalize_summarize_effort(summarize_effort)
+
+    if _is_github_repo_url(url):
+        markdown = _fetch_github_readme(url)
+        article_css = ""
+    else:
+        response = scrape_url(url)
+        html_content = response.text
+        markdown = h.handle(html_content)
+        article_css = extract_article_css_from_page(url, html_content)
+
+    template = _fetch_summary_prompt()
+    prompt = f"{template}\n\n<tldr this>\n{markdown}/n</tldr this>"
+    summary = _call_llm(prompt, summarize_effort=effort, model=model)
+
+    return {
+        "summary_markdown": summary,
+        "article_css": article_css,
+    }
 
 
 def _fetch_prompt(
