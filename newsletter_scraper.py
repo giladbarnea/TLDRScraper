@@ -100,6 +100,9 @@ def _get_adapter_for_source(config):
     elif config.source_id == "lucumr":
         from adapters.lucumr_adapter import LucumrAdapter
         return LucumrAdapter(config)
+    elif config.source_id == "trendshift":
+        from adapters.trendshift_adapter import TrendshiftAdapter
+        return TrendshiftAdapter(config)
     else:
         raise ValueError(f"No adapter registered for source: {config.source_id}")
 
