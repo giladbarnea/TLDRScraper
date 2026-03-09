@@ -5,6 +5,7 @@ from datetime import datetime
 from newsletter_config import NEWSLETTER_CONFIGS
 from adapters.tldr_adapter import TLDRAdapter
 from newsletter_merger import build_markdown_output
+import storage_service
 
 import util
 
@@ -286,8 +287,22 @@ def scrape_single_source_for_date(
         adapter = _get_adapter_for_source(config)
         scrape_result = adapter.scrape_date(date, excluded_urls)
 
+        history_deduplicated_urls: set[str] | None = None
+        if config.deduplicate_across_history:
+            canonical_urls = [
+                util.canonicalize_url(article["url"])
+                for article in scrape_result.get("articles", [])
+            ]
+            history_deduplicated_urls = storage_service.filter_new_urls_for_history_dedup(
+                source_id=config.source_id,
+                first_seen_date=date_str,
+                canonical_urls=canonical_urls,
+            )
+
         for article in scrape_result.get("articles", []):
             canonical_url = util.canonicalize_url(article["url"])
+            if history_deduplicated_urls is not None and canonical_url not in history_deduplicated_urls:
+                continue
             article["url"] = canonical_url
             result["articles"].append(article)
 
