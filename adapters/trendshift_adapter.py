@@ -21,12 +21,7 @@ class TrendshiftAdapter(NewsletterAdapter):
         target_date = util.format_date_for_url(date)
         excluded_set = set(excluded_urls)
         category = self.config.category_display_names["daily_explore"]
-
-        try:
-            scraped_articles = self._scrape_daily_explore(target_date)
-        except Exception as error:
-            logger.error(f"Failed Trendshift scrape for {target_date}: {error}", exc_info=True)
-            return self._normalize_response([], [])
+        scraped_articles = self._scrape_daily_explore(target_date)
 
         articles = []
         for article in scraped_articles:
