@@ -41,6 +41,7 @@ def summarize_url(
     payload: dict[str, Optional[str]] = {
         "success": True,
         "summary_markdown": result["summary_markdown"],
+        "article_css": result["article_css"],
     }
 
     canonical_url = result.get("canonical_url")
@@ -52,5 +53,4 @@ def summarize_url(
         payload["summarize_effort"] = summarize_effort_value
 
     return payload
-
 

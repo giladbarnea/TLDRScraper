@@ -47,6 +47,7 @@ export function reduceSummaryData(summaryData, event) {
           markdown: event.markdown,
           effort: event.effort,
           checkedAt: event.checkedAt,
+          articleCss: event.articleCss,
           errorMessage: null,
         },
       }
@@ -66,6 +67,7 @@ export function reduceSummaryData(summaryData, event) {
           markdown: '',
           errorMessage: null,
           checkedAt: null,
+          articleCss: '',
         },
       }
     case SummaryDataEventType.SUMMARY_ROLLBACK:
@@ -76,6 +78,7 @@ export function reduceSummaryData(summaryData, event) {
           markdown: '',
           errorMessage: null,
           checkedAt: null,
+          articleCss: '',
         },
       }
     default:

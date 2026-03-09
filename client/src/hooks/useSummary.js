@@ -36,6 +36,7 @@ export function useSummary(date, url, type = 'summary') {
   const data = article?.[type] || null
   const status = summaryDataReducer.getSummaryDataStatus(data)
   const markdown = data?.markdown || ''
+  const articleCss = data?.articleCss || ''
 
   const html = (() => {
     if (!markdown) return ''
@@ -126,6 +127,7 @@ export function useSummary(date, url, type = 'summary') {
           markdown: result.summary_markdown,
           effort: summaryEffort,
           checkedAt: new Date().toISOString(),
+          articleCss: result.article_css,
         })
         emitToast({ title: article.title, url, onOpen: expand })
         requestTokenRef.current = null
@@ -205,6 +207,7 @@ export function useSummary(date, url, type = 'summary') {
     data,
     status,
     markdown,
+    articleCss,
     html,
     errorMessage,
     loading: isLoading,

@@ -1,15 +1,16 @@
 import logging
 import json
 import re
+import dataclasses
 from requests.models import Response
 from typing import Optional
+import urllib.parse as urlparse
 
 import requests
 from curl_cffi import requests as curl_requests
 import html2text
 
 import util
-import urllib.parse as urlparse
 
 logger = logging.getLogger("summarizer")
 
@@ -283,6 +284,253 @@ def url_to_markdown(url: str) -> str:
     return markdown
 
 
+@dataclasses.dataclass(frozen=True)
+class SummaryOverlayStyleSchema:
+    """Contract for summary overlay style payload fields."""
+
+    overlay_panel: str
+    overlay_content_wrapper: str
+    overlay_content_max_width: str
+    prose_root: str
+    paragraph: str
+    heading_1: str
+    heading_2: str
+    heading_3: str
+    blockquote: str
+    strong: str
+
+
+def _truncate_css_whitespace(css: str) -> str:
+    """Normalize CSS spacing.
+
+    >>> _truncate_css_whitespace('font-size: 16px;   line-height: 1.7;')
+    'font-size: 16px; line-height: 1.7;'
+    """
+    return re.sub(r"\s+", " ", css).strip()
+
+
+def _extract_css_declaration_map(declaration_block: str) -> dict[str, str]:
+    """Parse a CSS declaration block into property/value pairs.
+
+    >>> _extract_css_declaration_map('font-size: 16px; line-height: 1.7;')
+    {'font-size': '16px', 'line-height': '1.7'}
+    """
+    declaration_map: dict[str, str] = {}
+    for declaration_line in declaration_block.split(';'):
+        if ':' not in declaration_line:
+            continue
+        property_name, property_value = declaration_line.split(':', 1)
+        declaration_map[property_name.strip().lower()] = property_value.strip()
+    return declaration_map
+
+
+def _schema_to_typescript_shape(schema: type[SummaryOverlayStyleSchema]) -> dict[str, str]:
+    """Convert schema dataclass to a barebones TypeScript-like dictionary.
+
+    >>> _schema_to_typescript_shape(SummaryOverlayStyleSchema)['paragraph']
+    'string'
+    """
+    return {field.name: 'string' for field in dataclasses.fields(schema)}
+
+
+def _build_style_extraction_prompt(css: str, schema: type[SummaryOverlayStyleSchema]) -> str:
+    """Build extraction prompt with schema contract and output constraints."""
+    typescript_shape = _schema_to_typescript_shape(schema)
+    return (
+        "Translate raw webpage CSS into summary overlay style payload. "
+        "Return strict JSON with all schema keys present and string values only. "
+        "Allowed properties: font-family, font-size, font-weight, font-style, line-height, "
+        "letter-spacing, word-spacing, text-transform, margin, margin-top, margin-bottom, "
+        "margin-left, margin-right, padding, padding-top, padding-bottom, padding-left, "
+        "padding-right, max-width, width. "
+        "Allowed values: simple numeric or keyword CSS only (px, rem, em, %, unitless numbers, "
+        "inherit, normal, bold, lighter, bolder, uppercase, lowercase, capitalize). "
+        "Disallow engineered values like calc(), var(), url(), clamp(), min(), max(), attr(), !important. "
+        f"Schema: {json.dumps(typescript_shape, sort_keys=True)}\n"
+        f"CSS input:\n{css}"
+    )
+
+
+def _classify_selector_for_style_summary(selector: str) -> str | None:
+    """Map CSS selectors to style summary buckets.
+
+    >>> _classify_selector_for_style_summary('article p')
+    'paragraph'
+    >>> _classify_selector_for_style_summary('h2')
+    'heading_2'
+    """
+    normalized_selector = selector.strip().lower()
+    normalized_selector = re.sub(r'::?[a-z-]+(?:\([^)]*\))?', '', normalized_selector)
+
+    if normalized_selector in ('body', 'html body', 'html'):
+        return 'prose_root'
+    if normalized_selector.endswith(' h1') or normalized_selector == 'h1':
+        return 'heading_1'
+    if normalized_selector.endswith(' h2') or normalized_selector == 'h2':
+        return 'heading_2'
+    if normalized_selector.endswith(' h3') or normalized_selector == 'h3':
+        return 'heading_3'
+    if normalized_selector.endswith(' p') or normalized_selector == 'p':
+        return 'paragraph'
+    if normalized_selector.endswith(' blockquote') or normalized_selector == 'blockquote':
+        return 'blockquote'
+    if normalized_selector.endswith(' strong') or normalized_selector == 'strong':
+        return 'strong'
+
+    if any(token in normalized_selector for token in ('article', 'main', '.entry-content', '.post-content', '.content')):
+        return 'overlay_content_max_width'
+
+    return None
+
+
+def _is_simple_css_value(property_value: str) -> bool:
+    """Validate CSS value against a simple non-engineered policy.
+
+    >>> _is_simple_css_value('1.6rem')
+    True
+    >>> _is_simple_css_value('calc(100% - 10px)')
+    False
+    """
+    if not property_value:
+        return False
+
+    lowered_value = property_value.lower()
+    blocked_tokens = ('calc(', 'var(', 'url(', 'clamp(', 'min(', 'max(', 'attr(', '!important')
+    if any(token in lowered_value for token in blocked_tokens):
+        return False
+
+    simple_pattern = r"^[^{};]+$"
+    return bool(re.match(simple_pattern, property_value))
+
+
+def llm_extract_style(css: str, schema: type[SummaryOverlayStyleSchema] = SummaryOverlayStyleSchema) -> str:
+    """Extract typography and whitespace style hints under a schema contract."""
+    if not css.strip():
+        empty_payload = {field_name: '' for field_name in _schema_to_typescript_shape(schema)}
+        return json.dumps(empty_payload, separators=(',', ':'))
+
+    extraction_prompt = _build_style_extraction_prompt(css, schema)
+    logger.info("Style extraction contract prepared schema=%s prompt_chars=%s", schema.__name__, len(extraction_prompt))
+
+    allowed_properties = {
+        'font-family',
+        'font-size',
+        'font-weight',
+        'font-style',
+        'line-height',
+        'letter-spacing',
+        'word-spacing',
+        'text-transform',
+        'margin',
+        'margin-top',
+        'margin-bottom',
+        'margin-left',
+        'margin-right',
+        'padding',
+        'padding-top',
+        'padding-bottom',
+        'padding-left',
+        'padding-right',
+        'max-width',
+        'width',
+    }
+
+    schema_field_names = list(_schema_to_typescript_shape(schema).keys())
+    grouped_declarations = {field_name: {} for field_name in schema_field_names}
+
+    for selector_text, declaration_text in re.findall(r'([^{}]+)\{([^{}]+)\}', css):
+        declaration_map = _extract_css_declaration_map(declaration_text)
+        if not declaration_map:
+            continue
+
+        for selector in selector_text.split(','):
+            selector_group = _classify_selector_for_style_summary(selector)
+            if selector_group is None or selector_group not in grouped_declarations:
+                continue
+
+            for property_name, property_value in declaration_map.items():
+                if property_name not in allowed_properties:
+                    continue
+                if not _is_simple_css_value(property_value):
+                    continue
+                grouped_declarations[selector_group][property_name] = property_value
+
+    for default_field_name in ('overlay_panel', 'overlay_content_wrapper', 'prose_root'):
+        if grouped_declarations.get(default_field_name):
+            continue
+        grouped_declarations[default_field_name] = {
+            'font-family': 'inherit',
+            'font-size': 'inherit',
+            'line-height': 'inherit',
+            'margin': '0',
+            'padding': '0',
+        }
+
+    payload: dict[str, str] = {}
+    for field_name in schema_field_names:
+        declaration_map = grouped_declarations.get(field_name, {})
+        if not declaration_map:
+            payload[field_name] = ''
+            continue
+        declaration_text = ' '.join(
+            f"{property_name}: {property_value};"
+            for property_name, property_value in declaration_map.items()
+        )
+        payload[field_name] = _truncate_css_whitespace(declaration_text)
+
+    return json.dumps(payload, separators=(',', ':'))
+
+
+def _extract_inline_css(html_content: str) -> str:
+    """Extract CSS text from <style> tags.
+
+    >>> _extract_inline_css('<style>body { margin: 0; }</style>')
+    'body { margin: 0; }'
+    """
+    style_blocks = re.findall(
+        r"<style[^>]*>(.*?)</style>",
+        html_content,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    return "\n\n".join(block.strip() for block in style_blocks if block.strip())
+
+
+def _extract_stylesheet_urls(page_url: str, html_content: str) -> list[str]:
+    """Extract stylesheet URLs from a page HTML.
+
+    >>> _extract_stylesheet_urls('https://example.com/page', '<link rel="stylesheet" href="/app.css">')
+    ['https://example.com/app.css']
+    """
+    link_hrefs = re.findall(
+        r"<link[^>]*rel=[\"'][^\"']*stylesheet[^\"']*[\"'][^>]*href=[\"']([^\"']+)[\"'][^>]*>",
+        html_content,
+        flags=re.IGNORECASE,
+    )
+    return [urlparse.urljoin(page_url, href) for href in link_hrefs]
+
+
+def extract_article_css_from_page(page_url: str, html_content: str) -> str:
+    """Extract the page CSS and pass it through style extraction shim."""
+    inline_css = _extract_inline_css(html_content)
+    stylesheet_urls = _extract_stylesheet_urls(page_url, html_content)
+
+    stylesheet_chunks: list[str] = []
+    for stylesheet_url in stylesheet_urls:
+        try:
+            response = scrape_url(stylesheet_url, timeout=10)
+            response.raise_for_status()
+            stylesheet_chunks.append(response.text)
+        except Exception as error:
+            logger.warning(
+                "Failed to fetch stylesheet url=%s error=%s",
+                stylesheet_url,
+                repr(error),
+            )
+
+    combined_css = "\n\n".join([inline_css, *stylesheet_chunks]).strip()
+    return llm_extract_style(combined_css)
+
+
 def summarize_url(url: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, model: str = DEFAULT_MODEL) -> str:
     """Get markdown content from URL and create a summary with LLM.
 
@@ -302,6 +550,33 @@ def summarize_url(url: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, mode
     summary = _call_llm(prompt, summarize_effort=effort, model=model)
 
     return summary
+
+
+def summarize_url_with_css(
+    url: str,
+    summarize_effort: str = DEFAULT_SUMMARY_EFFORT,
+    model: str = DEFAULT_MODEL,
+) -> dict[str, str]:
+    """Create summary markdown and extract article css from the same fetched response."""
+    effort = normalize_summarize_effort(summarize_effort)
+
+    if _is_github_repo_url(url):
+        markdown = _fetch_github_readme(url)
+        article_css = ""
+    else:
+        response = scrape_url(url)
+        html_content = response.text
+        markdown = h.handle(html_content)
+        article_css = extract_article_css_from_page(url, html_content)
+
+    template = _fetch_summary_prompt()
+    prompt = f"{template}\n\n<tldr this>\n{markdown}/n</tldr this>"
+    summary = _call_llm(prompt, summarize_effort=effort, model=model)
+
+    return {
+        "summary_markdown": summary,
+        "article_css": article_css,
+    }
 
 
 def _fetch_prompt(
