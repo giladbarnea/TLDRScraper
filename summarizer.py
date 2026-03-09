@@ -1,6 +1,7 @@
 import logging
 import json
 import re
+import dataclasses
 from requests.models import Response
 from typing import Optional
 import urllib.parse as urlparse
@@ -283,11 +284,27 @@ def url_to_markdown(url: str) -> str:
     return markdown
 
 
+@dataclasses.dataclass(frozen=True)
+class SummaryOverlayStyleSchema:
+    """Contract for summary overlay style payload fields."""
+
+    overlay_panel: str
+    overlay_content_wrapper: str
+    overlay_content_max_width: str
+    prose_root: str
+    paragraph: str
+    heading_1: str
+    heading_2: str
+    heading_3: str
+    blockquote: str
+    strong: str
+
+
 def _truncate_css_whitespace(css: str) -> str:
     """Normalize CSS spacing.
 
-    >>> _truncate_css_whitespace('body {  margin: 0;   }')
-    'body { margin: 0; }'
+    >>> _truncate_css_whitespace('font-size: 16px;   line-height: 1.7;')
+    'font-size: 16px; line-height: 1.7;'
     """
     return re.sub(r"\s+", " ", css).strip()
 
@@ -307,6 +324,33 @@ def _extract_css_declaration_map(declaration_block: str) -> dict[str, str]:
     return declaration_map
 
 
+def _schema_to_typescript_shape(schema: type[SummaryOverlayStyleSchema]) -> dict[str, str]:
+    """Convert schema dataclass to a barebones TypeScript-like dictionary.
+
+    >>> _schema_to_typescript_shape(SummaryOverlayStyleSchema)['paragraph']
+    'string'
+    """
+    return {field.name: 'string' for field in dataclasses.fields(schema)}
+
+
+def _build_style_extraction_prompt(css: str, schema: type[SummaryOverlayStyleSchema]) -> str:
+    """Build extraction prompt with schema contract and output constraints."""
+    typescript_shape = _schema_to_typescript_shape(schema)
+    return (
+        "Translate raw webpage CSS into summary overlay style payload. "
+        "Return strict JSON with all schema keys present and string values only. "
+        "Allowed properties: font-family, font-size, font-weight, font-style, line-height, "
+        "letter-spacing, word-spacing, text-transform, margin, margin-top, margin-bottom, "
+        "margin-left, margin-right, padding, padding-top, padding-bottom, padding-left, "
+        "padding-right, max-width, width. "
+        "Allowed values: simple numeric or keyword CSS only (px, rem, em, %, unitless numbers, "
+        "inherit, normal, bold, lighter, bolder, uppercase, lowercase, capitalize). "
+        "Disallow engineered values like calc(), var(), url(), clamp(), min(), max(), attr(), !important. "
+        f"Schema: {json.dumps(typescript_shape, sort_keys=True)}\n"
+        f"CSS input:\n{css}"
+    )
+
+
 def _classify_selector_for_style_summary(selector: str) -> str | None:
     """Map CSS selectors to style summary buckets.
 
@@ -319,7 +363,7 @@ def _classify_selector_for_style_summary(selector: str) -> str | None:
     normalized_selector = re.sub(r'::?[a-z-]+(?:\([^)]*\))?', '', normalized_selector)
 
     if normalized_selector in ('body', 'html body', 'html'):
-        return 'body'
+        return 'prose_root'
     if normalized_selector.endswith(' h1') or normalized_selector == 'h1':
         return 'heading_1'
     if normalized_selector.endswith(' h2') or normalized_selector == 'h2':
@@ -328,19 +372,47 @@ def _classify_selector_for_style_summary(selector: str) -> str | None:
         return 'heading_3'
     if normalized_selector.endswith(' p') or normalized_selector == 'p':
         return 'paragraph'
+    if normalized_selector.endswith(' blockquote') or normalized_selector == 'blockquote':
+        return 'blockquote'
+    if normalized_selector.endswith(' strong') or normalized_selector == 'strong':
+        return 'strong'
 
     if any(token in normalized_selector for token in ('article', 'main', '.entry-content', '.post-content', '.content')):
-        return 'article_container'
+        return 'overlay_content_max_width'
 
     return None
 
 
-def llm_extract_style(css: str) -> str:
-    """Extract typography and whitespace style hints from CSS."""
-    if not css.strip():
-        return ''
+def _is_simple_css_value(property_value: str) -> bool:
+    """Validate CSS value against a simple non-engineered policy.
 
-    typography_properties = {
+    >>> _is_simple_css_value('1.6rem')
+    True
+    >>> _is_simple_css_value('calc(100% - 10px)')
+    False
+    """
+    if not property_value:
+        return False
+
+    lowered_value = property_value.lower()
+    blocked_tokens = ('calc(', 'var(', 'url(', 'clamp(', 'min(', 'max(', 'attr(', '!important')
+    if any(token in lowered_value for token in blocked_tokens):
+        return False
+
+    simple_pattern = r"^[^{};]+$"
+    return bool(re.match(simple_pattern, property_value))
+
+
+def llm_extract_style(css: str, schema: type[SummaryOverlayStyleSchema] = SummaryOverlayStyleSchema) -> str:
+    """Extract typography and whitespace style hints under a schema contract."""
+    if not css.strip():
+        empty_payload = {field_name: '' for field_name in _schema_to_typescript_shape(schema)}
+        return json.dumps(empty_payload, separators=(',', ':'))
+
+    extraction_prompt = _build_style_extraction_prompt(css, schema)
+    logger.info("Style extraction contract prepared schema=%s prompt_chars=%s", schema.__name__, len(extraction_prompt))
+
+    allowed_properties = {
         'font-family',
         'font-size',
         'font-weight',
@@ -349,8 +421,6 @@ def llm_extract_style(css: str) -> str:
         'letter-spacing',
         'word-spacing',
         'text-transform',
-    }
-    whitespace_properties = {
         'margin',
         'margin-top',
         'margin-bottom',
@@ -365,14 +435,8 @@ def llm_extract_style(css: str) -> str:
         'width',
     }
 
-    grouped_declarations = {
-        'body': {},
-        'article_container': {},
-        'heading_1': {},
-        'heading_2': {},
-        'heading_3': {},
-        'paragraph': {},
-    }
+    schema_field_names = list(_schema_to_typescript_shape(schema).keys())
+    grouped_declarations = {field_name: {} for field_name in schema_field_names}
 
     for selector_text, declaration_text in re.findall(r'([^{}]+)\{([^{}]+)\}', css):
         declaration_map = _extract_css_declaration_map(declaration_text)
@@ -381,25 +445,40 @@ def llm_extract_style(css: str) -> str:
 
         for selector in selector_text.split(','):
             selector_group = _classify_selector_for_style_summary(selector)
-            if selector_group is None:
+            if selector_group is None or selector_group not in grouped_declarations:
                 continue
 
             for property_name, property_value in declaration_map.items():
-                if property_name in typography_properties or property_name in whitespace_properties:
-                    grouped_declarations[selector_group][property_name] = property_value
+                if property_name not in allowed_properties:
+                    continue
+                if not _is_simple_css_value(property_value):
+                    continue
+                grouped_declarations[selector_group][property_name] = property_value
 
-    output_lines: list[str] = []
-    for selector_group, declaration_map in grouped_declarations.items():
-        if not declaration_map:
+    for default_field_name in ('overlay_panel', 'overlay_content_wrapper', 'prose_root'):
+        if grouped_declarations.get(default_field_name):
             continue
+        grouped_declarations[default_field_name] = {
+            'font-family': 'inherit',
+            'font-size': 'inherit',
+            'line-height': 'inherit',
+            'margin': '0',
+            'padding': '0',
+        }
 
-        declaration_lines = [
+    payload: dict[str, str] = {}
+    for field_name in schema_field_names:
+        declaration_map = grouped_declarations.get(field_name, {})
+        if not declaration_map:
+            payload[field_name] = ''
+            continue
+        declaration_text = ' '.join(
             f"{property_name}: {property_value};"
             for property_name, property_value in declaration_map.items()
-        ]
-        output_lines.append(f"{selector_group} {{ {' '.join(declaration_lines)} }}")
+        )
+        payload[field_name] = _truncate_css_whitespace(declaration_text)
 
-    return _truncate_css_whitespace('\n'.join(output_lines))[:4000]
+    return json.dumps(payload, separators=(',', ':'))
 
 
 def _extract_inline_css(html_content: str) -> str:
