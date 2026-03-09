@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { AlertCircle, ArrowDownCircle, Check, CheckCircle, ChevronDown, Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useInteraction } from '../contexts/InteractionContext'
 import { useArticleState } from '../hooks/useArticleState'
@@ -9,6 +9,7 @@ import { usePullToClose } from '../hooks/usePullToClose'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
+import { buildSummaryOverlayCssText, createEmptySummaryStyle, parseSummaryStylePayload } from '../lib/summaryStyleParser'
 import Selectable from './Selectable'
 
 function ErrorToast({ message, onDismiss }) {
@@ -27,7 +28,7 @@ function ErrorToast({ message, onDismiss }) {
   )
 }
 
-function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
+function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, articleCss, onClose, onMarkRemoved }) {
   const [hasScrolled, setHasScrolled] = useState(false)
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
@@ -38,6 +39,19 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
     onComplete: onMarkRemoved,
     threshold: 60
   })
+
+
+  const summaryStyle = useMemo(() => {
+    if (!articleCss) return createEmptySummaryStyle()
+    try {
+      return parseSummaryStylePayload(articleCss)
+    } catch (error) {
+      console.warn('Failed to parse summary style payload:', error)
+      return createEmptySummaryStyle()
+    }
+  }, [articleCss])
+
+  const scopedTypographyCssText = useMemo(() => buildSummaryOverlayCssText(summaryStyle), [summaryStyle])
 
   const truncatedMeta = articleMeta && articleMeta.length > 22
     ? `${articleMeta.slice(0, 22)}...`
@@ -71,7 +85,7 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
         transition: pullOffset === 0 ? 'transform 0.3s ease-out' : 'none'
       }}
     >
-      <div ref={containerRef} className="w-full h-full bg-white flex flex-col animate-zen-enter">
+      <div ref={containerRef} className="w-full h-full bg-white flex flex-col animate-zen-enter" style={summaryStyle.overlay_panel}>
         {/* Header */}
         <div
           className={`
@@ -121,18 +135,22 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
           />
         </div>
 
+        <style>{scopedTypographyCssText}</style>
+
         {/* Content Area */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto bg-white">
           <div
             className="px-6 pt-2 pb-5 md:px-8 md:pt-3 md:pb-6"
             style={{
+              ...summaryStyle.overlay_content_wrapper,
               transform: `translateY(-${overscrollOffset * 0.4}px)`,
               transition: isOverscrolling ? 'none' : 'transform 0.2s ease-out'
             }}
           >
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-3xl mx-auto" style={summaryStyle.overlay_content_max_width}>
               <div
-                className="prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900 prose-headings:tracking-tight prose-h1:text-2xl prose-h1:font-bold prose-h2:text-xl prose-h2:font-semibold prose-h3:text-lg prose-h3:font-semibold prose-blockquote:border-slate-200 prose-strong:text-slate-900"
+                className="summary-overlay-content prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900 prose-headings:tracking-tight prose-h1:text-2xl prose-h1:font-bold prose-h2:text-xl prose-h2:font-semibold prose-h3:text-lg prose-h3:font-semibold prose-blockquote:border-slate-200 prose-strong:text-slate-900"
+                style={summaryStyle.prose_root}
                 dangerouslySetInnerHTML={{ __html: html }}
               />
             </div>
@@ -367,6 +385,7 @@ function ArticleCard({ article }) {
                 hostname={hostname}
                 displayDomain={displayDomain}
                 articleMeta={article.articleMeta}
+                articleCss={summary.articleCss}
                 onClose={() => summary.collapse()}
                 onMarkRemoved={() => {
                   summary.collapse(false)
