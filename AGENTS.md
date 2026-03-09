@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-19 08:03, 6bd0099
+last_updated: 2026-03-09 10:40
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -52,9 +52,10 @@ This is true both for local and production environments.
 
 <agentic-ecosystem>
 Powerful tools are available to you out of the box.
-- `claude/skills/` contains pre-packaged abilites.
-- `claude/agents/` contains ready-to-fire specialized agents for various use cases.
+- `.claude/skills/` contains pre-packaged abilities.
+- `.claude/agents/` contains ready-to-fire specialized agents for various use cases.
 Be aware of what each of these directories have to offer.
+Note: if you are Codex, then you might have your own `.codex/{skills/agents}` (same content) for more organic invocation.
 </agentic-ecosystem>
 
 ## Context Gathering
@@ -69,7 +70,7 @@ This is a crucial step: run the `/catchup` skill (`.claude/skills/catchup/SKILL.
 # Install dependencies, build client, generate docs and and verify the environment.
 ./setup.sh
 
-BackgroundShell("uv run serve.py")  # Or improvise equivalent shell functionality if you don't have the built in tool
+BackgroundShell("uv run serve.py")  # Or improvise equivalent async shell functionality if you don't have the built in tool
 
 # Exercise the API with curl requests.
 curl http://localhost:5001/api/scrape

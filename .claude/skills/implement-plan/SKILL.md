@@ -3,85 +3,75 @@ description: Implement technical plans from ${arg1} with verification
 model: inherit
 argument-hint: plan_file_path
 name: implement-plan
-last_updated: 2025-12-17 07:42, 984bd6b
+last_updated: 2026-03-09 10:40
 ---
 # Implement Plan
 
-You are tasked with implementing an approved technical plan from $1. These plans contain phases with specific changes and success criteria.
+You are tasked with implementing an approved technical plan from $1.
 
-## Getting Started
+## Initial Context & Verification
 
-When given a plan path:
-- Read the plan completely and check for any existing checkmarks (- [x])
-- Read the original ticket and all files mentioned in the plan
-- **Read files fully** - never use limit/offset parameters, you need complete context
-- Think deeply about how the pieces fit together
-- Create a todo list to track your progress
-- Start implementing if you understand what needs to be done
+1. **Read the plan file ($1) FULLY** immediately.
+2. **Read the original requirement/ticket files** referenced in the plan FULLY.
+3. **Verify the Context**:
+   - Before writing any code, verify the plan's assumptions against the current codebase.
+   - Use the **codebase-locator** to find the specific files mentioned in the plan to ensure paths are correct.
+   - **CRITICAL**: If the code has drifted from the plan, STOP and report it. Code is truth; plans are snapshots.
 
-If no plan path provided, ask for one.
+## Implementation Loop
 
-## Implementation Philosophy
+For each Phase in the plan:
 
-Plans are carefully designed, but reality can be messy. Your job is to:
-- Follow the plan's intent while adapting to what you find
-- Implement each phase fully before moving to the next
-- Verify your work makes sense in the broader codebase context
-- Update checkboxes in the plan as you complete sections
+1. **Grok the Scope**:
+   - Read the specific files involved in this phase FULLY.
+   - Ensure you understand *how* your changes will fit into the existing logic.
 
-When things don't match the plan exactly, think about why and communicate clearly. The plan is your guide, but your judgment matters too.
+2. **Execute**:
+   - Apply changes surgically.
+   - Follow existing patterns (naming, typing, structure).
+   - **NEVER** use comments to chat with the user (e.g., "Modified by Gemini").
 
-If you encounter a mismatch:
-- STOP and think deeply about why the plan can't be followed
-- Present the issue clearly:
-  ```
-  Issue in Phase [N]:
-  Expected: [what the plan says]
-  Found: [actual situation]
-  Why this matters: [explanation]
+3. **Verify (Automated)**:
+   - Run the automated checks defined in the plan.
+   - If tests fail, fix them immediately. Do not proceed with broken tests.
 
-  How should I proceed?
-  ```
+4. **Verify (Manual) & Pause**:
+   - After automated checks pass, **PAUSE**.
+   - Output the verification block below and wait for user confirmation.
 
-## Verification Approach
+   ```markdown
+   ## Phase [N] Ready for Manual Verification
 
-After implementing a phase:
-- Run the success criteria checks if they are provided
-- Fix any issues before proceeding
-- Update your progress in both the plan and your todos
-- Check off completed items in the plan file itself using Edit
-- **Pause for human verification**: After completing all automated verification for a phase, pause and inform the human that the phase is ready for manual testing. Use this format:
-  ```
-  Phase [N] Complete - Ready for Manual Verification
+   **Automated Checks Passed:**
+   - [x] [Test Command 1]
+   - [x] [Lint Command 2]
 
-  Automated verification passed:
-  - [List automated checks that passed]
+   **Manual Steps for User:**
+   1. [Step from plan]
+   2. [Step from plan]
 
-  Please perform the manual verification steps listed in the plan:
-  - [List manual verification items from the plan]
+   *Waiting for confirmation to mark Phase [N] complete...*
+   ```
 
-  Let me know when manual testing is complete so I can proceed to Phase [N+1].
-  ```
+5. **Finalize Phase**:
+   - Once confirmed, edit the plan file to mark the phase as `[x]`.
+   - Proceed to Phase N+1.
 
-If instructed to execute multiple phases consecutively, skip the pause until the last phase. Otherwise, assume you are just doing one phase.
+## Rules of Engagement
 
-do not check off items in the manual testing steps until confirmed by the user.
+- **Read Files Fully**: Never use limit/offset. Context is king.
+- **One Phase at a Time**: Do not jump ahead unless explicitly told to batch phases.
+- **Adaptability**: If a minor adjustment is needed (e.g., import path changed), make it and note it. If a major logical flaw is found, stop and ask.
+- **Sub-agents**: Use `codebase-analyzer` only if you hit a complex error you cannot debug yourself.
 
+## Handling Mismatches
 
-## If You Get Stuck
+If reality contradicts the plan:
+```markdown
+**PLAN MISMATCH DETECTED**
+- **Plan expects**: [Expectation]
+- **Codebase reality**: [Reality]
+- **Recommendation**: [Your proposed fix]
 
-When something isn't working as expected:
-- First, make sure you've read and understood all the relevant code
-- Consider if the codebase has evolved since the plan was written
-- Present the mismatch clearly and ask for guidance
-
-Use sub-tasks sparingly - mainly for targeted debugging or exploring unfamiliar territory.
-
-## Resuming Work
-
-If the plan has existing checkmarks:
-- Trust that completed work is done
-- Pick up from the first unchecked item
-- Verify previous work only if something seems off
-
-Remember: You're implementing a solution, not just checking boxes. Keep the end goal in mind and maintain forward momentum.
+Shall I proceed with the recommendation?
+```
