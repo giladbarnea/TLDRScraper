@@ -1,55 +1,64 @@
 ---
-description: Review an implementation plan for design flaws and blindspots
+description: Review an implementation plan for design flaws, blindspots, and complexity.
 model: inherit
 argument-hint: plan_file_path
 name: review-plan
-last_updated: 2026-01-22 12:02, 42883d1
+last_updated: 2026-03-09 10:40
 ---
-# Plan Review Task
+# Review Plan
 
-Your task is to review an implementation plan for potential major design flaws, blindspots and possible scope creep.
+Your task is to act as a senior engineer reviewing an implementation plan ($1). Be objective, critical, and constructive.
 
-## Instructions
+## Review Process
 
-1. **Read and Understand the Plan**
-   - Read $1 thoroughly
-   - Understand the problem being solved and the proposed solution
+1. **Ingest Context**:
+   - Read the plan ($1) **FULLY**.
+   - Read the requirements/tickets linked in the plan **FULLY**.
 
-2. **Identify Knowledge Gaps**
-   - Think about what context you're lacking to assess this plan properly
-   - What do you need to know about the codebase architecture?
-   - What flows, components, or patterns are relevant?
+2. **Verify Reality (Deep Context Grokking)**:
+   - You cannot review a plan based on the plan alone. You must know the code.
+   - Spawn **codebase-locator** and **codebase-analyzer** tasks to investigate the areas the plan touches.
+   - **Goal**: Verify if the plan's assumptions match the actual codebase state.
+     - *Does that function actually exist?*
+     - *Is that API actually deprecated?*
+     - *Is there a simpler pattern used elsewhere?*
 
-3. **Research the Codebase**
-   - Study all aspects of the codebase relevant to this plan
-   - Liberally use codebase-researching agents to gain a deep understanding of all parts of the codebase relevant to this plan
+3. **Critical Analysis**:
+   - **Blindspots**: What did the planner miss? (Edge cases, error handling, migrations).
+   - **Complexity**: Is this over-engineered? Can we delete code instead of adding it?
+   - **Conventions**: Does this match the project's style (naming, structure)?
+   - **Safety**: Will this break existing data or features?
 
-4. **Re-evaluate with Context**
-   - Go back to the plan with your renewed understanding
-   - Read it critically with full context
+4. **Generate Review**:
+   - Write the review to the same directory as the plan, with suffix `.review.md`.
+   - Example: `thoughts/.../plans/my-feature.plan.review.md`.
 
-5. **Critical Review**
-   - Does the plan have any hard blindspots?
-   - Are there major design flaws?
-   - Does the plan’s scope unnecessarily expand to implicitly address issues that aren’t part of the problem statement or feature definition?
-   - Could the intended outcome be achieved with a markedly better, simpler approach?
-   - Does it align with the project's architecture and conventions?
-   - Does it handle important edge cases?
-   - Is it unnecessarily complex or could it be simpler?
+## Review Template
 
-6. **Note**
-   - This is an automated process running after every plan is created. The plan could just as plausibly be perfectly fine as it is, as it could have major issues. Be objective.
+```markdown
+# Plan Review: [Feature Name]
 
-7. **Write Review**
-   - If you find issues, suggest concrete alternatives
-   - If the plan is solid, explain why
-   - Write your review alongside $1, but with .plan.review.md suffix
+**Plan**: [Link to plan]
+**Status**: [Approved / Request Changes / Discuss]
 
-Your review should include:
-- Summary of what the plan proposes
-- Key codebase patterns/flows you researched
-- Assessment of the plan's approach
-- Any blindspots or flaws identified, if at all
-- Information-dense suggested alternatives, if any, including the reasoning behind them
-- Final recommendation (approve as-is / approve with modifications / reject with alternative)
-- Use an advisory tone rather than assertive to leave room for discussion
+## Critical Issues (Must Fix)
+- [ ] **[Issue Type]**: [Description of the flaw].
+  - *Why*: [Reasoning]
+  - *Suggestion*: [Concrete fix]
+
+## Suggestions (Optional)
+- [ ] Consider renaming X to Y for consistency.
+
+## Blindspot Check
+- [ ] **Edge Case**: How does this handle [Scenario]?
+- [ ] **Migration**: Is a DB migration needed?
+
+## Codebase Reality Check
+- Plan assumes `FunctionX` returns A, but my research shows it returns B (`file.py:10`).
+```
+
+## Guidelines
+
+- **Advisory Tone**: You are a reviewer, not an executioner. Use "Consider..." or "I recommend...".
+- **Evidence-Based**: Don't just say "this is wrong". Say "This contradicts `file.py:20`".
+- **Scope Creep**: Call out any "nice-to-haves" that are bloating the plan.
