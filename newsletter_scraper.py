@@ -309,7 +309,17 @@ def scrape_single_source_for_date(
             article["url"] = canonical_url
             result["articles"].append(article)
 
+        retained_issue_categories = {
+            article["category"]
+            for article in result["articles"]
+            if article.get("category")
+        }
+
         for issue in scrape_result.get("issues", []):
+            if retained_issue_categories and issue.get("category") not in retained_issue_categories:
+                continue
+            if not retained_issue_categories:
+                continue
             issue_copy = json.loads(json.dumps(issue))
             result["issues"].append(issue_copy)
 
