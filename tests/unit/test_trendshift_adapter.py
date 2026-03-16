@@ -1,21 +1,50 @@
-from adapters.trendshift_adapter import _build_calendar_aria_label
-from adapters.trendshift_adapter import _extract_description_line
-from adapters.trendshift_adapter import _ordinal_suffix
+from adapters.trendshift_adapter import _extract_repositories_from_html, _extract_repo_name
+from bs4 import BeautifulSoup
 
 
-def test_build_calendar_aria_label_for_requested_dates():
-    assert _build_calendar_aria_label("2026-03-05") == "Thursday, March 5th, 2026"
-    assert _build_calendar_aria_label("2026-03-02") == "Monday, March 2nd, 2026"
+def test_extract_repositories_from_html_parses_card():
+    html = """
+    <div class="rounded-lg border border-gray-300 bg-white">
+        <a href="/repositories/123">owner/repo</a>
+        <a href="https://github.com/owner/repo">GitHub</a>
+        <div class="text-gray-500 text-xs leading-5">A cool project</div>
+    </div>
+    """
+    repos = _extract_repositories_from_html(html)
+    assert len(repos) == 1
+    assert repos[0]["name"] == "owner/repo"
+    assert repos[0]["url"] == "https://github.com/owner/repo"
+    assert repos[0]["description"] == "A cool project"
 
 
-def test_ordinal_suffix_handles_teen_exception():
-    assert _ordinal_suffix(11) == "th"
-    assert _ordinal_suffix(12) == "th"
-    assert _ordinal_suffix(13) == "th"
-    assert _ordinal_suffix(21) == "st"
+def test_extract_repositories_deduplicates_by_url():
+    html = """
+    <div class="rounded-lg border border-gray-300 bg-white">
+        <a href="/repositories/1">owner/repo</a>
+        <div class="text-gray-500 text-xs leading-5">First</div>
+    </div>
+    <div class="rounded-lg border border-gray-300 bg-white">
+        <a href="/repositories/2">owner/repo</a>
+        <div class="text-gray-500 text-xs leading-5">Duplicate</div>
+    </div>
+    """
+    repos = _extract_repositories_from_html(html)
+    assert len(repos) == 1
 
 
-def test_extract_description_line_prefers_last_non_metric_line():
-    lines = ["1", "paperclipai/paperclip", "TypeScript", "9.5k", "1.1k", "GitHub", "Open-source orchestration"]
-    assert _extract_description_line(lines) == "Open-source orchestration"
-    assert _extract_description_line(lines[:-1]) == ""
+def test_extract_repo_name_from_internal_link():
+    html = '<div><a href="/repositories/123">acme/widget</a></div>'
+    card = BeautifulSoup(html, "html.parser").div
+    assert _extract_repo_name(card) == "acme/widget"
+
+
+def test_extract_repo_name_from_github_link_fallback():
+    html = '<div><a href="https://github.com/acme/widget">GitHub</a></div>'
+    card = BeautifulSoup(html, "html.parser").div
+    assert _extract_repo_name(card) == "acme/widget"
+
+
+def test_extract_repo_name_returns_none_for_empty_card():
+    html = "<div><span>No links here</span></div>"
+    card = BeautifulSoup(html, "html.parser").div
+    assert _extract_repo_name(card) is None
