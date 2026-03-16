@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-26 17:11, e39d4d1
+last_updated: 2026-03-16 15:04
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -522,6 +522,7 @@ User clicks "Scrape Newsletters"
        │              │                             │    │    └─ Factory returns adapter based on source_id:
        │              │                             │    │         - tldr_* → TLDRAdapter
        │              │                             │    │         - hackernews → HackerNewsAdapter
+       │              │                             │    │         - trendshift → TrendshiftAdapter (Playwright-based)
        │              │                             │    │         - 20 other sources → respective adapters
        │              │                             │    │
        │              │                             │    └─ adapter.scrape_date(date, excluded_urls)
@@ -946,6 +947,8 @@ function mergePreservingLocalState(freshPayload, localPayload) {
 
 ### 4. URL Deduplication (newsletter_scraper.py:231)
 
+**Same-day dedup** — applied across all sources within a single scrape run:
+
 ```python
 # Deduplicate articles across sources using canonical URLs
 url_set = set()
@@ -958,6 +961,21 @@ for article in scraped_articles:
     if canonical_url not in url_set:
         url_set.add(canonical_url)
         all_articles.append(article)
+```
+
+**History dedup** — opt-in per source via `NewsletterSourceConfig.deduplicate_across_history = True` (currently enabled for trendshift). Filters articles already seen on any previous date, persisting new URLs into the `seen_urls` DB table:
+
+```python
+# After adapter.scrape_date(), before appending to result
+if config.deduplicate_across_history:
+    canonical_urls = [util.canonicalize_url(a["url"]) for a in scrape_result["articles"]]
+    history_deduplicated_urls = storage_service.filter_new_urls_for_history_dedup(
+        source_id=config.source_id,
+        first_seen_date=date_str,
+        canonical_urls=canonical_urls,
+    )
+# filter_new_urls_for_history_dedup: queries seen_urls, returns new-only set, upserts them
+# Falls back to pass-through if seen_urls table is unavailable (probe retries every 30s)
 ```
 
 ---
