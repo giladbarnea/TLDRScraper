@@ -96,3 +96,45 @@ def test_filter_new_urls_for_history_dedup_returns_input_when_table_unavailable(
     )
 
     assert new_urls == {'github.com/org/one', 'github.com/org/two'}
+
+
+class FlakyProbeSupabase(FakeSupabase):
+    def __init__(self, existing_urls):
+        super().__init__(existing_urls)
+        self.fail_next_probe = True
+
+    def table(self, table_name):
+        query = super().table(table_name)
+        original_execute = query.execute
+
+        def execute_with_flaky_probe():
+            if query._urls is None and query._rows_to_upsert is None and self.fail_next_probe:
+                self.fail_next_probe = False
+                raise RuntimeError('transient probe failure')
+            return original_execute()
+
+        query.execute = execute_with_flaky_probe
+        return query
+
+
+def test_probe_retries_after_transient_failure(monkeypatch):
+    flaky_supabase = FlakyProbeSupabase(existing_urls={'github.com/org/existing'})
+    monkeypatch.setattr(storage_service.supabase_client, 'get_supabase_client', lambda: flaky_supabase)
+    monkeypatch.setattr(storage_service, '_seen_urls_table_probe_completed', False)
+    monkeypatch.setattr(storage_service, '_seen_urls_table_is_available', True)
+    monkeypatch.setattr(storage_service, '_seen_urls_probe_retry_after_monotonic_seconds', 0.0)
+    monkeypatch.setattr(storage_service, '_SEEN_URLS_PROBE_RETRY_INTERVAL_SECONDS', 0.0)
+
+    first_result = storage_service.filter_new_urls_for_history_dedup(
+        source_id='github_trending',
+        first_seen_date='2026-03-08',
+        canonical_urls=['github.com/org/existing', 'github.com/org/new'],
+    )
+    assert first_result == {'github.com/org/existing', 'github.com/org/new'}
+
+    second_result = storage_service.filter_new_urls_for_history_dedup(
+        source_id='github_trending',
+        first_seen_date='2026-03-08',
+        canonical_urls=['github.com/org/existing', 'github.com/org/new'],
+    )
+    assert second_result == {'github.com/org/new'}

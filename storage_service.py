@@ -1,4 +1,5 @@
 import logging
+import time
 
 import supabase_client
 
@@ -6,6 +7,8 @@ import supabase_client
 logger = logging.getLogger("storage_service")
 _seen_urls_table_probe_completed = False
 _seen_urls_table_is_available = True
+_seen_urls_probe_retry_after_monotonic_seconds = 0.0
+_SEEN_URLS_PROBE_RETRY_INTERVAL_SECONDS = 30.0
 
 def get_setting(key):
     """
@@ -123,29 +126,42 @@ def is_date_cached(date):
 
 
 def _probe_seen_urls_table_once() -> bool:
-    """Probe seen_urls table availability once and cache the outcome.
+    """Probe seen_urls table availability and retry after transient failures.
 
     >>> isinstance(_probe_seen_urls_table_once(), bool)
     True
     """
-    global _seen_urls_table_probe_completed, _seen_urls_table_is_available
-    if _seen_urls_table_probe_completed:
-        return _seen_urls_table_is_available
+    global _seen_urls_table_probe_completed
+    global _seen_urls_table_is_available
+    global _seen_urls_probe_retry_after_monotonic_seconds
 
-    _seen_urls_table_probe_completed = True
+    if _seen_urls_table_probe_completed and _seen_urls_table_is_available:
+        return True
+
+    current_time = time.monotonic()
+    if current_time < _seen_urls_probe_retry_after_monotonic_seconds:
+        return False
+
     try:
         supabase = supabase_client.get_supabase_client()
         supabase.table('seen_urls').select('canonical_url').limit(1).execute()
+        _seen_urls_table_probe_completed = True
         _seen_urls_table_is_available = True
+        _seen_urls_probe_retry_after_monotonic_seconds = 0.0
+        return True
     except Exception as error:
+        _seen_urls_table_probe_completed = False
         _seen_urls_table_is_available = False
+        _seen_urls_probe_retry_after_monotonic_seconds = (
+            current_time + _SEEN_URLS_PROBE_RETRY_INTERVAL_SECONDS
+        )
         logger.warning(
-            "seen_urls table unavailable; history dedup disabled until table exists error=%s",
+            "seen_urls table probe failed; history dedup temporarily disabled retry_in_seconds=%s error=%s",
+            int(_SEEN_URLS_PROBE_RETRY_INTERVAL_SECONDS),
             repr(error),
             exc_info=True,
         )
-
-    return _seen_urls_table_is_available
+        return False
 
 
 def filter_new_urls_for_history_dedup(
