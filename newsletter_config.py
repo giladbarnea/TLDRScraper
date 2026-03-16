@@ -330,4 +330,15 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"blog": "Armin Ronacher"},
         sort_order=7,  # High priority - Flask/Ruff creator
     ),
+    "trendshift": NewsletterSourceConfig(
+        source_id="trendshift",
+        display_name="Trendshift",
+        base_url="https://trendshift.io",
+        url_pattern="",
+        types=["daily_explore"],
+        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
+        article_pattern="",
+        category_display_names={"daily_explore": "Trendshift Daily Explore"},
+        sort_order=5,
+    ),
 }
