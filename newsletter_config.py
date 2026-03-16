@@ -332,3 +332,7 @@ NEWSLETTER_CONFIGS = {
         sort_order=7,  # High priority - Flask/Ruff creator
     ),
 }
+
+
+if "trendshift" in NEWSLETTER_CONFIGS:
+    NEWSLETTER_CONFIGS["trendshift"].deduplicate_across_history = True
