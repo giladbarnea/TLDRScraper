@@ -411,16 +411,22 @@ function main() {
 
   mkdir -p "$run_dir"
 
-  [[ "$quiet" == false ]] && message "[$0] Starting background dependency installation..."
+  [[ "$quiet" == false ]] && message "[$0] Starting dependency installation..."
   ensure_local_bin_path --quiet="$quiet"
 
-  # Launch UV install+sync and client build in parallel background processes
+  # Playwright installation must complete before allowing scraping (Trendshift adapter requires it)
+  [[ "$quiet" == false ]] && message "[$0] Installing Playwright browsers (blocking - required for Trendshift adapter)..."
+  if ! bash "$workdir/scripts/setup/ensure_playwright.sh"; then
+    error "[$0] Playwright installation failed. Trendshift scraping will not work."
+    return 1
+  fi
+
+  # Launch UV install+sync, client build, and tooling in parallel background processes
   bash "$workdir/scripts/setup/ensure_uv_and_sync.sh" &
   bash "$workdir/scripts/setup/build_client.sh" &
   bash "$workdir/scripts/setup/ensure_tooling.sh" &
-  bash "$workdir/scripts/setup/ensure_playwright.sh" &
 
-  [[ "$quiet" == false ]] && message "[$0] UV sync and client build running in background..."
+  [[ "$quiet" == false ]] && message "[$0] UV sync, client build, and tooling installation running in background..."
 
   #region ----[ Prepare & Print Docs ]----
 

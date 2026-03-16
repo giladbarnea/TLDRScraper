@@ -1,0 +1,3 @@
+1. Act upon .claude/skills/catchup/SKILL.md to understand the project. The problem we are facing with is that a new Trendshift adapter was implemented, but when triggering a sync over last week, i don't see any trenshift article in the client. I suspect the issue is in the server: either the scrape phase, or something else, but not a rendering problem in the client
+2. Study the adapter-scraping-cache-db systems
+3. Reproduce and (in)validate hypotheses with ad hoc python scripts, importing functionality from the server to eliminate variables bytesize
