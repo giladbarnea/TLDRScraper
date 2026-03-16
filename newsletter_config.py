@@ -25,6 +25,7 @@ class NewsletterSourceConfig:
     # Display preferences
     category_display_names: dict[str, str]  # {"tech": "TLDR Tech"}
     sort_order: int  # For multi-source ordering (lower = higher priority)
+    deduplicate_across_history: bool = False
 
 
 # Registered newsletter sources
@@ -340,5 +341,6 @@ NEWSLETTER_CONFIGS = {
         article_pattern="",
         category_display_names={"daily_explore": "Trendshift Daily Explore"},
         sort_order=5,
+        deduplicate_across_history=True,
     ),
 }

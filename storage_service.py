@@ -1,4 +1,14 @@
+import logging
+import time
+
 import supabase_client
+
+
+logger = logging.getLogger("storage_service")
+_seen_urls_table_probe_completed = False
+_seen_urls_table_is_available = True
+_seen_urls_probe_retry_after_monotonic_seconds = 0.0
+_SEEN_URLS_PROBE_RETRY_INTERVAL_SECONDS = 30.0
 
 def get_setting(key):
     """
@@ -113,3 +123,110 @@ def is_date_cached(date):
     result = supabase.table('daily_cache').select('date').eq('date', date).execute()
 
     return len(result.data) > 0
+
+
+def _probe_seen_urls_table_once() -> bool:
+    """Probe seen_urls table availability and retry after transient failures.
+
+    >>> isinstance(_probe_seen_urls_table_once(), bool)
+    True
+    """
+    global _seen_urls_table_probe_completed
+    global _seen_urls_table_is_available
+    global _seen_urls_probe_retry_after_monotonic_seconds
+
+    if _seen_urls_table_probe_completed and _seen_urls_table_is_available:
+        return True
+
+    current_time = time.monotonic()
+    if current_time < _seen_urls_probe_retry_after_monotonic_seconds:
+        return False
+
+    try:
+        supabase = supabase_client.get_supabase_client()
+        supabase.table('seen_urls').select('canonical_url').limit(1).execute()
+        _seen_urls_table_probe_completed = True
+        _seen_urls_table_is_available = True
+        _seen_urls_probe_retry_after_monotonic_seconds = 0.0
+        return True
+    except Exception as error:
+        _seen_urls_table_probe_completed = False
+        _seen_urls_table_is_available = False
+        _seen_urls_probe_retry_after_monotonic_seconds = (
+            current_time + _SEEN_URLS_PROBE_RETRY_INTERVAL_SECONDS
+        )
+        logger.warning(
+            "seen_urls table probe failed; history dedup temporarily disabled retry_in_seconds=%s error=%s",
+            int(_SEEN_URLS_PROBE_RETRY_INTERVAL_SECONDS),
+            repr(error),
+            exc_info=True,
+        )
+        return False
+
+
+def filter_new_urls_for_history_dedup(
+    source_id: str,
+    first_seen_date: str,
+    canonical_urls: list[str],
+) -> set[str]:
+    """Return URLs not yet seen globally, and persist them into seen_urls.
+
+    >>> filter_new_urls_for_history_dedup('example_source', '2026-03-08', [])
+    set()
+    """
+    if not canonical_urls:
+        return set()
+
+    if not _probe_seen_urls_table_once():
+        return set(canonical_urls)
+
+    supabase = supabase_client.get_supabase_client()
+    unique_canonical_urls = list(dict.fromkeys(canonical_urls))
+    try:
+        existing_rows = (
+            supabase.table('seen_urls')
+            .select('canonical_url')
+            .in_('canonical_url', unique_canonical_urls)
+            .execute()
+        )
+    except Exception as error:
+        logger.warning(
+            "failed reading seen_urls; history dedup bypassed for source_id=%s error=%s",
+            source_id,
+            repr(error),
+            exc_info=True,
+        )
+        return set(unique_canonical_urls)
+
+    existing_canonical_urls = {
+        row['canonical_url'] for row in (existing_rows.data or []) if row.get('canonical_url')
+    }
+    new_canonical_urls = [
+        canonical_url
+        for canonical_url in unique_canonical_urls
+        if canonical_url not in existing_canonical_urls
+    ]
+
+    if not new_canonical_urls:
+        return set()
+
+    rows_to_insert = [
+        {
+            'canonical_url': canonical_url,
+            'source_id': source_id,
+            'first_seen_date': first_seen_date,
+        }
+        for canonical_url in new_canonical_urls
+    ]
+
+    try:
+        supabase.table('seen_urls').upsert(rows_to_insert).execute()
+    except Exception as error:
+        logger.warning(
+            "failed writing seen_urls; continuing with current scrape source_id=%s error=%s",
+            source_id,
+            repr(error),
+            exc_info=True,
+        )
+
+    return set(new_canonical_urls)
