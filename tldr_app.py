@@ -26,6 +26,19 @@ def scrape_newsletters(
     )
 
 
+def generate_digest(articles: list[dict], effort: str = "low") -> dict:
+    """Generate a multi-article digest and return the shaped response payload."""
+    result = tldr_service.generate_digest(articles, effort)
+    return {
+        "success": True,
+        "digest_id": result["digest_id"],
+        "digest_markdown": result["digest_markdown"],
+        "article_count": result["article_count"],
+        "included_urls": result["included_urls"],
+        "skipped": result["skipped"],
+    }
+
+
 def summarize_url(
     url: str,
     *,

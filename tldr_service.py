@@ -13,6 +13,7 @@ from newsletter_scraper import (
     merge_source_results_for_date,
     scrape_single_source_for_date,
 )
+import summarizer
 from summarizer import (
     DEFAULT_MODEL,
     DEFAULT_SUMMARY_EFFORT,
@@ -303,6 +304,84 @@ def scrape_newsletters_in_date_range(
         "payloads": ordered_payloads,
         "stats": _build_stats_from_payloads(ordered_payloads, total_network_fetches),
         "source": "live",
+    }
+
+
+def _fetch_articles_content_parallel(articles: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Fetch markdown content for multiple articles in parallel using up to 5 workers.
+
+    Returns (successful, failed) where:
+    - successful: list of dicts with keys url, title, category, markdown
+    - failed: list of dicts with keys url, reason
+    """
+    successful = []
+    failed = []
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_article = {
+            executor.submit(summarizer.url_to_markdown, article["url"]): article
+            for article in articles
+        }
+        for future in as_completed(future_to_article):
+            article = future_to_article[future]
+            try:
+                markdown = future.result()
+                successful.append({
+                    "url": article["url"],
+                    "title": article["title"],
+                    "category": article["category"],
+                    "markdown": markdown,
+                })
+            except Exception as error:
+                logger.error(
+                    "Failed to fetch article content url=%s error=%s",
+                    article["url"],
+                    repr(error),
+                )
+                failed.append({"url": article["url"], "reason": str(error)})
+
+    return successful, failed
+
+
+def generate_digest(articles: list[dict], effort: str = "low") -> dict:
+    """Orchestrate multi-article digest: fetch content in parallel, build prompt, call LLM.
+
+    Expects each article dict to have: url, title, category.
+    Returns dict with digest_id, digest_markdown, article_count, included_urls, skipped.
+    """
+    if not articles:
+        raise ValueError("articles must be a non-empty list")
+
+    normalized_effort = normalize_summarize_effort(effort)
+
+    canonical_articles = [
+        {**article, "url": util.canonicalize_url(article["url"])}
+        for article in articles
+    ]
+
+    successful, failed = _fetch_articles_content_parallel(canonical_articles)
+
+    if not successful:
+        raise ValueError("Failed to fetch content for all provided articles")
+
+    for article in successful:
+        article["markdown"] = summarizer._truncate_markdown(article["markdown"])
+
+    digest_id = summarizer._generate_digest_id(
+        [article["url"] for article in successful], normalized_effort
+    )
+
+    template = summarizer._fetch_digest_prompt()
+    prompt = summarizer._build_digest_prompt(template, successful)
+
+    digest_markdown = summarizer._call_llm(prompt, summarize_effort=normalized_effort)
+
+    return {
+        "digest_id": digest_id,
+        "digest_markdown": digest_markdown,
+        "article_count": len(successful),
+        "included_urls": [article["url"] for article in successful],
+        "skipped": failed,
     }
 
 
