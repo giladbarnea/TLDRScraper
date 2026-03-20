@@ -18,6 +18,8 @@ function DigestOverlay({ html, expanded, articleCount, errorMessage, onClose }) 
   })
 
   useEffect(() => {
+    if (!expanded) return
+
     document.body.style.overflow = 'hidden'
     const handleEscape = (e) => {
       if (e.key === 'Escape') onClose()
@@ -35,7 +37,7 @@ function DigestOverlay({ html, expanded, articleCount, errorMessage, onClose }) 
       document.removeEventListener('keydown', handleEscape)
       scrollEl?.removeEventListener('scroll', handleScroll)
     }
-  }, [onClose])
+  }, [expanded, onClose])
 
   if (!expanded) return null
 
