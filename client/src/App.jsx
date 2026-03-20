@@ -1,10 +1,13 @@
 import { Calendar } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import DigestButton from './components/DigestButton'
+import DigestOverlay from './components/DigestOverlay'
 import Feed from './components/Feed'
 import ScrapeForm from './components/ScrapeForm'
 import SelectionCounterPill from './components/SelectionCounterPill'
 import ToastContainer from './components/ToastContainer'
-import { InteractionProvider } from './contexts/InteractionContext'
+import { InteractionProvider, useInteraction } from './contexts/InteractionContext'
+import { useDigest } from './hooks/useDigest'
 import { mergeIntoCache } from './hooks/useSupabaseStorage'
 import { scrapeNewsletters } from './lib/scraper'
 import { logTransition } from './lib/stateTransitionLogger'
@@ -25,8 +28,100 @@ function mergePreservingLocalState(freshPayload, localPayload) {
       for (const k of SERVER_ORIGIN_FIELDS) freshFields[k] = article[k]
       freshFields.issueDate = freshPayload.date
       return { ...local, ...freshFields }
-    })
+    }),
+    digest: localPayload.digest
   }
+}
+
+function AppContent({ results, setResults, showSettings, setShowSettings }) {
+  const { selectedIds, isSelectMode } = useInteraction()
+  const digest = useDigest(results)
+
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric'
+  })
+
+  return (
+    <div className="min-h-screen flex justify-center font-sans bg-slate-50 text-slate-900 selection:bg-brand-100 selection:text-brand-900">
+      <div className="w-full max-w-3xl relative">
+
+        {/* Header */}
+        <header className="relative z-40 px-6 pt-6 pb-4 bg-transparent">
+          <div className="flex justify-between items-center">
+            <div>
+              <a href="/api/source" className="inline-block">
+                <h1 className="font-display text-[28px] font-extrabold tracking-tight text-slate-900 hover:text-brand-600 transition-colors cursor-pointer">
+                  TLDR<span className="text-brand-500">.</span>
+                </h1>
+              </a>
+              <p className="text-sm font-medium text-slate-500 mt-0.5">
+                {currentDate}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <DigestButton
+                selectedIds={selectedIds}
+                payloads={results?.payloads}
+                onTrigger={digest.trigger}
+                isLoading={digest.loading}
+                isSelectMode={isSelectMode}
+              />
+              <SelectionCounterPill />
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${showSettings ? 'bg-brand-50 text-brand-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
+                title="Date Range & Settings"
+              >
+                <Calendar size={18} className="transition-colors" />
+              </button>
+            </div>
+          </div>
+
+          {/* Settings / Scrape Form Area */}
+          <div className={`
+              overflow-hidden transition-all duration-500 ease-in-out
+              ${showSettings ? 'max-h-[400px] opacity-100 mt-4' : 'max-h-0 opacity-0'}
+          `}>
+             <div className="bg-white rounded-2xl p-5 shadow-elevated border border-slate-200/50">
+                <ScrapeForm onResults={(res) => { setResults(res); setShowSettings(false); }} />
+             </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="px-6">
+          {!results ? (
+             <div className="flex flex-col items-center justify-center py-32 opacity-50 animate-pulse">
+                <div className="w-12 h-12 bg-slate-200 rounded-full mb-4"></div>
+                <div className="h-4 w-32 bg-slate-200 rounded mb-2"></div>
+                <div className="h-3 w-24 bg-slate-100 rounded"></div>
+             </div>
+          ) : (results.payloads && results.payloads.length > 0) ? (
+            <Feed payloads={results.payloads} />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-32 text-slate-400">
+               <p>No newsletters found for this period.</p>
+               <button onClick={() => setShowSettings(true)} className="mt-4 text-brand-600 font-medium hover:underline">
+                 Open settings to scrape
+               </button>
+            </div>
+          )}
+        </main>
+
+      </div>
+
+      <DigestOverlay
+        html={digest.html}
+        expanded={digest.expanded}
+        articleCount={digest.articleCount}
+        errorMessage={digest.errorMessage}
+        onClose={digest.collapse}
+      />
+    </div>
+  )
 }
 
 function App() {
@@ -156,77 +251,15 @@ function App() {
     return () => controller.abort()
   }, [])
 
-  const currentDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric'
-  })
-
   return (
     <InteractionProvider>
-    <ToastContainer />
-    <div className="min-h-screen flex justify-center font-sans bg-slate-50 text-slate-900 selection:bg-brand-100 selection:text-brand-900">
-      <div className="w-full max-w-3xl relative">
-
-        {/* Header */}
-        <header className="relative z-40 px-6 pt-6 pb-4 bg-transparent">
-          <div className="flex justify-between items-center">
-            <div>
-              <a href="/api/source" className="inline-block">
-                <h1 className="font-display text-[28px] font-extrabold tracking-tight text-slate-900 hover:text-brand-600 transition-colors cursor-pointer">
-                  TLDR<span className="text-brand-500">.</span>
-                </h1>
-              </a>
-              <p className="text-sm font-medium text-slate-500 mt-0.5">
-                {currentDate}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <SelectionCounterPill />
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${showSettings ? 'bg-brand-50 text-brand-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
-                title="Date Range & Settings"
-              >
-                <Calendar size={18} className="transition-colors" />
-              </button>
-            </div>
-          </div>
-
-          {/* Settings / Scrape Form Area */}
-          <div className={`
-              overflow-hidden transition-all duration-500 ease-in-out
-              ${showSettings ? 'max-h-[400px] opacity-100 mt-4' : 'max-h-0 opacity-0'}
-          `}>
-             <div className="bg-white rounded-2xl p-5 shadow-elevated border border-slate-200/50">
-                <ScrapeForm onResults={(res) => { setResults(res); setShowSettings(false); }} />
-             </div>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="px-6">
-          {!results ? (
-             <div className="flex flex-col items-center justify-center py-32 opacity-50 animate-pulse">
-                <div className="w-12 h-12 bg-slate-200 rounded-full mb-4"></div>
-                <div className="h-4 w-32 bg-slate-200 rounded mb-2"></div>
-                <div className="h-3 w-24 bg-slate-100 rounded"></div>
-             </div>
-          ) : (results.payloads && results.payloads.length > 0) ? (
-            <Feed payloads={results.payloads} />
-          ) : (
-            <div className="flex flex-col items-center justify-center py-32 text-slate-400">
-               <p>No newsletters found for this period.</p>
-               <button onClick={() => setShowSettings(true)} className="mt-4 text-brand-600 font-medium hover:underline">
-                 Open settings to scrape
-               </button>
-            </div>
-          )}
-        </main>
-
-      </div>
-    </div>
+      <ToastContainer />
+      <AppContent
+        results={results}
+        setResults={setResults}
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
+      />
     </InteractionProvider>
   )
 }
