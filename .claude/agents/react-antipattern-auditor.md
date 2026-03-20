@@ -1,7 +1,8 @@
 ---
 name: react-antipattern-auditor
 description: Audits a React codebase for antipatterns.
-last_updated: 2025-12-11 15:01, 58c6807
+model: opus
+last_updated: 2026-03-20 10:03
 ---
 ## Task
 
