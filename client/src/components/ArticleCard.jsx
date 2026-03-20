@@ -186,37 +186,28 @@ function ArticleTitle({ isRead, title }) {
   )
 }
 
-function ArticleMeta({ domain, hostname, articleMeta, summaryAvailable, isRead }) {
-  const stateIndicator = isRead ? (
-    <CheckCircle size={14} className="text-slate-300 shrink-0" />
-  ) : summaryAvailable ? (
-    <span className="w-2 h-2 rounded-full bg-brand-400 shrink-0" />
-  ) : null
-
+function ArticleMeta({ domain, hostname, articleMeta }) {
   return (
-    <div className="flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2 min-w-0">
-        {hostname && (
-          <div className="w-4 h-4 rounded-full bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
-            <img
-              src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
-              alt={domain}
-              className="w-full h-full object-cover"
-              onError={(e) => { e.target.style.display = 'none' }}
-            />
-          </div>
-        )}
-        <div className="flex items-baseline gap-1.5 text-xs leading-none min-w-0">
-          <span className="font-medium text-slate-400 shrink-0">
-            {domain && domain}
-          </span>
-          <span className="text-slate-300 shrink-0">·</span>
-          <span className="font-normal text-slate-400 truncate">
-            {articleMeta}
-          </span>
+    <div className="flex items-center gap-2 min-w-0">
+      {hostname && (
+        <div className="w-4 h-4 rounded-full bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+          <img
+            src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
+            alt={domain}
+            className="w-full h-full object-cover"
+            onError={(e) => { e.target.style.display = 'none' }}
+          />
         </div>
+      )}
+      <div className="flex items-baseline gap-1.5 text-xs leading-none min-w-0">
+        <span className="font-medium text-slate-400 shrink-0">
+          {domain && domain}
+        </span>
+        <span className="text-slate-300 shrink-0">·</span>
+        <span className="font-normal text-slate-400 truncate">
+          {articleMeta}
+        </span>
       </div>
-      {stateIndicator}
     </div>
   )
 }
@@ -340,21 +331,20 @@ function ArticleCard({ article }) {
             ${summary.expanded && !stateLoading ? 'ring-1 ring-brand-200/60 shadow-elevated' : ''}
           `}
         >
-          <div className="p-4 flex flex-col gap-1.5">
-            <ArticleTitle
-              isRead={isRead}
-              title={article.title}
-            />
-
-            {!isRemoved && (
-              <ArticleMeta
-                domain={displayDomain}
-                hostname={hostname}
-                articleMeta={article.articleMeta}
-                summaryAvailable={isAvailable}
+          <div className="p-4 flex items-center gap-3">
+            <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+              <ArticleTitle
                 isRead={isRead}
+                title={article.title}
               />
-            )}
+
+              {!isRemoved && (
+                <ArticleMeta
+                  domain={displayDomain}
+                  hostname={hostname}
+                  articleMeta={article.articleMeta}
+                />
+              )}
 
             {!isRemoved && summary.status === 'error' && (
               <SummaryError message={summary.errorMessage} />
@@ -373,6 +363,15 @@ function ArticleCard({ article }) {
                   markAsRemoved()
                 }}
               />
+            )}
+            </div>
+
+            {!isRemoved && (
+              isRead ? (
+                <CheckCircle size={14} className="text-slate-300 shrink-0" />
+              ) : isAvailable ? (
+                <span className="w-2 h-2 rounded-full bg-brand-400 shrink-0" />
+              ) : null
             )}
           </div>
         </motion.div>
