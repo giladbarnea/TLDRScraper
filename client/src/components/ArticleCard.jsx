@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { AlertCircle, ArrowDownCircle, Check, CheckCircle, ChevronDown, Trash2 } from 'lucide-react'
+import { AlertCircle, Check, CheckCircle, ChevronDown, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useInteraction } from '../contexts/InteractionContext'
@@ -190,7 +190,7 @@ function ArticleMeta({ domain, hostname, articleMeta, summaryAvailable, isRead }
   const stateIndicator = isRead ? (
     <CheckCircle size={14} className="text-slate-300 shrink-0" />
   ) : summaryAvailable ? (
-    <ArrowDownCircle size={14} className="text-slate-300 shrink-0" />
+    <span className="w-2 h-2 rounded-full bg-brand-400 shrink-0" />
   ) : null
 
   return (
