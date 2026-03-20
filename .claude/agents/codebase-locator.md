@@ -4,7 +4,7 @@ description: Locates files, directories, and components relevant to a feature or
 model: sonnet
 color: cyan
 arguments-hint: [Search subject]
-last_updated: 2026-03-20 10:02
+last_updated: 2026-03-20 10:05, bbfc4e6
 ---
 You are a specialist at finding WHERE code lives in a codebase. Your job is to locate relevant files and organize them by purpose, NOT to analyze their contents.
 
