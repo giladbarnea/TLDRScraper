@@ -22,6 +22,7 @@ export function useDigest(results) {
   const { clearSelection } = useInteraction()
   const [expanded, setExpanded] = useState(false)
   const [targetDate, setTargetDate] = useState(null)
+  const [triggering, setTriggering] = useState(false)
   const abortControllerRef = useRef(null)
   const requestTokenRef = useRef(null)
 
@@ -30,9 +31,10 @@ export function useDigest(results) {
     : null
   const storageKey = getNewsletterScrapeKey(targetDate ?? latestPayloadDate ?? '0000-00-00')
   const [payload, setPayload] = useSupabaseStorage(storageKey, null)
+  const setPayloadRef = useRef(null)
+  setPayloadRef.current = setPayload
 
-  const activeDate = targetDate ?? latestPayloadDate
-  const activePayload = results?.payloads?.find(p => p.date === activeDate) ?? payload
+  const activePayload = payload
 
   const data = activePayload?.digest || null
   const status = summaryDataReducer.getSummaryDataStatus(data)
@@ -49,13 +51,12 @@ export function useDigest(results) {
 
   const errorMessage = data?.errorMessage || null
   const isAvailable = status === summaryDataReducer.SummaryDataStatus.AVAILABLE && markdown
-  const loading = status === summaryDataReducer.SummaryDataStatus.LOADING
+  const loading = triggering || status === summaryDataReducer.SummaryDataStatus.LOADING
   const isError = status === summaryDataReducer.SummaryDataStatus.ERROR
   const articleCount = data?.articleUrls?.length ?? 0
 
   const writeDigest = (digestPatch) => {
-    if (!setPayload) return
-    setPayload(current => {
+    setPayloadRef.current(current => {
       if (!current) return current
       const fromStatus = summaryDataReducer.getSummaryDataStatus(current.digest)
       const toStatus = digestPatch.status
@@ -70,6 +71,7 @@ export function useDigest(results) {
     const payloads = results?.payloads
     const date = findMostRecentDate(articleDescriptors, payloads)
     setTargetDate(date)
+    setTriggering(true)
 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -81,17 +83,6 @@ export function useDigest(results) {
     requestTokenRef.current = requestToken
 
     const articleUrls = articleDescriptors.map(d => d.url)
-
-    const optimisticPatch = {
-      status: summaryDataReducer.SummaryDataStatus.LOADING,
-      articleUrls,
-      errorMessage: null,
-    }
-
-    setPayload(current => {
-      if (!current) return current
-      return { ...current, digest: { ...(current.digest || {}), ...optimisticPatch } }
-    })
 
     try {
       const response = await window.fetch('/api/digest', {
@@ -114,11 +105,12 @@ export function useDigest(results) {
           effort: 'low',
           errorMessage: null,
         }
-        setPayload(current => {
+        setPayloadRef.current(current => {
           if (!current) return current
           logTransition('digest', DIGEST_LOCK_OWNER, summaryDataReducer.SummaryDataStatus.LOADING, summaryDataReducer.SummaryDataStatus.AVAILABLE)
           return { ...current, digest: { ...(current.digest || {}), ...successPatch } }
         })
+        setTriggering(false)
         clearSelection()
         expand()
       } else {
@@ -126,6 +118,7 @@ export function useDigest(results) {
           status: summaryDataReducer.SummaryDataStatus.ERROR,
           errorMessage: result.error,
         })
+        setTriggering(false)
       }
       requestTokenRef.current = null
 
@@ -138,6 +131,7 @@ export function useDigest(results) {
         status: summaryDataReducer.SummaryDataStatus.ERROR,
         errorMessage: error.message,
       })
+      setTriggering(false)
       requestTokenRef.current = null
     }
   }
