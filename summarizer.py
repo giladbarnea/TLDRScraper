@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import json
 import re
@@ -22,6 +23,7 @@ h.protect_links = True  # Don't wrap URLs
 h.single_line_break = True  # Use single line breaks
 
 _SUMMARY_PROMPT_CACHE = None
+_DIGEST_PROMPT_CACHE = None
 
 SUMMARIZE_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
 DEFAULT_SUMMARY_EFFORT = "low"
@@ -371,6 +373,69 @@ def _fetch_summary_prompt(
         ref=ref,
         cache_attr="_SUMMARY_PROMPT_CACHE",
     )
+
+
+def _fetch_digest_prompt() -> str:
+    """Return digest prompt template (hardcoded for MVP, cached in module global).
+
+    Instructs Gemini to synthesize themes, find connections, highlight key takeaways,
+    and attribute insights to their source articles.
+    """
+    global _DIGEST_PROMPT_CACHE
+    if _DIGEST_PROMPT_CACHE:
+        return _DIGEST_PROMPT_CACHE
+
+    _DIGEST_PROMPT_CACHE = """You are a research synthesizer. You will receive a set of articles on technical topics.
+
+Your task is to produce a single cohesive digest that:
+1. Identifies the overarching themes and patterns across all articles
+2. Surfaces connections and relationships between ideas from different sources
+3. Highlights the key takeaway from each article, attributed to its source
+4. Notes any tensions, contradictions, or complementary perspectives
+5. Concludes with a brief synthesis of the most important insights
+
+Format your response as clean markdown with:
+- A short introductory paragraph naming the themes
+- A "## Key Themes" section with subsections for each major theme, citing which articles contribute
+- A "## Article Highlights" section with one concise paragraph per article (title as header, linked to URL)
+- A "## Synthesis" section with 3-5 bullet points of the most important takeaways
+
+Write in a clear, direct technical style. Attribute every insight to its source article."""
+
+    return _DIGEST_PROMPT_CACHE
+
+
+def _generate_digest_id(article_urls: list[str], effort: str) -> str:
+    """Generate a stable digest ID from sorted canonical URLs and effort level.
+
+    >>> _generate_digest_id(["b.com/2", "a.com/1"], "low") == _generate_digest_id(["a.com/1", "b.com/2"], "low")
+    True
+    >>> _generate_digest_id(["a.com/1"], "low") != _generate_digest_id(["a.com/1"], "high")
+    True
+    """
+    canonical = sorted(article_urls)
+    payload = "|".join(canonical) + "|" + effort
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+
+
+def _build_digest_prompt(template: str, articles_with_content: list[dict]) -> str:
+    """Build multi-article digest prompt from template and article content blocks.
+
+    Each article dict must have: url, title, category, markdown.
+
+    >>> prompt = _build_digest_prompt("TEMPLATE", [{"url": "u", "title": "t", "category": "c", "markdown": "body"}])
+    >>> '<articles>' in prompt and '<article url="u"' in prompt and 'body' in prompt
+    True
+    """
+    article_blocks = []
+    for article in articles_with_content:
+        block = f'<article url="{article["url"]}" title="{article["title"]}" source="{article["category"]}">\n{article["markdown"]}\n</article>'
+        article_blocks.append(block)
+
+    articles_xml = "<articles>\n" + "\n".join(article_blocks) + "\n</articles>"
+    return f"{template}\n\n{articles_xml}"
 
 
 def _map_reasoning_effort_to_thinking_level(summarize_effort: str) -> str:

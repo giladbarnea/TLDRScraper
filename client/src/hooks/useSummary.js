@@ -11,16 +11,16 @@ marked.use(markedKatex({ throwOnError: false }))
 
 let zenLockOwner = null
 
-function acquireZenLock(url) {
+export function acquireZenLock(owner) {
   if (zenLockOwner === null) {
-    zenLockOwner = url
+    zenLockOwner = owner
     return true
   }
   return false
 }
 
-function releaseZenLock(url) {
-  if (zenLockOwner === url) {
+export function releaseZenLock(owner) {
+  if (zenLockOwner === owner) {
     zenLockOwner = null
   }
 }
