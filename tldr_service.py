@@ -346,8 +346,9 @@ def _fetch_articles_content_parallel(articles: list[dict]) -> tuple[list[dict], 
 def generate_digest(articles: list[dict], effort: str = "low") -> dict:
     """Orchestrate multi-article digest: fetch content in parallel, build prompt, call LLM.
 
-    Idempotent: the same set of canonical URLs + effort always returns a cached result
-    if one exists, skipping content fetching and LLM generation entirely.
+    Idempotent: the cache key is derived from the successfully fetched URLs + effort,
+    so the same effective article set always resolves to the same cached digest, even
+    if the original request included URLs that failed to fetch.
 
     Expects each article dict to have: url, title, category.
     Returns dict with digest_id, digest_markdown, article_count, included_urls, skipped.
@@ -362,8 +363,13 @@ def generate_digest(articles: list[dict], effort: str = "low") -> dict:
         for article in articles
     ]
 
+    successful, failed = _fetch_articles_content_parallel(canonical_articles)
+
+    if not successful:
+        raise ValueError("Failed to fetch content for all provided articles")
+
     digest_id = summarizer._generate_digest_id(
-        [article["url"] for article in canonical_articles], normalized_effort
+        [article["url"] for article in successful], normalized_effort
     )
 
     cached = storage_service.get_digest(digest_id)
@@ -373,13 +379,8 @@ def generate_digest(articles: list[dict], effort: str = "low") -> dict:
             "digest_markdown": cached["markdown"],
             "article_count": cached["article_count"],
             "included_urls": cached["included_urls"],
-            "skipped": [],
+            "skipped": failed,
         }
-
-    successful, failed = _fetch_articles_content_parallel(canonical_articles)
-
-    if not successful:
-        raise ValueError("Failed to fetch content for all provided articles")
 
     for article in successful:
         article["markdown"] = summarizer._truncate_markdown(article["markdown"])
