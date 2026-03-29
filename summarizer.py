@@ -418,18 +418,6 @@ def _generate_digest_id(article_urls: list[str], effort: str) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _truncate_markdown(markdown: str, max_words: int = 3000) -> str:
-    """Truncate markdown to at most max_words words, preserving word boundaries.
-
-    >>> _truncate_markdown("one two three", max_words=2)
-    'one two'
-    >>> _truncate_markdown("hello world", max_words=100)
-    'hello world'
-    """
-    words = markdown.split()
-    if len(words) <= max_words:
-        return markdown
-    return " ".join(words[:max_words])
 
 
 def _build_digest_prompt(template: str, articles_with_content: list[dict]) -> str:

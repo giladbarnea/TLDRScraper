@@ -382,9 +382,6 @@ def generate_digest(articles: list[dict], effort: str = "low") -> dict:
             "skipped": failed,
         }
 
-    for article in successful:
-        article["markdown"] = summarizer._truncate_markdown(article["markdown"])
-
     template = summarizer._fetch_digest_prompt()
     prompt = summarizer._build_digest_prompt(template, successful)
 
