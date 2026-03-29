@@ -125,6 +125,58 @@ def is_date_cached(date):
     return len(result.data) > 0
 
 
+def get_digest(digest_id: str) -> dict | None:
+    """Return cached digest row for digest_id, or None on miss or error.
+
+    >>> get_digest("nonexistent_id_that_does_not_exist") is None
+    True
+    """
+    try:
+        supabase = supabase_client.get_supabase_client()
+        result = (
+            supabase.table('digests')
+            .select('markdown, included_urls, article_count, effort')
+            .eq('digest_id', digest_id)
+            .execute()
+        )
+        return result.data[0] if result.data else None
+    except Exception as error:
+        logger.warning(
+            "get_digest failed; treating as cache miss digest_id_prefix=%s error=%s",
+            digest_id[:8],
+            repr(error),
+        )
+        return None
+
+
+def set_digest(
+    digest_id: str,
+    markdown: str,
+    included_urls: list[str],
+    article_count: int,
+    effort: str,
+) -> None:
+    """Persist a generated digest to the cache table (upsert).
+
+    >>> set_digest("test_id", "# Digest", ["a.com/1"], 1, "low")
+    """
+    try:
+        supabase = supabase_client.get_supabase_client()
+        supabase.table('digests').upsert({
+            'digest_id': digest_id,
+            'markdown': markdown,
+            'included_urls': included_urls,
+            'article_count': article_count,
+            'effort': effort,
+        }).execute()
+    except Exception as error:
+        logger.warning(
+            "set_digest failed; result not cached digest_id_prefix=%s error=%s",
+            digest_id[:8],
+            repr(error),
+        )
+
+
 def _probe_seen_urls_table_once() -> bool:
     """Probe seen_urls table availability and retry after transient failures.
 

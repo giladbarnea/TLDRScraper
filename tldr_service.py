@@ -346,6 +346,9 @@ def _fetch_articles_content_parallel(articles: list[dict]) -> tuple[list[dict], 
 def generate_digest(articles: list[dict], effort: str = "low") -> dict:
     """Orchestrate multi-article digest: fetch content in parallel, build prompt, call LLM.
 
+    Idempotent: the same set of canonical URLs + effort always returns a cached result
+    if one exists, skipping content fetching and LLM generation entirely.
+
     Expects each article dict to have: url, title, category.
     Returns dict with digest_id, digest_markdown, article_count, included_urls, skipped.
     """
@@ -359,6 +362,20 @@ def generate_digest(articles: list[dict], effort: str = "low") -> dict:
         for article in articles
     ]
 
+    digest_id = summarizer._generate_digest_id(
+        [article["url"] for article in canonical_articles], normalized_effort
+    )
+
+    cached = storage_service.get_digest(digest_id)
+    if cached:
+        return {
+            "digest_id": digest_id,
+            "digest_markdown": cached["markdown"],
+            "article_count": cached["article_count"],
+            "included_urls": cached["included_urls"],
+            "skipped": [],
+        }
+
     successful, failed = _fetch_articles_content_parallel(canonical_articles)
 
     if not successful:
@@ -367,20 +384,19 @@ def generate_digest(articles: list[dict], effort: str = "low") -> dict:
     for article in successful:
         article["markdown"] = summarizer._truncate_markdown(article["markdown"])
 
-    digest_id = summarizer._generate_digest_id(
-        [article["url"] for article in successful], normalized_effort
-    )
-
     template = summarizer._fetch_digest_prompt()
     prompt = summarizer._build_digest_prompt(template, successful)
 
     digest_markdown = summarizer._call_llm(prompt, summarize_effort=normalized_effort)
 
+    included_urls = [article["url"] for article in successful]
+    storage_service.set_digest(digest_id, digest_markdown, included_urls, len(successful), normalized_effort)
+
     return {
         "digest_id": digest_id,
         "digest_markdown": digest_markdown,
         "article_count": len(successful),
-        "included_urls": [article["url"] for article in successful],
+        "included_urls": included_urls,
         "skipped": failed,
     }
 
