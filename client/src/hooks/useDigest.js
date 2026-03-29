@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useInteraction } from '../contexts/InteractionContext'
 import { logTransition } from '../lib/stateTransitionLogger'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
@@ -69,7 +69,12 @@ export function useDigest(results) {
 
   const trigger = async (articleDescriptors) => {
     const payloads = results?.payloads
+    if (!payloads || payloads.length === 0) return
+    if (!articleDescriptors || articleDescriptors.length < 2) return
+
     const date = findMostRecentDate(articleDescriptors, payloads)
+    if (!date) return
+
     setTargetDate(date)
     setTriggering(true)
 
@@ -85,6 +90,12 @@ export function useDigest(results) {
     const articleUrls = articleDescriptors.map(d => d.url)
 
     try {
+      writeDigest({
+        status: summaryDataReducer.SummaryDataStatus.LOADING,
+        effort: 'low',
+        errorMessage: null,
+      })
+
       const response = await window.fetch('/api/digest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -110,7 +121,6 @@ export function useDigest(results) {
           logTransition('digest', DIGEST_LOCK_OWNER, summaryDataReducer.SummaryDataStatus.LOADING, summaryDataReducer.SummaryDataStatus.AVAILABLE)
           return { ...current, digest: { ...(current.digest || {}), ...successPatch } }
         })
-        setTriggering(false)
         clearSelection()
         expand()
       } else {
@@ -118,21 +128,19 @@ export function useDigest(results) {
           status: summaryDataReducer.SummaryDataStatus.ERROR,
           errorMessage: result.error,
         })
-        setTriggering(false)
       }
-      requestTokenRef.current = null
 
     } catch (error) {
       if (error.name === 'AbortError') {
-        requestTokenRef.current = null
         return
       }
       writeDigest({
         status: summaryDataReducer.SummaryDataStatus.ERROR,
         errorMessage: error.message,
       })
-      setTriggering(false)
+    } finally {
       requestTokenRef.current = null
+      setTriggering(false)
     }
   }
 
@@ -148,6 +156,15 @@ export function useDigest(results) {
     releaseZenLock(DIGEST_LOCK_OWNER)
     setExpanded(false)
   }
+
+  useEffect(() => {
+    return () => {
+      releaseZenLock(DIGEST_LOCK_OWNER)
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
 
   return {
     data,
