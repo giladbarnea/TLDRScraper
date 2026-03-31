@@ -23,6 +23,7 @@ export function useDigest(results) {
   const [expanded, setExpanded] = useState(false)
   const [targetDate, setTargetDate] = useState(null)
   const [triggering, setTriggering] = useState(false)
+  const [pendingRequest, setPendingRequest] = useState(null)
   const abortControllerRef = useRef(null)
   const requestTokenRef = useRef(null)
 
@@ -67,7 +68,9 @@ export function useDigest(results) {
     })
   }
 
-  const trigger = async (articleDescriptors) => {
+  const createRequestToken = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
+
+  const trigger = (articleDescriptors) => {
     const payloads = results?.payloads
     if (!payloads || payloads.length === 0) return
     if (!articleDescriptors || articleDescriptors.length < 2) return
@@ -75,74 +78,88 @@ export function useDigest(results) {
     const date = findMostRecentDate(articleDescriptors, payloads)
     if (!date) return
 
-    setTargetDate(date)
-    setTriggering(true)
+    const requestToken = createRequestToken()
+    requestTokenRef.current = requestToken
 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
+    setPendingRequest({ articleDescriptors, date, requestToken })
+    setTargetDate(date)
+    setTriggering(true)
+  }
+
+  useEffect(() => {
+    if (!pendingRequest) return
+    if (targetDate !== pendingRequest.date) return
+    if (!payload || payload.date !== pendingRequest.date) return
+
+    const { articleDescriptors, requestToken } = pendingRequest
+    const articleUrls = articleDescriptors.map(d => d.url)
     const controller = new AbortController()
     abortControllerRef.current = controller
+    setPendingRequest(null)
 
-    const requestToken = `${Date.now()}-${Math.random().toString(16).slice(2)}`
-    requestTokenRef.current = requestToken
-
-    const articleUrls = articleDescriptors.map(d => d.url)
-
-    try {
-      writeDigest({
-        status: summaryDataReducer.SummaryDataStatus.LOADING,
-        effort: 'low',
-        errorMessage: null,
-      })
-
-      const response = await window.fetch('/api/digest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articles: articleDescriptors, effort: 'low' }),
-        signal: controller.signal,
-      })
-
-      const result = await response.json()
-
-      if (requestTokenRef.current !== requestToken) return
-
-      if (result.success) {
-        const successPatch = {
-          status: summaryDataReducer.SummaryDataStatus.AVAILABLE,
-          markdown: result.digest_markdown,
-          articleUrls: result.included_urls ?? articleUrls,
-          generatedAt: new Date().toISOString(),
+    const runDigest = async () => {
+      try {
+        writeDigest({
+          status: summaryDataReducer.SummaryDataStatus.LOADING,
           effort: 'low',
           errorMessage: null,
-        }
-        setPayloadRef.current(current => {
-          if (!current) return current
-          logTransition('digest', DIGEST_LOCK_OWNER, summaryDataReducer.SummaryDataStatus.LOADING, summaryDataReducer.SummaryDataStatus.AVAILABLE)
-          return { ...current, digest: { ...(current.digest || {}), ...successPatch } }
         })
-        clearSelection()
-        expand()
-      } else {
+
+        const response = await window.fetch('/api/digest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ articles: articleDescriptors, effort: 'low' }),
+          signal: controller.signal,
+        })
+
+        const result = await response.json()
+
+        if (requestTokenRef.current !== requestToken) return
+
+        if (result.success) {
+          const successPatch = {
+            status: summaryDataReducer.SummaryDataStatus.AVAILABLE,
+            markdown: result.digest_markdown,
+            articleUrls: result.included_urls ?? articleUrls,
+            generatedAt: new Date().toISOString(),
+            effort: 'low',
+            errorMessage: null,
+          }
+          setPayloadRef.current(current => {
+            if (!current) return current
+            logTransition('digest', DIGEST_LOCK_OWNER, summaryDataReducer.SummaryDataStatus.LOADING, summaryDataReducer.SummaryDataStatus.AVAILABLE)
+            return { ...current, digest: { ...(current.digest || {}), ...successPatch } }
+          })
+          clearSelection()
+          expand()
+          return
+        }
+
         writeDigest({
           status: summaryDataReducer.SummaryDataStatus.ERROR,
           errorMessage: result.error,
         })
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          return
+        }
+        writeDigest({
+          status: summaryDataReducer.SummaryDataStatus.ERROR,
+          errorMessage: error.message,
+        })
+      } finally {
+        if (requestTokenRef.current === requestToken) {
+          requestTokenRef.current = null
+          setTriggering(false)
+        }
       }
-
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        return
-      }
-      writeDigest({
-        status: summaryDataReducer.SummaryDataStatus.ERROR,
-        errorMessage: error.message,
-      })
-    } finally {
-      requestTokenRef.current = null
-      setTriggering(false)
     }
-  }
+
+    void runDigest()
+  }, [pendingRequest, payload, targetDate, clearSelection])
 
   const expand = () => {
     if (acquireZenLock(DIGEST_LOCK_OWNER)) {
