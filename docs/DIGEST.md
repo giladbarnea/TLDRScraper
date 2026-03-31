@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-03-29 17:24
+last_updated: 2026-03-31 11:03, 1fff863
 ---
 # Digest Feature Architecture
 
