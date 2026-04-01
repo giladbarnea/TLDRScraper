@@ -190,12 +190,11 @@ function App() {
       let phase1Rendered = false
 
       logTransition('feed', range, 'idle', 'fetching')
-      const cachePromise = getDailyPayloadsRange(startDate, endDate, signal).catch(() => [])
-      const scrapePromise = scrapeNewsletters(startDate, endDate, signal)
-
+      
       // Phase 1: render cached data immediately
-      const cachedPayloads = await cachePromise
+      const cachedPayloads = await getDailyPayloadsRange(startDate, endDate, signal).catch(() => [])
       if (signal.aborted) return
+      
       if (cachedPayloads.length > 0) {
         phase1Rendered = true
         const articleCount = cachedPayloads.reduce((sum, p) => sum + p.articles.length, 0)
@@ -204,7 +203,7 @@ function App() {
       }
 
       // Phase 2: merge background scrape results
-      const result = await scrapePromise
+      const result = await scrapeNewsletters(startDate, endDate, signal)
       if (signal.aborted) return
 
       if (phase1Rendered) {

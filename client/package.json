@@ -10,7 +10,6 @@
     "lint": "./scripts/lint.sh"
   },
   "dependencies": {
-    "clsx": "^2.1.1",
     "dompurify": "^3.3.0",
     "framer-motion": "^11.15.0",
     "katex": "^0.16.28",
@@ -18,8 +17,7 @@
     "marked": "^16.4.1",
     "marked-katex-extension": "^5.1.6",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "tailwind-merge": "^3.4.0"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
@@ -29,7 +27,6 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.22",
     "babel-plugin-react-compiler": "^1.0.0",
-    "eslint-plugin-react-hooks": "^6.0.0",
     "knip": "^5.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",

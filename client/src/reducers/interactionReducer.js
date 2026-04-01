@@ -35,7 +35,7 @@ function latchSuppress(state, targetId, windowMs = 800) {
   }
 }
 
-export function shouldSuppressShortPress(state, targetId) {
+function shouldSuppressShortPress(state, targetId) {
   const latch = state.suppressNextShortPress
   if (!latch?.id) return false
   if (latch.id !== targetId) return false

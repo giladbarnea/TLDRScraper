@@ -1,4 +1,4 @@
-export const ArticleLifecycleState = Object.freeze({
+const ArticleLifecycleState = Object.freeze({
   UNREAD: 'unread',
   READ: 'read',
   REMOVED: 'removed',

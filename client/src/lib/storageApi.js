@@ -1,4 +1,4 @@
-export async function isDateCached(date) {
+async function isDateCached(date) {
   const response = await window.fetch(`/api/storage/is-cached/${date}`)
   const data = await response.json()
 
@@ -9,7 +9,7 @@ export async function isDateCached(date) {
   throw new Error(data.error || 'Failed to check cache')
 }
 
-export async function getDailyPayload(date) {
+async function getDailyPayload(date) {
   const response = await window.fetch(`/api/storage/daily/${date}`)
   const data = await response.json()
 
@@ -20,7 +20,7 @@ export async function getDailyPayload(date) {
   return null
 }
 
-export async function setDailyPayload(date, payload) {
+async function setDailyPayload(date, payload) {
   const response = await window.fetch(`/api/storage/daily/${date}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
