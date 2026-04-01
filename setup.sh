@@ -369,6 +369,32 @@ function build_client() {
   fi
 }
 
+#region ----[ Configure Agent Symlinks ]----
+function ensure_agent_symlinks() {
+  local dot_dirs=(".claude" ".codex" ".gemini" ".pi")
+  local workdir="${1:-$SERVER_CONTEXT_WORKDIR}"
+  [[ -z "$workdir" ]] && workdir="$PWD"
+
+  for dir in "${dot_dirs[@]}"; do
+    mkdir -p "$workdir/$dir"
+    for target in "agents" "skills"; do
+      local link_path="$workdir/$dir/$target"
+      if [[ -L "$link_path" ]]; then
+        # Already a symlink, verify it points to the right place
+        local current_target=$(readlink "$link_path")
+        if [[ "$current_target" != "../.agents/$target" ]]; then
+          rm "$link_path"
+          ln -s "../.agents/$target" "$link_path"
+        fi
+      else
+        # Not a symlink, remove and create one
+        rm -rf "$link_path"
+        ln -s "../.agents/$target" "$link_path"
+      fi
+    done
+  done
+}
+
 # main [-q,-quiet]
 # Idempotent environment and dependencies setup, installation, and verification.
 function main() {
@@ -437,11 +463,7 @@ function main() {
     fi
   fi
 
-  # Ephemeral .codex directory: a read-only copy of .claude/skills (not version tracked)
-  rm -rf "$workdir/.codex"
-  mkdir -p "$workdir/.codex"
-  cp -r "$workdir/.claude/skills" "$workdir/.codex/"
-  chmod -R a+rwx "$workdir/.codex"
+  ensure_agent_symlinks "$workdir"
 
   #region ----[ Env Vars Validation ]----
 

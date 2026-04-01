@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eo pipefail
+
+source ./.githooks/util.sh
+generate_project_structure
