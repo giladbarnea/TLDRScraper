@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-01 18:05
+last_updated: 2026-04-01 18:05, a7219ee
 description: Summary lifecycle animations: from complex touch phase state machine to simplified CSS-based spark-orbit.
 ---
 # Summary Lifecycle Animations
