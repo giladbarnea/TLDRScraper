@@ -1,7 +1,7 @@
 ---
 name: client architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-02-26 17:11, e39d4d1
+last_updated: 2026-04-01 17:28
 ---
 # Client Architecture
 
@@ -617,7 +617,7 @@ On mount, `App.jsx` loads the feed in two phases so that cached articles display
 `getDailyPayloadsRange(startDate, endDate)` fetches cached payloads from Supabase. If data exists, `setResults` renders the feed immediately. CalendarDay components mount and seed `readCache` with these payloads.
 
 ### Phase 2 — Background scrape (seconds)
-`scrapeNewsletters(startDate, endDate)` fires concurrently with phase 1. When it resolves:
+`scrapeNewsletters(startDate, endDate)` is awaited sequentially *after* phase 1 resolves to prevent heavy background tasks from choking network bandwidth during the initial render. When it resolves:
 - For dates already rendered: `mergeIntoCache(key, mergeFn)` writes the merged payload into `readCache` and calls `emitChange`. All `useSupabaseStorage` subscribers for that key re-render — new articles appear in place.
 - For new dates not in the cache: appended to `results.payloads` so Feed renders additional CalendarDay components.
 

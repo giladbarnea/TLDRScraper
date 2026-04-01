@@ -176,7 +176,7 @@ function App() {
 
     const range = `${startDate}..${endDate}`
 
-    const sessionCached = null // sessionStorage.getItem(cacheKey)
+    const sessionCached = sessionStorage.getItem(cacheKey)
     if (sessionCached) {
       const { timestamp, data } = JSON.parse(sessionCached)
       if (Date.now() - timestamp < TTL_MS) {
