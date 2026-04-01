@@ -3,7 +3,7 @@ description: Review an implementation plan for design flaws, blindspots, and com
 model: inherit
 argument-hint: plan_file_path
 name: review-plan
-last_updated: 2026-04-01 10:17
+last_updated: 2026-04-01 17:39, 516cd45
 ---
 # Review Plan
 

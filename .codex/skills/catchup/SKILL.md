@@ -2,7 +2,7 @@
 name: catchup
 description: Gather rudimentary project context and current project state first thing upon session start. Optionally establish continuity with specific recent work.
 argument-hint: [optional-specific-effort]
-last_updated: 2026-04-01 10:17
+last_updated: 2026-04-01 17:39, 516cd45
 ---
 1. **Run `setup.sh` Synchronously**. Wait for it to finish. It generates documentation.
 

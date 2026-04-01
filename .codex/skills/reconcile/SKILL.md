@@ -3,7 +3,7 @@ name: reconcile
 description: Judge between a plan and its review to reach a finalized conclusion
 model: inherit
 argument-hint: [directory_containing_plan_and_review]
-last_updated: 2026-04-01 10:17
+last_updated: 2026-04-01 17:39, 516cd45
 ---
 A plan and a review of that plan have both been devised and written to $1. You are tasked with judging which case is more valid — the plan or its criticiser — and reaching a finalized conclusion. Whatever your verdict is, it will be accepted and acted upon.
 

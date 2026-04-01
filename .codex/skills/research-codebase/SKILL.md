@@ -2,7 +2,7 @@
 name: research-codebase
 description: Conduct deep, comprehensive research across the codebase. Use parallel sub-agents to map domains (locator) and then deep-dive (analyzer).
 model: inherit
-last_updated: 2026-04-01 10:17
+last_updated: 2026-04-01 17:39, 516cd45
 ---
 # Research Codebase
 
