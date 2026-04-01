@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-01 18:15
+last_updated: 2026-04-01 18:17, 4018449
 description: Multi-article AI synthesis (Digest) with selection integration and dedicated persistence.
 ---
 # Article Digest
