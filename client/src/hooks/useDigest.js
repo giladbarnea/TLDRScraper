@@ -56,6 +56,42 @@ export function useDigest(results) {
   const isError = status === summaryDataReducer.SummaryDataStatus.ERROR
   const articleCount = data?.articleUrls?.length ?? 0
 
+  const updateDigestArticles = (articleUrls, updater) => {
+    const urlSet = new Set(articleUrls)
+    setPayloadRef.current(current => {
+      if (!current) return current
+      let didChange = false
+      const nextArticles = current.articles.map(article => {
+        if (!urlSet.has(article.url)) return article
+        didChange = true
+        return updater(article)
+      })
+      if (!didChange) return current
+      return { ...current, articles: nextArticles }
+    })
+  }
+
+  const markDigestArticlesLoading = (articleUrls) => {
+    updateDigestArticles(articleUrls, article => ({
+      ...article,
+      summary: {
+        ...(article.summary || {}),
+        status: summaryDataReducer.SummaryDataStatus.LOADING,
+        effort: 'low',
+        errorMessage: null,
+      },
+    }))
+  }
+
+  const markDigestArticlesConsumed = (articleUrls, shouldRemove) => {
+    const markedAt = new Date().toISOString()
+    updateDigestArticles(articleUrls, article => ({
+      ...article,
+      read: { isRead: true, markedAt },
+      removed: shouldRemove ? true : article.removed,
+    }))
+  }
+
   const writeDigest = (digestPatch) => {
     setPayloadRef.current(current => {
       if (!current) return current
@@ -111,6 +147,8 @@ export function useDigest(results) {
 
     const runDigest = async () => {
       try {
+        markDigestArticlesLoading(articleUrls)
+
         writeDigest({
           status: summaryDataReducer.SummaryDataStatus.LOADING,
           effort: 'low',
@@ -177,7 +215,10 @@ export function useDigest(results) {
     }
   }
 
-  const collapse = () => {
+  const collapse = (shouldRemove = false) => {
+    if (status === summaryDataReducer.SummaryDataStatus.AVAILABLE && data?.articleUrls?.length > 0) {
+      markDigestArticlesConsumed(data.articleUrls, shouldRemove)
+    }
     logTransition('digest-view', DIGEST_LOCK_OWNER, 'expanded', 'collapsed')
     releaseZenLock(DIGEST_LOCK_OWNER)
     setExpanded(false)

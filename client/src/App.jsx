@@ -118,7 +118,8 @@ function AppContent({ results, setResults, showSettings, setShowSettings }) {
         expanded={digest.expanded}
         articleCount={digest.articleCount}
         errorMessage={digest.errorMessage}
-        onClose={digest.collapse}
+        onClose={() => digest.collapse(false)}
+        onMarkRemoved={() => digest.collapse(true)}
       />
     </div>
   )
