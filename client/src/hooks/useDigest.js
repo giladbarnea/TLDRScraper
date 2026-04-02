@@ -73,29 +73,45 @@ export function useDigest(results) {
   }, [])
 
   const markDigestArticlesLoading = useCallback((articleUrls) => {
-    updateDigestArticles(articleUrls, article => ({
-      ...article,
-      summary: {
-        ...(article.summary || {}),
-        ...summaryDataReducer.reduceSummaryData(article.summary, {
-          type: summaryDataReducer.SummaryDataEventType.SUMMARY_REQUESTED,
-          effort: 'low',
-        }).patch,
-      },
-    }))
+    const previousSummaryByUrl = new Map()
+    updateDigestArticles(articleUrls, article => {
+      previousSummaryByUrl.set(article.url, article.summary)
+      return {
+        ...article,
+        summary: {
+          ...(article.summary || {}),
+          ...summaryDataReducer.reduceSummaryData(article.summary, {
+            type: summaryDataReducer.SummaryDataEventType.SUMMARY_REQUESTED,
+            effort: 'low',
+          }).patch,
+        },
+      }
+    })
+    return previousSummaryByUrl
+  }, [updateDigestArticles])
+
+  const restoreDigestArticlesSummary = useCallback((articleUrls, previousSummaryByUrl) => {
+    if (!previousSummaryByUrl) return
+    updateDigestArticles(articleUrls, article => {
+      const previousSummary = previousSummaryByUrl.get(article.url)
+      if (previousSummary == null) {
+        const { summary, ...rest } = article
+        return rest
+      }
+      return { ...article, summary: previousSummary }
+    })
   }, [updateDigestArticles])
 
   const markDigestArticlesConsumed = useCallback((articleUrls, shouldRemove) => {
     const markedAt = new Date().toISOString()
     updateDigestArticles(articleUrls, article => ({
       ...article,
-      ...reduceArticleLifecycle(article, {
-        type: ArticleLifecycleEventType.MARK_READ,
-        markedAt,
-      }).patch,
       ...(shouldRemove
         ? reduceArticleLifecycle(article, { type: ArticleLifecycleEventType.MARK_REMOVED }).patch
-        : {}),
+        : reduceArticleLifecycle(article, {
+            type: ArticleLifecycleEventType.MARK_READ,
+            markedAt,
+          }).patch),
     }))
   }, [updateDigestArticles])
 
@@ -160,8 +176,9 @@ export function useDigest(results) {
     setPendingRequest(null)
 
     const runDigest = async () => {
+      let previousSummaryByUrl
       try {
-        markDigestArticlesLoading(articleUrls)
+        previousSummaryByUrl = markDigestArticlesLoading(articleUrls)
 
         writeDigest({
           status: summaryDataReducer.SummaryDataStatus.LOADING,
@@ -181,6 +198,7 @@ export function useDigest(results) {
         if (requestTokenRef.current !== requestToken) return
 
         if (result.success) {
+          restoreDigestArticlesSummary(articleUrls, previousSummaryByUrl)
           const successPatch = {
             status: summaryDataReducer.SummaryDataStatus.AVAILABLE,
             markdown: result.digest_markdown,
@@ -205,8 +223,10 @@ export function useDigest(results) {
         })
       } catch (error) {
         if (error.name === 'AbortError') {
+          restoreDigestArticlesSummary(articleUrls, previousSummaryByUrl)
           return
         }
+        restoreDigestArticlesSummary(articleUrls, previousSummaryByUrl)
         writeDigest({
           status: summaryDataReducer.SummaryDataStatus.ERROR,
           errorMessage: error.message,
@@ -220,7 +240,7 @@ export function useDigest(results) {
     }
 
     void runDigest()
-  }, [pendingRequest, payload, targetDate, clearSelection, expand, markDigestArticlesLoading, writeDigest])
+  }, [pendingRequest, payload, targetDate, clearSelection, expand, markDigestArticlesLoading, restoreDigestArticlesSummary, writeDigest])
 
   const collapse = useCallback((shouldRemove = false) => {
     if (status === summaryDataReducer.SummaryDataStatus.AVAILABLE && data?.articleUrls?.length > 0) {
