@@ -75,6 +75,15 @@ export function useDigest(results) {
     if (!payloads || payloads.length === 0) return
     if (!articleDescriptors || articleDescriptors.length < 2) return
 
+    if (isAvailable && data?.articleUrls) {
+      const incomingUrls = new Set(articleDescriptors.map(d => d.url))
+      const cachedUrls = new Set(data.articleUrls)
+      if (incomingUrls.size === cachedUrls.size && [...incomingUrls].every(u => cachedUrls.has(u))) {
+        expand()
+        return
+      }
+    }
+
     const date = findMostRecentDate(articleDescriptors, payloads)
     if (!date) return
 

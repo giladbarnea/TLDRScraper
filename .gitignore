@@ -138,3 +138,4 @@ ngrok
 /core
 
 .claude/worktrees
+.playwright-mcp

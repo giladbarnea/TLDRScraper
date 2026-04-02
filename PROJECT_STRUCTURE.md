@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-01 18:46
+last_updated: 2026-04-02 12:05
 ---
 .
 ├── .agents
@@ -205,6 +205,8 @@ last_updated: 2026-04-01 18:46
 │     ├── vercel
 │     │  └── SKILL.md
 │     └── FINISH_COMMANDS_MIGRATION.md
+├── .playwright-mcp
+│  └── page-2026-04-02T11-10-48-418Z.yml
 ├── adapters
 │  ├── __init__.py
 │  ├── aiwithmike_adapter.py
@@ -336,19 +338,29 @@ last_updated: 2026-04-01 18:46
 ├── .gitattributes
 ├── .gitignore
 ├── .vercelignore
+├── after_close.png
+├── after_longpress.png
 ├── AGENTS.md
 ├── ARCHITECTURE.md
+├── before_second_trigger.png
 ├── BUGS.md
 ├── CLAUDE.md
 ├── CODEX.md
+├── current_state.png
+├── digest_done.png
+├── digest_loading.png
+├── digest_wait.png
 ├── GEMINI.md
+├── gen_complete.png
 ├── GOTCHAS.md
 ├── newsletter_config.py
 ├── newsletter_merger.py
 ├── newsletter_scraper.py
 ├── pyproject.toml
+├── quick_links.png
 ├── README.md
 ├── requirements.txt
+├── second_digest_click.png
 ├── serve.py
 ├── setup-hooks.sh
 ├── setup.sh
@@ -356,8 +368,11 @@ last_updated: 2026-04-01 18:46
 ├── storage_service.py
 ├── summarizer.py
 ├── supabase_client.py
+├── tldr_app.png
 ├── tldr_app.py
 ├── tldr_service.py
+├── tldr_tech_section.png
+├── tldr_tuesday.png
 ├── TLDRScraper.code-workspace
 ├── util.py
 ├── uv.lock

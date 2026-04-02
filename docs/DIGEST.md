@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-03-31 11:03, 1fff863
+last_updated: 2026-04-02 12:05
 ---
 # Digest Feature Architecture
 
@@ -73,6 +73,10 @@ TIME   ACTOR                 ACTION                                  TARGET
 ├───►  User                  Taps Digest                             DigestButton
 │
 ├───►  DigestButton          Builds descriptors from payloads        useDigest.trigger()
+│
+├───►  useDigest             Same URLs already available? expand()   (early return — no HTTP)
+│      │
+│      └─ new/different URLs:
 │
 ├───►  useDigest             Writes LOADING digest patch             daily payload (selected date)
 │
