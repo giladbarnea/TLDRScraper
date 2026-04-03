@@ -3,7 +3,7 @@ title: Use Lazy State Initialization
 impact: MEDIUM
 impactDescription: wasted computation on every render
 tags: react, hooks, useState, performance, initialization
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Use Lazy State Initialization
 

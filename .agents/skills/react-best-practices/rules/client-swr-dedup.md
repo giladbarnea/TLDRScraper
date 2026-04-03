@@ -3,7 +3,7 @@ title: Use SWR for Automatic Deduplication
 impact: MEDIUM-HIGH
 impactDescription: automatic deduplication
 tags: client, swr, deduplication, data-fetching
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Use SWR for Automatic Deduplication
 

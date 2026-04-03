@@ -3,7 +3,7 @@ title: Do not wrap a simple expression with a primitive result type in useMemo
 impact: LOW-MEDIUM
 impactDescription: wasted computation on every render
 tags: rerender, useMemo, optimization
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Do not wrap a simple expression with a primitive result type in useMemo
 

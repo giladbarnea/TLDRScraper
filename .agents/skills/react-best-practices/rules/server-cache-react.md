@@ -3,7 +3,7 @@ title: Per-Request Deduplication with React.cache()
 impact: MEDIUM
 impactDescription: deduplicates within request
 tags: server, cache, react-cache, deduplication
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Per-Request Deduplication with React.cache()
 

@@ -3,7 +3,7 @@ title: Minimize Serialization at RSC Boundaries
 impact: HIGH
 impactDescription: reduces data transfer size
 tags: server, rsc, serialization, props
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Minimize Serialization at RSC Boundaries
 

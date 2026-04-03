@@ -3,7 +3,7 @@ title: Authenticate Server Actions Like API Routes
 impact: CRITICAL
 impactDescription: prevents unauthorized access to server mutations
 tags: server, server-actions, authentication, security, authorization
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Authenticate Server Actions Like API Routes
 

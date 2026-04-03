@@ -3,7 +3,7 @@ title: Deduplicate Global Event Listeners
 impact: LOW
 impactDescription: single listener for N components
 tags: client, swr, event-listeners, subscription
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Deduplicate Global Event Listeners
 

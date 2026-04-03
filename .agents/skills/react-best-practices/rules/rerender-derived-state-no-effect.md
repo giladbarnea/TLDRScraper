@@ -3,7 +3,7 @@ title: Calculate Derived State During Rendering
 impact: MEDIUM
 impactDescription: avoids redundant renders and state drift
 tags: rerender, derived-state, useEffect, state
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Calculate Derived State During Rendering
 

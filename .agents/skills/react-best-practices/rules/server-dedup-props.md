@@ -3,7 +3,7 @@ title: Avoid Duplicate Serialization in RSC Props
 impact: LOW
 impactDescription: reduces network payload by avoiding duplicate serialization
 tags: server, rsc, serialization, props, client-components
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Avoid Duplicate Serialization in RSC Props
 

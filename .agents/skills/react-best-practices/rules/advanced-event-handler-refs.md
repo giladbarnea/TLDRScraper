@@ -3,7 +3,7 @@ title: Store Event Handlers in Refs
 impact: LOW
 impactDescription: stable subscriptions
 tags: advanced, hooks, refs, event-handlers, optimization
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Store Event Handlers in Refs
 

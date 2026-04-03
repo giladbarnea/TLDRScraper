@@ -3,7 +3,7 @@ title: Version and Minimize localStorage Data
 impact: MEDIUM
 impactDescription: prevents schema conflicts, reduces storage size
 tags: client, localStorage, storage, versioning, data-minimization
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Version and Minimize localStorage Data
 

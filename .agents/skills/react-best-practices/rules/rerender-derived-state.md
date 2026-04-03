@@ -3,7 +3,7 @@ title: Subscribe to Derived State
 impact: MEDIUM
 impactDescription: reduces re-render frequency
 tags: rerender, derived-state, media-query, optimization
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Subscribe to Derived State
 

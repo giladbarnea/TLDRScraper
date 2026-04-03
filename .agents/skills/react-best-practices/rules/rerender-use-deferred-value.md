@@ -3,7 +3,7 @@ title: Use useDeferredValue for Expensive Derived Renders
 impact: MEDIUM
 impactDescription: keeps input responsive during heavy computation
 tags: rerender, useDeferredValue, optimization, concurrent
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Use useDeferredValue for Expensive Derived Renders
 

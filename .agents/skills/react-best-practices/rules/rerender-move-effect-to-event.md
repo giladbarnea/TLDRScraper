@@ -3,7 +3,7 @@ title: Put Interaction Logic in Event Handlers
 impact: MEDIUM
 impactDescription: avoids effect re-runs and duplicate side effects
 tags: rerender, useEffect, events, side-effects, dependencies
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Put Interaction Logic in Event Handlers
 

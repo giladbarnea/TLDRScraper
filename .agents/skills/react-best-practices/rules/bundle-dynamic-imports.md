@@ -3,7 +3,7 @@ title: Dynamic Imports for Heavy Components
 impact: CRITICAL
 impactDescription: directly affects TTI and LCP
 tags: bundle, dynamic-import, code-splitting, next-dynamic
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Dynamic Imports for Heavy Components
 

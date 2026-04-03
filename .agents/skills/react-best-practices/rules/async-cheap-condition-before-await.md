@@ -3,7 +3,7 @@ title: Check Cheap Conditions Before Async Flags
 impact: HIGH
 impactDescription: avoids unnecessary async work when a synchronous guard already fails
 tags: async, await, feature-flags, short-circuit, conditional
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Check Cheap Conditions Before Async Flags
 

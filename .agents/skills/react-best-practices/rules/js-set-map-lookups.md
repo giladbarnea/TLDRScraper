@@ -3,7 +3,7 @@ title: Use Set/Map for O(1) Lookups
 impact: LOW-MEDIUM
 impactDescription: O(n) to O(1)
 tags: javascript, set, map, data-structures, performance
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Use Set/Map for O(1) Lookups
 

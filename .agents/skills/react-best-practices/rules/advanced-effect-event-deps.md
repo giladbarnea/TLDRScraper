@@ -3,7 +3,7 @@ title: Do Not Put Effect Events in Dependency Arrays
 impact: LOW
 impactDescription: avoids unnecessary effect re-runs and lint errors
 tags: advanced, hooks, useEffectEvent, dependencies, effects
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Do Not Put Effect Events in Dependency Arrays
 

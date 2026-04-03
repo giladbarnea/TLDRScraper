@@ -3,7 +3,7 @@ title: Avoid Shared Module State for Request Data
 impact: HIGH
 impactDescription: prevents concurrency bugs and request data leaks
 tags: server, rsc, ssr, concurrency, security, state
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Avoid Shared Module State for Request Data
 

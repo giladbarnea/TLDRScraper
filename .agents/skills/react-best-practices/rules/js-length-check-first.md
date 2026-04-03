@@ -3,7 +3,7 @@ title: Early Length Check for Array Comparisons
 impact: MEDIUM-HIGH
 impactDescription: avoids expensive operations when lengths differ
 tags: javascript, arrays, performance, optimization, comparison
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Early Length Check for Array Comparisons
 

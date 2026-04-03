@@ -3,7 +3,7 @@ title: Use Transitions for Non-Urgent Updates
 impact: MEDIUM
 impactDescription: maintains UI responsiveness
 tags: rerender, transitions, startTransition, performance
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Use Transitions for Non-Urgent Updates
 

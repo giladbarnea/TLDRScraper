@@ -3,7 +3,7 @@ title: Use after() for Non-Blocking Operations
 impact: MEDIUM
 impactDescription: faster response times
 tags: server, async, logging, analytics, side-effects
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Use after() for Non-Blocking Operations
 

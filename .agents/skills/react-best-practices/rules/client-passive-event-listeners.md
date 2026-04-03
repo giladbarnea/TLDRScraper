@@ -3,7 +3,7 @@ title: Use Passive Event Listeners for Scrolling Performance
 impact: MEDIUM
 impactDescription: eliminates scroll delay caused by event listeners
 tags: client, event-listeners, scrolling, performance, touch, wheel
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Use Passive Event Listeners for Scrolling Performance
 

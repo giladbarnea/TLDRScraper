@@ -3,7 +3,7 @@ title: Early Return from Functions
 impact: LOW-MEDIUM
 impactDescription: avoids unnecessary computation
 tags: javascript, functions, optimization, early-return
-last_updated: 2026-04-03 11:39
+last_updated: 2026-04-03 11:40, 8659ca8
 ---
 ## Early Return from Functions
 
