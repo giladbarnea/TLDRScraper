@@ -5,7 +5,7 @@ metadata:
 author: vercel
 version: "1.0.0"
 argument-hint: <file-or-pattern>
-last_updated: 2026-04-03 14:16
+last_updated: 2026-04-03 14:16, 84309d2
 ---
 # Web Accessibility Guidelines
 
