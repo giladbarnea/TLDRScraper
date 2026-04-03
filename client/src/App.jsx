@@ -115,8 +115,14 @@ function AppContent({ results, setResults, showSettings, setShowSettings }) {
   })
   const selectedArticles = getSelectedArticles(selectedIds, results?.payloads)
   const selectedDescriptors = extractSelectedArticleDescriptors(selectedArticles)
-  const selectedCount = selectedArticles.length
-  const singleSelectedArticle = selectedCount === 1 ? selectedArticles[0] : null
+  const selectedCount = selectedIds.size
+  const singleSelectedId = selectedCount === 1 ? [...selectedIds][0] : null
+  const singleSelectedUrl = singleSelectedId?.startsWith('article-')
+    ? singleSelectedId.slice('article-'.length)
+    : null
+  const singleSelectedArticle = singleSelectedUrl
+    ? selectedArticles.find((article) => article.url === singleSelectedUrl) || null
+    : null
   const singleSummaryStatus = summaryDataReducer.getSummaryDataStatus(singleSelectedArticle?.summary)
   const canOpenSingleSummary = singleSummaryStatus === summaryDataReducer.SummaryDataStatus.AVAILABLE
   const isSingleSummaryLoading = singleSummaryStatus === summaryDataReducer.SummaryDataStatus.LOADING
