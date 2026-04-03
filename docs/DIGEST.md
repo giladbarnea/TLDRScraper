@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-03 15:19
+last_updated: 2026-04-03 16:22
 ---
 # Digest Feature Architecture
 
@@ -24,7 +24,7 @@ The Digest feature lets a user select multiple feed articles and generate a sing
 │  │   InteractionContext / selectedIds                                │  │
 │  │            │                                                      │  │
 │  │            ▼                                                      │  │
-│  │      DigestButton  ───────────────► useDigest hook               │  │
+│  │   SelectionActionDock.digest ─────► useDigest hook               │  │
 │  │                                (request + persistence + zen lock) │  │
 │  │                                            │                      │  │
 │  │                                            ▼                      │  │
@@ -70,9 +70,9 @@ TIME   ACTOR                 ACTION                                  TARGET
 │
 ├───►  User                  Selects 2+ articles                     Selection system
 │
-├───►  User                  Taps Digest                             DigestButton
+├───►  User                  Taps Digest                             SelectionActionDock
 │
-├───►  DigestButton          Builds descriptors from payloads        useDigest.trigger()
+├───►  AppContent helper     Builds descriptors from payloads        useDigest.trigger()
 │
 ├───►  useDigest             Same URLs already available? expand()   (early return — no HTTP)
 │      │
@@ -180,7 +180,7 @@ Zen lock is shared with article summary overlays so only one zen overlay can be 
 AppContent()
 ├── useInteraction()
 ├── useDigest(results)
-├── DigestButton.onTrigger()
+├── SelectionActionDock.onTriggerDigest()
 │   └── useDigest.trigger(articleDescriptors)
 │       ├── fetch('/api/digest')
 │       ├── success path
