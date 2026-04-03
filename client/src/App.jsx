@@ -1,10 +1,9 @@
 import { Calendar } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import DigestButton from './components/DigestButton'
 import DigestOverlay from './components/DigestOverlay'
 import Feed from './components/Feed'
 import ScrapeForm from './components/ScrapeForm'
-import SelectionCounterPill from './components/SelectionCounterPill'
+import SelectionActionDock from './components/SelectionActionDock'
 import ToastContainer from './components/ToastContainer'
 import { InteractionProvider, useInteraction } from './contexts/InteractionContext'
 import { useDigest } from './hooks/useDigest'
@@ -33,8 +32,16 @@ function mergePreservingLocalState(freshPayload, localPayload) {
   }
 }
 
+function extractSelectedArticleDescriptors(selectedIds, payloads) {
+  if (!payloads) return []
+  const allArticles = payloads.flatMap((payload) => payload.articles)
+  return allArticles
+    .filter((article) => selectedIds.has(`article-${article.url}`))
+    .map(({ url, title, category, sourceId }) => ({ url, title, category, sourceId }))
+}
+
 function AppContent({ results, setResults, showSettings, setShowSettings }) {
-  const { selectedIds, isSelectMode } = useInteraction()
+  const { selectedIds, isSelectMode, clearSelection } = useInteraction()
   const digest = useDigest(results)
 
   const currentDate = new Date().toLocaleDateString('en-US', {
@@ -42,6 +49,11 @@ function AppContent({ results, setResults, showSettings, setShowSettings }) {
     month: 'long',
     day: 'numeric'
   })
+
+  function handleTriggerDigest() {
+    const descriptors = extractSelectedArticleDescriptors(selectedIds, results?.payloads)
+    digest.trigger(descriptors)
+  }
 
   return (
     <div className="min-h-screen flex justify-center font-sans bg-slate-50 text-slate-900 selection:bg-brand-100 selection:text-brand-900">
@@ -62,14 +74,6 @@ function AppContent({ results, setResults, showSettings, setShowSettings }) {
             </div>
 
             <div className="flex items-center gap-3">
-              <DigestButton
-                selectedIds={selectedIds}
-                payloads={results?.payloads}
-                onTrigger={digest.trigger}
-                isLoading={digest.loading}
-                isSelectMode={isSelectMode}
-              />
-              <SelectionCounterPill />
               <button
                 onClick={() => setShowSettings(!showSettings)}
                 className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${showSettings ? 'bg-brand-50 text-brand-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
@@ -120,6 +124,14 @@ function AppContent({ results, setResults, showSettings, setShowSettings }) {
         errorMessage={digest.errorMessage}
         onClose={() => digest.collapse(false)}
         onMarkRemoved={() => digest.collapse(true)}
+      />
+
+      <SelectionActionDock
+        isSelectMode={isSelectMode}
+        selectedCount={selectedIds.size}
+        isDigestLoading={digest.loading}
+        onClearSelection={clearSelection}
+        onTriggerDigest={handleTriggerDigest}
       />
     </div>
   )
