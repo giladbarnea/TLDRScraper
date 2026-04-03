@@ -180,11 +180,7 @@ export function useDigest(results) {
       try {
         previousSummaryByUrl = markDigestArticlesLoading(articleUrls)
 
-        writeDigest({
-          status: summaryDataReducer.SummaryDataStatus.LOADING,
-          effort: 'low',
-          errorMessage: null,
-        })
+        writeDigest({ errorMessage: null })
 
         const response = await window.fetch('/api/digest', {
           method: 'POST',
@@ -199,18 +195,13 @@ export function useDigest(results) {
 
         if (result.success) {
           restoreDigestArticlesSummary(articleUrls, previousSummaryByUrl)
-          const successPatch = {
+          writeDigest({
             status: summaryDataReducer.SummaryDataStatus.AVAILABLE,
             markdown: result.digest_markdown,
             articleUrls: result.included_urls ?? articleUrls,
             generatedAt: new Date().toISOString(),
             effort: 'low',
             errorMessage: null,
-          }
-          setPayloadRef.current(current => {
-            if (!current) return current
-            logTransition('digest', DIGEST_LOCK_OWNER, summaryDataReducer.SummaryDataStatus.LOADING, summaryDataReducer.SummaryDataStatus.AVAILABLE)
-            return { ...current, digest: { ...(current.digest || {}), ...successPatch } }
           })
           clearSelection()
           expand()
@@ -244,15 +235,11 @@ export function useDigest(results) {
 
   useEffect(() => {
     if (status !== summaryDataReducer.SummaryDataStatus.LOADING) return
-    if (triggering) return
-    if (pendingRequest) return
-    if (requestTokenRef.current) return
-
     writeDigest({
       status: summaryDataReducer.SummaryDataStatus.UNKNOWN,
       errorMessage: null,
     })
-  }, [status, triggering, pendingRequest, writeDigest])
+  }, [status, writeDigest])
 
   const collapse = useCallback((shouldRemove = false) => {
     if (status === summaryDataReducer.SummaryDataStatus.AVAILABLE && data?.articleUrls?.length > 0) {

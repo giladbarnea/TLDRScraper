@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-02 12:06, 49a0b0a
+last_updated: 2026-04-03 15:19
 ---
 # Digest Feature Architecture
 
@@ -78,8 +78,6 @@ TIME   ACTOR                 ACTION                                  TARGET
 │      │
 │      └─ new/different URLs:
 │
-├───►  useDigest             Writes LOADING digest patch             daily payload (selected date)
-│
 ├───►  useDigest             POST /api/digest                        serve.py
 │
 ├───►  serve.py              Delegates                               tldr_app.generate_digest()
@@ -138,19 +136,29 @@ selectedIds ──────►  [{url,title,category}] ──► canonical UR
 
 ## Digest State Machine
 
-### Client data state (`payload.digest.status`)
+### Client persisted data state (`payload.digest.status`)
 
 - `unknown` (implicit initial)
-- `loading` (request in-flight)
 - `available` (digest markdown ready)
 - `error` (request failed)
 
 Transitions:
 
-1. Trigger digest with valid selection → `loading`
+1. Trigger digest with valid selection → no persisted loading transition
 2. Successful response → `available`
 3. Failed response / exception (except abort) → `error`
-4. Abort request → no transition to error; last persisted state remains
+4. Abort request → no persisted transition; last persisted state remains
+5. Legacy migration: stale persisted `loading` values are normalized to `unknown` on read
+
+### Client runtime request state (`useDigest`)
+
+- `idle`
+- `in-flight`
+
+Transitions:
+
+1. Trigger digest with valid selection → `in-flight`
+2. Success / failure / abort / stale-token completion → `idle`
 
 ### Client view state (`expanded`)
 
@@ -174,7 +182,6 @@ AppContent()
 ├── useDigest(results)
 ├── DigestButton.onTrigger()
 │   └── useDigest.trigger(articleDescriptors)
-│       ├── writeDigest(status=loading)
 │       ├── fetch('/api/digest')
 │       ├── success path
 │       │   ├── writeDigest(status=available, markdown, urls, metadata)
@@ -242,4 +249,3 @@ Digest data is persisted in two places with different roles:
 2. **Client daily payload (UI-local recall for selected date context)**
    - `payload.digest` stored under the most recent selected date key.
    - Preserved in client merge flow (`mergePreservingLocalState`).
-
