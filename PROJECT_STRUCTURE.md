@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-03 11:46
+last_updated: 2026-04-03 14:16
 ---
 .
 ├── .agents
@@ -19,6 +19,9 @@ last_updated: 2026-04-03 11:46
 │     ├── catchup
 │     │  └── SKILL.md
 │     ├── co-develop
+│     │  └── SKILL.md
+│     ├── frontend-design
+│     │  ├── metadata.json
 │     │  └── SKILL.md
 │     ├── implement-plan
 │     │  └── SKILL.md
@@ -131,6 +134,9 @@ last_updated: 2026-04-03 11:46
 │  │  │  └── SKILL.md
 │  │  ├── co-develop
 │  │  │  └── SKILL.md
+│  │  ├── frontend-design
+│  │  │  ├── metadata.json
+│  │  │  └── SKILL.md
 │  │  ├── implement-plan
 │  │  │  └── SKILL.md
 │  │  ├── plan
@@ -239,6 +245,9 @@ last_updated: 2026-04-03 11:46
 │     │  └── SKILL.md
 │     ├── co-develop
 │     │  └── SKILL.md
+│     ├── frontend-design
+│     │  ├── metadata.json
+│     │  └── SKILL.md
 │     ├── implement-plan
 │     │  └── SKILL.md
 │     ├── plan
@@ -344,6 +353,9 @@ last_updated: 2026-04-03 11:46
 │     ├── catchup
 │     │  └── SKILL.md
 │     ├── co-develop
+│     │  └── SKILL.md
+│     ├── frontend-design
+│     │  ├── metadata.json
 │     │  └── SKILL.md
 │     ├── implement-plan
 │     │  └── SKILL.md
@@ -471,6 +483,9 @@ last_updated: 2026-04-03 11:46
 │     ├── catchup
 │     │  └── SKILL.md
 │     ├── co-develop
+│     │  └── SKILL.md
+│     ├── frontend-design
+│     │  ├── metadata.json
 │     │  └── SKILL.md
 │     ├── implement-plan
 │     │  └── SKILL.md
