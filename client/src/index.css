@@ -82,6 +82,21 @@
   animation: check-enter 150ms var(--ease-springy) forwards;
 }
 
+@keyframes dock-action-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@utility animate-dock-action-enter {
+  animation: dock-action-enter 220ms var(--ease-springy) both;
+}
+
 /* ── Article card border glow — summary loading state ──
  *
  * One ::after pseudo-element on [data-summary-status] drives the border animation.
