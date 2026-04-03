@@ -19,24 +19,6 @@ function findMostRecentDate(articleDescriptors, payloads) {
   return matchingDates.sort().at(-1)
 }
 
-function groupDescriptorsByDate(articleDescriptors, payloads) {
-  const dateByUrl = new Map()
-  for (const payload of payloads) {
-    for (const article of payload.articles) {
-      dateByUrl.set(article.url, payload.date)
-    }
-  }
-
-  const grouped = new Map()
-  for (const descriptor of articleDescriptors) {
-    const date = dateByUrl.get(descriptor.url)
-    if (!date) continue
-    if (!grouped.has(date)) grouped.set(date, [])
-    grouped.get(date).push(descriptor.url)
-  }
-  return grouped
-}
-
 export function useDigest(results) {
   const { clearSelection } = useInteraction()
   const [expanded, setExpanded] = useState(false)
@@ -74,6 +56,26 @@ export function useDigest(results) {
   const loading = triggering
   const isError = status === summaryDataReducer.SummaryDataStatus.ERROR
   const articleCount = data?.articleUrls?.length ?? 0
+
+  const groupDescriptorsByDate = useCallback((articleDescriptors) => {
+    const dateByUrl = new Map()
+    for (const payloadDescriptor of results?.payloads || []) {
+      const storageKey = getNewsletterScrapeKey(payloadDescriptor.date)
+      const livePayload = getCachedStorageValue(storageKey) || payloadDescriptor
+      for (const article of livePayload.articles || []) {
+        dateByUrl.set(article.url, livePayload.date)
+      }
+    }
+
+    const grouped = new Map()
+    for (const descriptor of articleDescriptors) {
+      const date = dateByUrl.get(descriptor.url)
+      if (!date) continue
+      if (!grouped.has(date)) grouped.set(date, [])
+      grouped.get(date).push(descriptor.url)
+    }
+    return grouped
+  }, [results?.payloads])
 
   const updateArticlesAcrossDates = useCallback(async (urlsByDate, updater) => {
     for (const [date, urls] of urlsByDate.entries()) {
@@ -193,7 +195,7 @@ export function useDigest(results) {
     if (!payload || payload.date !== pendingRequest.date) return
 
     const { articleDescriptors, requestToken } = pendingRequest
-    const urlsByDate = groupDescriptorsByDate(articleDescriptors, results?.payloads || [])
+    const urlsByDate = groupDescriptorsByDate(articleDescriptors)
     const articleUrls = articleDescriptors.map(d => d.url)
     const controller = new AbortController()
     abortControllerRef.current = controller
@@ -255,7 +257,7 @@ export function useDigest(results) {
     }
 
     void runDigest()
-  }, [pendingRequest, payload, targetDate, clearSelection, expand, markDigestArticlesLoading, restoreDigestArticlesSummary, writeDigest, results?.payloads])
+  }, [pendingRequest, payload, targetDate, clearSelection, expand, markDigestArticlesLoading, restoreDigestArticlesSummary, writeDigest, groupDescriptorsByDate])
 
   useEffect(() => {
     if (status !== summaryDataReducer.SummaryDataStatus.LOADING) return
@@ -266,17 +268,21 @@ export function useDigest(results) {
   }, [status, writeDigest])
 
   const collapse = useCallback(async (shouldRemove = false) => {
-    if (status === summaryDataReducer.SummaryDataStatus.AVAILABLE && data?.articleUrls?.length > 0) {
-      const urlsByDate = groupDescriptorsByDate(
-        data.articleUrls.map((url) => ({ url })),
-        results?.payloads || []
-      )
-      await markDigestArticlesConsumed(urlsByDate, shouldRemove)
+    try {
+      if (status === summaryDataReducer.SummaryDataStatus.AVAILABLE && data?.articleUrls?.length > 0) {
+        const urlsByDate = groupDescriptorsByDate(
+          data.articleUrls.map((url) => ({ url }))
+        )
+        await markDigestArticlesConsumed(urlsByDate, shouldRemove)
+      }
+    } catch (error) {
+      console.error(`Failed to persist digest consumed lifecycle: ${error.message}`)
+    } finally {
+      logTransition('digest-view', DIGEST_LOCK_OWNER, 'expanded', 'collapsed')
+      releaseZenLock(DIGEST_LOCK_OWNER)
+      setExpanded(false)
     }
-    logTransition('digest-view', DIGEST_LOCK_OWNER, 'expanded', 'collapsed')
-    releaseZenLock(DIGEST_LOCK_OWNER)
-    setExpanded(false)
-  }, [status, data, markDigestArticlesConsumed, results?.payloads])
+  }, [status, data, markDigestArticlesConsumed, groupDescriptorsByDate])
 
   useEffect(() => {
     return () => {
