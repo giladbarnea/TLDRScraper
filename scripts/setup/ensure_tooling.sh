@@ -25,7 +25,7 @@ function _ensure_tool() {
   local tool="$1"
   local install_expression="$2"
 
-  if command -v "$tool" 1>/dev/null 2>&1; then
+  if isdefined "$tool"; then
     message "$tool is installed and in PATH"
     return 0
   fi
@@ -36,7 +36,7 @@ function _ensure_tool() {
     return 1
   fi
 
-  if ! command -v "$tool" 1>/dev/null 2>&1; then
+  if ! isdefined "$tool"; then
     error "After installing $tool, 'command -v $tool' returned a non-zero exit code. $tool is probably installed but not in PATH."
     return 1
   fi
@@ -46,11 +46,12 @@ function _ensure_tool() {
 }
 
 function ensure_gitleaks() {
-  command -v gitleaks 1>/dev/null 2>&1 && return 0
-  if isdefined apt; then
+  if isdefined brew; then
+    _ensure_tool gitleaks "brew install gitleaks"
+  elif isdefined apt; then
     _ensure_tool gitleaks "apt install -y gitleaks"
   else
-    error "No supported package manager found (apt)"
+    error "No supported package manager found (brew, apt)"
     return 1
   fi
 }
