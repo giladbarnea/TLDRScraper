@@ -5,7 +5,7 @@ import { useOverscrollUp } from '../hooks/useOverscrollUp'
 import { usePullToClose } from '../hooks/usePullToClose'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 
-function DigestOverlay({ html, expanded, articleCount, errorMessage, onClose }) {
+function DigestOverlay({ html, expanded, articleCount, errorMessage, onClose, onMarkRemoved }) {
   const [hasScrolled, setHasScrolled] = useState(false)
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
@@ -13,7 +13,7 @@ function DigestOverlay({ html, expanded, articleCount, errorMessage, onClose }) 
   const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose })
   const { overscrollOffset, isOverscrolling, progress: overscrollProgress, isComplete: overscrollComplete } = useOverscrollUp({
     scrollRef,
-    onComplete: onClose,
+    onComplete: onMarkRemoved,
     threshold: 60
   })
 
@@ -74,7 +74,7 @@ function DigestOverlay({ html, expanded, articleCount, errorMessage, onClose }) 
           </div>
 
           <button
-            onClick={onClose}
+            onClick={onMarkRemoved}
             className="shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
           >
             <Check size={20} />

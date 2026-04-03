@@ -1,9 +1,10 @@
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useInteraction } from '../contexts/InteractionContext'
 import { logTransition } from '../lib/stateTransitionLogger'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
+import { ArticleLifecycleEventType, reduceArticleLifecycle } from '../reducers/articleLifecycleReducer'
 import * as summaryDataReducer from '../reducers/summaryDataReducer'
 import { acquireZenLock, releaseZenLock } from './useSummary'
 import { useSupabaseStorage } from './useSupabaseStorage'
@@ -56,7 +57,65 @@ export function useDigest(results) {
   const isError = status === summaryDataReducer.SummaryDataStatus.ERROR
   const articleCount = data?.articleUrls?.length ?? 0
 
-  const writeDigest = (digestPatch) => {
+  const updateDigestArticles = useCallback((articleUrls, updater) => {
+    const urlSet = new Set(articleUrls)
+    setPayloadRef.current(current => {
+      if (!current) return current
+      let didChange = false
+      const nextArticles = current.articles.map(article => {
+        if (!urlSet.has(article.url)) return article
+        didChange = true
+        return updater(article)
+      })
+      if (!didChange) return current
+      return { ...current, articles: nextArticles }
+    })
+  }, [])
+
+  const markDigestArticlesLoading = useCallback((articleUrls) => {
+    const previousSummaryByUrl = new Map()
+    updateDigestArticles(articleUrls, article => {
+      previousSummaryByUrl.set(article.url, article.summary)
+      return {
+        ...article,
+        summary: {
+          ...(article.summary || {}),
+          ...summaryDataReducer.reduceSummaryData(article.summary, {
+            type: summaryDataReducer.SummaryDataEventType.SUMMARY_REQUESTED,
+            effort: 'low',
+          }).patch,
+        },
+      }
+    })
+    return previousSummaryByUrl
+  }, [updateDigestArticles])
+
+  const restoreDigestArticlesSummary = useCallback((articleUrls, previousSummaryByUrl) => {
+    if (!previousSummaryByUrl) return
+    updateDigestArticles(articleUrls, article => {
+      const previousSummary = previousSummaryByUrl.get(article.url)
+      if (previousSummary == null) {
+        const { summary, ...rest } = article
+        return rest
+      }
+      return { ...article, summary: previousSummary }
+    })
+  }, [updateDigestArticles])
+
+  const markDigestArticlesConsumed = useCallback((articleUrls, shouldRemove) => {
+    const markedAt = new Date().toISOString()
+    updateDigestArticles(articleUrls, article => ({
+      ...article,
+      ...(shouldRemove
+        ? reduceArticleLifecycle(article, { type: ArticleLifecycleEventType.MARK_REMOVED }).patch
+        : reduceArticleLifecycle(article, {
+            type: ArticleLifecycleEventType.MARK_READ,
+            markedAt,
+          }).patch),
+    }))
+  }, [updateDigestArticles])
+
+  const writeDigest = useCallback((digestPatch) => {
     setPayloadRef.current(current => {
       if (!current) return current
       const fromStatus = summaryDataReducer.getSummaryDataStatus(current.digest)
@@ -66,7 +125,7 @@ export function useDigest(results) {
       }
       return { ...current, digest: { ...(current.digest || {}), ...digestPatch } }
     })
-  }
+  }, [])
 
   const createRequestToken = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
@@ -98,6 +157,13 @@ export function useDigest(results) {
     setTriggering(true)
   }
 
+  const expand = useCallback(() => {
+    if (acquireZenLock(DIGEST_LOCK_OWNER)) {
+      logTransition('digest-view', DIGEST_LOCK_OWNER, 'collapsed', 'expanded', 'tap')
+      setExpanded(true)
+    }
+  }, [])
+
   useEffect(() => {
     if (!pendingRequest) return
     if (targetDate !== pendingRequest.date) return
@@ -110,7 +176,10 @@ export function useDigest(results) {
     setPendingRequest(null)
 
     const runDigest = async () => {
+      let previousSummaryByUrl
       try {
+        previousSummaryByUrl = markDigestArticlesLoading(articleUrls)
+
         writeDigest({
           status: summaryDataReducer.SummaryDataStatus.LOADING,
           effort: 'low',
@@ -129,6 +198,7 @@ export function useDigest(results) {
         if (requestTokenRef.current !== requestToken) return
 
         if (result.success) {
+          restoreDigestArticlesSummary(articleUrls, previousSummaryByUrl)
           const successPatch = {
             status: summaryDataReducer.SummaryDataStatus.AVAILABLE,
             markdown: result.digest_markdown,
@@ -153,8 +223,10 @@ export function useDigest(results) {
         })
       } catch (error) {
         if (error.name === 'AbortError') {
+          restoreDigestArticlesSummary(articleUrls, previousSummaryByUrl)
           return
         }
+        restoreDigestArticlesSummary(articleUrls, previousSummaryByUrl)
         writeDigest({
           status: summaryDataReducer.SummaryDataStatus.ERROR,
           errorMessage: error.message,
@@ -168,20 +240,16 @@ export function useDigest(results) {
     }
 
     void runDigest()
-  }, [pendingRequest, payload, targetDate, clearSelection])
+  }, [pendingRequest, payload, targetDate, clearSelection, expand, markDigestArticlesLoading, restoreDigestArticlesSummary, writeDigest])
 
-  const expand = () => {
-    if (acquireZenLock(DIGEST_LOCK_OWNER)) {
-      logTransition('digest-view', DIGEST_LOCK_OWNER, 'collapsed', 'expanded', 'tap')
-      setExpanded(true)
+  const collapse = useCallback((shouldRemove = false) => {
+    if (status === summaryDataReducer.SummaryDataStatus.AVAILABLE && data?.articleUrls?.length > 0) {
+      markDigestArticlesConsumed(data.articleUrls, shouldRemove)
     }
-  }
-
-  const collapse = () => {
     logTransition('digest-view', DIGEST_LOCK_OWNER, 'expanded', 'collapsed')
     releaseZenLock(DIGEST_LOCK_OWNER)
     setExpanded(false)
-  }
+  }, [status, data, markDigestArticlesConsumed])
 
   useEffect(() => {
     return () => {
