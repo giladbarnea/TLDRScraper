@@ -53,7 +53,7 @@ export function useDigest(results) {
 
   const errorMessage = data?.errorMessage || null
   const isAvailable = status === summaryDataReducer.SummaryDataStatus.AVAILABLE && markdown
-  const loading = triggering || status === summaryDataReducer.SummaryDataStatus.LOADING
+  const loading = triggering
   const isError = status === summaryDataReducer.SummaryDataStatus.ERROR
   const articleCount = data?.articleUrls?.length ?? 0
 
@@ -241,6 +241,18 @@ export function useDigest(results) {
 
     void runDigest()
   }, [pendingRequest, payload, targetDate, clearSelection, expand, markDigestArticlesLoading, restoreDigestArticlesSummary, writeDigest])
+
+  useEffect(() => {
+    if (status !== summaryDataReducer.SummaryDataStatus.LOADING) return
+    if (triggering) return
+    if (pendingRequest) return
+    if (requestTokenRef.current) return
+
+    writeDigest({
+      status: summaryDataReducer.SummaryDataStatus.UNKNOWN,
+      errorMessage: null,
+    })
+  }, [status, triggering, pendingRequest, writeDigest])
 
   const collapse = useCallback((shouldRemove = false) => {
     if (status === summaryDataReducer.SummaryDataStatus.AVAILABLE && data?.articleUrls?.length > 0) {
