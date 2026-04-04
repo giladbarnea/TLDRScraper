@@ -25,10 +25,7 @@
   "steeringMode": "one-at-a-time",
   "followUpMode": "one-at-a-time",
   "compaction": {
-    "enabled": true,
-    "recentTokens": 25000,
-    "responseReserve": 20000,
-    "compactAtTokens": 120000
+    "enabled": false
   },
   "retries": {
     "enabled": true,
