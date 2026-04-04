@@ -1,4 +1,4 @@
-import { BookOpen, Check, ExternalLink, FileText, GitMerge, Sparkles, Trash2, X } from 'lucide-react'
+import { BookOpen, Check, ExternalLink, GitMerge, Sparkles, Trash2, X } from 'lucide-react'
 
 function DockButton({ label, icon, onClick, disabled = false, danger = false, accent = false, style }) {
   const buttonBaseClassName = 'group flex min-w-16 flex-col items-center gap-1 rounded-xl px-2 py-1 text-slate-100 transition-all duration-200 ease-[var(--ease-springy)] hover:-translate-y-0.5 hover:text-white active:translate-y-0 active:scale-[0.96] disabled:opacity-35 disabled:hover:translate-y-0 disabled:hover:text-slate-100 disabled:active:scale-100 motion-safe:animate-dock-action-enter'
@@ -90,7 +90,7 @@ function SelectionActionDock({
     actions.push({
       key: 'summarize-each',
       label: 'Summarize Each',
-      icon: <FileText size={21} />,
+      icon: <Sparkles size={21} />,
       onClick: onSummarizeEach,
       disabled: isSummarizeEachDisabled,
     })
