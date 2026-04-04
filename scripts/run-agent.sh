@@ -59,13 +59,16 @@ if [[ -z "$RESOLVED_MODEL" ]]; then
 fi
 
 
+# Declare log path with model name and UTC timestamp
+LOG_PATH="/tmp/run-agent-${RESOLVED_MODEL//\//-}-$(date -u +%H:%M).log"
+
 # Execute and tee output
 echo "🚀 Running pi agent with model: $RESOLVED_MODEL"
-echo "📝 Output logged to: /tmp/run-agent-output.log"
+echo "📝 Output logged to: $LOG_PATH"
 echo ""
 
 npx @mariozechner/pi-coding-agent \
   --provider openrouter \
   --model "$RESOLVED_MODEL" \
   --no-session \
-  -p "$PROMPT" 2>&1 | tee /tmp/run-agent-output.log
+  -p "$PROMPT" 2>&1 | tee "$LOG_PATH"
