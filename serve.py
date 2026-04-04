@@ -4,9 +4,11 @@ TLDR Newsletter Scraper backend with a proxy.
 """
 
 from flask import Flask, request, jsonify, send_from_directory
+import html
 import logging
 import requests
 import os
+import subprocess
 
 import util
 import tldr_app
@@ -32,11 +34,54 @@ logging.basicConfig(
 logger = logging.getLogger("serve")
 
 
+def render_pi_page(command_output: str = "", command_exit_code: int | None = None):
+    status_line = ""
+    if command_exit_code is not None:
+        status_line = f"<p>Exit code: {command_exit_code}</p>"
+
+    return f"""<!doctype html>
+<html>
+  <head>
+    <meta charset=\"utf-8\" />
+    <title>Pi Runner</title>
+  </head>
+  <body>
+    <h1>Pi OpenRouter Matrix Runner</h1>
+    <form method=\"post\" action=\"/pi\">
+      <label for=\"openrouter_api_key\">OPENROUTER_API_KEY</label><br />
+      <input id=\"openrouter_api_key\" name=\"openrouter_api_key\" type=\"text\" size=\"90\" /><br /><br />
+      <button type=\"submit\">Run Matrix</button>
+    </form>
+    {status_line}
+    <h2>Output</h2>
+    <pre>{html.escape(command_output)}</pre>
+  </body>
+</html>
+"""
+
+
 @app.route("/")
 def index():
     """Serve the React app"""
     static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
     return send_from_directory(static_dist, 'index.html')
+
+
+@app.route("/pi", methods=["GET", "POST"])
+def pi_matrix_runner():
+    if request.method == "GET":
+        return render_pi_page()
+
+    openrouter_api_key = request.form["openrouter_api_key"]
+    command = subprocess.run(
+        ["./scripts/pi_openrouter_smoke.sh"],
+        capture_output=True,
+        text=True,
+        env={**os.environ, "OPENROUTER_API_KEY": openrouter_api_key},
+        cwd=os.path.dirname(os.path.abspath(__file__)),
+    )
+    command_output = f"{command.stdout}\n{command.stderr}"
+    return render_pi_page(command_output=command_output, command_exit_code=command.returncode)
 
 
 @app.route("/api/scrape", methods=["POST"])
