@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-03 14:16
+last_updated: 2026-04-04 09:05
 ---
 .
 ├── .agents
@@ -12,15 +12,16 @@ last_updated: 2026-04-03 14:16
 │  └── skills
 │     ├── architecture-create
 │     │  └── SKILL.md
-│     ├── architecture-sync-current-changes
-│     │  └── SKILL.md
 │     ├── architecture-sync-since-last-updated
 │     │  └── SKILL.md
 │     ├── catchup
 │     │  └── SKILL.md
 │     ├── co-develop
 │     │  └── SKILL.md
-│     ├── frontend-design
+│     ├── frontend-design-anthropic
+│     │  ├── metadata.json
+│     │  └── SKILL.md
+│     ├── frontend-design-openai
 │     │  ├── metadata.json
 │     │  └── SKILL.md
 │     ├── implement-plan
@@ -109,7 +110,9 @@ last_updated: 2026-04-03 14:16
 │     │  └── SKILL.md
 │     ├── to-done
 │     │  └── SKILL.md
-│     └── vercel
+│     ├── vercel
+│     │  └── SKILL.md
+│     └── web-a11y-guidelines
 │        └── SKILL.md
 ├── .claude
 │  ├── agents
@@ -126,15 +129,16 @@ last_updated: 2026-04-03 14:16
 │  ├── skills
 │  │  ├── architecture-create
 │  │  │  └── SKILL.md
-│  │  ├── architecture-sync-current-changes
-│  │  │  └── SKILL.md
 │  │  ├── architecture-sync-since-last-updated
 │  │  │  └── SKILL.md
 │  │  ├── catchup
 │  │  │  └── SKILL.md
 │  │  ├── co-develop
 │  │  │  └── SKILL.md
-│  │  ├── frontend-design
+│  │  ├── frontend-design-anthropic
+│  │  │  ├── metadata.json
+│  │  │  └── SKILL.md
+│  │  ├── frontend-design-openai
 │  │  │  ├── metadata.json
 │  │  │  └── SKILL.md
 │  │  ├── implement-plan
@@ -223,7 +227,9 @@ last_updated: 2026-04-03 14:16
 │  │  │  └── SKILL.md
 │  │  ├── to-done
 │  │  │  └── SKILL.md
-│  │  └── vercel
+│  │  ├── vercel
+│  │  │  └── SKILL.md
+│  │  └── web-a11y-guidelines
 │  │     └── SKILL.md
 │  ├── settings.backup.json
 │  └── settings.json
@@ -237,15 +243,16 @@ last_updated: 2026-04-03 14:16
 │  └── skills
 │     ├── architecture-create
 │     │  └── SKILL.md
-│     ├── architecture-sync-current-changes
-│     │  └── SKILL.md
 │     ├── architecture-sync-since-last-updated
 │     │  └── SKILL.md
 │     ├── catchup
 │     │  └── SKILL.md
 │     ├── co-develop
 │     │  └── SKILL.md
-│     ├── frontend-design
+│     ├── frontend-design-anthropic
+│     │  ├── metadata.json
+│     │  └── SKILL.md
+│     ├── frontend-design-openai
 │     │  ├── metadata.json
 │     │  └── SKILL.md
 │     ├── implement-plan
@@ -334,7 +341,9 @@ last_updated: 2026-04-03 14:16
 │     │  └── SKILL.md
 │     ├── to-done
 │     │  └── SKILL.md
-│     └── vercel
+│     ├── vercel
+│     │  └── SKILL.md
+│     └── web-a11y-guidelines
 │        └── SKILL.md
 ├── .gemini
 │  ├── agents
@@ -346,15 +355,16 @@ last_updated: 2026-04-03 14:16
 │  └── skills
 │     ├── architecture-create
 │     │  └── SKILL.md
-│     ├── architecture-sync-current-changes
-│     │  └── SKILL.md
 │     ├── architecture-sync-since-last-updated
 │     │  └── SKILL.md
 │     ├── catchup
 │     │  └── SKILL.md
 │     ├── co-develop
 │     │  └── SKILL.md
-│     ├── frontend-design
+│     ├── frontend-design-anthropic
+│     │  ├── metadata.json
+│     │  └── SKILL.md
+│     ├── frontend-design-openai
 │     │  ├── metadata.json
 │     │  └── SKILL.md
 │     ├── implement-plan
@@ -443,7 +453,9 @@ last_updated: 2026-04-03 14:16
 │     │  └── SKILL.md
 │     ├── to-done
 │     │  └── SKILL.md
-│     └── vercel
+│     ├── vercel
+│     │  └── SKILL.md
+│     └── web-a11y-guidelines
 │        └── SKILL.md
 ├── .githooks
 │  ├── post-checkout
@@ -454,7 +466,6 @@ last_updated: 2026-04-03 14:16
 │  ├── sync-upstream-suggestions.md
 │  └── util.sh
 ├── .github
-│  ├── commands
 │  └── workflows
 │     ├── claude.yml
 │     ├── GEMINI_REMOTE_AUTH.md
@@ -464,8 +475,6 @@ last_updated: 2026-04-03 14:16
 │     ├── weekly-branch-pr-cleanup.yml
 │     ├── weekly-supabase-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
-├── .jbeval
-│  └── datasets
 ├── .pi
 │  ├── agents
 │  │  ├── codebase-analyzer-multiple-subsystems.md
@@ -473,108 +482,113 @@ last_updated: 2026-04-03 14:16
 │  │  ├── codebase-locator.md
 │  │  ├── react-antipattern-auditor.md
 │  │  └── web-deep-researcher.md
-│  └── skills
-│     ├── architecture-create
-│     │  └── SKILL.md
-│     ├── architecture-sync-current-changes
-│     │  └── SKILL.md
-│     ├── architecture-sync-since-last-updated
-│     │  └── SKILL.md
-│     ├── catchup
-│     │  └── SKILL.md
-│     ├── co-develop
-│     │  └── SKILL.md
-│     ├── frontend-design
-│     │  ├── metadata.json
-│     │  └── SKILL.md
-│     ├── implement-plan
-│     │  └── SKILL.md
-│     ├── plan
-│     │  └── SKILL.md
-│     ├── react-best-practices
-│     │  ├── rules
-│     │  │  ├── _sections.md
-│     │  │  ├── _template.md
-│     │  │  ├── advanced-effect-event-deps.md
-│     │  │  ├── advanced-event-handler-refs.md
-│     │  │  ├── advanced-init-once.md
-│     │  │  ├── advanced-use-latest.md
-│     │  │  ├── async-api-routes.md
-│     │  │  ├── async-cheap-condition-before-await.md
-│     │  │  ├── async-defer-await.md
-│     │  │  ├── async-dependencies.md
-│     │  │  ├── async-parallel.md
-│     │  │  ├── async-suspense-boundaries.md
-│     │  │  ├── bundle-barrel-imports.md
-│     │  │  ├── bundle-conditional.md
-│     │  │  ├── bundle-defer-third-party.md
-│     │  │  ├── bundle-dynamic-imports.md
-│     │  │  ├── bundle-preload.md
-│     │  │  ├── client-event-listeners.md
-│     │  │  ├── client-localstorage-schema.md
-│     │  │  ├── client-passive-event-listeners.md
-│     │  │  ├── client-swr-dedup.md
-│     │  │  ├── js-batch-dom-css.md
-│     │  │  ├── js-combine-iterations.md
-│     │  │  ├── js-early-exit.md
-│     │  │  ├── js-flatmap-filter.md
-│     │  │  ├── js-hoist-regexp.md
-│     │  │  ├── js-index-maps.md
-│     │  │  ├── js-length-check-first.md
-│     │  │  ├── js-min-max-loop.md
-│     │  │  ├── js-request-idle-callback.md
-│     │  │  ├── js-set-map-lookups.md
-│     │  │  ├── js-tosorted-immutable.md
-│     │  │  ├── rendering-activity.md
-│     │  │  ├── rendering-animate-svg-wrapper.md
-│     │  │  ├── rendering-conditional-render.md
-│     │  │  ├── rendering-content-visibility.md
-│     │  │  ├── rendering-hoist-jsx.md
-│     │  │  ├── rendering-hydration-no-flicker.md
-│     │  │  ├── rendering-hydration-suppress-warning.md
-│     │  │  ├── rendering-resource-hints.md
-│     │  │  ├── rendering-script-defer-async.md
-│     │  │  ├── rendering-svg-precision.md
-│     │  │  ├── rendering-usetransition-loading.md
-│     │  │  ├── rerender-defer-reads.md
-│     │  │  ├── rerender-dependencies.md
-│     │  │  ├── rerender-derived-state-no-effect.md
-│     │  │  ├── rerender-derived-state.md
-│     │  │  ├── rerender-functional-setstate.md
-│     │  │  ├── rerender-lazy-state-init.md
-│     │  │  ├── rerender-memo-with-default-value.md
-│     │  │  ├── rerender-memo.md
-│     │  │  ├── rerender-move-effect-to-event.md
-│     │  │  ├── rerender-no-inline-components.md
-│     │  │  ├── rerender-simple-expression-in-memo.md
-│     │  │  ├── rerender-split-combined-hooks.md
-│     │  │  ├── rerender-transitions.md
-│     │  │  ├── rerender-use-deferred-value.md
-│     │  │  ├── rerender-use-ref-transient-values.md
-│     │  │  ├── server-after-nonblocking.md
-│     │  │  ├── server-auth-actions.md
-│     │  │  ├── server-dedup-props.md
-│     │  │  ├── server-hoist-static-io.md
-│     │  │  ├── server-no-shared-module-state.md
-│     │  │  ├── server-parallel-fetching.md
-│     │  │  ├── server-parallel-nested-fetching.md
-│     │  │  └── server-serialization.md
-│     │  ├── AGENTS.md
-│     │  ├── metadata.json
-│     │  ├── README.md
-│     │  └── SKILL.md
-│     ├── reconcile
-│     │  └── SKILL.md
-│     ├── research-codebase
-│     │  └── SKILL.md
-│     ├── review-plan
-│     │  └── SKILL.md
-│     ├── simplify-code
-│     │  └── SKILL.md
-│     ├── to-done
-│     │  └── SKILL.md
-│     └── vercel
-│        └── SKILL.md
+│  ├── skills
+│  │  ├── architecture-create
+│  │  │  └── SKILL.md
+│  │  ├── architecture-sync-since-last-updated
+│  │  │  └── SKILL.md
+│  │  ├── catchup
+│  │  │  └── SKILL.md
+│  │  ├── co-develop
+│  │  │  └── SKILL.md
+│  │  ├── frontend-design-anthropic
+│  │  │  ├── metadata.json
+│  │  │  └── SKILL.md
+│  │  ├── frontend-design-openai
+│  │  │  ├── metadata.json
+│  │  │  └── SKILL.md
+│  │  ├── implement-plan
+│  │  │  └── SKILL.md
+│  │  ├── plan
+│  │  │  └── SKILL.md
+│  │  ├── react-best-practices
+│  │  │  ├── rules
+│  │  │  │  ├── _sections.md
+│  │  │  │  ├── _template.md
+│  │  │  │  ├── advanced-effect-event-deps.md
+│  │  │  │  ├── advanced-event-handler-refs.md
+│  │  │  │  ├── advanced-init-once.md
+│  │  │  │  ├── advanced-use-latest.md
+│  │  │  │  ├── async-api-routes.md
+│  │  │  │  ├── async-cheap-condition-before-await.md
+│  │  │  │  ├── async-defer-await.md
+│  │  │  │  ├── async-dependencies.md
+│  │  │  │  ├── async-parallel.md
+│  │  │  │  ├── async-suspense-boundaries.md
+│  │  │  │  ├── bundle-barrel-imports.md
+│  │  │  │  ├── bundle-conditional.md
+│  │  │  │  ├── bundle-defer-third-party.md
+│  │  │  │  ├── bundle-dynamic-imports.md
+│  │  │  │  ├── bundle-preload.md
+│  │  │  │  ├── client-event-listeners.md
+│  │  │  │  ├── client-localstorage-schema.md
+│  │  │  │  ├── client-passive-event-listeners.md
+│  │  │  │  ├── client-swr-dedup.md
+│  │  │  │  ├── js-batch-dom-css.md
+│  │  │  │  ├── js-combine-iterations.md
+│  │  │  │  ├── js-early-exit.md
+│  │  │  │  ├── js-flatmap-filter.md
+│  │  │  │  ├── js-hoist-regexp.md
+│  │  │  │  ├── js-index-maps.md
+│  │  │  │  ├── js-length-check-first.md
+│  │  │  │  ├── js-min-max-loop.md
+│  │  │  │  ├── js-request-idle-callback.md
+│  │  │  │  ├── js-set-map-lookups.md
+│  │  │  │  ├── js-tosorted-immutable.md
+│  │  │  │  ├── rendering-activity.md
+│  │  │  │  ├── rendering-animate-svg-wrapper.md
+│  │  │  │  ├── rendering-conditional-render.md
+│  │  │  │  ├── rendering-content-visibility.md
+│  │  │  │  ├── rendering-hoist-jsx.md
+│  │  │  │  ├── rendering-hydration-no-flicker.md
+│  │  │  │  ├── rendering-hydration-suppress-warning.md
+│  │  │  │  ├── rendering-resource-hints.md
+│  │  │  │  ├── rendering-script-defer-async.md
+│  │  │  │  ├── rendering-svg-precision.md
+│  │  │  │  ├── rendering-usetransition-loading.md
+│  │  │  │  ├── rerender-defer-reads.md
+│  │  │  │  ├── rerender-dependencies.md
+│  │  │  │  ├── rerender-derived-state-no-effect.md
+│  │  │  │  ├── rerender-derived-state.md
+│  │  │  │  ├── rerender-functional-setstate.md
+│  │  │  │  ├── rerender-lazy-state-init.md
+│  │  │  │  ├── rerender-memo-with-default-value.md
+│  │  │  │  ├── rerender-memo.md
+│  │  │  │  ├── rerender-move-effect-to-event.md
+│  │  │  │  ├── rerender-no-inline-components.md
+│  │  │  │  ├── rerender-simple-expression-in-memo.md
+│  │  │  │  ├── rerender-split-combined-hooks.md
+│  │  │  │  ├── rerender-transitions.md
+│  │  │  │  ├── rerender-use-deferred-value.md
+│  │  │  │  ├── rerender-use-ref-transient-values.md
+│  │  │  │  ├── server-after-nonblocking.md
+│  │  │  │  ├── server-auth-actions.md
+│  │  │  │  ├── server-dedup-props.md
+│  │  │  │  ├── server-hoist-static-io.md
+│  │  │  │  ├── server-no-shared-module-state.md
+│  │  │  │  ├── server-parallel-fetching.md
+│  │  │  │  ├── server-parallel-nested-fetching.md
+│  │  │  │  └── server-serialization.md
+│  │  │  ├── AGENTS.md
+│  │  │  ├── metadata.json
+│  │  │  ├── README.md
+│  │  │  └── SKILL.md
+│  │  ├── reconcile
+│  │  │  └── SKILL.md
+│  │  ├── research-codebase
+│  │  │  └── SKILL.md
+│  │  ├── review-plan
+│  │  │  └── SKILL.md
+│  │  ├── simplify-code
+│  │  │  └── SKILL.md
+│  │  ├── to-done
+│  │  │  └── SKILL.md
+│  │  ├── vercel
+│  │  │  └── SKILL.md
+│  │  └── web-a11y-guidelines
+│  │     └── SKILL.md
+│  ├── settings.json
+│  └── SYSTEM.md
 ├── adapters
 │  ├── __init__.py
 │  ├── aiwithmike_adapter.py
@@ -624,6 +638,7 @@ last_updated: 2026-04-03 14:16
 │  │  │  ├── ResultsDisplay.jsx
 │  │  │  ├── ScrapeForm.jsx
 │  │  │  ├── Selectable.jsx
+│  │  │  ├── SelectionActionDock.jsx
 │  │  │  ├── SelectionCounterPill.jsx
 │  │  │  └── ToastContainer.jsx
 │  │  ├── contexts
@@ -664,12 +679,6 @@ last_updated: 2026-04-03 14:16
 │  ├── postcss.config.js
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
-├── ios
-│  └── TLDRScraper.xcodeproj
-│     └── project.xcworkspace
-│        └── xcshareddata
-│           └── swiftpm
-│              └── configuration
 ├── scripts
 │  ├── setup
 │  │  ├── build_client.sh
@@ -687,6 +696,7 @@ last_updated: 2026-04-03 14:16
 │  ├── markdown_frontmatter.py
 │  ├── print_root_markdown_files.sh
 │  ├── resolve_quiet_setting.sh
+│  ├── run-agent.sh
 │  ├── run-codex.sh
 │  ├── run-gemini.sh
 │  └── update_doc_frontmatter.py
