@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-03 20:40
+last_updated: 2026-04-04 12:10, bc67602
 ---
 # Plan: Selection dock action state machine + shared summary/digest sensitivity
 
