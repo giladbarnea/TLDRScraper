@@ -2,7 +2,7 @@
   "provider": "openrouter",
   "model": "auto",
   "thinking": {
-    "level": "medium",
+    "level": "xhigh",
     "budgetTokens": {
       "off": 0,
       "minimal": 5000,
