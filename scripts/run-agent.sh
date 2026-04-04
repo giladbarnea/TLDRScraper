@@ -31,8 +31,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# If prompt is a file path, load its content
+if [[ -n "$PROMPT" ]] && [[ -f "$PROMPT" ]]; then
+  PROMPT=$(cat "$PROMPT")
 # If prompt is empty, check for stdin (heredoc, pipe, etc.)
-if [[ -z "$PROMPT" ]] && [[ ! -t 0 ]]; then
+elif [[ -z "$PROMPT" ]] && [[ ! -t 0 ]]; then
   PROMPT=$(cat)
 fi
 
