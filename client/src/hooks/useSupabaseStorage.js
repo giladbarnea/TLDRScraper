@@ -132,6 +132,31 @@ async function writeValue(key, value) {
   }
 }
 
+export function getCachedStorageValue(key) {
+  return readCache.get(key)
+}
+
+export function subscribeToStorageKey(key, listener) {
+  return subscribe(key, listener)
+}
+
+export async function setStorageValueAsync(key, nextValue, defaultValue = null) {
+  const previous = await readValue(key, defaultValue)
+  const resolved = typeof nextValue === 'function' ? nextValue(previous) : nextValue
+  if (resolved === previous) return
+
+  readCache.set(key, resolved)
+  emitChange(key)
+
+  try {
+    await writeValue(key, resolved)
+  } catch (error) {
+    readCache.set(key, previous)
+    emitChange(key)
+    throw error
+  }
+}
+
 export function useSupabaseStorage(key, defaultValue) {
   // ─────────────────────────────────────────────────────────────────────────────
   // Cache Seeding for Scrape-First Hydration

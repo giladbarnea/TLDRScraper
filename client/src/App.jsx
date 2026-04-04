@@ -7,11 +7,14 @@ import SelectionActionDock from './components/SelectionActionDock'
 import ToastContainer from './components/ToastContainer'
 import { InteractionProvider, useInteraction } from './contexts/InteractionContext'
 import { useDigest } from './hooks/useDigest'
-import { mergeIntoCache } from './hooks/useSupabaseStorage'
+import { getCachedStorageValue, mergeIntoCache, setStorageValueAsync } from './hooks/useSupabaseStorage'
+import { publishArticleAction } from './lib/articleActionBus'
 import { scrapeNewsletters } from './lib/scraper'
 import { logTransition } from './lib/stateTransitionLogger'
 import { getDailyPayloadsRange } from './lib/storageApi'
 import { getNewsletterScrapeKey } from './lib/storageKeys'
+import { ArticleLifecycleEventType, reduceArticleLifecycle } from './reducers/articleLifecycleReducer'
+import * as summaryDataReducer from './reducers/summaryDataReducer'
 
 const SERVER_ORIGIN_FIELDS = ['url', 'title', 'articleMeta', 'issueDate', 'category', 'sourceId', 'section', 'sectionEmoji', 'sectionOrder', 'newsletterType']
 
@@ -32,27 +35,149 @@ function mergePreservingLocalState(freshPayload, localPayload) {
   }
 }
 
-function extractSelectedArticleDescriptors(selectedIds, payloads) {
+function getLivePayload(date, fallbackPayloads) {
+  const live = getCachedStorageValue(getNewsletterScrapeKey(date))
+  if (live) return live
+  return fallbackPayloads?.find((payload) => payload.date === date) || null
+}
+
+function getSelectedArticles(selectedIds, payloads) {
   if (!payloads) return []
-  const allArticles = payloads.flatMap((payload) => payload.articles)
-  return allArticles
-    .filter((article) => selectedIds.has(`article-${article.url}`))
-    .map(({ url, title, category, sourceId }) => ({ url, title, category, sourceId }))
+  const selectedArticles = []
+
+  for (const payload of payloads) {
+    const livePayload = getLivePayload(payload.date, payloads)
+    if (!livePayload?.articles) continue
+
+    for (const article of livePayload.articles) {
+      if (selectedIds.has(`article-${article.url}`)) {
+        selectedArticles.push(article)
+      }
+    }
+  }
+
+  return selectedArticles
+}
+
+function extractSelectedArticleDescriptors(selectedArticles) {
+  return selectedArticles.map(({ url, title, category, sourceId }) => ({ url, title, category, sourceId }))
+}
+
+function groupSelectedByDate(selectedArticles) {
+  const grouped = new Map()
+  for (const article of selectedArticles) {
+    if (!grouped.has(article.issueDate)) grouped.set(article.issueDate, [])
+    grouped.get(article.issueDate).push(article)
+  }
+  return grouped
+}
+
+function toBrowserUrl(url) {
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  return `https://${url}`
+}
+
+async function applyBatchLifecyclePatch(selectedArticles, eventFactory) {
+  const groupedByDate = groupSelectedByDate(selectedArticles)
+
+  for (const [date, articles] of groupedByDate.entries()) {
+    const urlSet = new Set(articles.map((article) => article.url))
+    const storageKey = getNewsletterScrapeKey(date)
+    await setStorageValueAsync(storageKey, (current) => {
+      if (!current) return current
+      return {
+        ...current,
+        articles: current.articles.map((article) => {
+          if (!urlSet.has(article.url)) return article
+          const event = eventFactory(article)
+          return { ...article, ...reduceArticleLifecycle(article, event).patch }
+        })
+      }
+    })
+  }
 }
 
 function AppContent({ results, setResults, showSettings, setShowSettings }) {
   const { selectedIds, isSelectMode, clearSelection } = useInteraction()
   const digest = useDigest(results)
+  const [, setStorageVersion] = useState(0)
+
+  useEffect(() => {
+    const handleStorageChange = () => setStorageVersion((version) => version + 1)
+    window.addEventListener('supabase-storage-change', handleStorageChange)
+    return () => window.removeEventListener('supabase-storage-change', handleStorageChange)
+  }, [])
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric'
   })
+  const selectedArticles = getSelectedArticles(selectedIds, results?.payloads)
+  const selectedDescriptors = extractSelectedArticleDescriptors(selectedArticles)
+  const selectedCount = selectedIds.size
+  const singleSelectedId = selectedCount === 1 ? [...selectedIds][0] : null
+  const singleSelectedUrl = singleSelectedId?.startsWith('article-')
+    ? singleSelectedId.slice('article-'.length)
+    : null
+  const singleSelectedArticle = singleSelectedUrl
+    ? selectedArticles.find((article) => article.url === singleSelectedUrl) || null
+    : null
+  const singleSummaryStatus = summaryDataReducer.getSummaryDataStatus(singleSelectedArticle?.summary)
+  const canOpenSingleSummary = singleSummaryStatus === summaryDataReducer.SummaryDataStatus.AVAILABLE
+  const isSingleSummaryLoading = singleSummaryStatus === summaryDataReducer.SummaryDataStatus.LOADING
+  const summarizeEachActionableCount = selectedArticles.filter((article) => {
+    const status = summaryDataReducer.getSummaryDataStatus(article.summary)
+    return status === summaryDataReducer.SummaryDataStatus.UNKNOWN || status === summaryDataReducer.SummaryDataStatus.ERROR
+  }).length
+  const isSummarizeEachDisabled = selectedCount < 2 || summarizeEachActionableCount === 0
 
   function handleTriggerDigest() {
-    const descriptors = extractSelectedArticleDescriptors(selectedIds, results?.payloads)
-    digest.trigger(descriptors)
+    digest.trigger(selectedDescriptors)
+  }
+
+  async function handleMarkSelectedRead() {
+    if (selectedArticles.length === 0) return
+    const markedAt = new Date().toISOString()
+    await applyBatchLifecyclePatch(selectedArticles, () => ({
+      type: ArticleLifecycleEventType.MARK_READ,
+      markedAt,
+    }))
+    clearSelection()
+  }
+
+  async function handleMarkSelectedRemoved() {
+    if (selectedArticles.length === 0) return
+    await applyBatchLifecyclePatch(selectedArticles, () => ({
+      type: ArticleLifecycleEventType.MARK_REMOVED,
+    }))
+    clearSelection()
+  }
+
+  function handleSummarizeSingle() {
+    if (!singleSelectedArticle) return
+    if (canOpenSingleSummary) {
+      publishArticleAction([singleSelectedArticle.url], 'open-summary')
+      return
+    }
+    publishArticleAction([singleSelectedArticle.url], 'fetch-summary')
+  }
+
+  function handleBrowseSingle() {
+    if (!singleSelectedArticle) return
+    window.open(toBrowserUrl(singleSelectedArticle.url), '_blank', 'noopener,noreferrer')
+  }
+
+  function handleSummarizeEach() {
+    if (selectedCount < 2) return
+    const actionableUrls = selectedArticles
+      .filter((article) => {
+        const status = summaryDataReducer.getSummaryDataStatus(article.summary)
+        return status === summaryDataReducer.SummaryDataStatus.UNKNOWN || status === summaryDataReducer.SummaryDataStatus.ERROR
+      })
+      .map((article) => article.url)
+    if (actionableUrls.length === 0) return
+    publishArticleAction(actionableUrls, 'fetch-summary')
   }
 
   return (
@@ -128,10 +253,18 @@ function AppContent({ results, setResults, showSettings, setShowSettings }) {
 
       <SelectionActionDock
         isSelectMode={isSelectMode}
-        selectedCount={selectedIds.size}
+        selectedCount={selectedCount}
         isDigestLoading={digest.loading}
+        canOpenSingleSummary={canOpenSingleSummary}
+        isSingleSummaryLoading={isSingleSummaryLoading}
+        isSummarizeEachDisabled={isSummarizeEachDisabled}
         onClearSelection={clearSelection}
+        onMarkRead={handleMarkSelectedRead}
+        onMarkRemoved={handleMarkSelectedRemoved}
         onTriggerDigest={handleTriggerDigest}
+        onSummarizeSingle={handleSummarizeSingle}
+        onBrowseSingle={handleBrowseSingle}
+        onSummarizeEach={handleSummarizeEach}
       />
     </div>
   )

@@ -9,6 +9,7 @@ import { usePullToClose } from '../hooks/usePullToClose'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
+import { subscribeToArticleAction } from '../lib/articleActionBus'
 import Selectable from './Selectable'
 
 function ErrorToast({ message, onDismiss }) {
@@ -282,6 +283,23 @@ function ArticleCard({ article }) {
     registerDisabled(componentId, isRemoved)
     return () => registerDisabled(componentId, false)
   }, [componentId, isRemoved, registerDisabled])
+
+  useEffect(() => {
+    return subscribeToArticleAction(article.url, (action) => {
+      if (isRemoved) return
+
+      if (action === 'open-summary') {
+        if (summary.isAvailable) summary.expand()
+        return
+      }
+
+      if (action === 'fetch-summary') {
+        if (summary.status === 'unknown' || summary.status === 'error') {
+          summary.fetch()
+        }
+      }
+    })
+  }, [article.url, isRemoved, summary])
 
   return (
     <Selectable id={componentId} disabled={isRemoved}>
