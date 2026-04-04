@@ -2,6 +2,7 @@
 # run-agent.sh - Non-interactive pi agent runner with model aliases and stdin support
 
 set -e
+set -o pipefail
 
 MODEL=""
 PROMPT=""
@@ -39,6 +40,11 @@ elif [[ -z "$PROMPT" ]] && [[ ! -t 0 ]]; then
   PROMPT=$(cat)
 fi
 
+if [[ -z "$PROMPT" ]]; then
+  echo "$0 ERROR: no PROMPT provided"
+  exit 1
+fi
+
 # Resolve model alias (case-insensitive)
 MODEL_LOWER=$(echo "$MODEL" | tr '[:upper:]' '[:lower:]')
 if [[ -v MODELS[$MODEL_LOWER] ]]; then
@@ -46,6 +52,12 @@ if [[ -v MODELS[$MODEL_LOWER] ]]; then
 else
   RESOLVED_MODEL="$MODEL"
 fi
+
+if [[ -z "$RESOLVED_MODEL" ]]; then
+  echo "$0 ERROR: no MODEL provided"
+  exit 1
+fi
+
 
 # Execute and tee output
 echo "🚀 Running pi agent with model: $RESOLVED_MODEL"
