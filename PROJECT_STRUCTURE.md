@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-04 09:05
+last_updated: 2026-04-04 18:50
 ---
 .
 ├── .agents
@@ -466,6 +466,7 @@ last_updated: 2026-04-04 09:05
 │  ├── sync-upstream-suggestions.md
 │  └── util.sh
 ├── .github
+│  ├── commands
 │  └── workflows
 │     ├── claude.yml
 │     ├── GEMINI_REMOTE_AUTH.md
@@ -475,6 +476,8 @@ last_updated: 2026-04-04 09:05
 │     ├── weekly-branch-pr-cleanup.yml
 │     ├── weekly-supabase-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
+├── .jbeval
+│  └── datasets
 ├── .pi
 │  ├── agents
 │  │  ├── codebase-analyzer-multiple-subsystems.md
@@ -587,8 +590,7 @@ last_updated: 2026-04-04 09:05
 │  │  │  └── SKILL.md
 │  │  └── web-a11y-guidelines
 │  │     └── SKILL.md
-│  ├── settings.json
-│  └── SYSTEM.md
+│  └── settings.json
 ├── adapters
 │  ├── __init__.py
 │  ├── aiwithmike_adapter.py
@@ -655,6 +657,7 @@ last_updated: 2026-04-04 09:05
 │  │  │  ├── useSupabaseStorage.js
 │  │  │  └── useSwipeToRemove.js
 │  │  ├── lib
+│  │  │  ├── articleActionBus.js
 │  │  │  ├── interactionConstants.js
 │  │  │  ├── quakeConsole.js
 │  │  │  ├── scraper.js
@@ -679,6 +682,12 @@ last_updated: 2026-04-04 09:05
 │  ├── postcss.config.js
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
+├── ios
+│  └── TLDRScraper.xcodeproj
+│     └── project.xcworkspace
+│        └── xcshareddata
+│           └── swiftpm
+│              └── configuration
 ├── scripts
 │  ├── setup
 │  │  ├── build_client.sh
@@ -709,8 +718,11 @@ last_updated: 2026-04-04 09:05
 │  ├── test_scrape_cache_server.py
 │  └── test_some_server_functionalities.py
 ├── thoughts
-│  └── 25-12-21-failed-scrapes-are-retryable
-│     └── discussion.md
+│  ├── 25-12-21-failed-scrapes-are-retryable
+│  │  └── discussion.md
+│  └── 26-04-03-selection-dock-state-machine
+│     ├── plan.md
+│     └── plan.review.md
 ├── .gitattributes
 ├── .gitignore
 ├── .vercelignore

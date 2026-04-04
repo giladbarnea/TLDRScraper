@@ -14,21 +14,20 @@ declare -A MODELS=(
   ["minimax-m2.7"]="minimax/minimax-m2.7"
   ["minimax-m2.5"]="minimax/minimax-m2.5"
   ["glm-5"]="z-ai/glm-5"
-  ["gemma-4-31b"]="google/gemma-4-31b-it"
-  ["auto"]="auto"
+  ["gemma-4"]="google/gemma-4-31b-it"
 )
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
-    -m|--model)
-      MODEL="$2"
-      shift 2
-      ;;
-    *)
-      PROMPT="$1"
-      shift
-      ;;
+  -m | --model)
+    MODEL="$2"
+    shift 2
+    ;;
+  *)
+    PROMPT="$1"
+    shift
+    ;;
   esac
 done
 
@@ -57,7 +56,6 @@ if [[ -z "$RESOLVED_MODEL" ]]; then
   echo "$0 ERROR: no MODEL provided"
   exit 1
 fi
-
 
 # Declare log path with model name and UTC timestamp
 LOG_PATH="/tmp/run-agent-${RESOLVED_MODEL//\//-}-$(date -u +%H:%M).log"
