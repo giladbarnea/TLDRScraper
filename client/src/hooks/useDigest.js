@@ -31,7 +31,8 @@ export function useDigest(results) {
   const latestPayloadDate = results?.payloads
     ? [...results.payloads].sort((a, b) => b.date.localeCompare(a.date))[0]?.date
     : null
-  const storageKey = getNewsletterScrapeKey(targetDate ?? latestPayloadDate ?? '0000-00-00')
+  const activeDate = targetDate ?? latestPayloadDate ?? '0000-00-00'
+  const storageKey = getNewsletterScrapeKey(activeDate)
   const [payload] = useSupabaseStorage(storageKey, null)
 
   const activePayload = payload
@@ -138,8 +139,8 @@ export function useDigest(results) {
     }))
   }, [updateArticlesAcrossDates])
 
-  const writeDigest = useCallback(async (digestPatch) => {
-    await setStorageValueAsync(storageKey, (current) => {
+  const writeDigest = useCallback(async (digestPatch, targetStorageKey = storageKey) => {
+    await setStorageValueAsync(targetStorageKey, (current) => {
       if (!current) return current
       const fromStatus = summaryDataReducer.getSummaryDataStatus(current.digest)
       const toStatus = digestPatch.status
@@ -148,7 +149,7 @@ export function useDigest(results) {
       }
       return { ...current, digest: { ...(current.digest || {}), ...digestPatch } }
     })
-  }, [storageKey])
+  }, [])
 
   const createRequestToken = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
@@ -204,7 +205,7 @@ export function useDigest(results) {
       try {
         previousSummaryByUrl = await markDigestArticlesLoading(urlsByDate)
 
-        await writeDigest({ errorMessage: null })
+        await writeDigest({ errorMessage: null }, getNewsletterScrapeKey(pendingRequest.date))
 
         const response = await window.fetch('/api/digest', {
           method: 'POST',
@@ -226,7 +227,7 @@ export function useDigest(results) {
             generatedAt: new Date().toISOString(),
             effort: 'low',
             errorMessage: null,
-          })
+          }, getNewsletterScrapeKey(pendingRequest.date))
           clearSelection()
           expand()
           return
@@ -235,7 +236,7 @@ export function useDigest(results) {
         await writeDigest({
           status: summaryDataReducer.SummaryDataStatus.ERROR,
           errorMessage: result.error,
-        })
+        }, getNewsletterScrapeKey(pendingRequest.date))
       } catch (error) {
         if (error.name === 'AbortError') {
           await restoreDigestArticlesSummary(urlsByDate, previousSummaryByUrl)
@@ -245,7 +246,7 @@ export function useDigest(results) {
         await writeDigest({
           status: summaryDataReducer.SummaryDataStatus.ERROR,
           errorMessage: error.message,
-        })
+        }, getNewsletterScrapeKey(pendingRequest.date))
       } finally {
         if (requestTokenRef.current === requestToken) {
           requestTokenRef.current = null
@@ -259,11 +260,12 @@ export function useDigest(results) {
 
   useEffect(() => {
     if (status !== summaryDataReducer.SummaryDataStatus.LOADING) return
+    if (!payload || payload.date !== activeDate) return
     void writeDigest({
       status: summaryDataReducer.SummaryDataStatus.UNKNOWN,
       errorMessage: null,
-    })
-  }, [status, writeDigest])
+    }, getNewsletterScrapeKey(payload.date))
+  }, [status, payload, activeDate, writeDigest])
 
   const collapse = useCallback(async (shouldRemove = false) => {
     try {
