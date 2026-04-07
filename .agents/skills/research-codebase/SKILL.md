@@ -1,8 +1,8 @@
 ---
 name: research-codebase
 description: Conduct deep, comprehensive research across the codebase. Use parallel sub-agents to map domains (locator) and then deep-dive (analyzer).
-model: inherit
-last_updated: 2026-03-09 10:42, ee23771
+last_updated: 2026-04-07 23:42
+arguments_hint: "thoughts/ subdir"
 ---
 # Research Codebase
 
@@ -13,13 +13,13 @@ You are tasked with conducting deep, comprehensive research to answer the user's
 Research is a 2-phase process. Do not skip steps.
 
 ### Phase 1: Explore (Breadth)
-Use **codebase-locator(model=haiku)** to map the search space.
+Use a **codebase-locator** agent to map the search space.
 - Goal: Find *where* things are.
 - Query: "Find all files related to [topic], including configs, tests, and documentation."
 - **Output**: A list of file paths and high-level contexts.
 
 ### Phase 2: Deep Dive (Depth)
-Use **codebase-analyzer:multiple-subsystems** to understand *how* things work.
+Use the **codebase-analyzer:multiple-subsystems** agent to understand *how* things work.
 - Goal: Understand mechanics, data flow, and coupling.
 - Target: The file lists identified in Phase 1.
 
@@ -27,7 +27,8 @@ Use **codebase-analyzer:multiple-subsystems** to understand *how* things work.
 Do not micromanage agents. They know their tools.
 - **Bad**: "Read file x, then grep for y, then..."
 - **Good**: "Analyze the authentication flow in `auth/`. I need to understand how tokens are refreshed."
-Tell them the *End Value* you need and the *Purpose*.
+
+Tell them the *End Value* you need and the *Purpose*. Load the `prompt-subagent` skill to get better results from agents.
 </how-to-prompt-subagents>
 
 ## Process Steps
@@ -46,7 +47,7 @@ Tell them the *End Value* you need and the *Purpose*.
    - Connect the dots. How does the Frontend findings relate to the Database findings?
 
 4. **Generate Report**:
-   - Write the report to `thoughts/YY-MM-DD-ENG-XXXX/research/description.md`.
+   - Write the report to `thoughts/YY-MM-DD-SUBJECT/research/description.md`.
    - Use the structure below.
 
 ## Research Document Template
