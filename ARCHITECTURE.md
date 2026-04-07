@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-03-17 08:36, 05e8b64
+last_updated: 2026-04-07 12:36
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -40,7 +40,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  │  - Root    │  │ - ScrapeForm │  │ - useArticleState        │  │  │
 │  │  │  - Hydrate │  │ - Results    │  │ - useSummary             │  │  │
 │  │  │  - Results │  │   Display    │  │ - useSupabaseStorage     │  │  │
-│  │  │    Display │  │ - Feed       │  │ - useLocalStorage        │  │  │
+│  │  │    Display │  │ - Feed       │  │ - useDigest              │  │  │
 │  │  │            │  │ - CalendarDay│  │                          │  │  │
 │  │  │            │  │ - Newsletter │  │ Lib                      │  │  │
 │  │  │            │  │   Day        │  │ - scraper.js             │  │  │
@@ -130,45 +130,29 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 - View progress bar
 - View results grouped by date/issue
 
-### 2. Article State Management
-**User Action:** Click article link / Remove button / Restore button
+### 2. Persisted Article Workflow
+**User Action:** Read, remove, restore, summarize, and revisit articles across sessions
 
 **Available Interactions:**
-- Click article title → Mark as read
-- Click "Remove" → Mark as removed (visual strikethrough, subtitle hidden)
-- Click "Restore" → Restore removed article
-- Trash icon always visible on mobile devices
-- Article states persist in Supabase daily_cache table
+- Article-level user state is stored server-side inside each day's payload
+- Read/removed status persists across refreshes and devices
+- Summary and digest results persist alongside the article payload they belong to
 
-### 3. Summary Generation
-**User Action:** Click "Summary" button on article OR click article card body
+### 3. Reading Views and Summaries
+**User Action:** Open an article summary or digest view
 
 **Available Interactions:**
-- Click "Summary" button → Fetch summary from API (if not available) OR toggle visibility (if available)
-- Click article card body → Toggle summary visibility (only when summary content already exists)
-- Summary displayed inline below article
-- Cached summaries show "Available" (green)
-- Card shows pointer cursor when summary content is available for toggling
+- Single-article summaries are generated on demand through the backend summary pipeline
+- Digest summaries synthesize multiple selected articles into a shared reading surface
+- Summary content is cached in the same daily payload as the source articles
 
-### 4. Results Display with Feed Component
+### 4. Feed Presentation
 **User Action:** View scraped results
 
 **Available Interactions:**
-- Feed component with CalendarDay subcomponents (one per date)
-- CalendarDay features:
-  - Live sync with Supabase via useSupabaseStorage hook
-  - Sticky date header with "Syncing..." indicator during updates
-  - Articles grouped by: Date → Issue/Category → Section
-  - Newsletters (sources) sorted by rarity: rarest sources displayed at top (based on publishing frequency)
-  - "Other" section for uncategorized articles
-  - Auto-collapse behavior: Containers automatically collapse in real-time when all child articles are removed
-    - Calendar days collapse when all articles for that date are removed
-    - Newsletters/categories collapse when all their articles are removed
-    - Sections collapse when all their articles are removed
-    - Implemented via useEffect hook that detects defaultFolded state transitions
-  - Users can manually expand/collapse any container regardless of auto-collapse state
-- Articles sorted: Removed articles at bottom, all others maintain original order
-- Visual state indicators (bold = unread, muted = read, strikethrough = removed)
+- Feed is grouped by date, issue/category, and section
+- Daily payloads synchronize through a shared storage layer backed by Supabase
+- The presentation layer surfaces persisted article state and scrape metadata
 - Stats display (article count, unique URLs, dates processed)
 - Collapsible debug logs
 
@@ -182,238 +166,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 
 **Note:** No tailwind.config.js file - Tailwind v4 uses CSS-based configuration
 
----
-
-## State Machines
-
-### Feature 1: Newsletter Scraping
-
-#### States
-1. **idle** - No scraping in progress
-2. **validating** - Validating date range input
-3. **checking_cache** - Checking if range is fully cached
-4. **fetching_api** - Calling backend API
-5. **merging_cache** - Merging API results with Supabase cache
-6. **complete** - Results displayed
-7. **error** - Error occurred
-
-#### State Transitions
-
-```
-idle
-  │
-  ├─ User enters dates
-  │    ↓
-  │  validating
-  │    │
-  │    ├─ Valid dates
-  │    │    ↓
-  │    │  checking_cache
-  │    │    │
-  │    │    ├─ Today in range (regardless of cache state)
-  │    │    │    ↓
-  │    │    │  fetching_api (cache bypassed to allow server-side union)
-  │    │    │
-  │    │    ├─ All past dates fully cached & cache enabled
-  │    │    │    ↓
-  │    │    │  loading_cache (POST /api/storage/daily-range)
-  │    │    │    ↓
-  │    │    │  complete (load from client cache)
-  │    │    │
-  │    │    └─ Not fully cached OR cache disabled
-  │    │         ↓
-  │    │       fetching_api
-  │    │
-  │    │  fetching_api → Server-side per-date logic:
-  │    │    │
-  │    │    ├─ Past dates: cache-first (load from Supabase if cached, else scrape)
-  │    │    │
-  │    │    └─ Today: union logic (cached articles + newly scraped articles)
-  │    │         │
-  │    │         ├─ Success
-  │    │         │    ↓
-  │    │         │  merging_cache (client preserves user state: summary, read, removed)
-  │    │         │    ↓ POST /api/storage/daily/{date}
-  │    │         │  complete
-  │    │         │
-  │    │         └─ Failure
-  │    │              ↓
-  │    │            error
-  │    │
-  │    └─ Invalid dates
-  │         ↓
-  │       error (validation error)
-  │
-  └─ (loop back to idle on next interaction)
-```
-
-#### Key State Data
-- **startDate**: string (ISO date)
-- **endDate**: string (ISO date)
-- **loading**: boolean
-- **progress**: number (0-100)
-- **error**: string | null
-- **results**: ResultsPayload | null
-
----
-
-### Feature 2: Article State Management
-
-#### States (per article)
-1. **unread** - Default state, bold text
-2. **read** - User clicked/viewed, muted text
-3. **removed** - User removed, strikethrough + dashed border
-
-#### State Transitions
-
-```
-unread
-  │
-  ├─ User clicks article link
-  │    ↓
-  │  read
-  │    │
-  │    ├─ article.read = { isRead: true, markedAt: timestamp }
-  │    │
-  │    └─ POST /api/storage/daily/{date} → Supabase upsert
-  │
-  ├─ User clicks "Remove"
-  │    ↓
-  │  removed
-  │    │
-  │    ├─ article.removed = true
-  │    │
-  │    └─ POST /api/storage/daily/{date} → Supabase upsert
-  │
-read
-  │
-  └─ User clicks "Remove"
-       ↓
-     removed
-       │
-       ├─ article.removed = true
-       │
-       └─ POST /api/storage/daily/{date} → Supabase upsert
-
-removed
-  │
-  └─ User clicks "Restore"
-       ↓
-     unread (or previous state)
-       │
-       ├─ article.removed = false
-       │
-       └─ POST /api/storage/daily/{date} → Supabase upsert
-```
-
-#### Key State Data (per article)
-- **url**: string (unique identifier)
-- **issueDate**: string (storage key component; stamped by CalendarDay from its own `date`, not carried from server data)
-- **read**: { isRead: boolean, markedAt: string | null }
-- **removed**: boolean
-
----
-
-### Feature 3: Summary Generation
-
-Summary management uses a **reducer pattern for data** (Domain B) and **simple state for view** (ephemeral UI):
-
-#### Domain B: Summary Data Lifecycle (Reducer)
-**Responsibility:** What summary data we have and its loading state
-
-**States:**
-1. **unknown** - Summary not yet requested
-2. **loading** - API request in progress
-3. **available** - Summary cached and ready
-4. **error** - API request failed
-
-#### View State (Simple useState)
-**Responsibility:** How the summary is displayed (UI visibility)
-
-**States:**
-- `expanded: boolean` - Summary visible (true) or hidden (false)
-
-#### State Transitions
-
-```
-Data Domain (B) - Reducer          View State - Simple useState
-─────────────────────────          ─────────────────────────────
-
-unknown                            expanded = false
-  │                                   │
-  └─ User clicks "Summary"            │
-       ↓                              │
-     loading                          │
-       │                              │
-       ├─ POST /api/summarize-url     │
-       │    { url, summarize_effort } │
-       │                              │
-       ├─ Success                     │
-       │    ↓                         │
-       │  available                   │
-       │    │                         │
-       │    ├─ dispatch               │
-       │    │  SUMMARY_LOAD_SUCCEEDED │
-       │    │  summary.status = 'available'
-       │    │  summary.markdown = response
-       │    │  summary.effort = effort
-       │    │  summary.checkedAt = timestamp
-       │    │  Mark article as read
-       │    │
-       │    └─ POST /api/storage/daily/{date} → Supabase upsert
-       │
-       └─ Failure
-            ↓
-          error
-            │
-            ├─ dispatch SUMMARY_LOAD_FAILED
-            │  summary.status = 'error'
-            │  summary.errorMessage = error text
-            │
-            └─ POST /api/storage/daily/{date} → Supabase upsert
-
-available                          expanded = false
-  │                                   │
-  │                                   └─ User clicks
-  │                                        ↓
-  │                                      expanded = true
-  │                                        │
-  │                                        └─ User clicks
-  │                                             ↓
-  │                                           expanded = false
-  │                                            (setExpanded(false))
-  │
-  └─ User aborts during loading
-       ↓
-     ROLLBACK to previous data state
-```
-
-#### Implementation Architecture
-
-- **summaryDataReducer.js**: Manages data state (`unknown` → `loading` → `available`/`error`)
-  - Events: `SUMMARY_REQUESTED`, `SUMMARY_LOAD_SUCCEEDED`, `SUMMARY_LOAD_FAILED`, `SUMMARY_ROLLBACK`
-  - Returns: `{ state: newStatus, patch: storageUpdate }`
-  - Closed reducer (no cross-domain reads)
-
-- **useSummary hook**: Orchestrates data and view
-  - Dispatches to data reducer for data transitions
-  - Uses simple `useState(expanded)` for view state
-  - Manages side effects: fetch, zen lock, mark as read, request tokens
-
-#### Key State Data (per article)
-
-**Persisted Data (Supabase - Domain B):**
-- **summary.status**: `'unknown'` | `'loading'` | `'available'` | `'error'`
-- **summary.markdown**: string
-- **summary.effort**: `'minimal'` | `'low'` | `'medium'` | `'high'`
-- **summary.checkedAt**: string (ISO timestamp) | null
-- **summary.errorMessage**: string | null
-
-**View State (Component - useState):**
-- **expanded**: boolean - Summary overlay visible (true) or hidden (false)
-
-**Computed:**
-- **summary.html**: DOMPurify.sanitize(marked.parse(summary.markdown))
+Client-side state machines, reducers, overlay lifecycles, and persistence tiers are documented in `docs/ALL_STATES.md`.
 
 ---
 
@@ -632,114 +385,45 @@ User clicks "Scrape Newsletters"
 ### Feature 3: Summary Generation - Complete Flow
 
 ```
-User clicks "Summary" button OR clicks article card body
+User requests a summary from the client
   │
-  ├─ BUTTON CLICK PATH
+  ├─ useSummary decides whether summary content already exists
   │    │
-  │    ├─ ArticleCard.jsx onClick={handleExpand}
+  │    ├─ Summary already cached
   │    │    │
-  │    │    └─ useSummary hook toggle()
-  │    │         │
-  │    │         ├─ If summary already available: Toggle visibility only
-  │    │         │
-  │    │         └─ If summary not available: Fetch from API
-  │    │              │
-  │    │              └─ window.fetch('/api/summarize-url?model=gemini-3.1-pro-preview', {
-  │    │                   method: 'POST',
-  │    │                   body: JSON.stringify({ url, summarize_effort })
-  │    │                 })
-  │    │                   │
-  │    │                   └─ Server receives request...
-  │    │                        │
-  │    │                        ├─ serve.py:78 summarize_url_endpoint()
-  │    │                        │    │
-  │    │                        │    └─ tldr_app.py:29 summarize_url(url, summarize_effort)
-  │    │                        │         │
-  │    │                        │         └─ tldr_service.py:315 summarize_url_content(url, summarize_effort)
-  │    │                        │              │
-  │    │                        │              ├─ util.canonicalize_url(url)
-  │    │                        │              │
-  │    │                        │              └─ summarizer.py:286 summarize_url(url, summarize_effort)
-  │    │                        │                   │
-  │    │                        │                   ├─ url_to_markdown(url)
-  │    │                        │                   │    (scrapes and converts URL content to markdown)
-  │    │                        │                   │
-  │    │                        │                   ├─ Fetch summary prompt template:
-  │    │                        │                   │    │
-  │    │                        │                   │    └─ _fetch_summary_prompt()
-  │    │                        │                   │         │
-  │    │                        │                   │         └─ Fetch from GitHub:
-  │    │                        │                   │              "https://api.github.com/repos/giladbarnea/llm-templates/contents/text/tldr.md"
-  │    │                        │                   │
-  │    │                        │                   ├─ Build prompt:
-  │    │                        │                   │    template + "\n\n<tldr this>\n" + markdown + "\n</tldr this>"
-  │    │                        │                   │
-      │    │                        │                   └─ Call LLM:
-      │    │                        │                        │
-      │    │                        │                        └─ _call_llm(prompt, summarize_effort)
-      │    │                        │                             (calls Google Gemini 3 Pro API)
-  │    │                        │
-  │    │                        └─ Return { success, summary_markdown, canonical_url, summarize_effort }
+  │    │    └─ Reuse cached markdown and open the reading surface
   │    │
-  │    └─ Client receives response:
+  │    └─ Summary missing
   │         │
-  │         ├─ Update article state:
-  │         │    {
-  │         │      status: 'available',
-  │         │      markdown: result.summary_markdown,
-  │         │      effort: summaryEffort,
-  │         │      checkedAt: timestamp,
-  │         │      errorMessage: null
-  │         │    }
-  │         │
-  │         ├─ Set expanded state to true
-  │         ├─ Mark article as read (if not already)
-  │         │
-  │         └─ Display inline summary
+  │         └─ POST /api/summarize-url
+  │              │
+  │              └─ Server receives request...
+  │                   │
+  │                   ├─ serve.py summarize_url_endpoint()
+  │                   │    │
+  │                   │    └─ tldr_app.py summarize_url(url, summarize_effort)
+  │                   │         │
+  │                   │         └─ tldr_service.py summarize_url_content(url, summarize_effort)
+  │                   │              │
+  │                   │              ├─ util.canonicalize_url(url)
+  │                   │              │
+  │                   │              └─ summarizer.py summarize_url(url, summarize_effort)
+  │                   │                   │
+  │                   │                   ├─ url_to_markdown(url)
+  │                   │                   ├─ _fetch_summary_prompt()
+  │                   │                   ├─ Build prompt from template + markdown
+  │                   │                   └─ _call_llm(prompt, summarize_effort)
+  │                   │
+  │                   └─ Return { success, summary_markdown, canonical_url, summarize_effort }
   │
-  └─ CARD CLICK PATH
-       │
-       ├─ ArticleCard.jsx onClick={handleCardClick}
-       │    │
-       │    └─ useSummary hook toggle()
-       │         │
-       │         ├─ Only acts if summary content already exists (isAvailable)
-       │         └─ Toggles expanded state (no API call)
-       │
-       └─ Summary content shown/hidden (no server interaction)
+  └─ Client persists the summary on the article payload and can open the reading surface immediately
 ```
 
 ---
 
 ## Data Structures
 
-### DailyPayload (Supabase: `daily_cache` table, keyed by date)
-
-```typescript
-{
-  date: string,              // "2024-01-01"
-  articles: Article[],       // Array of articles for this date
-  issues: Issue[]            // Array of newsletter issues for this date
-}
-```
-
-### Article
-
-```typescript
-{
-  url: string,               // Canonical URL (unique identifier)
-  title: string,
-  article_meta: string,      // Metadata extracted from source (e.g., "158 upvotes, 57 comments" or "5 minute read")
-  date: string,              // "2024-01-01"
-  category: string,          // "TLDR Tech", "HackerNews", etc.
-  source_id?: string,        // "tldr_tech", "hackernews"
-  section_title?: string,    // Section title within newsletter
-  section_emoji?: string,
-  section_order?: number,
-  newsletter_type?: string,
-  removed: boolean
-}
-```
+Client payload shape, embedded article state, and client-side persistence tiers are documented in `docs/ALL_STATES.md`.
 
 ### Issue
 
@@ -769,7 +453,7 @@ User clicks "Summary" button OR clicks article card body
 ```typescript
 {
   success: boolean,
-  articles: Article[],       // All articles (flattened)
+  articles: Article[],       // All articles (flattened); see docs/ALL_STATES.md for shape
   issues: Issue[],           // All issues
   stats: {
     total_articles: number,
@@ -781,49 +465,6 @@ User clicks "Summary" button OR clicks article card body
   },
   output: string             // Markdown formatted output
 }
-```
-
----
-
-## Component Dependency Graph
-
-```
-App.jsx
-  │
-  ├── ScrapeForm.jsx
-  │     └── scraper.js functions
-  │           └── storageApi.js (GET/POST /api/storage/daily/*)
-  │
-  └── Feed.jsx
-        │
-        └── CalendarDay (per date)
-              │
-              ├── useSupabaseStorage('newsletters:scrapes:{date}')
-              │     └── GET/POST /api/storage/daily/{date}
-              │
-              ├── FoldableContainer (wraps entire calendar day)
-              │     ├── useLocalStorage(id, defaultFolded)
-              │     └── defaultFolded={allArticlesRemoved}
-              │
-              └── NewsletterDay (per newsletter/category)
-                    │
-                    ├── FoldableContainer (wraps newsletter)
-                    │     ├── useLocalStorage(id, defaultFolded)
-                    │     └── defaultFolded={allRemoved}
-                    │
-                    ├── FoldableContainer (wraps each section)
-                    │     ├── useLocalStorage(id, defaultFolded)
-                    │     └── defaultFolded={sectionAllRemoved}
-                    │
-                    └── ArticleList.jsx
-                          │
-                          └── ArticleCard.jsx
-                                ├── useArticleState(date, url)
-                                │     └── useSupabaseStorage('newsletters:scrapes:{date}')
-                                │           └── GET/POST /api/storage/daily/{date}
-                                │
-                                └── useSummary(date, url)
-                                      └── useArticleState(date, url)
 ```
 
 ---
@@ -880,72 +521,7 @@ sequenceDiagram
 
 ## Key Algorithms
 
-### 1. Article Sorting Algorithm (ArticleList.jsx)
-
-```javascript
-// Sort articles: removed at bottom, all others by original order
-function sortArticles(articles) {
-  return articles.sort((a, b) => {
-    const stateA = a.removed ? 1 : 0
-    const stateB = b.removed ? 1 : 0
-
-    // Primary sort: removed articles to bottom
-    if (stateA !== stateB) return stateA - stateB
-
-    // Secondary sort: preserve original order
-    return (a.originalOrder ?? 0) - (b.originalOrder ?? 0)
-  })
-}
-```
-
-### 2. Date Range Computation (scraper.js)
-
-```javascript
-// Compute all dates between start and end (inclusive, descending)
-function computeDateRange(startDate, endDate) {
-  const dates = []
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-
-  const current = new Date(end)
-  while (current >= start) {
-    dates.push(current.toISOString().split('T')[0])
-    current.setDate(current.getDate() - 1)
-  }
-
-  return dates  // ['2024-01-03', '2024-01-02', '2024-01-01']
-}
-```
-
-### 3. Cache Merge Algorithm (App.jsx `mergePreservingLocalState`)
-
-```javascript
-// Server-origin fields that get refreshed from scrape data
-const SERVER_ORIGIN_FIELDS = ['url', 'title', 'articleMeta', 'issueDate',
-  'category', 'sourceId', 'section', 'sectionEmoji', 'sectionOrder', 'newsletterType']
-
-// Merge: spread cached article, overlay only server-origin fields from fresh scrape.
-// Client-state fields (summary, read, removed, etc.) are preserved automatically.
-// IMPORTANT: issueDate is forced to freshPayload.date (not carried from server article data)
-// because CalendarDay owns the storage key and issueDate must match it. See GOTCHAS.md 2026-02-15.
-function mergePreservingLocalState(freshPayload, localPayload) {
-  if (!localPayload) return freshPayload
-  const localByUrl = new Map(localPayload.articles.map(a => [a.url, a]))
-  return {
-    ...freshPayload,
-    articles: freshPayload.articles.map(article => {
-      const local = localByUrl.get(article.url)
-      if (!local) return { ...article, issueDate: freshPayload.date }
-      const freshFields = {}
-      for (const k of SERVER_ORIGIN_FIELDS) freshFields[k] = article[k]
-      freshFields.issueDate = freshPayload.date
-      return { ...local, ...freshFields }
-    })
-  }
-}
-```
-
-### 4. URL Deduplication (newsletter_scraper.py:231)
+### 1. URL Deduplication (newsletter_scraper.py:231)
 
 **Same-day dedup** — applied across all sources within a single scrape run:
 
@@ -1024,22 +600,6 @@ CREATE TABLE daily_cache (
 4. **Summary**: Fetch from API → Update article → POST /api/storage/daily/{date} → Supabase upsert
 5. **cached_at contract**: Only scrape writes advance cached_at; user-state updates must not mutate cached_at so it remains a scrape freshness signal.
 
-### Storage Key Patterns
+### Client State Reference
 
-- **Settings**: `ui:*` for UI preferences (e.g., `ui:theme`)
-- **Daily Payloads**: `newsletters:scrapes:{date}` (e.g., `newsletters:scrapes:2024-01-01`)
-- **Container Fold State**: Stored in browser localStorage (not Supabase) with keys like `calendar-{date}`, `newsletter-{date}-{title}`, `section-{date}-{title}-{section}`
-  - FoldableContainer uses `useLocalStorage` hook to persist fold state per container
-  - `defaultFolded` prop determines initial state and triggers auto-collapse: containers automatically fold in real-time when all child articles are removed
-  - useEffect hook monitors `defaultFolded` transitions (false → true) to trigger immediate fold
-  - Users can manually toggle any container, overriding the auto-collapse state
-- Keys are used by `useSupabaseStorage` hook to route to correct endpoint (except localStorage keys)
-
-### Client-Side Caching
-
-Three-tier cache strategy in `useSupabaseStorage`:
-1. **readCache**: In-memory Map for instant access
-2. **inflightReads**: Deduplicates simultaneous requests for same key
-3. **Network fetch**: Falls back to API if not cached
-- Change listeners enable cross-component synchronization
-- CustomEvent dispatched on storage changes for cross-tab sync
+Client-side storage keys, cache tiers, merge behavior, and interaction-state ownership are documented in `docs/ALL_STATES.md`.

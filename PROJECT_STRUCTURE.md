@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-04 20:59
+last_updated: 2026-04-07 12:36
 ---
 .
 ├── .agents
@@ -720,9 +720,12 @@ last_updated: 2026-04-04 20:59
 ├── thoughts
 │  ├── 25-12-21-failed-scrapes-are-retryable
 │  │  └── discussion.md
-│  └── 26-04-03-selection-dock-state-machine
-│     ├── plan.md
-│     └── plan.review.md
+│  ├── 26-04-03-selection-dock-state-machine
+│  │  ├── plan.md
+│  │  └── plan.review.md
+│  └── 26-04-04-workflow-machine
+│     ├── discussion-raw.md
+│     └── plan.md
 ├── .gitattributes
 ├── .gitignore
 ├── .vercelignore

@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-04 19:41, 4275730
+last_updated: 2026-04-07 12:36
 ---
 # Client State Machines
 
@@ -255,6 +255,57 @@ idle  →  fetching  →  cached  →  merged (cache rendered first, then scrape
 1. **Session cache check** — `sessionStorage` key `scrapeResults:{start}:{end}`, TTL 10 min. If hit, jump straight to `ready`.
 2. **Phase 1 (cache-first)** — `POST /api/storage/daily-range` fetches cached payloads from Supabase. If any exist, render immediately (`cached`).
 3. **Phase 2 (background scrape)** — `POST /api/scrape` fetches fresh data. If Phase 1 rendered, merge new articles via `mergeIntoCache()` preserving local state (read/removed/summary). If Phase 1 didn't render, set results directly (`ready`).
+
+#### Unified Scrape Journey (Cross-Stack)
+
+The full scrape journey spans `ScrapeForm`, app-level Feed Loading, and the server's per-date scrape policy. Feed Loading owns the cached-render and merge phases, but the end-to-end machine is slightly larger:
+
+```
+idle
+  │
+  ├─ User submits date range
+  │    ↓
+  │  validating
+  │    │
+  │    ├─ Invalid dates
+  │    │    ↓
+  │    │  error
+  │    │
+  │    └─ Valid dates
+  │         ↓
+  │       checking_cache
+  │         │
+  │         ├─ Session cache hit
+  │         │    ↓
+  │         │  complete
+  │         │
+  │         ├─ Past dates fully cached in Supabase
+  │         │    ↓
+  │         │  complete
+  │         │
+  │         └─ Cache miss or today in range
+  │              ↓
+  │            fetching_api
+  │              │
+  │              ├─ Server policy for past dates: cache-first per date
+  │              ├─ Server policy for today: union cached articles + fresh scrape
+  │              │
+  │              ├─ Success
+  │              │    ↓
+  │              │  merging_cache
+  │              │    ↓
+  │              │  complete
+  │              │
+  │              └─ Failure
+  │                   ↓
+  │                 error
+  │
+  └─ Next request returns to idle
+```
+
+**Why this matters:** `today` bypasses the all-cached shortcut so the server can still scrape and union late-published articles into the cached payload.
+
+**Key state data:** `startDate`, `endDate`, `loading`, `progress`, `error`, `results`.
 
 #### Merge Algorithm (`mergePreservingLocalState`)
 
