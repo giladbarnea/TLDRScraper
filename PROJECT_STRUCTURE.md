@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-07 12:36
+last_updated: 2026-04-07 22:40
 ---
 .
 ├── .agents
@@ -24,7 +24,59 @@ last_updated: 2026-04-07 12:36
 │     ├── frontend-design-openai
 │     │  ├── metadata.json
 │     │  └── SKILL.md
-│     ├── implement-plan
+│     ├── i-adapt
+│     │  └── SKILL.md
+│     ├── i-animate
+│     │  └── SKILL.md
+│     ├── i-arrange
+│     │  └── SKILL.md
+│     ├── i-audit
+│     │  └── SKILL.md
+│     ├── i-bolder
+│     │  └── SKILL.md
+│     ├── i-clarify
+│     │  └── SKILL.md
+│     ├── i-colorize
+│     │  └── SKILL.md
+│     ├── i-critique
+│     │  ├── reference
+│     │  │  ├── cognitive-load.md
+│     │  │  ├── heuristics-scoring.md
+│     │  │  └── personas.md
+│     │  └── SKILL.md
+│     ├── i-delight
+│     │  └── SKILL.md
+│     ├── i-distill
+│     │  └── SKILL.md
+│     ├── i-extract
+│     │  └── SKILL.md
+│     ├── i-frontend-design
+│     │  ├── reference
+│     │  │  ├── color-and-contrast.md
+│     │  │  ├── interaction-design.md
+│     │  │  ├── motion-design.md
+│     │  │  ├── responsive-design.md
+│     │  │  ├── spatial-design.md
+│     │  │  ├── typography.md
+│     │  │  └── ux-writing.md
+│     │  └── SKILL.md
+│     ├── i-harden
+│     │  └── SKILL.md
+│     ├── i-normalize
+│     │  └── SKILL.md
+│     ├── i-onboard
+│     │  └── SKILL.md
+│     ├── i-optimize
+│     │  └── SKILL.md
+│     ├── i-overdrive
+│     │  └── SKILL.md
+│     ├── i-polish
+│     │  └── SKILL.md
+│     ├── i-quieter
+│     │  └── SKILL.md
+│     ├── i-teach-impeccable
+│     │  └── SKILL.md
+│     ├── i-typeset
 │     │  └── SKILL.md
 │     ├── plan
 │     │  └── SKILL.md
@@ -141,7 +193,59 @@ last_updated: 2026-04-07 12:36
 │  │  ├── frontend-design-openai
 │  │  │  ├── metadata.json
 │  │  │  └── SKILL.md
-│  │  ├── implement-plan
+│  │  ├── i-adapt
+│  │  │  └── SKILL.md
+│  │  ├── i-animate
+│  │  │  └── SKILL.md
+│  │  ├── i-arrange
+│  │  │  └── SKILL.md
+│  │  ├── i-audit
+│  │  │  └── SKILL.md
+│  │  ├── i-bolder
+│  │  │  └── SKILL.md
+│  │  ├── i-clarify
+│  │  │  └── SKILL.md
+│  │  ├── i-colorize
+│  │  │  └── SKILL.md
+│  │  ├── i-critique
+│  │  │  ├── reference
+│  │  │  │  ├── cognitive-load.md
+│  │  │  │  ├── heuristics-scoring.md
+│  │  │  │  └── personas.md
+│  │  │  └── SKILL.md
+│  │  ├── i-delight
+│  │  │  └── SKILL.md
+│  │  ├── i-distill
+│  │  │  └── SKILL.md
+│  │  ├── i-extract
+│  │  │  └── SKILL.md
+│  │  ├── i-frontend-design
+│  │  │  ├── reference
+│  │  │  │  ├── color-and-contrast.md
+│  │  │  │  ├── interaction-design.md
+│  │  │  │  ├── motion-design.md
+│  │  │  │  ├── responsive-design.md
+│  │  │  │  ├── spatial-design.md
+│  │  │  │  ├── typography.md
+│  │  │  │  └── ux-writing.md
+│  │  │  └── SKILL.md
+│  │  ├── i-harden
+│  │  │  └── SKILL.md
+│  │  ├── i-normalize
+│  │  │  └── SKILL.md
+│  │  ├── i-onboard
+│  │  │  └── SKILL.md
+│  │  ├── i-optimize
+│  │  │  └── SKILL.md
+│  │  ├── i-overdrive
+│  │  │  └── SKILL.md
+│  │  ├── i-polish
+│  │  │  └── SKILL.md
+│  │  ├── i-quieter
+│  │  │  └── SKILL.md
+│  │  ├── i-teach-impeccable
+│  │  │  └── SKILL.md
+│  │  ├── i-typeset
 │  │  │  └── SKILL.md
 │  │  ├── plan
 │  │  │  └── SKILL.md
@@ -255,7 +359,59 @@ last_updated: 2026-04-07 12:36
 │     ├── frontend-design-openai
 │     │  ├── metadata.json
 │     │  └── SKILL.md
-│     ├── implement-plan
+│     ├── i-adapt
+│     │  └── SKILL.md
+│     ├── i-animate
+│     │  └── SKILL.md
+│     ├── i-arrange
+│     │  └── SKILL.md
+│     ├── i-audit
+│     │  └── SKILL.md
+│     ├── i-bolder
+│     │  └── SKILL.md
+│     ├── i-clarify
+│     │  └── SKILL.md
+│     ├── i-colorize
+│     │  └── SKILL.md
+│     ├── i-critique
+│     │  ├── reference
+│     │  │  ├── cognitive-load.md
+│     │  │  ├── heuristics-scoring.md
+│     │  │  └── personas.md
+│     │  └── SKILL.md
+│     ├── i-delight
+│     │  └── SKILL.md
+│     ├── i-distill
+│     │  └── SKILL.md
+│     ├── i-extract
+│     │  └── SKILL.md
+│     ├── i-frontend-design
+│     │  ├── reference
+│     │  │  ├── color-and-contrast.md
+│     │  │  ├── interaction-design.md
+│     │  │  ├── motion-design.md
+│     │  │  ├── responsive-design.md
+│     │  │  ├── spatial-design.md
+│     │  │  ├── typography.md
+│     │  │  └── ux-writing.md
+│     │  └── SKILL.md
+│     ├── i-harden
+│     │  └── SKILL.md
+│     ├── i-normalize
+│     │  └── SKILL.md
+│     ├── i-onboard
+│     │  └── SKILL.md
+│     ├── i-optimize
+│     │  └── SKILL.md
+│     ├── i-overdrive
+│     │  └── SKILL.md
+│     ├── i-polish
+│     │  └── SKILL.md
+│     ├── i-quieter
+│     │  └── SKILL.md
+│     ├── i-teach-impeccable
+│     │  └── SKILL.md
+│     ├── i-typeset
 │     │  └── SKILL.md
 │     ├── plan
 │     │  └── SKILL.md
@@ -367,7 +523,59 @@ last_updated: 2026-04-07 12:36
 │     ├── frontend-design-openai
 │     │  ├── metadata.json
 │     │  └── SKILL.md
-│     ├── implement-plan
+│     ├── i-adapt
+│     │  └── SKILL.md
+│     ├── i-animate
+│     │  └── SKILL.md
+│     ├── i-arrange
+│     │  └── SKILL.md
+│     ├── i-audit
+│     │  └── SKILL.md
+│     ├── i-bolder
+│     │  └── SKILL.md
+│     ├── i-clarify
+│     │  └── SKILL.md
+│     ├── i-colorize
+│     │  └── SKILL.md
+│     ├── i-critique
+│     │  ├── reference
+│     │  │  ├── cognitive-load.md
+│     │  │  ├── heuristics-scoring.md
+│     │  │  └── personas.md
+│     │  └── SKILL.md
+│     ├── i-delight
+│     │  └── SKILL.md
+│     ├── i-distill
+│     │  └── SKILL.md
+│     ├── i-extract
+│     │  └── SKILL.md
+│     ├── i-frontend-design
+│     │  ├── reference
+│     │  │  ├── color-and-contrast.md
+│     │  │  ├── interaction-design.md
+│     │  │  ├── motion-design.md
+│     │  │  ├── responsive-design.md
+│     │  │  ├── spatial-design.md
+│     │  │  ├── typography.md
+│     │  │  └── ux-writing.md
+│     │  └── SKILL.md
+│     ├── i-harden
+│     │  └── SKILL.md
+│     ├── i-normalize
+│     │  └── SKILL.md
+│     ├── i-onboard
+│     │  └── SKILL.md
+│     ├── i-optimize
+│     │  └── SKILL.md
+│     ├── i-overdrive
+│     │  └── SKILL.md
+│     ├── i-polish
+│     │  └── SKILL.md
+│     ├── i-quieter
+│     │  └── SKILL.md
+│     ├── i-teach-impeccable
+│     │  └── SKILL.md
+│     ├── i-typeset
 │     │  └── SKILL.md
 │     ├── plan
 │     │  └── SKILL.md
@@ -500,7 +708,59 @@ last_updated: 2026-04-07 12:36
 │  │  ├── frontend-design-openai
 │  │  │  ├── metadata.json
 │  │  │  └── SKILL.md
-│  │  ├── implement-plan
+│  │  ├── i-adapt
+│  │  │  └── SKILL.md
+│  │  ├── i-animate
+│  │  │  └── SKILL.md
+│  │  ├── i-arrange
+│  │  │  └── SKILL.md
+│  │  ├── i-audit
+│  │  │  └── SKILL.md
+│  │  ├── i-bolder
+│  │  │  └── SKILL.md
+│  │  ├── i-clarify
+│  │  │  └── SKILL.md
+│  │  ├── i-colorize
+│  │  │  └── SKILL.md
+│  │  ├── i-critique
+│  │  │  ├── reference
+│  │  │  │  ├── cognitive-load.md
+│  │  │  │  ├── heuristics-scoring.md
+│  │  │  │  └── personas.md
+│  │  │  └── SKILL.md
+│  │  ├── i-delight
+│  │  │  └── SKILL.md
+│  │  ├── i-distill
+│  │  │  └── SKILL.md
+│  │  ├── i-extract
+│  │  │  └── SKILL.md
+│  │  ├── i-frontend-design
+│  │  │  ├── reference
+│  │  │  │  ├── color-and-contrast.md
+│  │  │  │  ├── interaction-design.md
+│  │  │  │  ├── motion-design.md
+│  │  │  │  ├── responsive-design.md
+│  │  │  │  ├── spatial-design.md
+│  │  │  │  ├── typography.md
+│  │  │  │  └── ux-writing.md
+│  │  │  └── SKILL.md
+│  │  ├── i-harden
+│  │  │  └── SKILL.md
+│  │  ├── i-normalize
+│  │  │  └── SKILL.md
+│  │  ├── i-onboard
+│  │  │  └── SKILL.md
+│  │  ├── i-optimize
+│  │  │  └── SKILL.md
+│  │  ├── i-overdrive
+│  │  │  └── SKILL.md
+│  │  ├── i-polish
+│  │  │  └── SKILL.md
+│  │  ├── i-quieter
+│  │  │  └── SKILL.md
+│  │  ├── i-teach-impeccable
+│  │  │  └── SKILL.md
+│  │  ├── i-typeset
 │  │  │  └── SKILL.md
 │  │  ├── plan
 │  │  │  └── SKILL.md
@@ -723,9 +983,11 @@ last_updated: 2026-04-07 12:36
 │  ├── 26-04-03-selection-dock-state-machine
 │  │  ├── plan.md
 │  │  └── plan.review.md
-│  └── 26-04-04-workflow-machine
-│     ├── discussion-raw.md
-│     └── plan.md
+│  ├── 26-04-04-workflow-machine
+│  │  ├── discussion-raw.md
+│  │  └── plan.md
+│  └── 26-04-07-context-menu-research
+│     └── description.md
 ├── .gitattributes
 ├── .gitignore
 ├── .vercelignore
