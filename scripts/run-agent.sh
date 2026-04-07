@@ -4,7 +4,7 @@
 set -e
 set -o pipefail
 
-MODEL=""
+MODEL="glm-5.1"
 PROMPT=""
 
 # Parse arguments
@@ -40,9 +40,14 @@ case "$MODEL_LOWER" in
   "gemini-3.1-pro") RESOLVED_MODEL="google/gemini-3.1-pro-preview" ;;
   "gemini-3-flash") RESOLVED_MODEL="google/gemini-3-flash-preview" ;;
   "minimax-m2.7") RESOLVED_MODEL="minimax/minimax-m2.7" ;;
-  "minimax-m2.5") RESOLVED_MODEL="minimax/minimax-m2.5" ;;
-  "glm-5") RESOLVED_MODEL="z-ai/glm-5" ;;
+  "glm-5.1") RESOLVED_MODEL="z-ai/glm-5.1" ;;
   "gemma-4") RESOLVED_MODEL="google/gemma-4-31b-it" ;;
+  # Short aliases
+  "gemini-pro") RESOLVED_MODEL="google/gemini-3.1-pro-preview" ;;
+  "gemini-flash") RESOLVED_MODEL="google/gemini-3-flash-preview" ;;
+  "glm") RESOLVED_MODEL="z-ai/glm-5.1" ;;
+  "minimax") RESOLVED_MODEL="minimax/minimax-m2.7" ;;
+  "gemma") RESOLVED_MODEL="google/gemma-4-31b-it" ;;
   *) RESOLVED_MODEL="$MODEL" ;;
 esac
 
