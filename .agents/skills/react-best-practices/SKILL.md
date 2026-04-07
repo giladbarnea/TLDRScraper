@@ -1,11 +1,11 @@
 ---
-name: vercel-react-best-practices
+name: react-best-practices
 description: React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refactoring React/Next.js code to ensure optimal performance patterns. Triggers on tasks involving React components, Next.js pages, data fetching, bundle optimization, or performance improvements.
 license: MIT
 metadata: 
 author: vercel
 version: "1.0.0"
-last_updated: 2026-04-03 11:40, 8659ca8
+last_updated: 2026-04-07 23:40
 ---
 # Vercel React Best Practices
 
