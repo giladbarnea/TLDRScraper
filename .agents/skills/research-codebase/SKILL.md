@@ -2,7 +2,7 @@
 name: research-codebase
 description: Conduct deep, comprehensive research across the codebase. Use parallel sub-agents to map domains (locator) and then deep-dive (analyzer).
 last_updated: 2026-04-07 20:20, c7c60c8
-arguments_hint: "thoughts/ subdir"
+argument_hint: "thoughts/ subdir"
 ---
 # Research Codebase
 
