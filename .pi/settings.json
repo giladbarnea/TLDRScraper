@@ -1,24 +1,21 @@
 {
   "provider": "openrouter",
-  "model": "auto",
-  "thinking": {
-    "level": "xhigh",
-    "budgetTokens": {
-      "off": 0,
-      "minimal": 5000,
-      "low": 8000,
-      "medium": 15000,
-      "high": 25000,
-      "xhigh": 40000
-    }
+  "model": "minimax/minimax-m2.7",
+  "defaultThinkingLevel": "high",
+  "thinkingBudgets": {
+    "off": 0,
+    "minimal": 5000,
+    "low": 8000,
+    "medium": 15000,
+    "high": 25000,
+    "xhigh": 40000
   },
   "models": [
     "auto",
     "google/gemini-3.1-pro-preview",
     "google/gemini-3-flash-preview",
-    "google/gemini-2.5-flash",
-    "z-ai/glm-5",
-    "minimax/minimax-m2.5",
+    "z-ai/glm-5.1",
+    "minimax/minimax-m2.7",
     "google/gemma-4-31b-it"
   ],
   "transport": "auto",
