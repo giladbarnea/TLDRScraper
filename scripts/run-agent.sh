@@ -7,16 +7,6 @@ set -o pipefail
 MODEL=""
 PROMPT=""
 
-# Model aliases
-declare -A MODELS=(
-  ["gemini-3.1-pro"]="google/gemini-3.1-pro-preview"
-  ["gemini-3-flash"]="google/gemini-3-flash-preview"
-  ["minimax-m2.7"]="minimax/minimax-m2.7"
-  ["minimax-m2.5"]="minimax/minimax-m2.5"
-  ["glm-5"]="z-ai/glm-5"
-  ["gemma-4"]="google/gemma-4-31b-it"
-)
-
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -46,11 +36,15 @@ fi
 
 # Resolve model alias (case-insensitive)
 MODEL_LOWER=$(echo "$MODEL" | tr '[:upper:]' '[:lower:]')
-if [[ -v MODELS[$MODEL_LOWER] ]]; then
-  RESOLVED_MODEL="${MODELS[$MODEL_LOWER]}"
-else
-  RESOLVED_MODEL="$MODEL"
-fi
+case "$MODEL_LOWER" in
+  "gemini-3.1-pro") RESOLVED_MODEL="google/gemini-3.1-pro-preview" ;;
+  "gemini-3-flash") RESOLVED_MODEL="google/gemini-3-flash-preview" ;;
+  "minimax-m2.7") RESOLVED_MODEL="minimax/minimax-m2.7" ;;
+  "minimax-m2.5") RESOLVED_MODEL="minimax/minimax-m2.5" ;;
+  "glm-5") RESOLVED_MODEL="z-ai/glm-5" ;;
+  "gemma-4") RESOLVED_MODEL="google/gemma-4-31b-it" ;;
+  *) RESOLVED_MODEL="$MODEL" ;;
+esac
 
 if [[ -z "$RESOLVED_MODEL" ]]; then
   echo "$0 ERROR: no MODEL provided"
