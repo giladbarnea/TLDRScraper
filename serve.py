@@ -13,7 +13,7 @@ import os
 import util
 import tldr_app
 import storage_service
-import consensus
+import importlib
 from summarizer import DEFAULT_MODEL, DEFAULT_SUMMARY_EFFORT
 from source_routes import source_bp
 
@@ -35,6 +35,11 @@ logging.basicConfig(
 logger = logging.getLogger("serve")
 
 
+def load_consensus_module():
+    """Import and return the consensus module only when consensus endpoints are called."""
+    return importlib.import_module("consensus")
+
+
 @app.route("/")
 def index():
     """Serve the React app"""
@@ -54,7 +59,7 @@ def consensus_index():
 def scrape_newsletters_in_date_range():
     """Backend proxy to scrape newsletters. Expects start_date, end_date, excluded_urls, and optionally sources in the request body."""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
         if data is None:
             return jsonify({"success": False, "error": "No JSON data received"}), 400
 
@@ -89,7 +94,8 @@ def scrape_newsletters_in_date_range():
 @app.route("/api/consensus/health", methods=["GET"])
 def consensus_health():
     """Expose consensus config for quick diagnostics."""
-    config = consensus.load_config()
+    consensus_module = load_consensus_module()
+    config = consensus_module.load_config()
     return jsonify(
         {
             "success": True,
@@ -108,16 +114,26 @@ def consensus_health():
 def consensus_chat():
     """Run hidden consensus flow."""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if data is None:
+            raise ValueError("No JSON data received")
+
+        if "messages" not in data:
+            raise ValueError("messages is required")
+
+        if not isinstance(data["messages"], list) or len(data["messages"]) == 0:
+            raise ValueError("messages must be a non-empty array")
+
+        consensus_module = load_consensus_module()
         messages = [
-            consensus.ChatMessage(role=message["role"], content=message["content"])
+            consensus_module.ChatMessage(role=message["role"], content=message["content"])
             for message in data["messages"]
         ]
-        config = consensus.load_config(
+        config = consensus_module.load_config(
             thinking=data.get("thinking", "low"),
-            max_turns=int(data.get("max_turns", consensus.DEFAULT_MAX_TURNS)),
+            max_turns=int(data.get("max_turns", consensus_module.DEFAULT_MAX_TURNS)),
         )
-        result = consensus.run_question(messages[-1].content, config) if len(messages) == 1 else asyncio.run(consensus.run_chat(messages, config))
+        result = consensus_module.run_question(messages[-1].content, config) if len(messages) == 1 else asyncio.run(consensus_module.run_chat(messages, config))
         return jsonify(
             {
                 "success": True,
