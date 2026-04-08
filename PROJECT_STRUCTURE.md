@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-07 22:40
+last_updated: 2026-04-08 12:06
 ---
 .
 ├── .agents
@@ -17,6 +17,10 @@ last_updated: 2026-04-07 22:40
 │     ├── catchup
 │     │  └── SKILL.md
 │     ├── co-develop
+│     │  └── SKILL.md
+│     ├── consensus
+│     │  ├── scripts
+│     │  │  └── run_consensus.py
 │     │  └── SKILL.md
 │     ├── frontend-design-anthropic
 │     │  ├── metadata.json
@@ -79,6 +83,8 @@ last_updated: 2026-04-07 22:40
 │     ├── i-typeset
 │     │  └── SKILL.md
 │     ├── plan
+│     │  └── SKILL.md
+│     ├── prompt-subagent
 │     │  └── SKILL.md
 │     ├── react-best-practices
 │     │  ├── rules
@@ -187,6 +193,10 @@ last_updated: 2026-04-07 22:40
 │  │  │  └── SKILL.md
 │  │  ├── co-develop
 │  │  │  └── SKILL.md
+│  │  ├── consensus
+│  │  │  ├── scripts
+│  │  │  │  └── run_consensus.py
+│  │  │  └── SKILL.md
 │  │  ├── frontend-design-anthropic
 │  │  │  ├── metadata.json
 │  │  │  └── SKILL.md
@@ -248,6 +258,8 @@ last_updated: 2026-04-07 22:40
 │  │  ├── i-typeset
 │  │  │  └── SKILL.md
 │  │  ├── plan
+│  │  │  └── SKILL.md
+│  │  ├── prompt-subagent
 │  │  │  └── SKILL.md
 │  │  ├── react-best-practices
 │  │  │  ├── rules
@@ -353,6 +365,10 @@ last_updated: 2026-04-07 22:40
 │     │  └── SKILL.md
 │     ├── co-develop
 │     │  └── SKILL.md
+│     ├── consensus
+│     │  ├── scripts
+│     │  │  └── run_consensus.py
+│     │  └── SKILL.md
 │     ├── frontend-design-anthropic
 │     │  ├── metadata.json
 │     │  └── SKILL.md
@@ -414,6 +430,8 @@ last_updated: 2026-04-07 22:40
 │     ├── i-typeset
 │     │  └── SKILL.md
 │     ├── plan
+│     │  └── SKILL.md
+│     ├── prompt-subagent
 │     │  └── SKILL.md
 │     ├── react-best-practices
 │     │  ├── rules
@@ -517,6 +535,10 @@ last_updated: 2026-04-07 22:40
 │     │  └── SKILL.md
 │     ├── co-develop
 │     │  └── SKILL.md
+│     ├── consensus
+│     │  ├── scripts
+│     │  │  └── run_consensus.py
+│     │  └── SKILL.md
 │     ├── frontend-design-anthropic
 │     │  ├── metadata.json
 │     │  └── SKILL.md
@@ -578,6 +600,8 @@ last_updated: 2026-04-07 22:40
 │     ├── i-typeset
 │     │  └── SKILL.md
 │     ├── plan
+│     │  └── SKILL.md
+│     ├── prompt-subagent
 │     │  └── SKILL.md
 │     ├── react-best-practices
 │     │  ├── rules
@@ -671,10 +695,10 @@ last_updated: 2026-04-07 22:40
 │  ├── pre-commit
 │  ├── pre-merge-commit
 │  ├── README.md
+│  ├── sync-subdir.sh
 │  ├── sync-upstream-suggestions.md
 │  └── util.sh
 ├── .github
-│  ├── commands
 │  └── workflows
 │     ├── claude.yml
 │     ├── GEMINI_REMOTE_AUTH.md
@@ -684,8 +708,6 @@ last_updated: 2026-04-07 22:40
 │     ├── weekly-branch-pr-cleanup.yml
 │     ├── weekly-supabase-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
-├── .jbeval
-│  └── datasets
 ├── .pi
 │  ├── agents
 │  │  ├── codebase-analyzer-multiple-subsystems.md
@@ -701,6 +723,10 @@ last_updated: 2026-04-07 22:40
 │  │  ├── catchup
 │  │  │  └── SKILL.md
 │  │  ├── co-develop
+│  │  │  └── SKILL.md
+│  │  ├── consensus
+│  │  │  ├── scripts
+│  │  │  │  └── run_consensus.py
 │  │  │  └── SKILL.md
 │  │  ├── frontend-design-anthropic
 │  │  │  ├── metadata.json
@@ -763,6 +789,8 @@ last_updated: 2026-04-07 22:40
 │  │  ├── i-typeset
 │  │  │  └── SKILL.md
 │  │  ├── plan
+│  │  │  └── SKILL.md
+│  │  ├── prompt-subagent
 │  │  │  └── SKILL.md
 │  │  ├── react-best-practices
 │  │  │  ├── rules
@@ -850,6 +878,7 @@ last_updated: 2026-04-07 22:40
 │  │  │  └── SKILL.md
 │  │  └── web-a11y-guidelines
 │  │     └── SKILL.md
+│  ├── APPEND_SYSTEM.md
 │  └── settings.json
 ├── adapters
 │  ├── __init__.py
@@ -903,6 +932,9 @@ last_updated: 2026-04-07 22:40
 │  │  │  ├── SelectionActionDock.jsx
 │  │  │  ├── SelectionCounterPill.jsx
 │  │  │  └── ToastContainer.jsx
+│  │  ├── consensus
+│  │  │  ├── consensus.css
+│  │  │  └── ConsensusApp.jsx
 │  │  ├── contexts
 │  │  │  └── InteractionContext.jsx
 │  │  ├── hooks
@@ -942,12 +974,6 @@ last_updated: 2026-04-07 22:40
 │  ├── postcss.config.js
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
-├── ios
-│  └── TLDRScraper.xcodeproj
-│     └── project.xcworkspace
-│        └── xcshareddata
-│           └── swiftpm
-│              └── configuration
 ├── scripts
 │  ├── setup
 │  │  ├── build_client.sh
@@ -969,6 +995,7 @@ last_updated: 2026-04-07 22:40
 │  ├── run-codex.sh
 │  ├── run-gemini.sh
 │  └── update_doc_frontmatter.py
+├── skills
 ├── tests
 │  ├── unit
 │  │  ├── test_canonicalize_url.py
@@ -987,7 +1014,9 @@ last_updated: 2026-04-07 22:40
 │  │  ├── discussion-raw.md
 │  │  └── plan.md
 │  └── 26-04-07-context-menu-research
-│     └── description.md
+│     ├── research
+│     │  └── description.md
+│     └── relevant-files.md
 ├── .gitattributes
 ├── .gitignore
 ├── .vercelignore
@@ -996,6 +1025,7 @@ last_updated: 2026-04-07 22:40
 ├── BUGS.md
 ├── CLAUDE.md
 ├── CODEX.md
+├── consensus.py
 ├── GEMINI.md
 ├── GOTCHAS.md
 ├── newsletter_config.py

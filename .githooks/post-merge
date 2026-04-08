@@ -1,5 +1,8 @@
 #!/bin/bash
 set -eo pipefail
 
-source ./.githooks/util.sh
-generate_project_structure
+source ./.githooks/sync-subdir.sh
+
+echo "[post-merge] Syncing external subdirectories..."
+sync_untracked "https://github.com/giladbarnea/llm-templates" "skills/prompt-subagent" ".agents/skills/prompt-subagent"
+echo "[post-merge] Sync complete."
