@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-08 20:31
+last_updated: 2026-04-08 21:06
 ---
 .
 ├── .agents
@@ -7,6 +7,7 @@ last_updated: 2026-04-08 20:31
 │  │  ├── codebase-analyzer-multiple-subsystems.md
 │  │  ├── codebase-analyzer-single-subsystem.md
 │  │  ├── codebase-locator.md
+│  │  ├── generalist.md
 │  │  ├── react-antipattern-auditor.md
 │  │  └── web-deep-researcher.md
 │  └── skills
@@ -164,6 +165,7 @@ last_updated: 2026-04-08 20:31
 │  │  ├── components
 │  │  │  ├── ArticleCard.jsx
 │  │  │  ├── ArticleList.jsx
+│  │  │  ├── BaseOverlay.jsx
 │  │  │  ├── CalendarDay.jsx
 │  │  │  ├── DigestButton.jsx
 │  │  │  ├── DigestOverlay.jsx
@@ -171,12 +173,12 @@ last_updated: 2026-04-08 20:31
 │  │  │  ├── FoldableContainer.jsx
 │  │  │  ├── NewsletterDay.jsx
 │  │  │  ├── ReadStatsBadge.jsx
-│  │  │  ├── ResultsDisplay.jsx
 │  │  │  ├── ScrapeForm.jsx
 │  │  │  ├── Selectable.jsx
 │  │  │  ├── SelectionActionDock.jsx
 │  │  │  ├── SelectionCounterPill.jsx
-│  │  │  └── ToastContainer.jsx
+│  │  │  ├── ToastContainer.jsx
+│  │  │  └── ZenModeOverlay.jsx
 │  │  ├── consensus
 │  │  │  ├── consensus.css
 │  │  │  └── ConsensusApp.jsx
@@ -185,6 +187,7 @@ last_updated: 2026-04-08 20:31
 │  │  ├── hooks
 │  │  │  ├── useArticleState.js
 │  │  │  ├── useDigest.js
+│  │  │  ├── useFeedLoader.js
 │  │  │  ├── useLocalStorage.js
 │  │  │  ├── useLongPress.js
 │  │  │  ├── useOverscrollUp.js
@@ -192,16 +195,22 @@ last_updated: 2026-04-08 20:31
 │  │  │  ├── useScrollProgress.js
 │  │  │  ├── useSummary.js
 │  │  │  ├── useSupabaseStorage.js
-│  │  │  └── useSwipeToRemove.js
+│  │  │  ├── useSwipeToRemove.js
+│  │  │  └── useTrackedState.js
 │  │  ├── lib
 │  │  │  ├── articleActionBus.js
+│  │  │  ├── feedMerge.js
 │  │  │  ├── interactionConstants.js
+│  │  │  ├── markdownUtils.js
 │  │  │  ├── quakeConsole.js
+│  │  │  ├── requestUtils.js
 │  │  │  ├── scraper.js
+│  │  │  ├── selectionUtils.js
 │  │  │  ├── stateTransitionLogger.js
 │  │  │  ├── storageApi.js
 │  │  │  ├── storageKeys.js
-│  │  │  └── toastBus.js
+│  │  │  ├── toastBus.js
+│  │  │  └── zenLock.js
 │  │  ├── reducers
 │  │  │  ├── articleLifecycleReducer.js
 │  │  │  ├── gestureReducer.js
@@ -211,6 +220,7 @@ last_updated: 2026-04-08 20:31
 │  │  ├── index.css
 │  │  └── main.jsx
 │  ├── .gitignore
+│  ├── ALL_STATES.md
 │  ├── biome.json
 │  ├── CLIENT_ARCHITECTURE.md
 │  ├── index.html
@@ -274,8 +284,10 @@ last_updated: 2026-04-08 20:31
 │     └── locations
 │        ├── data-persistence.md
 │        ├── domain-hooks.md
+│        ├── feed-app.md
 │        ├── interaction-selection.md
-│        └── overlays-gestures.md
+│        ├── overlays-gestures.md
+│        └── presentation.md
 ├── .gitattributes
 ├── .gitignore
 ├── .vercelignore

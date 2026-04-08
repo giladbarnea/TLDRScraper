@@ -1,47 +1,53 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { useTrackedState } from './useTrackedState'
 
-export function useOverscrollUp({ scrollRef, onComplete, threshold = 60 }) {
-  const [overscrollOffset, setOverscrollOffset] = useState(0)
-  const overscrollOffsetRef = useRef(0)
+export function useOverscrollUp({ scrollRef, onComplete, threshold = 60, enabled = true }) {
+  const [overscrollOffset, setOverscrollOffset, overscrollOffsetRef] = useTrackedState(0)
   const startY = useRef(null)
   const isOverscrolling = useRef(false)
 
   useEffect(() => {
-    overscrollOffsetRef.current = overscrollOffset
-  }, [overscrollOffset])
+    if (!enabled) {
+      setOverscrollOffset(0)
+      startY.current = null
+      isOverscrolling.current = false
+      return
+    }
 
-  useEffect(() => {
-    const scrollEl = scrollRef.current
-    if (!scrollEl) return
+    const scrollElement = scrollRef.current
+    if (!scrollElement) return
 
-    const isAtBottom = () => {
-      const { scrollTop, scrollHeight, clientHeight } = scrollEl
+    function isAtBottom() {
+      const { scrollTop, scrollHeight, clientHeight } = scrollElement
       return scrollHeight - scrollTop - clientHeight < 1
     }
 
-    const handleTouchStart = (e) => {
+    function handleTouchStart(event) {
       if (isAtBottom()) {
-        startY.current = e.touches[0].clientY
+        startY.current = event.touches[0].clientY
       }
     }
 
-    const handleTouchMove = (e) => {
+    function handleTouchMove(event) {
       if (startY.current === null) return
 
-      const deltaY = startY.current - e.touches[0].clientY
+      const deltaY = startY.current - event.touches[0].clientY
 
       if (deltaY > 0 && isAtBottom()) {
-        e.preventDefault()
+        event.preventDefault()
         isOverscrolling.current = true
         setOverscrollOffset(Math.min(deltaY * 0.5, threshold * 1.5))
-      } else if (deltaY < -10) {
+        return
+      }
+
+      if (deltaY < -10) {
         startY.current = null
         isOverscrolling.current = false
         setOverscrollOffset(0)
       }
     }
 
-    const handleTouchEnd = () => {
+    function handleTouchEnd() {
       if (isOverscrolling.current && overscrollOffsetRef.current >= threshold * 0.5) {
         onComplete()
       }
@@ -50,16 +56,16 @@ export function useOverscrollUp({ scrollRef, onComplete, threshold = 60 }) {
       isOverscrolling.current = false
     }
 
-    scrollEl.addEventListener('touchstart', handleTouchStart, { passive: true })
-    scrollEl.addEventListener('touchmove', handleTouchMove, { passive: false })
-    scrollEl.addEventListener('touchend', handleTouchEnd, { passive: true })
+    scrollElement.addEventListener('touchstart', handleTouchStart, { passive: true })
+    scrollElement.addEventListener('touchmove', handleTouchMove, { passive: false })
+    scrollElement.addEventListener('touchend', handleTouchEnd, { passive: true })
 
     return () => {
-      scrollEl.removeEventListener('touchstart', handleTouchStart)
-      scrollEl.removeEventListener('touchmove', handleTouchMove)
-      scrollEl.removeEventListener('touchend', handleTouchEnd)
+      scrollElement.removeEventListener('touchstart', handleTouchStart)
+      scrollElement.removeEventListener('touchmove', handleTouchMove)
+      scrollElement.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [scrollRef, onComplete, threshold])
+  }, [enabled, onComplete, overscrollOffsetRef, scrollRef, setOverscrollOffset, threshold])
 
   const progress = Math.min(overscrollOffset / (threshold * 0.5), 1)
 
@@ -67,6 +73,6 @@ export function useOverscrollUp({ scrollRef, onComplete, threshold = 60 }) {
     overscrollOffset,
     isOverscrolling: overscrollOffset > 0,
     progress,
-    isComplete: progress >= 1
+    isComplete: progress >= 1,
   }
 }

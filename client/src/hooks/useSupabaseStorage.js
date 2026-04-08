@@ -136,7 +136,7 @@ export function getCachedStorageValue(key) {
   return readCache.get(key)
 }
 
-export function subscribeToStorageKey(key, listener) {
+function subscribeToStorageKey(key, listener) {
   return subscribe(key, listener)
 }
 
