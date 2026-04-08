@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-03-29 14:51, 8fb736a
+last_updated: 2026-04-08 14:02
 ---
 # Git Hooks
 
@@ -36,20 +36,17 @@ Performs two tasks:
 - Runs biome lint if `client/` files are staged (no file modifications)
 - Exits non-zero to block commit if linting fails
 
-### pre-merge-commit
-
-Automatically generates `PROJECT_STRUCTURE.md` using a Python script before merge commits so the working tree stays in sync.
-
-**Requirements:**
-- Python 3.11+ (uses `scripts/generate_tree.py`)
-
-The Python script is a drop-in replacement for `eza` to avoid installation time.
-
 ### post-checkout
 
 Ensures the local clone has the `merge.ours` driver configured so Git respects the `PROJECT_STRUCTURE.md merge=ours` rule from `.gitattributes`.
 
-Also regenerates `PROJECT_STRUCTURE.md` using the Python script to ensure the file is present and up-to-date when switching branches.
+Regenerates `PROJECT_STRUCTURE.md` to ensure it is present and up-to-date when switching branches or after a fresh clone.
+
+### post-merge
+
+Regenerates `PROJECT_STRUCTURE.md` and syncs external subdirectories into the working tree after every merge/pull.
+
+Synced directories are registered in `.git/info/exclude` so they remain untracked without polluting `.gitignore`.
 
 ## GitHub Actions
 
