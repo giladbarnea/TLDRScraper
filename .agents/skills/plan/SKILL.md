@@ -27,7 +27,7 @@ You are tasked with creating detailed implementation plans through an interactiv
    - **CRITICAL**: DO NOT spawn sub-tasks before reading these files yourself in the main context
    - **NEVER** read files partially - if a file is mentioned, read it completely
 
-2. **Spawn initial research tasks to gather context**:
+2. **_Unless research has already been conducted_, Spawn initial research tasks to gather context**:
    Before asking the user any questions, use specialized agents to research in parallel:
 <deep-context-grokking-method>
    - **codebase-locator(model=haiku)** - To find all the files that have to do with the discussed behavior (e.g., "find all files concerning this and that")
