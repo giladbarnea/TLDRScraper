@@ -3,7 +3,7 @@ name: co-develop
 description: Parallel development with another LLM in the background
 argument-hint: co-model-name co-model-results-file-path
 context: fork
-last_updated: 2026-04-08 14:30, fdb6174
+last_updated: 2026-04-08 14:36, 0a16acd
 ---
 Before you start, prompt `scripts/run-agent.sh -m <MODEL> <PROMPT> 2&1 | tee /tmp/log.md` where model is $1 and prompt is exactly the prompt I have given you verbatim.
 I have probably asked you to persist your own results to a file. Avoid a race condition and tell the agent to write to a slightly different file name $2. And add one phrase to my original prompt: "You're running non-interactively. Don't stop for user interaction."
