@@ -30,7 +30,7 @@ function generate_project_structure() {
 	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
 	export PATH="${HOME}/.local/bin:${PATH}"
 	ensure_agent_symlinks "$workdir"
-	local ignore_glob='.git|node_modules|__pycache__|*.pyc|.venv|static|*.vscode|*.cursor|experimental|thoughts/done|docs|.run'
+	local ignore_glob='.git|node_modules|__pycache__|*.pyc|.venv|static|*.vscode|*.cursor|experimental|thoughts/done|docs|.run|.codex|.gemini|.claude/agents|.claude/skills|.pi/agents|.pi/skills|.agents/skills/react-best-practices/rules|.agents/skills/i-frontend-design/reference|.agents/skills/i-critique/reference'
 	uv run python3 scripts/generate_tree.py \
 		--classify \
 		--icons \
