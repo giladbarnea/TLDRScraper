@@ -139,3 +139,4 @@ ngrok
 
 .claude/worktrees
 .playwright-mcp
+.agents/skills/prompt-subagent

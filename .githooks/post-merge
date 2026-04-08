@@ -4,5 +4,5 @@ set -eo pipefail
 source ./.githooks/sync-subdir.sh
 
 echo "[post-merge] Syncing external subdirectories..."
-sync_subdir "https://github.com/giladbarnea/llm-templates" --prefix="skills/prompt-subagent" --target=".agents/skills/prompt-subagent"
+sync_untracked "https://github.com/giladbarnea/llm-templates" "skills/prompt-subagent" ".agents/skills/prompt-subagent"
 echo "[post-merge] Sync complete."
