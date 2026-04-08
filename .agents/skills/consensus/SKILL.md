@@ -2,7 +2,7 @@
 name: consensus
 description: Run a no-web-server multi-model consensus loop (Claude + GPT + Gemini) for a prompt and use the converged answer in your response.
 argument-hint: [question]
-last_updated: 2026-04-08 07:16
+last_updated: 2026-04-08 07:53, 68b3540
 ---
 # Consensus skill
 
