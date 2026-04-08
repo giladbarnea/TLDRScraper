@@ -2,7 +2,7 @@
 name: consensus
 description: Run a no-web-server multi-model consensus loop (Claude + GPT + Gemini) for a prompt and use the converged answer in your response.
 argument-hint: [question]
-last_updated: 2026-04-08 06:15
+last_updated: 2026-04-08 06:50
 ---
 # Consensus skill
 
@@ -31,8 +31,7 @@ Optional model overrides:
 ## Run
 
 ```bash
-uv run --with anthropic --with openai --with google-genai \
-  .agents/skills/consensus/scripts/run_consensus.py \
+uv run .agents/skills/consensus/scripts/run_consensus.py \
   "<question>" --thinking low --max-turns 4 --json
 ```
 

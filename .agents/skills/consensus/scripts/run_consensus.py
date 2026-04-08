@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "anthropic",
+#   "openai",
+#   "google-genai",
+# ]
+# ///
 """Run a multi-model consensus roundtrip for a single user question."""
 
 from __future__ import annotations
