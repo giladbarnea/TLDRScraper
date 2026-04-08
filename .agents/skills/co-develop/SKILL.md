@@ -1,14 +1,17 @@
 ---
 name: co-develop
-description: Parallel development with Codex in background
-argument-hint: [destination-file]
+description: Parallel development with another LLM in the background
+argument-hint: co-model-name co-model-results-file-path
 context: fork
 last_updated: 2026-02-26 17:27, 03f50b0
 ---
-Before you start, prompt run-codex.sh with the paragraph above verbatim (keep my prompt as is; if I asked to persist results to a path, change that path when prompting Codex). Run it in a background shell. Then forget about it and proceed with your instructions.
-Codex can take >10 minutes to complete the task, so if you've completed yours before it, await in 120 seconds intervals.
+Before you start, prompt `scripts/run-agent.sh -m <MODEL> <PROMPT> 2&1 | tee <TMP_PATH>` where model is $1, prompt is exactly the prompt I have given you verbatim, and the tmp path is $2.
+I have probably asked you to persist your own results to a file. Avoid a race condition and tell the agent to write to a slightly different file name.
 
-Then read the file it output and consider whether there's anything to take/cherry pick from it.
+Run it in a background shell with a 15 minutes timeout. Then forget about it and proceed with your task.
+If if you've completed your task before the agent, await in 120 seconds intervals for a total of 10 more minutes max.
+
+Then read the file the agent has output and consider whether there's anything to take/cherry pick from it.
 To adopt any notion, it has to answer all of the following criteria:
 1. It doesn't increase the overall design complexity (non-negotiable). Conversely, it gains points if it reduces complexity.
 2. It's either better from your alternative, or it increases the cohesiveness/elegance of the overall design.
