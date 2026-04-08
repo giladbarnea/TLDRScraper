@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-08 14:45
+last_updated: 2026-04-08 20:31
 ---
 .
 ├── .agents
@@ -110,6 +110,7 @@ last_updated: 2026-04-08 14:45
 │  ├── sync-upstream-suggestions.md
 │  └── util.sh
 ├── .github
+│  ├── commands
 │  └── workflows
 │     ├── claude.yml
 │     ├── GEMINI_REMOTE_AUTH.md
@@ -119,6 +120,8 @@ last_updated: 2026-04-08 14:45
 │     ├── weekly-branch-pr-cleanup.yml
 │     ├── weekly-supabase-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
+├── .jbeval
+│  └── datasets
 ├── .pi
 │  ├── APPEND_SYSTEM.md
 │  └── settings.json
@@ -216,6 +219,12 @@ last_updated: 2026-04-08 14:45
 │  ├── postcss.config.js
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
+├── ios
+│  └── TLDRScraper.xcodeproj
+│     └── project.xcworkspace
+│        └── xcshareddata
+│           └── swiftpm
+│              └── configuration
 ├── scripts
 │  ├── setup
 │  │  ├── build_client.sh
@@ -253,10 +262,20 @@ last_updated: 2026-04-08 14:45
 │  ├── 26-04-04-workflow-machine
 │  │  ├── discussion-raw.md
 │  │  └── plan.md
-│  └── 26-04-07-context-menu-research
-│     ├── research
-│     │  └── description.md
-│     └── relevant-files.md
+│  ├── 26-04-07-context-menu-research
+│  │  ├── plans
+│  │  │  ├── plan-final.md
+│  │  │  ├── plan-g.md
+│  │  │  └── plan-x.md
+│  │  ├── research
+│  │  │  └── description.md
+│  │  └── relevant-files.md
+│  └── 26-04-08-client-code-dedup
+│     └── locations
+│        ├── data-persistence.md
+│        ├── domain-hooks.md
+│        ├── interaction-selection.md
+│        └── overlays-gestures.md
 ├── .gitattributes
 ├── .gitignore
 ├── .vercelignore
