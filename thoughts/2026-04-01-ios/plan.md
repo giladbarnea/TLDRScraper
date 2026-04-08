@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-01 11:14
+last_updated: 2026-04-08 08:18
 ---
 # iOS Plan: JavaScriptCore Reducer Bridge
 
@@ -29,14 +29,16 @@ All 4 reducers are **pure vanilla JS functions with zero framework dependencies*
 **Approach:** Run the JS reducer files directly in iOS via Apple's built-in `JavaScriptCore.framework`. The JS files become the single source of truth — executed on both platforms. Zero behavioral drift by construction.
 
 **Steps:**
-1. Move the 4 reducer files to `shared/reducers/` at the monorepo root
-2. Symlink (or copy at Xcode build time via a Build Phase script) into the app bundle
-3. In Swift, implement a `ReducerBridge` class that:
-   - Loads the JS files into a `JSContext`
-   - Exposes a `dispatch(state: [String: Any], event: [String: Any]) -> [String: Any]` method
-   - Handles JSON serialization/deserialization at the boundary
-4. SwiftUI view models call `ReducerBridge.dispatch(...)` the same way React's `useReducer` would
-5. Thin Swift enums can optionally wrap event/state types as a typed facade (optional, for ergonomics)
+- [x] Move the 4 reducer files to `shared/reducers/` at the monorepo root  
+  status: done
+- [ ] Symlink (or copy at Xcode build time via a Build Phase script) into the app bundle
+- [x] In Swift, implement a `ReducerBridge` class that:
+  - [x] Loads the JS files into a `JSContext`
+  - [x] Exposes a `dispatch(state: [String: Any], event: [String: Any]) -> [String: Any]` method
+  - [x] Handles JSON serialization/deserialization at the boundary  
+    status: done
+- [ ] SwiftUI view models call `ReducerBridge.dispatch(...)` the same way React's `useReducer` would
+- [ ] Thin Swift enums can optionally wrap event/state types as a typed facade (optional, for ergonomics)
 
 **What this gives:**
 - Zero drift by construction — same code path on both platforms
