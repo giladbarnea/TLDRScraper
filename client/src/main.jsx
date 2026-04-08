@@ -3,12 +3,13 @@ import 'katex/dist/katex.min.css'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import ConsensusApp from './consensus/ConsensusApp'
 import { initQuakeConsole } from './lib/quakeConsole'
 
 initQuakeConsole()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    {window.location.pathname === '/consensus' ? <ConsensusApp /> : <App />}
   </React.StrictMode>
 )
