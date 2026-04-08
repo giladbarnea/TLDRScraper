@@ -1,9 +1,0 @@
-#!/bin/bash
-#
-# Pre-merge-commit hook that generates PROJECT_STRUCTURE.md
-# This runs before creating a merge commit
-
-source ./.githooks/util.sh
-generate_project_structure
-
-exit 0

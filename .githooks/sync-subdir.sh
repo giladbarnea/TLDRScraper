@@ -11,4 +11,9 @@ sync_untracked() {
     git fetch "$repo_url" main --quiet
     mkdir -p "$dest_dir"
     git archive FETCH_HEAD:"$src_dir" | tar -x -C "$dest_dir"
+
+    local exclude_file
+    exclude_file="$(git rev-parse --git-dir)/info/exclude"
+    mkdir -p "$(dirname "$exclude_file")"
+    grep -qxF "$dest_dir" "$exclude_file" 2>/dev/null || echo "$dest_dir" >> "$exclude_file"
 }

@@ -17,6 +17,7 @@ fi
 
 # Source common utilities
 source "$SERVER_CONTEXT_WORKDIR/scripts/setup/common.sh"
+source "$SERVER_CONTEXT_WORKDIR/.githooks/util.sh"
 
 # Override message/error for setup.sh context (since this file is sourced, not executed)
 function error() {
@@ -369,32 +370,6 @@ function build_client() {
   fi
 }
 
-#region ----[ Configure Agent Symlinks ]----
-function ensure_agent_symlinks() {
-  local dot_dirs=(".claude" ".codex" ".gemini" ".pi")
-  local workdir="${1:-$SERVER_CONTEXT_WORKDIR}"
-  [[ -z "$workdir" ]] && workdir="$PWD"
-
-  for dir in "${dot_dirs[@]}"; do
-    mkdir -p "$workdir/$dir"
-    for target in "agents" "skills"; do
-      local link_path="$workdir/$dir/$target"
-      if [[ -L "$link_path" ]]; then
-        # Already a symlink, verify it points to the right place
-        local current_target=$(readlink "$link_path")
-        if [[ "$current_target" != "../.agents/$target" ]]; then
-          rm "$link_path"
-          ln -s "../.agents/$target" "$link_path"
-        fi
-      else
-        # Not a symlink, remove and create one
-        rm -rf "$link_path"
-        ln -s "../.agents/$target" "$link_path"
-      fi
-    done
-  done
-}
-
 # main [-q,-quiet]
 # Idempotent environment and dependencies setup, installation, and verification.
 function main() {
@@ -448,20 +423,9 @@ function main() {
 
   #region ----[ Prepare & Print Docs ]----
 
-  [[ "$quiet" == false ]] && message "[$0] Configuring git hooks..."
-  if [[ -d "$workdir/.githooks" ]]; then
-    if git config core.hooksPath .githooks; then
-      [[ "$quiet" == false ]] && message "[$0] Git hooks configured to use .githooks directory"
-
-      if [[ -x "$workdir/.githooks/pre-merge-commit" ]]; then
-        [[ "$quiet" == false ]] && message "[$0] Running pre-merge-commit hook to generate PROJECT_STRUCTURE.md..."
-        (builtin cd "$workdir" && ./.githooks/pre-merge-commit)
-        [[ "$quiet" == false && -f PROJECT_STRUCTURE.md ]] && message "[$0] Generated PROJECT_STRUCTURE.md via git hook"
-      fi
-    fi
-  fi
-
-  ensure_agent_symlinks "$workdir"
+  git config core.hooksPath .githooks 2>/dev/null || true
+  generate_project_structure || true
+  sync_external_dirs || true
 
   #region ----[ Env Vars Validation ]----
 
