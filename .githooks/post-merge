@@ -2,5 +2,5 @@
 set -eo pipefail
 
 source ./.githooks/util.sh
-generate_project_structure
+generate_project_structure || true
 sync_external_dirs
