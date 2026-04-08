@@ -3,6 +3,8 @@
 TLDR Newsletter Scraper backend with a proxy.
 """
 
+import dataclasses
+import asyncio
 from flask import Flask, request, jsonify, send_from_directory
 import logging
 import requests
@@ -11,6 +13,7 @@ import os
 import util
 import tldr_app
 import storage_service
+import consensus
 from summarizer import DEFAULT_MODEL, DEFAULT_SUMMARY_EFFORT
 from source_routes import source_bp
 
@@ -35,6 +38,14 @@ logger = logging.getLogger("serve")
 @app.route("/")
 def index():
     """Serve the React app"""
+    static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
+    return send_from_directory(static_dist, 'index.html')
+
+
+@app.route("/consensus")
+@app.route("/consensus/")
+def consensus_index():
+    """Serve hidden consensus client."""
     static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
     return send_from_directory(static_dist, 'index.html')
 
@@ -73,6 +84,51 @@ def scrape_newsletters_in_date_range():
             error,
         )
         return jsonify({"success": False, "error": str(error)}), 500
+
+
+@app.route("/api/consensus/health", methods=["GET"])
+def consensus_health():
+    """Expose consensus config for quick diagnostics."""
+    config = consensus.load_config()
+    return jsonify(
+        {
+            "success": True,
+            "thinking_level": config.thinking_level.value,
+            "max_turns": config.max_turns,
+            "models": {
+                "anthropic": config.anthropic_model,
+                "openai": config.openai_model,
+                "gemini": config.gemini_model,
+            },
+        }
+    )
+
+
+@app.route("/api/consensus/chat", methods=["POST"])
+def consensus_chat():
+    """Run hidden consensus flow."""
+    try:
+        data = request.get_json()
+        messages = [
+            consensus.ChatMessage(role=message["role"], content=message["content"])
+            for message in data["messages"]
+        ]
+        config = consensus.load_config(
+            thinking=data.get("thinking", "low"),
+            max_turns=int(data.get("max_turns", consensus.DEFAULT_MAX_TURNS)),
+        )
+        result = consensus.run_question(messages[-1].content, config) if len(messages) == 1 else asyncio.run(consensus.run_chat(messages, config))
+        return jsonify(
+            {
+                "success": True,
+                "result": dataclasses.asdict(result),
+            }
+        )
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except Exception as error:
+        logger.exception("Consensus run failed error=%s", error)
+        return jsonify({"success": False, "error": repr(error)}), 500
 
 
 @app.route("/api/summarize-url", methods=["POST"])
