@@ -3,7 +3,7 @@ description: Create detailed implementation plans based on thorough research and
 model: inherit
 argument-hint: [optional_requirements_file_path_and_additional_instructions]
 name: plan
-last_updated: 2026-04-08 10:25, 330b5f0
+last_updated: 2026-01-29 09:01, 24971aa
 ---
 # Implementation Plan
 
@@ -82,12 +82,13 @@ You are tasked with creating detailed implementation plans through an interactiv
 3. **Spawn parallel sub-tasks for comprehensive research**: apply the 'deep-context-grokking-method' as described above.
 
 <how-to-prompt-subagents>
-Do not tell the agents how to do their jobs, nor spoon feed them with actionable steps. The agents have extensive and well designed system prompt - they know the job out of the box. Only shortly tell them the wider context of what we're doing, what's the end value you need from their research (declarative), and why you need that added value (purpose). Even a prompt as short as e.g., "I need to understand how the scraping mechanism works, as well as how it relates to the client page load." is a good example for how to prompt a sub agent — note how there's only a short description of your needs and zero micro-management.
+Load the `/prompt-subagent` skill for best practices that get the most value out of subagents. The gist is:
+Do not tell the agents how to do their jobs, nor spoon feed them with actionable steps. The agents have an extensive and well designed system prompt - they know the job out of the box. Only shortly tell them the wider context of what we're doing, what's the end value you need from their research (declarative), and why you need that added value (purpose). Even a prompt as short as e.g., "I need to understand how the scraping mechanism works, as well as how it relates to the client page load." is a good example for how to prompt a sub agent — note how there's only a short description of your needs and zero micro-management. Specify a generous timeout of 15 minutes.
 </how-to-prompt-subagents>
 
-4. **Wait for ALL sub-tasks to complete** before proceeding
+4. **Wait for ALL sub-agents to complete** before proceeding.
 
-5. **Present findings and design options**:
+5. **_Only if the user asked you to pursue a green light from them before finalizing the plan_, Present findings and design options**:
    ```
    Based on my research, here's what I found:
 
@@ -105,6 +106,8 @@ Do not tell the agents how to do their jobs, nor spoon feed them with actionable
 
    Which approach aligns best with your vision?
    ```
+
+   **If the user directed you to make decisions autonomously**, consider these tradeoffs and open questions mentally, then make the decision that best serves the overarching purpose of this effort
 
 ### Step 3: Plan Structure Development
 
