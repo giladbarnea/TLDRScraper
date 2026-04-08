@@ -142,13 +142,26 @@ async def ask_gpt(
     messages: list[dict[str, str]],
     config: ConsensusConfig,
 ) -> str:
-    response = await client.chat.completions.create(
+    try:
+        response = await client.chat.completions.create(
+            model=config.openai_model,
+            messages=[{"role": "developer", "content": system_prompt}] + messages,
+            reasoning_effort=config.thinking_level.openai_effort,
+            max_completion_tokens=16_000,
+        )
+        return response.choices[0].message.content or ""
+    except openai.BadRequestError as error:
+        if "messages" not in str(error):
+            raise
+
+    input_messages = [{"role": "developer", "content": system_prompt}] + messages
+    response = await client.responses.create(
         model=config.openai_model,
-        messages=[{"role": "developer", "content": system_prompt}] + messages,
-        reasoning_effort=config.thinking_level.openai_effort,
-        max_completion_tokens=16_000,
+        input=input_messages,
+        reasoning={"effort": config.thinking_level.openai_effort},
+        max_output_tokens=16_000,
     )
-    return response.choices[0].message.content or ""
+    return response.output_text
 
 
 async def ask_gemini(
