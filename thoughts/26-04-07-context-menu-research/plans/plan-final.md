@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-08 15:43
+last_updated: 2026-04-08 19:29, e1aaa72
 ---
 # Finalized Plan: Overlay Context Menu (Zen + Digest)
 
