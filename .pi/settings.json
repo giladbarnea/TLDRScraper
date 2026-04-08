@@ -1,6 +1,6 @@
 {
   "provider": "openrouter",
-  "model": "minimax/minimax-m2.7",
+  "model": "z-ai/glm-5.1",
   "defaultThinkingLevel": "high",
   "thinkingBudgets": {
     "off": 0,
