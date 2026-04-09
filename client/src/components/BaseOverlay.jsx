@@ -10,7 +10,15 @@ const OVERLAY_CONTENT_SHIFT_FACTOR = 0.4
 
 export const overlayProseClassName = 'prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900 prose-headings:tracking-tight prose-h1:text-2xl prose-h1:font-bold prose-h2:text-xl prose-h2:font-semibold prose-h3:text-lg prose-h3:font-semibold prose-blockquote:border-slate-200 prose-strong:text-slate-900'
 
-function BaseOverlay({ expanded = true, headerContent, onClose, onMarkRemoved, children }) {
+function BaseOverlay({
+  expanded = true,
+  headerContent,
+  onClose,
+  onMarkRemoved,
+  onContentContextMenu,
+  onContentPointerDownCapture,
+  children,
+}) {
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
   const { progress, hasScrolled } = useScrollProgress(scrollRef, expanded)
@@ -33,7 +41,10 @@ function BaseOverlay({ expanded = true, headerContent, onClose, onMarkRemoved, c
     document.body.style.overflow = 'hidden'
 
     function handleEscape(event) {
-      if (event.key === 'Escape') onClose()
+      if (event.key !== 'Escape') return
+      if (event.defaultPrevented) return
+
+      onClose()
     }
 
     document.addEventListener('keydown', handleEscape)
@@ -85,7 +96,12 @@ function BaseOverlay({ expanded = true, headerContent, onClose, onMarkRemoved, c
           />
         </div>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto bg-white">
+        <div
+          ref={scrollRef}
+          onContextMenu={onContentContextMenu}
+          onPointerDownCapture={onContentPointerDownCapture}
+          className="flex-1 overflow-y-auto bg-white"
+        >
           <div
             className="px-6 pt-2 pb-5 md:px-8 md:pt-3 md:pb-6"
             style={{
