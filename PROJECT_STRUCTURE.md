@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-08 21:06
+last_updated: 2026-04-09 09:08
 ---
 .
 ├── .agents
@@ -124,7 +124,10 @@ last_updated: 2026-04-08 21:06
 ├── .jbeval
 │  └── datasets
 ├── .pi
-│  ├── APPEND_SYSTEM.md
+│  ├── npm
+│  │  ├── .gitignore
+│  │  ├── package-lock.json
+│  │  └── package.json
 │  └── settings.json
 ├── adapters
 │  ├── __init__.py

@@ -1,7 +1,8 @@
 ---
 name: client architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-04-08 20:31
+last_updated: 2026-04-09 09:08
+scope: exhaustively-wide, equally high level view of the entire client architecture.
 ---
 # Client Architecture
 
@@ -113,7 +114,7 @@ Article lifecycle (`unread` → `read` → `removed`) is managed via a closed re
 
 Summary management separates **data state** (reducer: `unknown → loading → available/error`) from **view state** (simple `useState` for expanded/collapsed). The `useSummary` hook orchestrates both. See [ALL_STATES.md](ALL_STATES.md#2-summary-data) for the data state machine.
 
-**Key modules:** `reducers/summaryDataReducer.js`, `hooks/useSummary.js`
+**Key modules:** `reducers/summaryDataReducer.js`, `hooks/useSummary.js`, `lib/markdownUtils.js` (markdown→HTML conversion with KaTeX support), `lib/zenLock.js` (mutual-exclusion lock), `lib/requestUtils.js` (request tokens)
 
 ---
 
@@ -178,19 +179,17 @@ Important behavioral rule:
 ```
 main()
 ├── App (Root)
+│   ├── useFeedLoader (Feed Loading Hook)
+│   │   └── loadFeed() → session cache → phase 1 (cached) → phase 2 (scrape + merge)
+│   │
 │   ├── useEffect (Initial Load)
-│   │   ├── sessionStorage cache check (10min TTL)
-│   │   └── loadFeed() [if cache miss/stale]
-│   │       ├── getDailyPayloadsRange() → setResults (immediate render)
-│   │       │   └── fetch('/api/storage/daily-range')
-│   │       └── scrapeNewsletters() → mergeIntoCache (background)
-│   │           └── fetch('/api/scrape')
+│   │   └── loadFeed({ startDate, endDate, useSessionCache: true })
 │   │
 │   ├── Header Area
 │   │   ├── SelectionCounterPill (visible iff selectedIds.size > 0)
 │   │   └── ScrapeForm (Settings)
-│   │       ├── useSupabaseStorage('cache:enabled')
-│   │       └── validateDateRange()
+│   │       ├── useFeedLoader.getDefaultFeedDateRange()
+│   │       └── loadFeed({ startDate, endDate })
 │   │
 │   └── Feed (Main Content)
 │       └── CalendarDay (Iterated by Date)
@@ -214,10 +213,13 @@ main()
 │                                           │   └── useAnimation(Framer Motion)
 │                                           │
 │                                           └── ZenModeOverlay (Conditional; short press open depends on interaction reducer)
-│                                               ├── useScrollProgress()
-│                                               ├── useOverscrollUp()
-│                                               └── usePullToClose()
+│                                               └── BaseOverlay
+│                                                   ├── useScrollProgress()
+│                                                   ├── useOverscrollUp()
+│                                                   └── usePullToClose()
 ```
+
+**Note:** `BaseOverlay` is the shared foundation for both `ZenModeOverlay` and `DigestOverlay`. It handles body scroll lock, escape key, scroll progress, pull-to-close, and overscroll-up gestures. The overlay wrappers provide only header content and prose-styled children.
 
 ---
 
@@ -280,6 +282,7 @@ TIME   ACTOR              ACTION                                TARGET
 │ Payloads     │     │ overlay local    │   │ notifies subs  │    (new articles appear)
 └──────────────┘     │ user state       │   └────────────────┘
                      └──────────────────┘
+                     (lib/feedMerge.js)
 
 [ USER ACTIONS ]
 
@@ -295,9 +298,30 @@ TIME   ACTOR              ACTION                                TARGET
                      └────────────────┘     └────────────────┘
 ```
 
+### Unified Feed Loading
+
+Both entry points flow through `useFeedLoader.loadFeed()`:
+
+```
+App.jsx mount
+    │
+    └── loadFeed({ useSessionCache: true })
+              │
+ScrapeForm.jsx submit
+    │
+    └── loadFeed({ useSessionCache: false })
+              │
+              ▼
+        useFeedLoader
+              │
+              ├─► Session cache check (10min TTL)
+              ├─► Phase 1: getDailyPayloadsRange() → cached render
+              └─► Phase 2: scrapeNewsletters() + mergePreservingLocalState()
+```
+
 ## Two-Phase Loading (Background Rescrape)
 
-On mount, `App.jsx` loads the feed in two phases so that cached articles display immediately while a background rescrape runs for stale dates (today).
+On mount, `App.jsx` delegates to `useFeedLoader` which loads the feed in two phases so that cached articles display immediately while a background rescrape runs for stale dates (today).
 
 ### Phase 1 — Cache read (~100ms)
 `getDailyPayloadsRange(startDate, endDate)` fetches cached payloads from Supabase. If data exists, `setResults` renders the feed immediately. CalendarDay components mount and seed `readCache` with these payloads.
@@ -307,8 +331,13 @@ On mount, `App.jsx` loads the feed in two phases so that cached articles display
 - For dates already rendered: `mergeIntoCache(key, mergeFn)` writes the merged payload into `readCache` and calls `emitChange`. All `useSupabaseStorage` subscribers for that key re-render — new articles appear in place.
 - For new dates not in the cache: appended to `results.payloads` so Feed renders additional CalendarDay components.
 
+### Unified Entry Point
+Both `App.jsx` (on mount) and `ScrapeForm.jsx` (on submit) call `useFeedLoader.loadFeed()`. This ensures consistent cache-first + merge behavior regardless of entry point. The hook encapsulates session cache (10min TTL), two-phase loading, and merge logic.
+
 ### Merge strategy (`mergePreservingLocalState`)
 The merge spreads the cached article and overlays only server-origin fields (`SERVER_ORIGIN_FIELDS`: url, title, category, etc.) from the fresh payload. Any client-state field (`summary`, `read`, `removed`, and future additions) is preserved automatically. This prevents the background scrape from reverting optimistic changes the user made during the scrape window.
+
+**Module:** `lib/feedMerge.js` — contains `mergePreservingLocalState()` and `SERVER_ORIGIN_FIELDS` constant.
 
 **`issueDate` authority:** `issueDate` is forced to `freshPayload.date` during merge (not carried from server article data), and CalendarDay stamps `issueDate: date` on every article at render time. CalendarDay owns the storage key, so it is the authoritative source for `issueDate`. This prevents silent click failures when adapters return a `date` that differs from the payload's day. See `GOTCHAS.md` 2026-02-15.
 
@@ -322,3 +351,5 @@ Feed-level transitions are logged via `logTransition('feed', range, from, to, ex
 - `fetching → cached` (phase 1 rendered)
 - `cached → merged` (phase 2 complete, with new article/day counts)
 - `fetching → ready` (no cache existed, direct render from scrape)
+
+**Module:** `hooks/useFeedLoader.js` — owns the logging for feed loading transitions.
