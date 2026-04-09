@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-08 19:29, e1aaa72
+last_updated: 2026-04-09 15:09
 ---
 # Custom Context Menu in Zen/Digest Overlays Implementation Plan
 
@@ -9,9 +9,9 @@ Implement a shared custom context menu interaction that works consistently in bo
 
 ## Current State Analysis
 
-- `ZenModeOverlay` in `ArticleCard.jsx` and `DigestOverlay` in `DigestOverlay.jsx` use near-identical portal-based full-screen layouts with shared gesture hooks (`usePullToClose`, `useOverscrollUp`, `useScrollProgress`).
+- `ZenModeOverlay` in `ZenModeOverlay.jsx` and `DigestOverlay` in `DigestOverlay.jsx` are now thin wrappers around `BaseOverlay.jsx`, which owns the shared portal-based full-screen layout and gesture hooks (`usePullToClose`, `useOverscrollUp`, `useScrollProgress`).
 - Neither overlay handles `onContextMenu`; browser default context menu currently appears on right click.
-- Overlay exclusivity is controlled by `acquireZenLock`/`releaseZenLock` shared between `useSummary` and `useDigest`; this flow must remain unchanged.
+- Overlay exclusivity is controlled by `acquireZenLock`/`releaseZenLock` in `client/src/lib/zenLock.js`, shared between `useSummary` and `useDigest`; this flow must remain unchanged.
 - Existing long-press behavior (`useLongPress`) explicitly ignores non-primary mouse buttons, so right-click is currently not captured by that path.
 
 ## Desired End State
@@ -27,7 +27,7 @@ Right-clicking within summary/digest prose opens a project-owned context menu wi
 
 - No changes to digest/single-summary generation APIs.
 - No redesign of selection dock or card-level long-press behavior.
-- No changes to overlay lock acquisition/release (`zenLockOwner`) semantics.
+- No changes to overlay lock acquisition/release (`client/src/lib/zenLock.js`) semantics.
 - No global document-wide context menu override outside the two overlays.
 
 ## Implementation Approach
@@ -94,10 +94,10 @@ Wire the shared primitive into both overlay components in a way that preserves e
 ### Changes Required:
 
 #### 1. Wire into `ZenModeOverlay`
-**File**: `client/src/components/ArticleCard.jsx`
+**File**: `client/src/components/ZenModeOverlay.jsx`
 **Changes**:
 - Instantiate shared context-menu hook inside `ZenModeOverlay`.
-- Attach `onContextMenu` to prose container or a dedicated overlay content wrapper (not top-level container).
+- Thread `onContextMenu` through `ZenModeOverlay` into the shared `BaseOverlay` scroll/content wrapper (not the top-level container).
 - Define action set aligned with overlay affordances (e.g., open original link, mark consumed, close menu).
 - Reset menu state on overlay close/unmount.
 
@@ -111,6 +111,7 @@ Wire the shared primitive into both overlay components in a way that preserves e
 **File**: `client/src/components/DigestOverlay.jsx`
 **Changes**:
 - Mirror the same integration pattern used in `ZenModeOverlay`.
+- Thread the same handler through to the shared `BaseOverlay` scroll/content wrapper.
 - Use digest-specific action callbacks where needed (e.g., close digest via existing `onClose`, mark consumed via `onMarkRemoved`).
 - Keep behavior parity with summary overlay.
 
@@ -118,6 +119,7 @@ Wire the shared primitive into both overlay components in a way that preserves e
 **Files**:
 - `client/src/hooks/useSummary.js`
 - `client/src/hooks/useDigest.js`
+- `client/src/lib/zenLock.js`
 - `client/src/hooks/usePullToClose.js`
 - `client/src/hooks/useOverscrollUp.js`
 
@@ -148,7 +150,7 @@ Wire the shared primitive into both overlay components in a way that preserves e
 
 ### Integration Tests:
 - Overlay-level integration tests validating menu attach points in both `ZenModeOverlay` and `DigestOverlay`.
-- Lock lifecycle smoke tests ensuring `acquireZenLock`/`releaseZenLock` behavior is unaffected by menu open/close.
+- Lock lifecycle smoke tests ensuring `client/src/lib/zenLock.js` behavior is unaffected by menu open/close.
 
 ### Manual Testing Steps:
 1. Open a summary overlay, right-click prose, run each menu action.
@@ -162,10 +164,12 @@ Wire the shared primitive into both overlay components in a way that preserves e
 - Requirements and scope input: `thoughts/26-04-07-context-menu-research/research/description.md`
 - Supporting research map: `thoughts/26-04-07-context-menu-research/relevant-files.md`
 - Primary integration targets:
-  - `client/src/components/ArticleCard.jsx`
+  - `client/src/components/ZenModeOverlay.jsx`
   - `client/src/components/DigestOverlay.jsx`
+  - `client/src/components/BaseOverlay.jsx`
   - `client/src/hooks/useSummary.js`
   - `client/src/hooks/useDigest.js`
+  - `client/src/lib/zenLock.js`
   - `client/src/hooks/usePullToClose.js`
   - `client/src/hooks/useOverscrollUp.js`
   - `client/src/hooks/useLongPress.js`
