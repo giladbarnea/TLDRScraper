@@ -1,35 +1,35 @@
 ---
-last_updated: 2026-04-08 19:29, e1aaa72
+last_updated: 2026-04-09 15:09
 ---
 # Context Menu Implementation Plan
 
 ## Overview
-Implement a shared custom context menu (right-click) for both `ZenModeOverlay` and `DigestOverlay`. Currently, no custom context menu exists, and browser default behavior is used. The goal is to provide a consistent custom context menu for these overlays without interfering with the existing touch gestures (pull-to-close, overscroll-up) or the `zenLockOwner` exclusivity mechanism.
+Implement a shared custom context menu (right-click) for both `ZenModeOverlay` and `DigestOverlay`. Currently, no custom context menu exists, and browser default behavior is used. The goal is to provide a consistent custom context menu for these overlays without interfering with the existing touch gestures (pull-to-close, overscroll-up) or the shared `zenLockOwner` exclusivity mechanism in `client/src/lib/zenLock.js`.
 
 ## Current State Analysis
-- Both `ZenModeOverlay` (in `ArticleCard.jsx`) and `DigestOverlay` (in `DigestOverlay.jsx`) render as `fixed inset-0 z-[100]` portals attached to `document.body`.
-- They share a common structure: a fixed header and a flex-1 scrolling content area (`<div ref={scrollRef}>`).
+- `ZenModeOverlay` (in `ZenModeOverlay.jsx`) and `DigestOverlay` (in `DigestOverlay.jsx`) now render through `BaseOverlay.jsx`, which is the `fixed inset-0 z-[100]` portal attached to `document.body`.
+- They still share a common structure: a fixed header and a flex-1 scrolling content area (`<div ref={scrollRef}>`) owned by `BaseOverlay`.
 - Touch gestures (pull-to-close, overscroll-up) are bound to the `containerRef` and `scrollRef` respectively.
 - `useLongPress` explicitly ignores non-primary mouse buttons (`e.button !== 0`), meaning right-clicks are ignored by cards.
 - There is no existing `onContextMenu` handler in `client/src/`.
-- `useSummary` and `useDigest` share a singleton lock (`zenLockOwner`) to ensure only one overlay is open at a time.
+- `useSummary` and `useDigest` share a singleton lock from `client/src/lib/zenLock.js` to ensure only one overlay is open at a time.
 
 ### Key Discoveries:
-- **Event Scoping:** The `onContextMenu` handler should be attached to the scrolling content container (`<div ref={scrollRef}>`), not the entire document or overlay container, to explicitly target the reading area.
+- **Event Scoping:** The `onContextMenu` handler should be attached to the scrolling content container (`<div ref={scrollRef}>`) in `BaseOverlay`, not the entire document or overlay container, to explicitly target the reading area.
 - **Z-Index:** The context menu needs a z-index higher than the overlays (`z-[100]`), e.g., `z-[150]`.
 - **Exclusivity:** The context menu must be localized (ephemeral state within the overlay component itself) so it naturally unmounts when the overlay closes.
 - **Escape Key Handling:** Both overlays currently listen for `Escape` to close themselves. If the context menu is open, pressing `Escape` should close the menu but *not* the overlay. This requires `e.stopPropagation()` when the menu handles the keydown, or conditional logic in the overlay's escape handler.
 
 ## What We're NOT Doing
 - We are NOT implementing custom context menus for the main feed/article cards (sticking strictly to the overlays as per research).
-- We are NOT modifying the `zenLockOwner` mechanism. The context menu will be internal state to the overlays.
+- We are NOT modifying the `zenLockOwner` mechanism in `client/src/lib/zenLock.js`. The context menu will be internal state to the overlays.
 - We are NOT adding long-press fallback for touch devices (unless it organically fits a cross-platform pointer approach, but the focus is right-click context menu).
 - We are NOT blocking standard text selection in the prose area.
 
 ## Implementation Approach
 1. Create a `useOverlayContextMenu` hook to manage the state (isOpen, x, y coordinates) and behavior (open, close, positioning, click-outside, escape to close) of the context menu.
 2. Create an `OverlayContextMenu` component to render the menu visually at the captured coordinates.
-3. Integrate the hook and component into both `ZenModeOverlay` and `DigestOverlay`.
+3. Integrate the hook and component into both `ZenModeOverlay` and `DigestOverlay`, threading the attach point through `BaseOverlay`.
 
 ## Phase 1: Shared Hook and Component
 
@@ -89,12 +89,12 @@ Wire the shared hook and component into the existing `ZenModeOverlay` and `Diges
 ### Changes Required:
 
 #### 1. Integrate into ZenModeOverlay
-**File**: `client/src/components/ArticleCard.jsx`
+**File**: `client/src/components/ZenModeOverlay.jsx`
 **Changes**:
 - Import `useOverlayContextMenu` and `OverlayContextMenu`.
 - Initialize `const { isOpen, position, handleContextMenu, closeMenu } = useOverlayContextMenu();` inside `ZenModeOverlay`.
-- Attach `onContextMenu={handleContextMenu}` to the `<div ref={scrollRef} ...>` element.
-- Render `<OverlayContextMenu>` as a sibling to the content inside the overlay container.
+- Pass `onContextMenu={handleContextMenu}` through to the shared `<div ref={scrollRef} ...>` surface in `BaseOverlay`.
+- Render `<OverlayContextMenu>` from `ZenModeOverlay` as a sibling to the overlay shell.
 - For the menu items, add relevant actions (e.g., "Copy Text", "Close Overlay"). *Note: Exact actions aren't specified in research, so basic placeholder or standard actions will be implemented, specifically a "Close" action to mirror the header.*
 - Ensure the overlay's native escape listener does not fire if the context menu's escape listener caught the event (handled by the hook's stopPropagation, or by checking `if (isOpen) return;` in the overlay's escape handler).
 
@@ -103,7 +103,7 @@ Wire the shared hook and component into the existing `ZenModeOverlay` and `Diges
 **Changes**:
 - Apply the exact same integration pattern as `ZenModeOverlay`.
 - Import hook and component.
-- Attach `onContextMenu` to `<div ref={scrollRef} ...>`.
+- Pass `onContextMenu` through to the shared `BaseOverlay` scroll/content surface.
 - Render the menu component.
 
 ### Success Criteria:

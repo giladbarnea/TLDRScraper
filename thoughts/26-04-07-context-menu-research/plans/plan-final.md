@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-08 19:29, e1aaa72
+last_updated: 2026-04-09 15:09
 ---
 # Finalized Plan: Overlay Context Menu (Zen + Digest)
 
@@ -19,13 +19,13 @@ This yields a smaller, clearer implementation surface than either doc alone.
 ## Scope
 
 Implement a shared right-click context menu for overlay reading surfaces only:
-- `ZenModeOverlay` in `client/src/components/ArticleCard.jsx`
+- `ZenModeOverlay` in `client/src/components/ZenModeOverlay.jsx`
 - `DigestOverlay` in `client/src/components/DigestOverlay.jsx`
 
 ### Out of Scope
 - No card/feed-level context menu.
 - No touch long-press custom menu.
-- No changes to lock ownership (`zenLockOwner` behavior stays intact).
+- No changes to lock ownership (`client/src/lib/zenLock.js` behavior stays intact).
 - No changes to pull-to-close / overscroll gesture hooks.
 
 ## Implementation Plan
@@ -60,11 +60,11 @@ Implement a presentational component:
 ## Phase 2 — Overlay Integration
 
 ### 1) Zen integration
-**File**: `client/src/components/ArticleCard.jsx`
+**File**: `client/src/components/ZenModeOverlay.jsx`
 
 Inside `ZenModeOverlay`:
 - use `useOverlayContextMenu`
-- bind `onContextMenu` to overlay scroll/content surface (`scrollRef` area)
+- thread `onContextMenu` through to the shared `BaseOverlay` scroll/content surface (`scrollRef` area)
 - render `OverlayContextMenu`
 - ensure menu state closes on overlay close/unmount
 
@@ -72,7 +72,7 @@ Inside `ZenModeOverlay`:
 **File**: `client/src/components/DigestOverlay.jsx`
 
 Mirror the same pattern as Zen:
-- same attach point semantics
+- same attach point semantics through `BaseOverlay`
 - same Escape arbitration behavior
 - same close/unmount cleanup
 
