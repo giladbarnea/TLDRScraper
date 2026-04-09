@@ -2,7 +2,7 @@
 date: 2026-04-08
 topic: "Custom Context Menu in Zen/Digest Overlays"
 status: complete
-last_updated: 2026-04-09 15:09
+last_updated: 2026-04-09 15:10, e8d6966
 ---
 # Research: Custom Context Menu in Zen/Digest Overlays
 
