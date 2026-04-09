@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-09 09:12
+last_updated: 2026-04-09 14:08
 ---
 .
 ├── .agents
@@ -73,8 +73,6 @@ last_updated: 2026-04-09 09:12
 │     │  └── SKILL.md
 │     ├── plan
 │     │  └── SKILL.md
-│     ├── prompt-subagent
-│     │  └── SKILL.md
 │     ├── react-best-practices
 │     │  ├── AGENTS.md
 │     │  ├── metadata.json
@@ -111,7 +109,6 @@ last_updated: 2026-04-09 09:12
 │  ├── sync-upstream-suggestions.md
 │  └── util.sh
 ├── .github
-│  ├── commands
 │  └── workflows
 │     ├── claude.yml
 │     ├── GEMINI_REMOTE_AUTH.md
@@ -121,13 +118,9 @@ last_updated: 2026-04-09 09:12
 │     ├── weekly-branch-pr-cleanup.yml
 │     ├── weekly-supabase-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
-├── .jbeval
-│  └── datasets
 ├── .pi
 │  ├── npm
-│  │  ├── .gitignore
-│  │  ├── package-lock.json
-│  │  └── package.json
+│  │  └── .gitignore
 │  └── settings.json
 ├── adapters
 │  ├── __init__.py
@@ -232,12 +225,6 @@ last_updated: 2026-04-09 09:12
 │  ├── postcss.config.js
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
-├── ios
-│  └── TLDRScraper.xcodeproj
-│     └── project.xcworkspace
-│        └── xcshareddata
-│           └── swiftpm
-│              └── configuration
 ├── scripts
 │  ├── setup
 │  │  ├── build_client.sh
