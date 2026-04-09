@@ -1,29 +1,11 @@
-import DOMPurify from 'dompurify'
-import { marked } from 'marked'
-import markedKatex from 'marked-katex-extension'
 import { useEffect, useRef, useState } from 'react'
+import { markdownToHtml } from '../lib/markdownUtils'
+import { createRequestToken } from '../lib/requestUtils'
 import { logTransition, logTransitionSuccess } from '../lib/stateTransitionLogger'
 import { emitToast } from '../lib/toastBus'
+import { acquireZenLock, releaseZenLock } from '../lib/zenLock'
 import * as summaryDataReducer from '../reducers/summaryDataReducer'
 import { useArticleState } from './useArticleState'
-
-marked.use(markedKatex({ throwOnError: false }))
-
-let zenLockOwner = null
-
-export function acquireZenLock(owner) {
-  if (zenLockOwner === null) {
-    zenLockOwner = owner
-    return true
-  }
-  return false
-}
-
-export function releaseZenLock(owner) {
-  if (zenLockOwner === owner) {
-    zenLockOwner = null
-  }
-}
 
 export function useSummary(date, url, type = 'summary') {
   const { article, updateArticle, isRead, markAsRead } = useArticleState(date, url)
@@ -37,18 +19,7 @@ export function useSummary(date, url, type = 'summary') {
   const status = summaryDataReducer.getSummaryDataStatus(data)
   const markdown = data?.markdown || ''
 
-  const html = (() => {
-    if (!markdown) return ''
-    try {
-      const rawHtml = marked.parse(markdown)
-      return DOMPurify.sanitize(rawHtml, {
-        ADD_TAGS: ['annotation', 'semantics']
-      })
-    } catch (error) {
-      console.error('Failed to parse markdown:', error)
-      return ''
-    }
-  })()
+  const html = markdownToHtml(markdown)
 
   const errorMessage = data?.errorMessage || null
   const isAvailable = status === summaryDataReducer.SummaryDataStatus.AVAILABLE && markdown
@@ -78,8 +49,6 @@ export function useSummary(date, url, type = 'summary') {
       }
     })
   }
-
-  const createRequestToken = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
   const fetchSummary = async (summaryEffort = effort) => {
     if (!article) return

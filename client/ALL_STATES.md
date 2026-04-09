@@ -1,5 +1,6 @@
 ---
-last_updated: 2026-04-07 12:37, 7e20da1
+last_updated: 2026-04-09 09:08
+scope: a well defined yet deep view of all the client state machines
 ---
 # Client State Machines
 
@@ -25,7 +26,9 @@ last_updated: 2026-04-07 12:37, 7e20da1
   - [13. Scroll Progress](#13-scroll-progress)
   - [14. Pull to Close](#14-pull-to-close)
   - [15. Overscroll Up](#15-overscroll-up)
-  - [16. Toast](#16-toast)
+  - [16. BaseOverlay (Shared Foundation)](#16-baseoverlay-shared-foundation)
+  - [17. Tracked State](#17-tracked-state)
+  - [18. Toast](#18-toast)
 - [Part II — The Connective Tissue](#part-ii--the-connective-tissue)
   - [Topology: How They're Wired](#topology-how-theyre-wired)
   - [The Article Object: Shared Substrate](#the-article-object-shared-substrate)
@@ -105,6 +108,7 @@ State lives on the article object (`removed: bool`, `read: { isRead, markedAt }`
 | **Pattern** | Pure reducer function (called imperatively, like Article Lifecycle) |
 | **File** | `reducers/summaryDataReducer.js` |
 | **Dispatched via** | `hooks/useSummary.js`, `hooks/useDigest.js`, `App.jsx` |
+| **Markdown→HTML** | `lib/markdownUtils.js` — `markdownToHtml()` converts markdown to sanitized HTML with KaTeX support |
 
 #### States
 
@@ -139,8 +143,8 @@ UNKNOWN  →  LOADING  →  AVAILABLE
 
 | Who | What | Why |
 |---|---|---|
-| `useSummary` | `status`, `markdown` → `html` | Renders summary overlay content |
-| `useDigest` | `status`, `markdown` → `html` | Renders digest overlay content |
+| `useSummary` | `status`, `markdown` → `html` (via `markdownToHtml`) | Renders summary overlay content |
+| `useDigest` | `status`, `markdown` → `html` (via `markdownToHtml`) | Renders digest overlay content with KaTeX math support |
 | `ArticleCard` | `summary.status`, `summary.isAvailable`, `summary.errorMessage` | Status indicators, error display |
 | `App.jsx` | `getSummaryDataStatus()` | Determines which selection actions are available |
 
@@ -238,9 +242,9 @@ Swipe is only enabled when: `!isRemoved && !stateLoading && !isSelectMode`. The 
 
 | | |
 |---|---|
-| **Pattern** | `useState` + imperative async flow in `useEffect` |
-| **File** | `App.jsx` (top-level `App` component) |
-| **Scope** | Singleton — app root |
+| **Pattern** | `useState` + `useCallback` in custom hook |
+| **File** | `hooks/useFeedLoader.js` |
+| **Scope** | Singleton — consumed by `App.jsx` and `ScrapeForm.jsx` |
 
 #### States
 
@@ -255,6 +259,8 @@ idle  →  fetching  →  cached  →  merged (cache rendered first, then scrape
 1. **Session cache check** — `sessionStorage` key `scrapeResults:{start}:{end}`, TTL 10 min. If hit, jump straight to `ready`.
 2. **Phase 1 (cache-first)** — `POST /api/storage/daily-range` fetches cached payloads from Supabase. If any exist, render immediately (`cached`).
 3. **Phase 2 (background scrape)** — `POST /api/scrape` fetches fresh data. If Phase 1 rendered, merge new articles via `mergeIntoCache()` preserving local state (read/removed/summary). If Phase 1 didn't render, set results directly (`ready`).
+
+**Unified entry point:** Both `App.jsx` (on mount) and `ScrapeForm.jsx` (on submit) call `useFeedLoader.loadFeed()`. This ensures consistent cache-first + merge behavior regardless of entry point.
 
 #### Unified Scrape Journey (Cross-Stack)
 
@@ -311,6 +317,8 @@ idle
 
 Server-origin fields (`url`, `title`, `articleMeta`, `category`, `sourceId`, `section`, `sectionEmoji`, `sectionOrder`, `newsletterType`, `issueDate`) are overwritten from fresh scrape. Client-state fields (`read`, `removed`, `summary`, `digest`) are preserved from local cache.
 
+**Module:** `lib/feedMerge.js` — contains `mergePreservingLocalState()` and `SERVER_ORIGIN_FIELDS` constant.
+
 #### Error Handling
 
 - `AbortError` → silently ignored (component unmounted).
@@ -319,10 +327,12 @@ Server-origin fields (`url`, `title`, `articleMeta`, `category`, `sourceId`, `se
 #### Propagation
 
 ```
-App (results) → Feed → CalendarDay → NewsletterDay → ArticleList → ArticleCard
+useFeedLoader (results) → App → Feed → CalendarDay → NewsletterDay → ArticleList → ArticleCard
 ```
 
 `CalendarDay` seeds the `readCache` in `useSupabaseStorage` with its payload prop, preventing redundant per-day API calls.
+
+**Selection utilities:** `lib/selectionUtils.js` provides `getSelectedArticles()`, `extractSelectedArticleDescriptors()`, and `groupSelectedByDate()` for working with selected articles across payloads.
 
 ---
 
@@ -333,6 +343,7 @@ App (results) → Feed → CalendarDay → NewsletterDay → ArticleList → Art
 | **Pattern** | `useState` + async effects + `summaryDataReducer` for status |
 | **File** | `hooks/useDigest.js` |
 | **Scope** | Singleton (created in `App.jsx`) |
+| **Dependencies** | `lib/zenLock.js` (zen lock), `lib/markdownUtils.js` (markdown→HTML with KaTeX), `lib/requestUtils.js` (request tokens) |
 
 #### States
 
@@ -372,6 +383,7 @@ Digest acquires the lock with owner `'digest'` (constant). If a single-article s
 | **Pattern** | `useState(false)` for `expanded` boolean + summary data from `summaryDataReducer` |
 | **File** | `hooks/useSummary.js` |
 | **Scope** | Per-article instance (created in each `ArticleCard`) |
+| **Dependencies** | `lib/zenLock.js` (zen lock), `lib/markdownUtils.js` (markdown→HTML), `lib/requestUtils.js` (request tokens) |
 
 #### Dual State
 
@@ -500,7 +512,7 @@ Single key: `expandedContainers:v1` → JSON array of container IDs.
 #### States
 
 ```
-idle  →  pending  →  success  (onResults called, settings close)
+idle  →  pending  →  success  (onSuccess called, settings close)
               ↓
             error   (validation or network)
 ```
@@ -516,27 +528,25 @@ Client-side only: starts at 10%, increments 5% every 500ms capped at 90%, jumps 
 
 #### Integration
 
-`onResults(results)` callback → `App.jsx` sets `results` state + closes settings panel. This bypasses the Feed Loading machine's two-phase flow and directly sets results.
+`loadFeed({ startDate, endDate, useSessionCache: false })` → calls `useFeedLoader.loadFeed()` with the user's date range. This flows through the same cache-first + merge logic as the app mount, ensuring consistent behavior. `onSuccess()` callback closes the settings panel.
+
+**Date range utility:** Uses `getDefaultFeedDateRange()` from `useFeedLoader` for consistent default range calculation (today - 2 days to today).
 
 ### 11. Zen Mode Overlay
 
 | | |
 |---|---|
-| **Pattern** | `useState` + three gesture hooks |
-| **File** | `components/ArticleCard.jsx` (inner `ZenModeOverlay` component) |
+| **Pattern** | Thin wrapper around `BaseOverlay` |
+| **File** | `components/ZenModeOverlay.jsx` |
 | **Scope** | Per-article, rendered only when `summary.expanded && summary.html` |
 
-#### Own State
+#### Architecture
 
-`hasScrolled: boolean` — true when `scrollTop > 10`. Drives header visual transition (solid → blurred backdrop).
+ZenModeOverlay is now a minimal component that composes `BaseOverlay`, providing only:
+- `headerContent`: Domain favicon + displayDomain + truncated articleMeta, wrapped in a link to the original URL
+- `children`: Prose-styled HTML via `overlayProseClassName`
 
-#### Composed Hooks
-
-| Hook | Role | Output consumed |
-|---|---|---|
-| `useScrollProgress(scrollRef)` | Reading progress 0→1 | `progress` → thin bar at header bottom |
-| `usePullToClose({ containerRef, scrollRef, onClose })` | Pull-down gesture → close overlay | `pullOffset` → `translateY` on entire overlay |
-| `useOverscrollUp({ scrollRef, onComplete, threshold: 60 })` | Pull-up at bottom → mark removed | `overscrollOffset`, `isOverscrolling`, `overscrollProgress`, `overscrollComplete` → content shift + green check icon |
+All gesture handling, scroll progress, body scroll lock, and escape key logic are delegated to `BaseOverlay`.
 
 #### Close Triggers
 
@@ -554,17 +564,18 @@ Client-side only: starts at 10%, increments 5% every 500ms capped at 90%, jumps 
 
 | | |
 |---|---|
-| **Pattern** | `useState` + three gesture hooks (identical to Zen Mode) |
+| **Pattern** | Thin wrapper around `BaseOverlay` |
 | **File** | `components/DigestOverlay.jsx` |
 | **Scope** | Singleton, rendered when `digest.expanded` |
 
-#### Own State
+#### Architecture
 
-`hasScrolled: boolean` — same header blur pattern as Zen Mode.
+DigestOverlay composes `BaseOverlay`, providing only:
+- `headerContent`: BookOpen icon + article count label
+- `children`: Prose-styled HTML (or error message if `errorMessage && !html`)
+- `expanded`: Controls whether BaseOverlay renders
 
-#### Composed Hooks
-
-Same trio: `useScrollProgress`, `usePullToClose`, `useOverscrollUp`.
+All gesture handling, scroll progress, body scroll lock, and escape key logic are delegated to `BaseOverlay`.
 
 #### Differences from Zen Mode
 
@@ -583,17 +594,30 @@ Same trio: `useScrollProgress`, `usePullToClose`, `useOverscrollUp`.
 
 | | |
 |---|---|
-| **Pattern** | `useState(0)` + passive scroll listener |
+| **Pattern** | `useState` × 2 + passive scroll listener |
 | **File** | `hooks/useScrollProgress.js` |
-| **Scope** | Per-overlay instance |
+| **Scope** | Per-overlay instance (used internally by `BaseOverlay`) |
 
 #### State
 
-Single float: `progress ∈ [0, 1]`, computed as `scrollTop / (scrollHeight - clientHeight)`.
+| Value | Type | Derivation |
+|---|---|---|
+| `progress` | float ∈ [0, 1] | `scrollTop / (scrollHeight - clientHeight)` |
+| `hasScrolled` | boolean | `scrollTop > 10` |
+
+#### API
+
+```js
+useScrollProgress(scrollRef, enabled = true) → { progress, hasScrolled }
+```
+
+When `enabled` is false, both states reset to `0` and `false` respectively.
 
 #### Consumers
 
-Both `ZenModeOverlay` and `DigestOverlay` render a 2px `bg-brand-500` bar at the header bottom, scaled via `transform: scaleX(progress)`.
+`BaseOverlay` consumes both:
+- `progress` → 2px progress bar at header bottom, scaled via `transform: scaleX(progress)`
+- `hasScrolled` → header backdrop blur transition (solid → blurred)
 
 #### Performance
 
@@ -605,13 +629,21 @@ Both `ZenModeOverlay` and `DigestOverlay` render a 2px `bg-brand-500` bar at the
 
 | | |
 |---|---|
-| **Pattern** | `useState(0)` + touch event handlers on container ref |
+| **Pattern** | `useTrackedState` + touch event handlers on container ref |
 | **File** | `hooks/usePullToClose.js` |
-| **Scope** | Per-overlay instance |
+| **Scope** | Per-overlay instance (used internally by `BaseOverlay`) |
 
 #### State
 
-`pullOffset: number` — how many pixels the overlay has been pulled down (with 0.5× damping).
+`pullOffset: number` — how many pixels the overlay has been pulled down (with 0.5× damping). Tracked via `useTrackedState` so the ref stays in sync with state for use in `handleTouchEnd`.
+
+#### API
+
+```js
+usePullToClose({ containerRef, scrollRef, onClose, threshold = 80, enabled = true }) → { pullOffset }
+```
+
+When `enabled` is false, `pullOffset` resets to `0` and gesture detection is disabled.
 
 #### Detection
 
@@ -634,9 +666,9 @@ Works in tandem with `useOverscrollUp`. Pull-to-close operates at the **top** bo
 
 | | |
 |---|---|
-| **Pattern** | `useState(0)` + touch event handlers on scroll ref |
+| **Pattern** | `useTrackedState` + touch event handlers on scroll ref |
 | **File** | `hooks/useOverscrollUp.js` |
-| **Scope** | Per-overlay instance |
+| **Scope** | Per-overlay instance (used internally by `BaseOverlay`) |
 
 #### State
 
@@ -646,6 +678,16 @@ Works in tandem with `useOverscrollUp`. Pull-to-close operates at the **top** bo
 | `isOverscrolling` | boolean | `overscrollOffset > 0` |
 | `progress` | float 0→1 | `overscrollOffset / (threshold * 0.5)` |
 | `isComplete` | boolean | `progress >= 1` |
+
+`overscrollOffset` is tracked via `useTrackedState` so the ref stays in sync with state for use in `handleTouchEnd`.
+
+#### API
+
+```js
+useOverscrollUp({ scrollRef, onComplete, threshold = 60, enabled = true }) → { overscrollOffset, isOverscrolling, progress, isComplete }
+```
+
+When `enabled` is false, `overscrollOffset` resets to `0` and gesture detection is disabled.
 
 #### Detection
 
@@ -665,7 +707,90 @@ Content slides up at 0.4× the offset rate during the gesture.
 
 ---
 
-### 16. Toast
+### 16. BaseOverlay (Shared Foundation)
+
+| | |
+|---|---|
+| **Pattern** | Portal + composed gesture hooks + body scroll lock |
+| **File** | `components/BaseOverlay.jsx` |
+| **Scope** | Shared foundation for ZenModeOverlay and DigestOverlay |
+
+#### Architecture
+
+BaseOverlay is the shared foundation that eliminates duplication between ZenModeOverlay and DigestOverlay. It handles all common overlay behavior:
+
+- **Body scroll lock**: `document.body.style.overflow = 'hidden'` when expanded
+- **Escape key**: Calls `onClose()` on Escape keydown
+- **Scroll progress**: Renders progress bar via `useScrollProgress`
+- **Pull-to-close**: Handles pull-down gesture via `usePullToClose`
+- **Overscroll-up**: Handles pull-up-at-bottom gesture via `useOverscrollUp`
+- **Header**: Renders ChevronDown (close), `headerContent` slot, Check (mark removed) buttons
+- **Progress bar**: 2px bar at header bottom, scaled by scroll progress
+- **Overscroll zone**: CheckCircle icon that animates as overscroll progresses
+
+#### Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `expanded` | boolean | Controls whether overlay renders (default: `true`) |
+| `headerContent` | ReactNode | Slot for header middle content (domain info or article count) |
+| `onClose` | () => void | Called on ChevronDown, Escape, or pull-to-close threshold |
+| `onMarkRemoved` | () => void | Called on Check button or overscroll-up threshold |
+| `children` | ReactNode | Content to render in scrollable area |
+
+#### Exports
+
+- `default`: BaseOverlay component
+- `overlayProseClassName`: Tailwind prose classes for consistent overlay content styling
+
+#### Composed Hooks
+
+| Hook | Configuration |
+|---|---|
+| `useScrollProgress` | `(scrollRef, expanded)` |
+| `usePullToClose` | `({ containerRef, scrollRef, onClose, enabled: expanded })` |
+| `useOverscrollUp` | `({ scrollRef, onComplete: onMarkRemoved, threshold: 60, enabled: expanded })` |
+
+All hooks receive `enabled: expanded`, so they reset when the overlay collapses.
+
+---
+
+### 17. Tracked State
+
+| | |
+|---|---|
+| **Pattern** | `useState` + `useRef` sync via callback setter |
+| **File** | `hooks/useTrackedState.js` |
+| **Scope** | Internal utility for gesture hooks |
+
+#### Purpose
+
+Gesture hooks (`usePullToClose`, `useOverscrollUp`) need to read the current state value inside event handlers that fire after state updates. Normal `useState` + `useRef` requires a separate `useEffect` to sync the ref after each render. `useTrackedState` encapsulates this pattern.
+
+#### API
+
+```js
+useTrackedState(initialValue) → [value, setTrackedValue, valueRef]
+```
+
+| Return | Type | Description |
+|---|---|---|
+| `value` | T | React state value |
+| `setTrackedValue` | (T | (prev: T) => T) => void | Setter that updates both state and ref |
+| `valueRef` | { current: T } | Ref that stays in sync with state |
+
+#### Implementation
+
+The setter uses `useCallback` with a functional state update. Inside the update, it resolves the new value (handling both direct values and updater functions) and writes it to `valueRef.current` before returning.
+
+#### Consumers
+
+- `usePullToClose`: Tracks `pullOffset` for threshold check in `handleTouchEnd`
+- `useOverscrollUp`: Tracks `overscrollOffset` for threshold check in `handleTouchEnd`
+
+---
+
+### 18. Toast
 
 | | |
 |---|---|
@@ -713,14 +838,23 @@ The 16 machines form a layered architecture. Understanding the layers explains w
 │                                                                             │
 │  ┌──────────────────┐   ┌──────────────────┐   ┌────────────────────────┐  │
 │  │ Zen Mode Overlay │   │ Digest Overlay   │   │ Toast                  │  │
-│  │  ├ ScrollProgress│   │  ├ ScrollProgress│   └────────────────────────┘  │
-│  │  ├ PullToClose   │   │  ├ PullToClose   │                              │
-│  │  └ OverscrollUp  │   │  └ OverscrollUp  │                              │
-│  └──────────────────┘   └──────────────────┘                              │
-│            ▲                      ▲                                        │
-│            │ zen lock             │ zen lock                               │
-│            │ (mutual exclusion)   │                                        │
-├────────────┼──────────────────────┼────────────────────────────────────────┤
+│  │      (thin       │   │      (thin       │   └────────────────────────┘  │
+│  │      wrapper)    │   │      wrapper)    │                              │
+│  └────────┬─────────┘   └────────┬─────────┘                              │
+│           │                      │                                        │
+│           └──────────┬───────────┘                                        │
+│                      ▼                                                    │
+│           ┌──────────────────────┐                                        │
+│           │ BaseOverlay          │                                        │
+│           │  ├ ScrollProgress   │                                        │
+│           │  ├ PullToClose      │                                        │
+│           │  ├ OverscrollUp     │                                        │
+│           │  ├ body scroll lock │                                        │
+│           │  └ escape key      │                                        │
+│           └──────────────────────┘                                        │
+│                      ▲                                                    │
+│                      │ zen lock (mutual exclusion)                        │
+├──────────────────────┼────────────────────────────────────────────────────┤
 │  LAYER 3: DOMAIN HOOKS (per-article / per-digest orchestration)            │
 │                                                                             │
 │  ┌──────────────────┐   ┌──────────────────┐   ┌────────────────────────┐  │
@@ -763,10 +897,12 @@ The 16 machines form a layered architecture. Understanding the layers explains w
 │                                                                             │
 │  ┌──────────────────────────────┐   ┌───────────────────────────────────┐  │
 │  │ Feed Loading                 │   │ Scrape Form                       │  │
-│  │ (App.jsx useEffect)          │   │ (useActionState)                  │  │
+│  │ (useFeedLoader hook)         │──▶│ (useActionState)                  │  │
 │  └──────────────────────────────┘   └───────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+**Note:** Scrape Form calls `useFeedLoader.loadFeed()` directly, flowing through the same cache-first + merge logic as app mount.
 
 ---
 
@@ -834,7 +970,7 @@ Writes are optimistic: local first → background persist → revert on failure.
 
 ### Zen Lock: The Mutual-Exclusion Protocol
 
-A module-level variable in `useSummary.js`:
+A module-level variable in `lib/zenLock.js`:
 
 ```js
 let zenLockOwner = null   // string | null
@@ -879,18 +1015,19 @@ Both buses exist to cross component boundaries that would otherwise require prop
 
 Each cell shows the **direction** of the relationship. Read as "row affects/uses column".
 
-| | Art. Lifecycle | Summary Data | Interaction | Gesture | Feed Loading | Digest | Summary View | Supabase Storage | Overlay Gestures | Toast |
-|---|---|---|---|---|---|---|---|---|---|---|
-| **Art. Lifecycle** | — | — | Disables selection | — | — | Marks consumed | Marks read on close | Persists via | — | — |
-| **Summary Data** | — | — | — | — | — | Shared reducer | Drives overlay content | Persists via | — | Emits toast |
-| **Interaction** | Guards selection | Filters actionable | — | Blocks swipe in select mode | — | Clears after trigger | — | — | — | — |
-| **Gesture** | Calls toggleRemove | — | Blocked by select mode | — | — | — | — | — | — | — |
-| **Feed Loading** | — | — | — | — | — | Provides `results` | — | Reads + merges cache | — | — |
-| **Digest** | Marks articles read/removed | Marks articles loading, restores | Clears selection | — | Reads `results.payloads` | — | Shares zen lock | Reads + writes payload | — | — |
-| **Summary View** | Marks read on close | Dispatches all events | — | — | — | Shares zen lock | — | Persists via `useArticleState` | — | Emits toast |
-| **Supabase Storage** | — | — | — | — | Seeds from payloads | — | — | — | — | — |
-| **Overlay Gestures** | `onMarkRemoved` | — | — | — | — | `onMarkRemoved` / `onClose` | `onClose` | — | — | — |
-| **Toast** | — | — | — | — | — | — | Click → `expand()` | — | — | — |
+| | Art. Lifecycle | Summary Data | Interaction | Gesture | Feed Loading | Digest | Summary View | Supabase Storage | BaseOverlay | Tracked State | Toast |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| **Art. Lifecycle** | — | — | Disables selection | — | — | Marks consumed | Marks read on close | Persists via | — | — | — |
+| **Summary Data** | — | — | — | — | — | Shared reducer | Drives overlay content | Persists via | — | — | Emits toast |
+| **Interaction** | Guards selection | Filters actionable | — | Blocks swipe in select mode | — | Clears after trigger | — | — | — | — | — |
+| **Gesture** | Calls toggleRemove | — | Blocked by select mode | — | — | — | — | — | — | — | — |
+| **Feed Loading** | — | — | — | — | — | Provides `results` | — | Reads + merges cache | — | — | — |
+| **Digest** | Marks articles read/removed | Marks articles loading, restores | Clears selection | — | Reads `results.payloads` | — | Shares zen lock | Reads + writes payload | Composes | — | — |
+| **Summary View** | Marks read on close | Dispatches all events | — | — | — | Shares zen lock | — | Persists via `useArticleState` | Composes | — | Emits toast |
+| **Supabase Storage** | — | — | — | — | Seeds from payloads | — | — | — | — | — | — |
+| **BaseOverlay** | `onMarkRemoved` | — | — | — | — | Composed by Digest | Composed by Zen | — | Composes PullToClose, OverscrollUp, ScrollProgress | Uses via hooks | — |
+| **Tracked State** | — | — | — | — | — | — | — | — | — | — | — |
+| **Toast** | — | — | — | — | — | — | Click → `expand()` | — | — | — | — |
 
 ---
 
@@ -1042,8 +1179,10 @@ Each cell shows the **direction** of the relationship. Read as "row affects/uses
 #### Flow 5: Feed loading → component tree hydration
 
 ```
-   App mount
+   App mount OR ScrapeForm submit
        │
+       └── useFeedLoader.loadFeed()
+              │
    ┌── sessionStorage hit? ──┐
    │ yes                      │ no
    ▼                          ▼

@@ -1,18 +1,20 @@
 import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react'
 import { useActionState, useState } from 'react'
-import { scrapeNewsletters } from '../lib/scraper'
+import { getDefaultFeedDateRange } from '../hooks/useFeedLoader'
 
 function validateDateRange(startDate, endDate) {
-  const startDateObj = new Date(startDate)
-  const endDateObj = new Date(endDate)
-  const daysDiff = Math.ceil((endDateObj - startDateObj) / (1000 * 60 * 60 * 24))
+  const startDateObject = new Date(startDate)
+  const endDateObject = new Date(endDate)
+  const daysDifference = Math.ceil((endDateObject - startDateObject) / (1000 * 60 * 60 * 24))
 
-  if (startDateObj > endDateObj) {
+  if (startDateObject > endDateObject) {
     return { valid: false, error: 'Start date must be before or equal to end date.' }
   }
-  if (daysDiff >= 31) {
+
+  if (daysDifference >= 31) {
     return { valid: false, error: 'Date range cannot exceed 31 days.' }
   }
+
   return { valid: true }
 }
 
@@ -82,13 +84,10 @@ function ErrorMessage({ message }) {
   )
 }
 
-function ScrapeForm({ onResults }) {
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0])
-  const [startDate, setStartDate] = useState(() => {
-    const twoDaysAgo = new Date()
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
-    return twoDaysAgo.toISOString().split('T')[0]
-  })
+function ScrapeForm({ loadFeed, onSuccess }) {
+  const defaultRange = getDefaultFeedDateRange()
+  const [startDate, setStartDate] = useState(() => defaultRange.startDate)
+  const [endDate, setEndDate] = useState(() => defaultRange.endDate)
   const [progress, setProgress] = useState(0)
 
   const [state, formAction, isPending] = useActionState(
@@ -102,20 +101,24 @@ function ScrapeForm({ onResults }) {
       }
 
       setProgress(10)
-      const interval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 5, 90))
+      const intervalId = window.setInterval(() => {
+        setProgress((previousProgress) => Math.min(previousProgress + 5, 90))
       }, 500)
 
       try {
-        const results = await scrapeNewsletters(start, end)
-        clearInterval(interval)
+        await loadFeed({
+          startDate: start,
+          endDate: end,
+          useSessionCache: false
+        })
+        window.clearInterval(intervalId)
         setProgress(100)
-        onResults(results)
+        onSuccess()
         return { success: true }
-      } catch (err) {
-        clearInterval(interval)
+      } catch (error) {
+        window.clearInterval(intervalId)
         setProgress(0)
-        return { error: err.message || 'Network error' }
+        return { error: error.message || 'Network error' }
       }
     },
     { success: false }
@@ -131,13 +134,13 @@ function ScrapeForm({ onResults }) {
             id="start_date"
             label="Start Date"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={(event) => setStartDate(event.target.value)}
           />
           <DateInput
             id="end_date"
             label="End Date"
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={(event) => setEndDate(event.target.value)}
           />
         </div>
 

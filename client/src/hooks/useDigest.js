@@ -1,12 +1,12 @@
-import DOMPurify from 'dompurify'
-import { marked } from 'marked'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useInteraction } from '../contexts/InteractionContext'
+import { markdownToHtml } from '../lib/markdownUtils'
+import { createRequestToken } from '../lib/requestUtils'
 import { logTransition } from '../lib/stateTransitionLogger'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
+import { acquireZenLock, releaseZenLock } from '../lib/zenLock'
 import { ArticleLifecycleEventType, reduceArticleLifecycle } from '../reducers/articleLifecycleReducer'
 import * as summaryDataReducer from '../reducers/summaryDataReducer'
-import { acquireZenLock, releaseZenLock } from './useSummary'
 import { getCachedStorageValue, setStorageValueAsync, useSupabaseStorage } from './useSupabaseStorage'
 
 const DIGEST_LOCK_OWNER = 'digest'
@@ -42,14 +42,7 @@ export function useDigest(results) {
   const status = summaryDataReducer.getSummaryDataStatus(data)
   const markdown = data?.markdown || ''
 
-  const html = (() => {
-    if (!markdown) return ''
-    try {
-      return DOMPurify.sanitize(marked.parse(markdown))
-    } catch {
-      return ''
-    }
-  })()
+  const html = markdownToHtml(markdown)
 
   const errorMessage = data?.errorMessage || null
   const isAvailable = status === summaryDataReducer.SummaryDataStatus.AVAILABLE && markdown
@@ -151,8 +144,6 @@ export function useDigest(results) {
       return { ...current, digest: { ...(current.digest || {}), ...digestPatch } }
     })
   }, [])
-
-  const createRequestToken = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
   const trigger = (articleDescriptors) => {
     const payloads = results?.payloads

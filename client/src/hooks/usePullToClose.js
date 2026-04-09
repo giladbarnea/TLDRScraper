@@ -1,43 +1,49 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { useTrackedState } from './useTrackedState'
 
-export function usePullToClose({ containerRef, scrollRef, onClose, threshold = 80 }) {
-  const [pullOffset, setPullOffset] = useState(0)
-  const pullOffsetRef = useRef(0)
+export function usePullToClose({ containerRef, scrollRef, onClose, threshold = 80, enabled = true }) {
+  const [pullOffset, setPullOffset, pullOffsetRef] = useTrackedState(0)
   const startY = useRef(null)
   const isPulling = useRef(false)
 
   useEffect(() => {
-    pullOffsetRef.current = pullOffset
-  }, [pullOffset])
+    if (!enabled) {
+      setPullOffset(0)
+      startY.current = null
+      isPulling.current = false
+      return
+    }
 
-  useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
-    const handleTouchStart = (e) => {
-      const touchedScrollArea = scrollRef.current?.contains(e.target)
+    function handleTouchStart(event) {
+      const touchedScrollArea = scrollRef.current?.contains(event.target)
       if (!touchedScrollArea || scrollRef.current?.scrollTop === 0) {
-        startY.current = e.touches[0].clientY
+        startY.current = event.touches[0].clientY
       }
     }
 
-    const handleTouchMove = (e) => {
+    function handleTouchMove(event) {
       if (startY.current === null) return
 
-      const diff = e.touches[0].clientY - startY.current
+      const difference = event.touches[0].clientY - startY.current
 
-      if (diff > 0) {
-        e.preventDefault()
+      if (difference > 0) {
+        event.preventDefault()
         isPulling.current = true
-        setPullOffset(diff * 0.5)
-      } else if (diff < -10) {
+        setPullOffset(difference * 0.5)
+        return
+      }
+
+      if (difference < -10) {
         startY.current = null
         isPulling.current = false
         setPullOffset(0)
       }
     }
 
-    const handleTouchEnd = () => {
+    function handleTouchEnd() {
       if (isPulling.current && pullOffsetRef.current > threshold) {
         onClose()
       }
@@ -55,7 +61,7 @@ export function usePullToClose({ containerRef, scrollRef, onClose, threshold = 8
       container.removeEventListener('touchmove', handleTouchMove)
       container.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [containerRef, scrollRef, onClose, threshold])
+  }, [containerRef, enabled, onClose, pullOffsetRef, scrollRef, setPullOffset, threshold])
 
   return { pullOffset }
 }

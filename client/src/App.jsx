@@ -7,69 +7,18 @@ import SelectionActionDock from './components/SelectionActionDock'
 import ToastContainer from './components/ToastContainer'
 import { InteractionProvider, useInteraction } from './contexts/InteractionContext'
 import { useDigest } from './hooks/useDigest'
-import { getCachedStorageValue, mergeIntoCache, setStorageValueAsync } from './hooks/useSupabaseStorage'
+import { getDefaultFeedDateRange, useFeedLoader } from './hooks/useFeedLoader'
+import { getCachedStorageValue, setStorageValueAsync } from './hooks/useSupabaseStorage'
 import { publishArticleAction } from './lib/articleActionBus'
-import { scrapeNewsletters } from './lib/scraper'
-import { logTransition } from './lib/stateTransitionLogger'
-import { getDailyPayloadsRange } from './lib/storageApi'
+import { extractSelectedArticleDescriptors, getSelectedArticles, groupSelectedByDate } from './lib/selectionUtils'
 import { getNewsletterScrapeKey } from './lib/storageKeys'
 import { ArticleLifecycleEventType, reduceArticleLifecycle } from './reducers/articleLifecycleReducer'
 import * as summaryDataReducer from './reducers/summaryDataReducer'
 
-const SERVER_ORIGIN_FIELDS = ['url', 'title', 'articleMeta', 'issueDate', 'category', 'sourceId', 'section', 'sectionEmoji', 'sectionOrder', 'newsletterType']
-
-function mergePreservingLocalState(freshPayload, localPayload) {
-  if (!localPayload) return freshPayload
-  const localByUrl = new Map(localPayload.articles.map(a => [a.url, a]))
-  return {
-    ...freshPayload,
-    articles: freshPayload.articles.map(article => {
-      const local = localByUrl.get(article.url)
-      if (!local) return { ...article, issueDate: freshPayload.date }
-      const freshFields = {}
-      for (const k of SERVER_ORIGIN_FIELDS) freshFields[k] = article[k]
-      freshFields.issueDate = freshPayload.date
-      return { ...local, ...freshFields }
-    }),
-    digest: localPayload.digest
-  }
-}
-
 function getLivePayload(date, fallbackPayloads) {
-  const live = getCachedStorageValue(getNewsletterScrapeKey(date))
-  if (live) return live
+  const livePayload = getCachedStorageValue(getNewsletterScrapeKey(date))
+  if (livePayload) return livePayload
   return fallbackPayloads?.find((payload) => payload.date === date) || null
-}
-
-function getSelectedArticles(selectedIds, payloads) {
-  if (!payloads) return []
-  const selectedArticles = []
-
-  for (const payload of payloads) {
-    const livePayload = getLivePayload(payload.date, payloads)
-    if (!livePayload?.articles) continue
-
-    for (const article of livePayload.articles) {
-      if (selectedIds.has(`article-${article.url}`)) {
-        selectedArticles.push(article)
-      }
-    }
-  }
-
-  return selectedArticles
-}
-
-function extractSelectedArticleDescriptors(selectedArticles) {
-  return selectedArticles.map(({ url, title, category, sourceId }) => ({ url, title, category, sourceId }))
-}
-
-function groupSelectedByDate(selectedArticles) {
-  const grouped = new Map()
-  for (const article of selectedArticles) {
-    if (!grouped.has(article.issueDate)) grouped.set(article.issueDate, [])
-    grouped.get(article.issueDate).push(article)
-  }
-  return grouped
 }
 
 function toBrowserUrl(url) {
@@ -78,17 +27,19 @@ function toBrowserUrl(url) {
 }
 
 async function applyBatchLifecyclePatch(selectedArticles, eventFactory) {
-  const groupedByDate = groupSelectedByDate(selectedArticles)
+  const groupedArticlesByDate = groupSelectedByDate(selectedArticles)
 
-  for (const [date, articles] of groupedByDate.entries()) {
-    const urlSet = new Set(articles.map((article) => article.url))
+  for (const [date, articles] of groupedArticlesByDate.entries()) {
+    const selectedUrls = new Set(articles.map((article) => article.url))
     const storageKey = getNewsletterScrapeKey(date)
-    await setStorageValueAsync(storageKey, (current) => {
-      if (!current) return current
+
+    await setStorageValueAsync(storageKey, (currentPayload) => {
+      if (!currentPayload) return currentPayload
+
       return {
-        ...current,
-        articles: current.articles.map((article) => {
-          if (!urlSet.has(article.url)) return article
+        ...currentPayload,
+        articles: currentPayload.articles.map((article) => {
+          if (!selectedUrls.has(article.url)) return article
           const event = eventFactory(article)
           return { ...article, ...reduceArticleLifecycle(article, event).patch }
         })
@@ -97,7 +48,7 @@ async function applyBatchLifecyclePatch(selectedArticles, eventFactory) {
   }
 }
 
-function AppContent({ results, setResults, showSettings, setShowSettings }) {
+function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
   const { selectedIds, isSelectMode, clearSelection } = useInteraction()
   const digest = useDigest(results)
   const [, setStorageVersion] = useState(0)
@@ -113,7 +64,13 @@ function AppContent({ results, setResults, showSettings, setShowSettings }) {
     month: 'long',
     day: 'numeric'
   })
-  const selectedArticles = getSelectedArticles(selectedIds, results?.payloads)
+
+  const livePayloads = results?.payloads
+    ? results.payloads
+      .map((payload) => getLivePayload(payload.date, results.payloads))
+      .filter(Boolean)
+    : []
+  const selectedArticles = getSelectedArticles(selectedIds, livePayloads)
   const selectedDescriptors = extractSelectedArticleDescriptors(selectedArticles)
   const selectedCount = selectedIds.size
   const singleSelectedId = selectedCount === 1 ? [...selectedIds][0] : null
@@ -138,28 +95,32 @@ function AppContent({ results, setResults, showSettings, setShowSettings }) {
 
   async function handleMarkSelectedRead() {
     if (selectedArticles.length === 0) return
+
     const markedAt = new Date().toISOString()
     await applyBatchLifecyclePatch(selectedArticles, () => ({
       type: ArticleLifecycleEventType.MARK_READ,
-      markedAt,
+      markedAt
     }))
     clearSelection()
   }
 
   async function handleMarkSelectedRemoved() {
     if (selectedArticles.length === 0) return
+
     await applyBatchLifecyclePatch(selectedArticles, () => ({
-      type: ArticleLifecycleEventType.MARK_REMOVED,
+      type: ArticleLifecycleEventType.MARK_REMOVED
     }))
     clearSelection()
   }
 
   function handleSummarizeSingle() {
     if (!singleSelectedArticle) return
+
     if (canOpenSingleSummary) {
       publishArticleAction([singleSelectedArticle.url], 'open-summary')
       return
     }
+
     publishArticleAction([singleSelectedArticle.url], 'fetch-summary')
   }
 
@@ -170,12 +131,14 @@ function AppContent({ results, setResults, showSettings, setShowSettings }) {
 
   function handleSummarizeEach() {
     if (selectedCount < 2) return
+
     const actionableUrls = selectedArticles
       .filter((article) => {
         const status = summaryDataReducer.getSummaryDataStatus(article.summary)
         return status === summaryDataReducer.SummaryDataStatus.UNKNOWN || status === summaryDataReducer.SummaryDataStatus.ERROR
       })
       .map((article) => article.url)
+
     if (actionableUrls.length === 0) return
     publishArticleAction(actionableUrls, 'fetch-summary')
   }
@@ -183,8 +146,6 @@ function AppContent({ results, setResults, showSettings, setShowSettings }) {
   return (
     <div className="min-h-screen flex justify-center font-sans bg-slate-50 text-slate-900 selection:bg-brand-100 selection:text-brand-900">
       <div className="w-full max-w-3xl relative">
-
-        {/* Header */}
         <header className="relative z-40 px-6 pt-6 pb-4 bg-transparent">
           <div className="flex justify-between items-center">
             <div>
@@ -209,37 +170,37 @@ function AppContent({ results, setResults, showSettings, setShowSettings }) {
             </div>
           </div>
 
-          {/* Settings / Scrape Form Area */}
           <div className={`
               overflow-hidden transition-all duration-500 ease-in-out
               ${showSettings ? 'max-h-[400px] opacity-100 mt-4' : 'max-h-0 opacity-0'}
           `}>
-             <div className="bg-white rounded-2xl p-5 shadow-elevated border border-slate-200/50">
-                <ScrapeForm onResults={(res) => { setResults(res); setShowSettings(false); }} />
-             </div>
+            <div className="bg-white rounded-2xl p-5 shadow-elevated border border-slate-200/50">
+              <ScrapeForm
+                loadFeed={loadFeed}
+                onSuccess={() => setShowSettings(false)}
+              />
+            </div>
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="px-6">
           {!results ? (
-             <div className="flex flex-col items-center justify-center py-32 opacity-50 animate-pulse">
-                <div className="w-12 h-12 bg-slate-200 rounded-full mb-4"></div>
-                <div className="h-4 w-32 bg-slate-200 rounded mb-2"></div>
-                <div className="h-3 w-24 bg-slate-100 rounded"></div>
-             </div>
+            <div className="flex flex-col items-center justify-center py-32 opacity-50 animate-pulse">
+              <div className="w-12 h-12 bg-slate-200 rounded-full mb-4"></div>
+              <div className="h-4 w-32 bg-slate-200 rounded mb-2"></div>
+              <div className="h-3 w-24 bg-slate-100 rounded"></div>
+            </div>
           ) : (results.payloads && results.payloads.length > 0) ? (
             <Feed payloads={results.payloads} />
           ) : (
             <div className="flex flex-col items-center justify-center py-32 text-slate-400">
-               <p>No newsletters found for this period.</p>
-               <button onClick={() => setShowSettings(true)} className="mt-4 text-brand-600 font-medium hover:underline">
-                 Open settings to scrape
-               </button>
+              <p>No newsletters found for this period.</p>
+              <button onClick={() => setShowSettings(true)} className="mt-4 text-brand-600 font-medium hover:underline">
+                Open settings to scrape
+              </button>
             </div>
           )}
         </main>
-
       </div>
 
       <DigestOverlay
@@ -271,7 +232,7 @@ function AppContent({ results, setResults, showSettings, setShowSettings }) {
 }
 
 function App() {
-  const [results, setResults] = useState(null)
+  const { results, setResults, loadFeed } = useFeedLoader()
   const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
@@ -308,100 +269,28 @@ function App() {
 
   useEffect(() => {
     const controller = new AbortController()
-    const { signal } = controller
+    const { startDate, endDate } = getDefaultFeedDateRange()
 
-    const today = new Date()
-    const twoDaysAgo = new Date(today)
-    twoDaysAgo.setDate(today.getDate() - 2)
-
-    const endDate = today.toISOString().split('T')[0]
-    const startDate = twoDaysAgo.toISOString().split('T')[0]
-
-    const cacheKey = `scrapeResults:${startDate}:${endDate}`
-    const TTL_MS = 10 * 60 * 1000
-
-    const range = `${startDate}..${endDate}`
-
-    const sessionCached = sessionStorage.getItem(cacheKey)
-    if (sessionCached) {
-      const { timestamp, data } = JSON.parse(sessionCached)
-      if (Date.now() - timestamp < TTL_MS) {
-        logTransition('feed', range, 'idle', 'ready', 'sessionStorage')
-        setResults(data)
-        return
-      }
-    }
-
-    async function loadFeed() {
-      let phase1Rendered = false
-
-      logTransition('feed', range, 'idle', 'fetching')
-      
-      // Phase 1: render cached data immediately
-      const cachedPayloads = await getDailyPayloadsRange(startDate, endDate, signal).catch(() => [])
-      if (signal.aborted) return
-      
-      if (cachedPayloads.length > 0) {
-        phase1Rendered = true
-        const articleCount = cachedPayloads.reduce((sum, p) => sum + p.articles.length, 0)
-        logTransition('feed', range, 'fetching', 'cached', `${cachedPayloads.length} days, ${articleCount} articles`)
-        setResults({ payloads: cachedPayloads, stats: null })
-      }
-
-      // Phase 2: merge background scrape results
-      const result = await scrapeNewsletters(startDate, endDate, signal)
-      if (signal.aborted) return
-
-      if (phase1Rendered) {
-        const cachedDates = new Set(cachedPayloads.map(p => p.date))
-        const cachedUrlsByDate = new Map(
-          cachedPayloads.map(p => [p.date, new Set(p.articles.map(a => a.url))])
-        )
-        let newArticleCount = 0
-        for (const freshPayload of result.payloads) {
-          if (cachedDates.has(freshPayload.date)) {
-            const cachedUrls = cachedUrlsByDate.get(freshPayload.date)
-            newArticleCount += freshPayload.articles.filter(a => !cachedUrls.has(a.url)).length
-            mergeIntoCache(
-              getNewsletterScrapeKey(freshPayload.date),
-              local => mergePreservingLocalState(freshPayload, local)
-            )
-          }
-        }
-        const newDayPayloads = result.payloads.filter(p => !cachedDates.has(p.date))
-        if (newDayPayloads.length > 0) {
-          setResults(prev => ({
-            ...result,
-            payloads: [...(prev?.payloads || []), ...newDayPayloads]
-          }))
-        }
-        logTransition('feed', range, 'cached', 'merged', `${newArticleCount} new articles, ${newDayPayloads.length} new days`)
-      } else {
-        const articleCount = result.payloads.reduce((sum, p) => sum + p.articles.length, 0)
-        logTransition('feed', range, 'fetching', 'ready', `${result.payloads.length} days, ${articleCount} articles`)
-        setResults(result)
-      }
-
-      try {
-        sessionStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: result }))
-      } catch {}
-    }
-
-    loadFeed().catch(err => {
-      if (err.name === 'AbortError') return
-      console.error('Failed to load feed:', err)
-      setResults(prev => prev ?? { payloads: [], stats: null })
+    loadFeed({
+      startDate,
+      endDate,
+      signal: controller.signal,
+      useSessionCache: true
+    }).catch((error) => {
+      if (error.name === 'AbortError') return
+      console.error('Failed to load feed:', error)
+      setResults((previousResults) => previousResults ?? { payloads: [], stats: null })
     })
 
     return () => controller.abort()
-  }, [])
+  }, [loadFeed, setResults])
 
   return (
     <InteractionProvider>
       <ToastContainer />
       <AppContent
         results={results}
-        setResults={setResults}
+        loadFeed={loadFeed}
         showSettings={showSettings}
         setShowSettings={setShowSettings}
       />
