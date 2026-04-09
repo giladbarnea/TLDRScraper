@@ -1,7 +1,7 @@
 ---
 name: client architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-04-09 09:08
+last_updated: 2026-04-09 09:14, 81662be
 scope: exhaustively-wide, equally high level view of the entire client architecture.
 ---
 # Client Architecture

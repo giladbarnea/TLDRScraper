@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-09 09:12
+last_updated: 2026-04-09 09:14, 81662be
 scope: Domain Hooks (useSummary.js, useDigest.js, useArticleState.js, articleActionBus.js, toastBus.js)
 ---
 # Domain Hooks Analysis
