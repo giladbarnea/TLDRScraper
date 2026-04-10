@@ -177,6 +177,17 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"blog": "Google DeepMind"},
         sort_order=12,  # 3.2/week - consistent
     ),
+    "google_research": NewsletterSourceConfig(
+        source_id="google_research",
+        display_name="Google Research Blog",
+        base_url="https://research.google",
+        url_pattern="",
+        types=["blog"],
+        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
+        article_pattern="",
+        category_display_names={"blog": "Google Research Blog"},
+        sort_order=11,  # Frequent, high-signal research posts
+    ),
     "pointer": NewsletterSourceConfig(
         source_id="pointer",
         display_name="Pointer",

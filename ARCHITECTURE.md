@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-09 09:14, 81662be
+last_updated: 2026-04-10 19:35
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -90,7 +90,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 │  │  - scrape_date_range() │   │  - tldr_url()                       │ │
 │  │  - Adapter Factory     │   │  - url_to_markdown()                │ │
 │  │                        │   │  - scrape_url()                     │ │
-│  │  23 Adapter Classes:   │   │  - _call_llm()                      │ │
+│  │  24 Adapter Classes:   │   │  - _call_llm()                      │ │
 │  │  TLDR, HackerNews,     │   │                                      │ │
 │  │  Anthropic, Stripe,    │   │                                      │ │
 │  │  Simon Willison, etc.  │   │                                      │ │
