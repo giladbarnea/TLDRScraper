@@ -6,16 +6,9 @@ const CLOSED_MENU_STATE = Object.freeze({
   anchorY: 0,
 })
 
-function isMouseContextMenuEvent(event) {
-  if (event.nativeEvent?.sourceCapabilities?.firesTouchEvents) return false
-  const pointerType = event.nativeEvent?.pointerType
-  return !pointerType || pointerType === 'mouse'
-}
-
 export function useOverlayContextMenu(enabled = true) {
   const [menuState, setMenuState] = useState(CLOSED_MENU_STATE)
   const menuRef = useRef(null)
-  const lastPointerTypeRef = useRef(null)
 
   const closeMenu = useCallback(() => {
     setMenuState(CLOSED_MENU_STATE)
@@ -23,8 +16,6 @@ export function useOverlayContextMenu(enabled = true) {
 
   const handleContextMenu = useCallback((event) => {
     if (!enabled) return
-    if (!isMouseContextMenuEvent(event)) return
-    if (lastPointerTypeRef.current && lastPointerTypeRef.current !== 'mouse') return
 
     event.preventDefault()
     setMenuState({
@@ -33,10 +24,6 @@ export function useOverlayContextMenu(enabled = true) {
       anchorY: event.clientY,
     })
   }, [enabled])
-
-  const handlePointerDownCapture = useCallback((event) => {
-    lastPointerTypeRef.current = event.pointerType || null
-  }, [])
 
   useEffect(() => {
     if (enabled) return
@@ -73,7 +60,6 @@ export function useOverlayContextMenu(enabled = true) {
     ...menuState,
     menuRef,
     handleContextMenu,
-    handlePointerDownCapture,
     closeMenu,
   }
 }

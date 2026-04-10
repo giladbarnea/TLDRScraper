@@ -50,7 +50,6 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
         onClose={onClose}
         onMarkRemoved={onMarkRemoved}
         onContentContextMenu={contextMenu.handleContextMenu}
-        onContentPointerDownCapture={contextMenu.handlePointerDownCapture}
       >
         <div className={overlayProseClassName} dangerouslySetInnerHTML={{ __html: html }} />
       </BaseOverlay>

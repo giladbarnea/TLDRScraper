@@ -16,7 +16,6 @@ function BaseOverlay({
   onClose,
   onMarkRemoved,
   onContentContextMenu,
-  onContentPointerDownCapture,
   children,
 }) {
   const containerRef = useRef(null)
@@ -99,7 +98,6 @@ function BaseOverlay({
         <div
           ref={scrollRef}
           onContextMenu={onContentContextMenu}
-          onPointerDownCapture={onContentPointerDownCapture}
           className="flex-1 overflow-y-auto bg-white"
         >
           <div

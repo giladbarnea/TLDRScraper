@@ -36,7 +36,6 @@ function DigestOverlay({ html, expanded, articleCount, errorMessage, onClose, on
         onClose={onClose}
         onMarkRemoved={onMarkRemoved}
         onContentContextMenu={contextMenu.handleContextMenu}
-        onContentPointerDownCapture={contextMenu.handlePointerDownCapture}
       >
         {errorMessage && !html ? (
           <div className="text-sm text-red-500 bg-red-50 p-4 rounded-lg">{errorMessage}</div>
