@@ -59,6 +59,9 @@ def _get_adapter_for_source(config):
     elif config.source_id == "deepmind":
         from adapters.deepmind_adapter import DeepMindAdapter
         return DeepMindAdapter(config)
+    elif config.source_id == "google_research":
+        from adapters.google_research_adapter import GoogleResearchAdapter
+        return GoogleResearchAdapter(config)
     elif config.source_id == "pointer":
         from adapters.pointer_adapter import PointerAdapter
         return PointerAdapter(config)

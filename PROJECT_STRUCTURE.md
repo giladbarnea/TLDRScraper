@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-09 14:08
+last_updated: 2026-04-10 19:35
 ---
 .
 ├── .agents
@@ -72,6 +72,8 @@ last_updated: 2026-04-09 14:08
 │     ├── i-typeset
 │     │  └── SKILL.md
 │     ├── plan
+│     │  └── SKILL.md
+│     ├── prompt-subagent
 │     │  └── SKILL.md
 │     ├── react-best-practices
 │     │  ├── AGENTS.md
@@ -262,22 +264,14 @@ last_updated: 2026-04-09 14:08
 │  ├── 26-04-04-workflow-machine
 │  │  ├── discussion-raw.md
 │  │  └── plan.md
-│  ├── 26-04-07-context-menu-research
-│  │  ├── plans
-│  │  │  ├── plan-final.md
-│  │  │  ├── plan-g.md
-│  │  │  └── plan-x.md
-│  │  ├── research
-│  │  │  └── description.md
-│  │  └── relevant-files.md
-│  └── 26-04-08-client-code-dedup
-│     └── locations
-│        ├── data-persistence.md
-│        ├── domain-hooks.md
-│        ├── feed-app.md
-│        ├── interaction-selection.md
-│        ├── overlays-gestures.md
-│        └── presentation.md
+│  └── 26-04-07-context-menu-research
+│     ├── plans
+│     │  ├── plan-final.md
+│     │  ├── plan-g.md
+│     │  └── plan-x.md
+│     ├── research
+│     │  └── description.md
+│     └── relevant-files.md
 ├── .gitattributes
 ├── .gitignore
 ├── .vercelignore
