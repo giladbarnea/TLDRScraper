@@ -19,8 +19,10 @@ export function usePullToClose({ containerRef, scrollRef, onClose, threshold = 8
 
     function handleTouchStart(event) {
       const touchedScrollArea = scrollRef.current?.contains(event.target)
-      if (!touchedScrollArea || scrollRef.current?.scrollTop === 0) {
+      const scrollTop = scrollRef.current?.scrollTop
+      if (!touchedScrollArea || scrollTop === 0) {
         startY.current = event.touches[0].clientY
+        console.log('[pull] touchstart → startY set', startY.current, '| inScrollArea:', touchedScrollArea, '| scrollTop:', scrollTop)
       }
     }
 
@@ -30,6 +32,7 @@ export function usePullToClose({ containerRef, scrollRef, onClose, threshold = 8
       const difference = event.touches[0].clientY - startY.current
 
       if (difference > 0) {
+        console.log('[pull] touchmove → preventDefault, diff=', difference.toFixed(1))
         event.preventDefault()
         isPulling.current = true
         setPullOffset(difference * 0.5)
@@ -44,6 +47,7 @@ export function usePullToClose({ containerRef, scrollRef, onClose, threshold = 8
     }
 
     function handleTouchEnd() {
+      console.log('[pull] touchend | isPulling:', isPulling.current, '| offset:', pullOffsetRef.current.toFixed(1))
       if (isPulling.current && pullOffsetRef.current > threshold) {
         onClose()
       }

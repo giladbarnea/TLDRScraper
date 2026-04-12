@@ -8,7 +8,7 @@ import { useScrollProgress } from '../hooks/useScrollProgress'
 const OVERLAY_OVERSCROLL_THRESHOLD = 60
 const OVERLAY_CONTENT_SHIFT_FACTOR = 0.4
 
-export const overlayProseClassName = 'prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900 prose-headings:tracking-tight prose-h1:text-2xl prose-h1:font-bold prose-h2:text-xl prose-h2:font-semibold prose-h3:text-lg prose-h3:font-semibold prose-blockquote:border-slate-200 prose-strong:text-slate-900'
+export const overlayProseClassName = 'prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900 prose-headings:tracking-tight prose-h1:text-2xl prose-h1:font-bold prose-h2:text-xl prose-h2:font-semibold prose-h3:text-lg prose-h3:font-semibold prose-blockquote:border-slate-200 prose-strong:text-slate-900 [&]:[-webkit-touch-callout:none]'
 
 function BaseOverlay({
   expanded = true,
@@ -20,8 +20,74 @@ function BaseOverlay({
 }) {
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
+
+  useEffect(() => {
+    if (!expanded) return
+    const el = scrollRef.current
+    if (!el) return
+
+    let touchInfo = null
+    const LONG_PRESS_MS = 500
+    const MOVE_TOLERANCE = 20
+
+    function handleTouchStart(event) {
+      const touch = event.touches[0]
+      touchInfo = { time: Date.now(), x: touch.clientX, y: touch.clientY }
+      console.log('[longpress] touchstart at', touch.clientX.toFixed(0), touch.clientY.toFixed(0))
+    }
+
+    function handleTouchMove(event) {
+      if (!touchInfo) return
+      const touch = event.touches[0]
+      const dx = Math.abs(touch.clientX - touchInfo.x)
+      const dy = Math.abs(touch.clientY - touchInfo.y)
+      if (dx > MOVE_TOLERANCE || dy > MOVE_TOLERANCE) {
+        console.log('[longpress] cancelled — moved', dx.toFixed(0), dy.toFixed(0))
+        touchInfo = null
+      }
+    }
+
+    function handleTouchEnd(event) {
+      if (!touchInfo) {
+        console.log('[longpress] touchend — no active tracking')
+        return
+      }
+      const elapsed = Date.now() - touchInfo.time
+      const touch = event.changedTouches[0]
+      console.log('[longpress] touchend — elapsed:', elapsed, 'ms')
+
+      if (elapsed >= LONG_PRESS_MS) {
+        console.log('[longpress] ✓ detected, dispatching contextmenu at', touch.clientX.toFixed(0), touch.clientY.toFixed(0))
+        event.target.dispatchEvent(new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+        }))
+      }
+      touchInfo = null
+    }
+
+    function handleTouchCancel() {
+      console.log('[longpress] touchcancel — iOS hijacked')
+      touchInfo = null
+    }
+
+    el.addEventListener('touchstart', handleTouchStart, { passive: true })
+    el.addEventListener('touchmove', handleTouchMove, { passive: true })
+    el.addEventListener('touchend', handleTouchEnd, { passive: true })
+    el.addEventListener('touchcancel', handleTouchCancel, { passive: true })
+
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart)
+      el.removeEventListener('touchmove', handleTouchMove)
+      el.removeEventListener('touchend', handleTouchEnd)
+      el.removeEventListener('touchcancel', handleTouchCancel)
+    }
+  }, [expanded])
+
   const { progress, hasScrolled } = useScrollProgress(scrollRef, expanded)
-  const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose, enabled: expanded })
+  const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose, enabled: false })
   const {
     overscrollOffset,
     isOverscrolling,
@@ -58,6 +124,7 @@ function BaseOverlay({
 
   return createPortal(
     <div
+      onClick={(e) => e.stopPropagation()}
       className="fixed inset-0 z-[100]"
       style={{
         transform: `translateY(${pullOffset}px)`,
@@ -98,6 +165,7 @@ function BaseOverlay({
         <div
           ref={scrollRef}
           onContextMenu={onContentContextMenu}
+          onPointerDown={(e) => console.log('[overlay] pointerdown | type:', e.pointerType)}
           className="flex-1 overflow-y-auto bg-white"
         >
           <div

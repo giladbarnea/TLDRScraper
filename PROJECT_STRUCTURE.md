@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-10 20:17
+last_updated: 2026-04-12 13:30
 ---
 .
 ├── .agents
@@ -122,7 +122,9 @@ last_updated: 2026-04-10 20:17
 │     └── WORKFLOW_DIAGRAM.md
 ├── .pi
 │  ├── npm
-│  │  └── .gitignore
+│  │  ├── .gitignore
+│  │  ├── package-lock.json
+│  │  └── package.json
 │  └── settings.json
 ├── adapters
 │  ├── __init__.py
@@ -136,7 +138,6 @@ last_updated: 2026-04-10 20:17
 │  ├── deepmind_adapter.py
 │  ├── hackernews_adapter.py
 │  ├── hillel_wayne_adapter.py
-│  ├── infoq_adapter.py
 │  ├── jessitron_adapter.py
 │  ├── lenny_newsletter_adapter.py
 │  ├── lucumr_adapter.py
@@ -274,7 +275,6 @@ last_updated: 2026-04-10 20:17
 │     ├── research
 │     │  └── description.md
 │     └── relevant-files.md
-├── .envv
 ├── .gitattributes
 ├── .gitignore
 ├── .vercelignore

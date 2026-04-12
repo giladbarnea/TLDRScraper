@@ -10,14 +10,24 @@ export function useOverlayContextMenu(enabled = true) {
   const [menuState, setMenuState] = useState(CLOSED_MENU_STATE)
   const menuRef = useRef(null)
 
+  useEffect(() => {
+    function onNativeContextMenu(event) {
+      console.log('[ctx:doc] native contextmenu | target:', event.target?.tagName, '| pos:', event.clientX, event.clientY, '| defaultPrevented:', event.defaultPrevented)
+    }
+    document.addEventListener('contextmenu', onNativeContextMenu, true)
+    return () => document.removeEventListener('contextmenu', onNativeContextMenu, true)
+  }, [])
+
   const closeMenu = useCallback(() => {
     setMenuState(CLOSED_MENU_STATE)
   }, [])
 
   const handleContextMenu = useCallback((event) => {
+    console.log('[ctx] contextmenu fired | enabled:', enabled, '| pointerType:', event.nativeEvent?.pointerType ?? 'n/a', '| touchEvent:', !!event.nativeEvent?.sourceCapabilities?.firesTouchEvents, '| pos:', event.clientX, event.clientY, '| defaultPrevented:', event.defaultPrevented)
     if (!enabled) return
 
     event.preventDefault()
+    console.log('[ctx] custom menu opening at', event.clientX, event.clientY)
     setMenuState({
       isOpen: true,
       anchorX: event.clientX,
