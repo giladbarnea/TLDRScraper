@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-10 19:35
+last_updated: 2026-04-13 21:04
 ---
 .
 ├── .agents
@@ -131,14 +131,12 @@ last_updated: 2026-04-10 19:35
 │  ├── anthropic_news_adapter.py
 │  ├── bytebytego_adapter.py
 │  ├── claude_blog_adapter.py
-│  ├── cloudflare_adapter.py
 │  ├── danluu_adapter.py
 │  ├── deepmind_adapter.py
+│  ├── google_research_adapter.py
 │  ├── hackernews_adapter.py
 │  ├── hillel_wayne_adapter.py
-│  ├── infoq_adapter.py
 │  ├── jessitron_adapter.py
-│  ├── lenny_newsletter_adapter.py
 │  ├── lucumr_adapter.py
 │  ├── martin_fowler_adapter.py
 │  ├── netflix_adapter.py
@@ -250,6 +248,7 @@ last_updated: 2026-04-10 19:35
 ├── tests
 │  ├── unit
 │  │  ├── test_canonicalize_url.py
+│  │  ├── test_google_research_adapter.py
 │  │  ├── test_should_rescrape.py
 │  │  └── test_trendshift_adapter.py
 │  ├── test_google_adk_smoke.py
