@@ -87,7 +87,7 @@ class ConsensusResult:
 
 def load_config(*, thinking: str = "high", max_turns: int = DEFAULT_MAX_TURNS) -> ConsensusConfig:
     return ConsensusConfig(
-        anthropic_model=util.resolve_env_var("ANTHROPIC_MODEL", "claude-opus-4-6-20250410"),
+        anthropic_model=util.resolve_env_var("ANTHROPIC_MODEL", "claude-opus-4-6"),
         openai_model=util.resolve_env_var("OPENAI_MODEL", "gpt-5.4"),
         gemini_model=util.resolve_env_var("GEMINI_MODEL", "gemini-3.1-pro-preview"),
         thinking_level=ThinkingLevel(thinking),
