@@ -1,4 +1,6 @@
+import DOMPurify from 'dompurify'
 import { ChevronDown, ChevronUp, Radar, Send, Sparkles } from 'lucide-react'
+import { marked } from 'marked'
 import { useMemo, useState } from 'react'
 import './consensus.css'
 
@@ -14,11 +16,20 @@ const STARTER_PROMPTS = [
   'Should I optimize for speed or maintainability in a one-person product? Give a nuanced recommendation.'
 ]
 
+function MarkdownContent({ content, className }) {
+  const html = DOMPurify.sanitize(marked.parse(content))
+  return <div className={`consensus-md${className ? ` ${className}` : ''}`} dangerouslySetInnerHTML={{ __html: html }} />
+}
+
 function MessageBubble({ message }) {
   return (
     <div className={`consensus-message consensus-message-${message.role}`}>
       <div className="consensus-message-meta">{message.role === 'user' ? 'You' : 'Consensus'}</div>
-      <div className="consensus-message-body">{message.content}</div>
+      <div className="consensus-message-body">
+        {message.role === 'assistant'
+          ? <MarkdownContent content={message.content} />
+          : message.content}
+      </div>
     </div>
   )
 }
@@ -55,7 +66,7 @@ function TracePanel({ rounds, reachedConsensus, stopReason, expanded, onToggle }
                 {Object.entries(round.responses).map(([modelName, response]) => (
                   <div key={modelName} className="consensus-response">
                     <h4>{MODEL_LABELS[modelName] || modelName}</h4>
-                    <pre>{response}</pre>
+                    <MarkdownContent content={response} className="consensus-trace-md" />
                   </div>
                 ))}
               </details>
@@ -82,7 +93,7 @@ export default function ConsensusApp() {
   const [rounds, setRounds] = useState([])
   const [reachedConsensus, setReachedConsensus] = useState(null)
   const [stopReason, setStopReason] = useState(null)
-  const [traceExpanded, setTraceExpanded] = useState(true)
+  const [traceExpanded, setTraceExpanded] = useState(window.innerWidth > 980)
 
   const canSend = useMemo(() => inputValue.trim().length > 0 && !isRunning, [inputValue, isRunning])
 
