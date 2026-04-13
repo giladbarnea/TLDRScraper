@@ -22,6 +22,7 @@ function OverlayContextMenu({ isOpen, anchorX, anchorY, actions, onClose, menuRe
 
   useEffect(() => {
     if (!isOpen) return
+    if (matchMedia('(pointer: coarse)').matches) return
     firstActionRef.current?.focus({ preventScroll: true })
   }, [isOpen])
 

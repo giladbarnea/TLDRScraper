@@ -31,27 +31,39 @@ export function useOverlayContextMenu(enabled = true) {
     if (!enabled) return
     if (!matchMedia('(pointer: coarse)').matches) return
 
+    let debounceTimer = null
+
     function handleSelectionChange() {
       const selection = window.getSelection()
       if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+        clearTimeout(debounceTimer)
         if (openedBySelectionRef.current) closeMenu()
         return
       }
 
-      const range = selection.getRangeAt(0)
-      const rect = range.getBoundingClientRect()
-      console.log('[ctx:selection] text selected, opening menu below rect bottom:', rect.bottom.toFixed(0))
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        const sel = window.getSelection()
+        if (!sel || sel.isCollapsed || !sel.toString().trim()) return
 
-      openedBySelectionRef.current = true
-      setMenuState({
-        isOpen: true,
-        anchorX: rect.left + rect.width / 2,
-        anchorY: rect.bottom + 12,
-      })
+        const range = sel.getRangeAt(0)
+        const rect = range.getBoundingClientRect()
+        console.log('[ctx:selection] opening menu below rect bottom:', rect.bottom.toFixed(0))
+
+        openedBySelectionRef.current = true
+        setMenuState({
+          isOpen: true,
+          anchorX: rect.left + rect.width / 2,
+          anchorY: rect.bottom + 12,
+        })
+      }, 200)
     }
 
     document.addEventListener('selectionchange', handleSelectionChange)
-    return () => document.removeEventListener('selectionchange', handleSelectionChange)
+    return () => {
+      clearTimeout(debounceTimer)
+      document.removeEventListener('selectionchange', handleSelectionChange)
+    }
   }, [enabled, closeMenu])
 
   useEffect(() => {
