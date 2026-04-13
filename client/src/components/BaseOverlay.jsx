@@ -166,7 +166,7 @@ function BaseOverlay({
           ref={scrollRef}
           onContextMenu={onContentContextMenu}
           onPointerDown={(e) => console.log('[overlay] pointerdown | type:', e.pointerType)}
-          className="flex-1 overflow-y-auto bg-white"
+          className="flex-1 overflow-y-auto bg-white coarse:select-none"
         >
           <div
             className="px-6 pt-2 pb-5 md:px-8 md:pt-3 md:pb-6"
