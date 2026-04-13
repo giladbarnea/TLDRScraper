@@ -119,6 +119,9 @@
 }
 
 .consensus-message-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.76rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -249,6 +252,7 @@
   gap: 0.56rem;
   max-height: min(68dvh, 820px);
   overflow-y: auto;
+  min-width: 0;
   padding-right: 0.25rem;
 }
 
@@ -257,6 +261,7 @@
   border-radius: 0.8rem;
   padding: 0.6rem;
   background: #fbfdff;
+  min-width: 0;
 }
 
 .consensus-round summary {
@@ -277,8 +282,10 @@
   margin-top: 0.75rem;
 }
 
-.consensus-response h4 {
-  margin: 0;
+.consensus-response-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0.42rem 0.75rem;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -288,27 +295,46 @@
   color: #355a89;
 }
 
-.consensus-response[data-model="claude"] h4 {
+.consensus-response[data-model="claude"] .consensus-response-header {
   background: #f3f0ff;
   border-color: #d4c5f9;
   color: #6d28d9;
 }
 
-.consensus-response[data-model="gpt"] h4 {
+.consensus-response[data-model="gpt"] .consensus-response-header {
   background: #ecfdf5;
   border-color: #a7f3d0;
   color: #065f46;
 }
 
-.consensus-response[data-model="gemini"] h4 {
+.consensus-response[data-model="gemini"] .consensus-response-header {
   background: #eff6ff;
   border-color: #bfdbfe;
   color: #1d4ed8;
 }
 
+.consensus-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.55;
+  padding: 0.1rem;
+  border-radius: 0.25rem;
+  flex-shrink: 0;
+}
+
+.consensus-copy-btn:hover {
+  opacity: 1;
+}
+
 .consensus-response-body {
   max-height: 180px;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
   padding: 0.65rem 0.75rem;
   overscroll-behavior: contain;
 }

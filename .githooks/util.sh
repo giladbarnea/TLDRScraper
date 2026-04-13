@@ -31,6 +31,8 @@ function generate_project_structure() {
 	export PATH="${HOME}/.local/bin:${PATH}"
 	ensure_agent_symlinks "$workdir"
 	local ignore_glob='.git|node_modules|__pycache__|*.pyc|.venv|static|*.vscode|*.cursor|experimental|thoughts/done|docs|.run|.codex|.gemini|.claude/agents|.claude/skills|.pi/agents|.pi/skills|.agents/skills/react-best-practices/rules|.agents/skills/i-frontend-design/reference|.agents/skills/i-critique/reference'
+	local target="PROJECT_STRUCTURE.md"
+	local tmp; tmp=$(mktemp)
 	uv run python3 scripts/generate_tree.py \
 		--classify \
 		--icons \
@@ -38,7 +40,20 @@ function generate_project_structure() {
 		--git-ignore \
 		--all \
 		--ignore-glob "$ignore_glob" \
-		. > PROJECT_STRUCTURE.md
+		. > "$tmp"
+	uv run python3 - "$target" "$tmp" <<'PY'
+import sys, re
+from pathlib import Path
+target, tmp = Path(sys.argv[1]), Path(sys.argv[2])
+tree = tmp.read_text()
+frontmatter = ""
+if target.exists():
+    m = re.match(r'^---\s*\n.*?---\s*\n', target.read_text(), re.DOTALL)
+    if m:
+        frontmatter = m.group(0)
+target.write_text(frontmatter + tree if frontmatter else tree)
+PY
+	rm "$tmp"
 }
 
 function sync_external_dirs() {

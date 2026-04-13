@@ -1,5 +1,5 @@
 import DOMPurify from 'dompurify'
-import { ChevronDown, ChevronUp, Radar, Send, Sparkles } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Copy, Radar, Send, Sparkles } from 'lucide-react'
 import { marked } from 'marked'
 import { useMemo, useState } from 'react'
 import './consensus.css'
@@ -16,6 +16,22 @@ const STARTER_PROMPTS = [
   'Should I optimize for speed or maintainability in a one-person product? Give a nuanced recommendation.'
 ]
 
+function CopyButton({ text }) {
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy() {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <button type="button" className="consensus-copy-btn" onClick={handleCopy} title="Copy to clipboard">
+      {copied ? <Check size={13} /> : <Copy size={13} />}
+    </button>
+  )
+}
+
 function MarkdownContent({ content, className }) {
   const html = DOMPurify.sanitize(marked.parse(content))
   return <div className={`consensus-md${className ? ` ${className}` : ''}`} dangerouslySetInnerHTML={{ __html: html }} />
@@ -24,7 +40,11 @@ function MarkdownContent({ content, className }) {
 function MessageBubble({ message }) {
   return (
     <div className={`consensus-message consensus-message-${message.role}`}>
-      <div className="consensus-message-meta">{message.role === 'user' ? 'You' : 'Consensus'}</div>
+      <div className="consensus-message-meta">
+        {message.role === 'user' ? 'You' : (
+          <>Consensus <CopyButton text={message.content} /></>
+        )}
+      </div>
       <div className="consensus-message-body">
         {message.role === 'assistant'
           ? <MarkdownContent content={message.content} />
@@ -65,7 +85,10 @@ function TracePanel({ rounds, reachedConsensus, stopReason, expanded, onToggle }
                 <summary>Round {round.turn}</summary>
                 {Object.entries(round.responses).map(([modelName, response]) => (
                   <div key={modelName} className="consensus-response" data-model={modelName}>
-                    <h4>{MODEL_LABELS[modelName] || modelName}</h4>
+                    <div className="consensus-response-header">
+                      <span>{MODEL_LABELS[modelName] || modelName}</span>
+                      <CopyButton text={response} />
+                    </div>
                     <div className="consensus-response-body">
                       <MarkdownContent content={response} className="consensus-trace-md" />
                     </div>
