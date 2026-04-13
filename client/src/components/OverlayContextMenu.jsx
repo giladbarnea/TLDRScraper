@@ -32,6 +32,7 @@ function OverlayContextMenu({ isOpen, anchorX, anchorY, actions, onClose, menuRe
   function handleActionClick(action) {
     if (action.disabled) return
 
+    window.getSelection()?.removeAllRanges()
     onClose()
     action.onSelect()
   }

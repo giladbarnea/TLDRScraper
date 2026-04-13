@@ -9,31 +9,50 @@ const CLOSED_MENU_STATE = Object.freeze({
 export function useOverlayContextMenu(enabled = true) {
   const [menuState, setMenuState] = useState(CLOSED_MENU_STATE)
   const menuRef = useRef(null)
-
-  useEffect(() => {
-    function onNativeContextMenu(event) {
-      console.log('[ctx:doc] native contextmenu | target:', event.target?.tagName, '| pos:', event.clientX, event.clientY, '| defaultPrevented:', event.defaultPrevented)
-    }
-    document.addEventListener('contextmenu', onNativeContextMenu, true)
-    return () => document.removeEventListener('contextmenu', onNativeContextMenu, true)
-  }, [])
+  const openedBySelectionRef = useRef(false)
 
   const closeMenu = useCallback(() => {
+    openedBySelectionRef.current = false
     setMenuState(CLOSED_MENU_STATE)
   }, [])
 
   const handleContextMenu = useCallback((event) => {
-    console.log('[ctx] contextmenu fired | enabled:', enabled, '| pointerType:', event.nativeEvent?.pointerType ?? 'n/a', '| touchEvent:', !!event.nativeEvent?.sourceCapabilities?.firesTouchEvents, '| pos:', event.clientX, event.clientY, '| defaultPrevented:', event.defaultPrevented)
     if (!enabled) return
 
     event.preventDefault()
-    console.log('[ctx] custom menu opening at', event.clientX, event.clientY)
     setMenuState({
       isOpen: true,
       anchorX: event.clientX,
       anchorY: event.clientY,
     })
   }, [enabled])
+
+  useEffect(() => {
+    if (!enabled) return
+    if (!matchMedia('(pointer: coarse)').matches) return
+
+    function handleSelectionChange() {
+      const selection = window.getSelection()
+      if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+        if (openedBySelectionRef.current) closeMenu()
+        return
+      }
+
+      const range = selection.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      console.log('[ctx:selection] text selected, opening menu below rect bottom:', rect.bottom.toFixed(0))
+
+      openedBySelectionRef.current = true
+      setMenuState({
+        isOpen: true,
+        anchorX: rect.left + rect.width / 2,
+        anchorY: rect.bottom + 12,
+      })
+    }
+
+    document.addEventListener('selectionchange', handleSelectionChange)
+    return () => document.removeEventListener('selectionchange', handleSelectionChange)
+  }, [enabled, closeMenu])
 
   useEffect(() => {
     if (enabled) return
