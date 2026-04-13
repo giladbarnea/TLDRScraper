@@ -31,38 +31,46 @@ export function useOverlayContextMenu(enabled = true) {
     if (!enabled) return
     if (!matchMedia('(pointer: coarse)').matches) return
 
-    let debounceTimer = null
+    let touchActive = false
+
+    function openMenuFromSelection() {
+      const sel = window.getSelection()
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) return
+
+      const range = sel.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      console.log('[ctx:selection] opening menu below rect bottom:', rect.bottom.toFixed(0))
+
+      openedBySelectionRef.current = true
+      setMenuState({
+        isOpen: true,
+        anchorX: rect.left + rect.width / 2,
+        anchorY: rect.bottom + 12,
+      })
+    }
 
     function handleSelectionChange() {
       const selection = window.getSelection()
       if (!selection || selection.isCollapsed || !selection.toString().trim()) {
-        clearTimeout(debounceTimer)
         if (openedBySelectionRef.current) closeMenu()
         return
       }
+      if (!touchActive) openMenuFromSelection()
+    }
 
-      clearTimeout(debounceTimer)
-      debounceTimer = setTimeout(() => {
-        const sel = window.getSelection()
-        if (!sel || sel.isCollapsed || !sel.toString().trim()) return
-
-        const range = sel.getRangeAt(0)
-        const rect = range.getBoundingClientRect()
-        console.log('[ctx:selection] opening menu below rect bottom:', rect.bottom.toFixed(0))
-
-        openedBySelectionRef.current = true
-        setMenuState({
-          isOpen: true,
-          anchorX: rect.left + rect.width / 2,
-          anchorY: rect.bottom + 12,
-        })
-      }, 200)
+    function handleTouchStart() { touchActive = true }
+    function handleTouchEnd() {
+      touchActive = false
+      openMenuFromSelection()
     }
 
     document.addEventListener('selectionchange', handleSelectionChange)
+    document.addEventListener('touchstart', handleTouchStart, true)
+    document.addEventListener('touchend', handleTouchEnd, true)
     return () => {
-      clearTimeout(debounceTimer)
       document.removeEventListener('selectionchange', handleSelectionChange)
+      document.removeEventListener('touchstart', handleTouchStart, true)
+      document.removeEventListener('touchend', handleTouchEnd, true)
     }
   }, [enabled, closeMenu])
 
