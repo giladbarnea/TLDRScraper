@@ -3,6 +3,8 @@
   background: radial-gradient(circle at 12% 8%, #f9f3ea 0%, #f7f8fb 40%, #eef1f8 100%);
   color: #18212f;
   padding: 1rem;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .consensus-shell {
@@ -103,6 +105,7 @@
 
 .consensus-message {
   max-width: min(88%, 860px);
+  min-width: 0;
   display: grid;
   gap: 0.35rem;
 }
@@ -123,13 +126,15 @@
 }
 
 .consensus-message-body {
-  white-space: pre-wrap;
   padding: 0.9rem 1rem;
   border-radius: 1rem;
-  line-height: 1.5;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .consensus-message-user .consensus-message-body {
+  white-space: pre-wrap;
   background: linear-gradient(135deg, #24456e, #335f93);
   color: #f5f8ff;
 }
@@ -260,24 +265,57 @@
   color: #294b78;
 }
 
-.consensus-response h4 {
-  margin: 0.6rem 0 0.2rem;
-  color: #355a89;
-  font-size: 0.83rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.consensus-response {
+  border: 1px solid #dde5f0;
+  border-radius: 0.65rem;
+  background: #f8fafd;
+  margin-top: 0.6rem;
+  overflow: hidden;
 }
 
-.consensus-response pre {
+.consensus-response:first-of-type {
+  margin-top: 0.75rem;
+}
+
+.consensus-response h4 {
   margin: 0;
-  white-space: pre-wrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-  font-size: 0.8rem;
+  padding: 0.42rem 0.75rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  border-bottom: 1px solid #dde5f0;
+  background: #eef2fa;
+  color: #355a89;
+}
+
+.consensus-response[data-model="claude"] h4 {
+  background: #f3f0ff;
+  border-color: #d4c5f9;
+  color: #6d28d9;
+}
+
+.consensus-response[data-model="gpt"] h4 {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.consensus-response[data-model="gemini"] h4 {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.consensus-response-body {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 0.65rem 0.75rem;
+  overscroll-behavior: contain;
+}
+
+.consensus-trace-md {
+  font-size: 0.82rem;
   color: #1c2a40;
-  background: #f5f8fc;
-  border: 1px solid #dde5f0;
-  border-radius: 0.6rem;
-  padding: 0.55rem;
 }
 
 .consensus-empty-trace {
@@ -286,6 +324,126 @@
   gap: 0.5rem;
   align-items: center;
 }
+
+/* ─── Markdown prose ─────────────────────────────────────────────────────── */
+
+.consensus-md {
+  line-height: 1.65;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.consensus-md > *:first-child { margin-top: 0; }
+.consensus-md > *:last-child  { margin-bottom: 0; }
+
+.consensus-md p { margin: 0 0 0.72em; }
+
+.consensus-md h1,
+.consensus-md h2,
+.consensus-md h3,
+.consensus-md h4,
+.consensus-md h5,
+.consensus-md h6 {
+  margin: 1em 0 0.35em;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.consensus-md h1 { font-size: 1.35em; }
+.consensus-md h2 { font-size: 1.18em; }
+.consensus-md h3 { font-size: 1.05em; }
+.consensus-md h4,
+.consensus-md h5,
+.consensus-md h6 { font-size: 1em; }
+
+.consensus-md ul,
+.consensus-md ol {
+  margin: 0 0 0.72em;
+  padding-left: 1.5em;
+}
+
+.consensus-md li + li { margin-top: 0.25em; }
+
+.consensus-md code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.875em;
+  background: #eaeff8;
+  border-radius: 0.3em;
+  padding: 0.1em 0.35em;
+}
+
+.consensus-md pre {
+  background: #1c2433;
+  color: #e8edf5;
+  border-radius: 0.65rem;
+  padding: 0.8rem 1rem;
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 0.72em 0;
+  font-size: 0.875em;
+}
+
+.consensus-md pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+.consensus-md blockquote {
+  border-left: 3px solid #7ea3d4;
+  margin: 0.72em 0;
+  padding: 0.2em 0.85em;
+  color: #4d637d;
+  font-style: italic;
+}
+
+.consensus-md strong { font-weight: 700; }
+.consensus-md em     { font-style: italic; }
+
+.consensus-md a {
+  color: #2a5a99;
+  text-decoration: underline;
+}
+
+.consensus-md hr {
+  border: none;
+  border-top: 1px solid #d7dee9;
+  margin: 1em 0;
+}
+
+.consensus-md table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.72em 0;
+  font-size: 0.9em;
+  display: block;
+  overflow-x: auto;
+}
+
+.consensus-md th,
+.consensus-md td {
+  border: 1px solid #d7dee9;
+  padding: 0.38em 0.6em;
+  text-align: left;
+}
+
+.consensus-md th {
+  background: #f0f4fa;
+  font-weight: 600;
+}
+
+/* user bubble: keep markdown code blocks readable on dark bg */
+.consensus-message-user .consensus-md code {
+  background: rgba(255 255 255 / 0.15);
+  color: inherit;
+}
+
+.consensus-message-user .consensus-md pre {
+  background: rgba(0 0 0 / 0.25);
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 980px) {
   .consensus-grid {
@@ -298,5 +456,87 @@
 
   .consensus-starters {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .consensus-root {
+    padding: 0.5rem;
+  }
+
+  .consensus-shell {
+    gap: 0.6rem;
+  }
+
+  .consensus-topbar {
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+  }
+
+  .consensus-topbar h1 {
+    font-size: 1.55rem;
+  }
+
+  .consensus-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .consensus-chat {
+    min-height: 52dvh;
+    border-radius: 1rem;
+  }
+
+  .consensus-thread,
+  .consensus-empty {
+    padding: 0.9rem;
+    gap: 0.7rem;
+  }
+
+  .consensus-message {
+    max-width: 96%;
+  }
+
+  .consensus-message-body {
+    padding: 0.75rem 0.85rem;
+    border-radius: 0.85rem;
+    font-size: 0.95rem;
+  }
+
+  .consensus-composer {
+    padding: 0.6rem;
+    gap: 0.5rem;
+  }
+
+  .consensus-composer textarea {
+    min-height: 3.5rem;
+    font-size: 1rem;
+    border-radius: 0.75rem;
+  }
+
+  .consensus-composer button {
+    padding: 0.52rem 0.85rem;
+    font-size: 0.9rem;
+  }
+
+  .consensus-trace {
+    border-radius: 1rem;
+    padding: 0.75rem;
+  }
+
+  .consensus-rounds {
+    max-height: 55dvh;
+  }
+
+  .consensus-empty h2 {
+    font-size: 1.1rem;
+  }
+
+  .consensus-empty p {
+    font-size: 0.9rem;
+  }
+
+  .consensus-starter {
+    padding: 0.7rem 0.85rem;
+    font-size: 0.9rem;
   }
 }

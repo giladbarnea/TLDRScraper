@@ -85,11 +85,11 @@ class ConsensusResult:
     rounds: list[RoundResult]
 
 
-def load_config(*, thinking: str = "low", max_turns: int = DEFAULT_MAX_TURNS) -> ConsensusConfig:
+def load_config(*, thinking: str = "high", max_turns: int = DEFAULT_MAX_TURNS) -> ConsensusConfig:
     return ConsensusConfig(
-        anthropic_model=util.resolve_env_var("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001"),
-        openai_model=util.resolve_env_var("OPENAI_MODEL", "gpt-5.4-mini"),
-        gemini_model=util.resolve_env_var("GEMINI_MODEL", "gemini-3-flash-preview"),
+        anthropic_model=util.resolve_env_var("ANTHROPIC_MODEL", "claude-opus-4-6"),
+        openai_model=util.resolve_env_var("OPENAI_MODEL", "gpt-5.4"),
+        gemini_model=util.resolve_env_var("GEMINI_MODEL", "gemini-3.1-pro-preview"),
         thinking_level=ThinkingLevel(thinking),
         max_turns=max_turns,
     )
