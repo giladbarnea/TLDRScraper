@@ -64,9 +64,11 @@ function TracePanel({ rounds, reachedConsensus, stopReason, expanded, onToggle }
               <details key={round.turn} className="consensus-round" open={round.turn === lastTurn}>
                 <summary>Round {round.turn}</summary>
                 {Object.entries(round.responses).map(([modelName, response]) => (
-                  <div key={modelName} className="consensus-response">
+                  <div key={modelName} className="consensus-response" data-model={modelName}>
                     <h4>{MODEL_LABELS[modelName] || modelName}</h4>
-                    <MarkdownContent content={response} className="consensus-trace-md" />
+                    <div className="consensus-response-body">
+                      <MarkdownContent content={response} className="consensus-trace-md" />
+                    </div>
                   </div>
                 ))}
               </details>
