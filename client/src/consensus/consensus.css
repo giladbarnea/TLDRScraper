@@ -252,7 +252,6 @@
   gap: 0.56rem;
   max-height: min(68dvh, 820px);
   overflow-y: auto;
-  overflow-x: hidden;
   min-width: 0;
   padding-right: 0.25rem;
 }
@@ -263,7 +262,6 @@
   padding: 0.6rem;
   background: #fbfdff;
   min-width: 0;
-  overflow: hidden;
 }
 
 .consensus-round summary {
