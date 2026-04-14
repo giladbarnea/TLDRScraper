@@ -84,6 +84,7 @@ export function useOverlayContextMenu(enabled = true) {
 
     function handlePointerDown(event) {
       if (menuRef.current?.contains(event.target)) return
+      if (openedBySelectionRef.current) window.getSelection()?.removeAllRanges()
       closeMenu()
     }
 
