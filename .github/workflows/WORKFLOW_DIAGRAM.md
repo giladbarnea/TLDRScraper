@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-01-05 06:10
+last_updated: 2026-04-14 13:19
 ---
 # Documentation Maintenance Workflow
 
@@ -9,8 +9,6 @@ This diagram illustrates the sequential job execution in `maintain-documentation
 
 ```
 Push to main
-    OR
-PR opened/updated/reopened/merged to main
     ↓
 ┌───────────────────────────────────────────────────────────────┐
 │ GitHub Actions: maintain-documentation.yml                    │
@@ -43,15 +41,16 @@ PR opened/updated/reopened/merged to main
 │ Condition: Job 1 succeeded AND AGENTS.md in modified_files      │
 │                                                                 │
 │ • Checkout code (includes Job 1 frontmatter updates!)           │
-│ • cp AGENTS.md CLAUDE.md                                        │
-│ • Commit: "chore: Sync CLAUDE.md with AGENTS.md [skip ci]"     │
+│ • cp AGENTS.md CLAUDE.md GEMINI.md CODEX.md                     │
+│ • Commit: "chore: Sync CLAUDE.md, GEMINI.md, and CODEX.md      │
+│   with AGENTS.md [skip ci]"                                     │
 │ • Push to branch                                                │
 │                                                                 │
 │ Why sequential?                                                 │
 │   Previously, this job ran in parallel with Job 1, causing:    │
 │   - Job 1 adds frontmatter to AGENTS.md                         │
 │   - Job 2 reads OLD AGENTS.md (without frontmatter)             │
-│   - CLAUDE.md ends up missing frontmatter → DESYNC!             │
+│   - AI agent files end up missing frontmatter → DESYNC!         │
 │                                                                 │
 │   Now: Job 2 always reads AGENTS.md AFTER frontmatter update    │
 └─────────────────────────────────────────────────────────────────┘
@@ -74,6 +73,28 @@ PR opened/updated/reopened/merged to main
 │   the final state of the repository                             │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## Local-To-CI Handoff
+
+The hooks and workflow intentionally split responsibility for markdown frontmatter:
+
+```
+Feature branch:
+  commit README.md
+    ↓ pre-commit
+  last_updated: 2025-12-10 15:30
+    ↓ push feature branch
+  no maintain-documentation CI
+    ↓ merge or push to main
+  maintain-documentation.yml runs
+    ↓
+  last_updated: 2025-12-10 15:35, abc1234
+```
+
+This is the intended contract:
+- Local hooks keep working-tree markdown timestamps fresh before commit
+- GitHub Actions finalizes `last_updated` on `main` by appending the commit hash
+- `AGENTS.md` sync to `CLAUDE.md`, `GEMINI.md`, and `CODEX.md` happens only in CI after frontmatter is finalized
 
 ## Race Condition Prevention
 
@@ -108,32 +129,34 @@ Benefits:
 ✓ Each job sees previous job's changes
 ✓ No race condition (sequential execution)
 ✓ No push conflicts (one push at a time)
-✓ AGENTS.md and CLAUDE.md stay in sync
+✓ AGENTS.md, CLAUDE.md, GEMINI.md, and CODEX.md stay in sync
 ✓ Explicit dependencies visible in workflow YAML
 ```
 
 ## Local Git Hooks
 
-Local hooks remain independent and generate PROJECT_STRUCTURE.md for local development:
+Local hooks remain independent from GitHub Actions and run structural maintenance for local development:
 
 ```
 Git Operation          Hook Triggered       Actions
 ─────────────────────  ───────────────────  ────────────────────────────
-git merge              pre-merge-commit     • Generate PROJECT_STRUCTURE.md
-                       post-merge           • Configure merge.ours driver
+git commit             pre-commit           • Scan staged changes with gitleaks
+                                            • Update last_updated in staged *.md
+                                            • Run client lint if client/ files are staged
 
 git checkout <branch>  post-checkout        • Configure merge.ours driver
-                                            • Generate PROJECT_STRUCTURE.md
+                                            • Run shared structural maintenance
 
-git rebase             post-rewrite         • Configure merge.ours driver
-git commit --amend
+git merge / git pull   post-merge           • Run shared structural maintenance
 ```
 
-### Removed Redundancies
+### Shared Structural Maintenance
 
-- **pre-rebase**: Deleted entirely (redundant with post-checkout)
-- **post-merge**: No longer generates PROJECT_STRUCTURE.md (redundant with pre-merge-commit)
-- **post-rewrite**: No longer generates PROJECT_STRUCTURE.md (redundant, runs per commit)
+- Make all files in `.githooks/` executable
+- Ensure `.claude`, `.codex`, `.gemini`, and `.pi` expose `agents` and `skills` as symlinks into `.agents/`
+- Regenerate `PROJECT_STRUCTURE.md` and update its `last_updated` timestamp
+- Sync `.agents/skills/prompt-subagent` from `giladbarnea/llm-templates`
+- Register synced external directories in `.git/info/exclude` so they remain untracked
 
 ## Key Design Principles
 
