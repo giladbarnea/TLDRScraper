@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-14 10:18
+last_updated: 2026-04-14 10:30
 ---
 .
 ├── .agents
@@ -169,8 +169,6 @@ last_updated: 2026-04-14 10:18
 │  │  │  ├── ToastContainer.jsx
 │  │  │  └── ZenModeOverlay.jsx
 │  │  ├── consensus
-│  │  │  ├── consensus.css
-│  │  │  └── ConsensusApp.jsx
 │  │  ├── contexts
 │  │  │  └── InteractionContext.jsx
 │  │  ├── hooks
@@ -264,15 +262,35 @@ last_updated: 2026-04-14 10:18
 │     ├── research
 │     │  └── description.md
 │     └── relevant-files.md
+├── vendor
+│  └── consensus
+│     ├── consensus
+│     │  ├── __init__.py
+│     │  ├── core.py
+│     │  └── web.py
+│     ├── web
+│     │  ├── src
+│     │  │  ├── consensus.css
+│     │  │  ├── ConsensusApp.jsx
+│     │  │  └── main.jsx
+│     │  ├── index.html
+│     │  ├── package-lock.json
+│     │  ├── package.json
+│     │  └── vite.config.js
+│     ├── .gitignore
+│     ├── pyproject.toml
+│     ├── README.md
+│     ├── serve.py
+│     └── uv.lock
 ├── .gitattributes
 ├── .gitignore
+├── .gitmodules
 ├── .vercelignore
 ├── AGENTS.md
 ├── ARCHITECTURE.md
 ├── BUGS.md
 ├── CLAUDE.md
 ├── CODEX.md
-├── consensus.py
 ├── GEMINI.md
 ├── GOTCHAS.md
 ├── newsletter_config.py

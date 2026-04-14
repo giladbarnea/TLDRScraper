@@ -6,13 +6,12 @@ source "$_HOOKS_DIR/sync-subdir.sh"
 function ensure_agent_symlinks() {
 	local dot_dirs=(".claude" ".codex" ".gemini" ".pi")
 	local workdir="${1:-${SERVER_CONTEXT_WORKDIR:-$PWD}}"
-
+  local dir target link_path current_target
 	for dir in "${dot_dirs[@]}"; do
 		mkdir -p "$workdir/$dir"
 		for target in "agents" "skills"; do
-			local link_path="$workdir/$dir/$target"
+			link_path="$workdir/$dir/$target"
 			if [[ -L "$link_path" ]]; then
-				local current_target
 				current_target=$(readlink "$link_path")
 				if [[ "$current_target" != "../.agents/$target" ]]; then
 					rm "$link_path"
@@ -68,7 +67,7 @@ function generate_project_structure() {
 		--all \
 		--ignore-glob "$ignore_glob" \
 		. > "PROJECT_STRUCTURE.md"
-	update_markdown_last_updated "$target" "$(date -u +"%Y-%m-%d %H:%M")"
+	update_markdown_last_updated "PROJECT_STRUCTURE.md" "$(date -u +"%Y-%m-%d %H:%M")"
 }
 
 function update_markdown_last_updated() {
