@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-14 11:23
+last_updated: 2026-04-14 12:31
 ---
 .
 ├── .agents
@@ -15,9 +15,6 @@ last_updated: 2026-04-14 11:23
 │     ├── consensus
 │     │  ├── scripts
 │     │  │  └── run_consensus.py
-│     │  └── SKILL.md
-│     ├── frontend-design-anthropic
-│     │  ├── metadata.json
 │     │  └── SKILL.md
 │     ├── frontend-design-openai
 │     │  ├── metadata.json
@@ -103,15 +100,12 @@ last_updated: 2026-04-14 11:23
 │     ├── GEMINI_REMOTE_AUTH.md
 │     ├── maintain-documentation.yml
 │     ├── nightly-vercel-cleanup.yml
-│     ├── test-gemini-wif.yml
 │     ├── weekly-branch-pr-cleanup.yml
 │     ├── weekly-supabase-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
 ├── .pi
 │  ├── npm
-│  │  ├── .gitignore
-│  │  ├── package-lock.json
-│  │  └── package.json
+│  │  └── .gitignore
 │  └── settings.json
 ├── adapters
 │  ├── __init__.py
@@ -167,7 +161,6 @@ last_updated: 2026-04-14 11:23
 │  │  │  ├── SelectionCounterPill.jsx
 │  │  │  ├── ToastContainer.jsx
 │  │  │  └── ZenModeOverlay.jsx
-│  │  ├── consensus
 │  │  ├── contexts
 │  │  │  └── InteractionContext.jsx
 │  │  ├── hooks
