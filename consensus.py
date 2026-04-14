@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import json
+import os
 import re
+import sys
 from enum import StrEnum
-from typing import Literal
+from typing import IO, Literal
 
 import anthropic
 import openai
@@ -27,15 +30,24 @@ SYSTEM_PROMPT = """\
 You are participating in a structured discussion with two other AI assistants.
 Each of you is a different model provider. Your name is {name}.
 
-Goal: produce the most truthful, useful final answer for the user.
+Goal: collectively produce the most truthful, useful final answer for the user.
+
+Each of you individually should:
+- Be true to your own knowledge and views.
+- Remember that each of you has equal weight to the others, therefore, stay authentic, whether you agree or disagree with the others.
 - Be concise and specific.
 - Critically evaluate other responses.
 - Agree when agreement is warranted.
-- Disagree clearly when needed.
+- Disagree when disagreement is warranted.
 
-If true convergence is reached, wrap the final user-facing answer in
-<conclusion>...</conclusion>.
-Only emit <conclusion> when consensus is real.
+This is not a debate — it’s a productive discussion with a truth-seeking culture. 
+ 
+The user only sees the final discussion's conclusion, which has to be wrapped with <conclusion>...</conclusion> tags.
+Any one of you can take the initiative to end the discussion by formatting and wrapping a final answer with the conclusion tags, but only when either one of two conditions are met: 
+- Participants' views have converged. OR
+- Participants agree to disagree.
+
+Both outcomes are are good outcomes. 
 """
 
 
@@ -87,9 +99,9 @@ class ConsensusResult:
 
 def load_config(*, thinking: str = "high", max_turns: int = DEFAULT_MAX_TURNS) -> ConsensusConfig:
     return ConsensusConfig(
-        anthropic_model=util.resolve_env_var("ANTHROPIC_MODEL", "claude-opus-4-6-20250410"),
-        openai_model=util.resolve_env_var("OPENAI_MODEL", "gpt-5.4"),
-        gemini_model=util.resolve_env_var("GEMINI_MODEL", "gemini-3.1-pro-preview"),
+        anthropic_model=util.resolve_env_var("ANTHROPIC_MODEL", "claude-haiku-4-5"),
+        openai_model=util.resolve_env_var("OPENAI_MODEL", "gpt-5.4-nano"),
+        gemini_model=util.resolve_env_var("GEMINI_MODEL", "gemini-3.1-flash-light"),
         thinking_level=ThinkingLevel(thinking),
         max_turns=max_turns,
     )
@@ -132,7 +144,9 @@ async def ask_claude(
     response = await client.messages.create(**request_kwargs)
     for block in response.content:
         if block.type == "text":
+            print("\x1b[2;1;97m", "Claude: ", "\x1b[0m", "\x1b[2m", block.text, end="\x1b[0m\n\n", file=sys.stderr)
             return block.text
+    print("\x1b[2;1;97m", "Claude: ", "\x1b[0m", "\x1b[2m", response.content[0].text, end="\x1b[0m\n\n", file=sys.stderr)
     return response.content[0].text
 
 
@@ -159,8 +173,8 @@ async def ask_gpt(
         model=config.openai_model,
         input=input_messages,
         reasoning={"effort": config.thinking_level.openai_effort},
-        max_output_tokens=16_000,
     )
+    print("\x1b[2;1;97m", "GPT: ", "\x1b[0m", "\x1b[2m", response.output_text, end="\x1b[0m\n\n", file=sys.stderr)
     return response.output_text
 
 
@@ -190,6 +204,7 @@ async def ask_gemini(
             ),
         ),
     )
+    print("\x1b[2;1;97m", "Gemini: ", "\x1b[0m", "\x1b[2m", response.text, end="\x1b[0m\n\n", file=sys.stderr)
     return response.text
 
 
@@ -250,5 +265,62 @@ async def run_chat(messages: list[ChatMessage], config: ConsensusConfig) -> Cons
     )
 
 
-def run_question(question: str, config: ConsensusConfig) -> ConsensusResult:
-    return asyncio.run(run_chat([ChatMessage(role="user", content=question)], config))
+def run_messages(messages: list[ChatMessage], config: ConsensusConfig) -> ConsensusResult:
+    return asyncio.run(run_chat(messages, config))
+
+
+def build_success_payload(result: ConsensusResult) -> dict[str, object]:
+    return {
+        "success": True,
+        "result": dataclasses.asdict(result),
+    }
+
+
+def build_error_payload(error: str) -> dict[str, object]:
+    return {
+        "success": False,
+        "error": error,
+    }
+
+
+def resolve_cli_question(args: list[str], stdin: IO[str]) -> str:
+    """
+    Resolve the CLI question from argv or stdin without performing output.
+
+    >>> resolve_cli_question(["What is 2+2?"], sys.stdin)
+    'What is 2+2?'
+    """
+    if args:
+        target = args[0]
+        if os.path.isfile(target):
+            with open(target, "r", encoding="utf-8") as file_handle:
+                return file_handle.read()
+        return target
+
+    if stdin.isatty():
+        raise ValueError("No question provided via argument or stdin pipe.")
+
+    question = stdin.read()
+    if question == "":
+        raise ValueError("No question provided via argument or stdin pipe.")
+    return question
+
+
+def main(argv: list[str] | None = None, stdin: IO[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    input_stream = sys.stdin if stdin is None else stdin
+
+    try:
+        question = resolve_cli_question(args, input_stream)
+        payload = build_success_payload(
+            run_messages([ChatMessage(role="user", content=question)], load_config())
+        )
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    except Exception as error:
+        print(json.dumps(build_error_payload(str(error)), indent=2, ensure_ascii=False), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
