@@ -30,9 +30,36 @@ function generate_project_structure() {
 	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
 	export PATH="${HOME}/.local/bin:${PATH}"
 	ensure_agent_symlinks "$workdir"
-	local ignore_glob='.git|node_modules|__pycache__|*.pyc|.venv|static|*.vscode|*.cursor|experimental|thoughts/done|docs|.run|.codex|.gemini|.claude/agents|.claude/skills|.pi/agents|.pi/skills|.agents/skills/react-best-practices/rules|.agents/skills/i-frontend-design/reference|.agents/skills/i-critique/reference'
-	local target="PROJECT_STRUCTURE.md"
-	local tmp; tmp=$(mktemp)
+	local -a ignore_glob_patterns=(
+		'.git'
+		'node_modules'
+		'__pycache__'
+		'*.pyc'
+		'.venv'
+		'static'
+		'*.vscode'
+		'*.cursor'
+		'experimental'
+		'thoughts/done'
+		'docs'
+		'.run'
+		'.codex'
+		'.gemini'
+		'.agents/agents'
+		'.claude/agents'
+		'.claude/skills'
+		'.claude/hooks'
+		'.pi/agents'
+		'.pi/skills'
+		'.agents/skills/react-best-practices/rules'
+		'.agents/skills/i-frontend-design/reference'
+		'.agents/skills/i-critique/reference'
+	)
+	local ignore_glob
+	local old_ifs="$IFS"
+	IFS='|'
+	ignore_glob="${ignore_glob_patterns[*]}"
+	IFS="$old_ifs"
 	uv run python3 scripts/generate_tree.py \
 		--classify \
 		--icons \
@@ -40,20 +67,21 @@ function generate_project_structure() {
 		--git-ignore \
 		--all \
 		--ignore-glob "$ignore_glob" \
-		. > "$tmp"
-	uv run python3 - "$target" "$tmp" <<'PY'
-import sys, re
-from pathlib import Path
-target, tmp = Path(sys.argv[1]), Path(sys.argv[2])
-tree = tmp.read_text()
-frontmatter = ""
-if target.exists():
-    m = re.match(r'^---\s*\n.*?---\s*\n', target.read_text(), re.DOTALL)
-    if m:
-        frontmatter = m.group(0)
-target.write_text(frontmatter + tree if frontmatter else tree)
+		. > "PROJECT_STRUCTURE.md"
+	update_markdown_last_updated "$target" "$(date -u +"%Y-%m-%d %H:%M")"
+}
+
+function update_markdown_last_updated() {
+	local file_path="$1"
+	local timestamp="$2"
+	uv run python3 - "$file_path" "$timestamp" <<'PY'
+import sys
+sys.path.insert(0, 'scripts')
+import markdown_frontmatter
+file_path, timestamp = sys.argv[1], sys.argv[2]
+markdown_frontmatter.update(file_path, {'last_updated': timestamp})
+print(f"  {file_path}.last_updated -> {timestamp}")
 PY
-	rm "$tmp"
 }
 
 function sync_external_dirs() {

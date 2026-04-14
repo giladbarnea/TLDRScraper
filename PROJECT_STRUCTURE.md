@@ -1,15 +1,8 @@
 ---
-last_updated: 2026-04-14 09:39
+last_updated: 2026-04-14 10:18
 ---
 .
 ├── .agents
-│  ├── agents
-│  │  ├── codebase-analyzer-multiple-subsystems.md
-│  │  ├── codebase-analyzer-single-subsystem.md
-│  │  ├── codebase-locator.md
-│  │  ├── generalist.md
-│  │  ├── react-antipattern-auditor.md
-│  │  └── web-deep-researcher.md
 │  └── skills
 │     ├── architecture-create
 │     │  └── SKILL.md
@@ -95,11 +88,6 @@ last_updated: 2026-04-14 09:39
 │     └── web-a11y-guidelines
 │        └── SKILL.md
 ├── .claude
-│  ├── hooks
-│  │  ├── block-gh-command.sh
-│  │  ├── block-until-reads.sh
-│  │  ├── README.md
-│  │  └── require-reads.sh
 │  ├── settings.backup.json
 │  └── settings.json
 ├── .githooks

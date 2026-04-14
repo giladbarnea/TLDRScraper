@@ -5,6 +5,9 @@
 # 2. Updates last_updated frontmatter in staged markdown files
 # 3. Runs biome lint on staged client files
 
+_HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$_HOOKS_DIR/util.sh"
+
 # --- Gitleaks secret scanning ---
 echo "🔍 Scanning for secrets with gitleaks..."
 if command -v gitleaks >/dev/null 2>&1; then
@@ -38,14 +41,7 @@ if [ -n "$staged_md" ]; then
 
   for file in $staged_md; do
     if [ -f "$file" ]; then
-      uv run python3 - "$file" "$timestamp" <<'PY'
-import sys
-sys.path.insert(0, 'scripts')
-import markdown_frontmatter
-file_path, timestamp = sys.argv[1], sys.argv[2]
-markdown_frontmatter.update(file_path, {'last_updated': timestamp})
-print(f"  {file_path}")
-PY
+      update_markdown_last_updated "$file" "$timestamp"
       git add "$file"
     fi
   done
