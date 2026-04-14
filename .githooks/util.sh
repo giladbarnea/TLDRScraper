@@ -3,7 +3,7 @@
 _HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$_HOOKS_DIR/sync-subdir.sh"
 
-function ensure_agent_symlinks() {
+function _ensure_agent_symlinks() {
 	local dot_dirs=(".claude" ".codex" ".gemini" ".pi")
 	local workdir="${1:-${SERVER_CONTEXT_WORKDIR:-$PWD}}"
   local dir target link_path current_target
@@ -25,10 +25,9 @@ function ensure_agent_symlinks() {
 	done
 }
 
-function generate_project_structure() {
+function _generate_project_structure() {
 	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
 	export PATH="${HOME}/.local/bin:${PATH}"
-	ensure_agent_symlinks "$workdir"
 	local -a ignore_glob_patterns=(
 		'.git'
 		'node_modules'
@@ -83,8 +82,15 @@ print(f"  {file_path}.last_updated -> {timestamp}")
 PY
 }
 
-function sync_external_dirs() {
+function _sync_external_dirs() {
 	echo "[sync_external_dirs] Syncing external subdirectories..."
 	sync_untracked "https://github.com/giladbarnea/llm-templates" "skills/prompt-subagent" ".agents/skills/prompt-subagent"
 	echo "[sync_external_dirs] Sync complete."
+}
+
+function run_structural_maintenance() {
+  local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
+  _ensure_agent_symlinks "$workdir"
+  _generate_project_structure
+  _sync_external_dirs
 }

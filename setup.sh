@@ -424,8 +424,7 @@ function main() {
   #region ----[ Prepare & Print Docs ]----
 
   git config core.hooksPath .githooks 2>/dev/null || true
-  generate_project_structure || true
-  sync_external_dirs || true
+  run_structural_maintenance || true
 
   #region ----[ Env Vars Validation ]----
 
