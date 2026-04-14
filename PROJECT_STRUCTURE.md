@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-14 10:30
+last_updated: 2026-04-14 10:53
 ---
 .
 ├── .agents
@@ -300,7 +300,6 @@ last_updated: 2026-04-14 10:30
 ├── README.md
 ├── requirements.txt
 ├── serve.py
-├── setup-hooks.sh
 ├── setup.sh
 ├── source_routes.py
 ├── storage_service.py
