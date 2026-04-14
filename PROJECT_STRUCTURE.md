@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-10 19:35
+last_updated: 2026-04-14 09:39
 ---
 .
 ├── .agents
@@ -122,7 +122,9 @@ last_updated: 2026-04-10 19:35
 │     └── WORKFLOW_DIAGRAM.md
 ├── .pi
 │  ├── npm
-│  │  └── .gitignore
+│  │  ├── .gitignore
+│  │  ├── package-lock.json
+│  │  └── package.json
 │  └── settings.json
 ├── adapters
 │  ├── __init__.py
@@ -134,6 +136,7 @@ last_updated: 2026-04-10 19:35
 │  ├── cloudflare_adapter.py
 │  ├── danluu_adapter.py
 │  ├── deepmind_adapter.py
+│  ├── google_research_adapter.py
 │  ├── hackernews_adapter.py
 │  ├── hillel_wayne_adapter.py
 │  ├── infoq_adapter.py
@@ -250,6 +253,7 @@ last_updated: 2026-04-10 19:35
 ├── tests
 │  ├── unit
 │  │  ├── test_canonicalize_url.py
+│  │  ├── test_google_research_adapter.py
 │  │  ├── test_should_rescrape.py
 │  │  └── test_trendshift_adapter.py
 │  ├── test_google_adk_smoke.py

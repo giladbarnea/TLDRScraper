@@ -3,8 +3,6 @@
 TLDR Newsletter Scraper backend with a proxy.
 """
 
-import dataclasses
-import asyncio
 from flask import Flask, request, jsonify, send_from_directory
 import logging
 import requests
@@ -133,18 +131,13 @@ def consensus_chat():
             thinking=data.get("thinking", "low"),
             max_turns=int(data.get("max_turns", consensus_module.DEFAULT_MAX_TURNS)),
         )
-        result = consensus_module.run_question(messages[-1].content, config) if len(messages) == 1 else asyncio.run(consensus_module.run_chat(messages, config))
-        return jsonify(
-            {
-                "success": True,
-                "result": dataclasses.asdict(result),
-            }
-        )
+        result = consensus_module.run_messages(messages, config)
+        return jsonify(consensus_module.build_success_payload(result))
     except ValueError as error:
-        return jsonify({"success": False, "error": str(error)}), 400
+        return jsonify(consensus_module.build_error_payload(str(error))), 400
     except Exception as error:
         logger.exception("Consensus run failed error=%s", error)
-        return jsonify({"success": False, "error": repr(error)}), 500
+        return jsonify(consensus_module.build_error_payload(repr(error))), 500
 
 
 @app.route("/api/summarize-url", methods=["POST"])

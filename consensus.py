@@ -3,15 +3,22 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import dataclasses
+import json
+import os
 import re
+import sys
 from enum import StrEnum
-from typing import Literal
+from typing import IO, Literal
 
 import anthropic
 import openai
 from google import genai
 from google.genai import types
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import util
 
@@ -21,21 +28,38 @@ MODEL_NAMES = {
     "gpt": "GPT",
     "gemini": "Gemini",
 }
-DEFAULT_MAX_TURNS = 4
+DEFAULT_MAX_TURNS = 6
 CONCLUSION_REGEX = re.compile(r"<conclusion>(.*?)</conclusion>", re.DOTALL)
 SYSTEM_PROMPT = """\
-You are participating in a structured discussion with two other AI assistants.
+You are participating in a discussion with two other AI assistants.
 Each of you is a different model provider. Your name is {name}.
 
-Goal: produce the most truthful, useful final answer for the user.
+Goal: collectively produce the most truthful, useful final answer for the user.
+
+Each of you individually should:
+- Be true to your own knowledge and views.
+- Remember that each of you has equal weight to the others, therefore, stay authentic, whether you agree or disagree with the others.
 - Be concise and specific.
 - Critically evaluate other responses.
 - Agree when agreement is warranted.
-- Disagree clearly when needed.
+- Disagree when disagreement is warranted.
 
-If true convergence is reached, wrap the final user-facing answer in
-<conclusion>...</conclusion>.
-Only emit <conclusion> when consensus is real.
+This is not a debate — it’s a productive discussion with a truth-seeking culture.
+The discussion is designed to minimize social pressure. This is done by making the other participants' responses visible to you only after you have taken a turn.
+You will express your initial view in a vaccum, and from that point, you will be able to see the other participants' responses and react to them.
+ 
+The user only sees the final discussion's conclusion, which has to be wrapped with <conclusion>...</conclusion> tags.
+
+Only after all participants have expressed their views fully to each other, and feel like they have nothing more to say in response to each other, someone should take the turn to ask the group if they think the discussion can be wrapped up, or perhaps someone wants to say something. Only if everyone takes the next turn to explicitly greenlight wrapping up (quorum-like), whoever asked can take the last turn and end the discussion by formatting and wrapping a final answer with the conclusion tags.
+
+<Active discussion over N turns...>
+<Turn N+1: "Looks like we can/cannot converge on a consensus. Does anyone want to add anything? Any unclosed threads? Otherwise, I'll wrap up the discussion.">
+<
+    Turn N+2:
+    {{ If everyone else greenlights wrapping up: <Turn N+3: "<conclusion>...</conclusion>">. }}
+    {{ If anyone else wants to add something: <Turn N+3: <discussion continues>>. }}
+>
+Both converging on a conclusion or agreeing to disagree are good outcomes of a discussion.
 """
 
 
@@ -100,8 +124,8 @@ def build_system_prompt(name: str) -> str:
 
 
 def extract_conclusion(responses: dict[str, str]) -> str | None:
-    for key in MODEL_KEYS:
-        match = CONCLUSION_REGEX.search(responses[key])
+    for key, response in responses.items():
+        match = CONCLUSION_REGEX.search(response)
         if match:
             return match.group(1).strip()
     return None
@@ -119,6 +143,7 @@ async def ask_claude(
     messages: list[dict[str, str]],
     config: ConsensusConfig,
 ) -> str:
+    # return "unavailable"
     request_kwargs: dict[str, object] = {
         "model": config.anthropic_model,
         "system": system_prompt,
@@ -132,7 +157,9 @@ async def ask_claude(
     response = await client.messages.create(**request_kwargs)
     for block in response.content:
         if block.type == "text":
+            print("\x1b[2;1;97m", "Claude: ", "\x1b[0m", "\x1b[2m", block.text, end="\x1b[0m\n\n", file=sys.stderr)
             return block.text
+    print("\x1b[2;1;97m", "Claude: ", "\x1b[0m", "\x1b[2m", response.content[0].text, end="\x1b[0m\n\n", file=sys.stderr)
     return response.content[0].text
 
 
@@ -142,13 +169,15 @@ async def ask_gpt(
     messages: list[dict[str, str]],
     config: ConsensusConfig,
 ) -> str:
+    # return "unavailable"
     try:
         response = await client.chat.completions.create(
             model=config.openai_model,
             messages=[{"role": "developer", "content": system_prompt}] + messages,
             reasoning_effort=config.thinking_level.openai_effort,
-            max_completion_tokens=16_000,
+            # max_completion_tokens=16_000,
         )
+        print("\x1b[2;1;97m", "GPT: ", "\x1b[0m", "\x1b[2m", response.choices[0].message.content, end="\x1b[0m\n\n", file=sys.stderr)
         return response.choices[0].message.content or ""
     except openai.BadRequestError as error:
         if "messages" not in str(error):
@@ -159,8 +188,8 @@ async def ask_gpt(
         model=config.openai_model,
         input=input_messages,
         reasoning={"effort": config.thinking_level.openai_effort},
-        max_output_tokens=16_000,
     )
+    print("\x1b[2;1;97m", "GPT: ", "\x1b[0m", "\x1b[2m", response.output_text, end="\x1b[0m\n\n", file=sys.stderr)
     return response.output_text
 
 
@@ -170,6 +199,7 @@ async def ask_gemini(
     messages: list[dict[str, str]],
     config: ConsensusConfig,
 ) -> str:
+    # return "unavailable"
     contents: list[types.Content] = []
     for message in messages:
         role = "user" if message["role"] == "user" else "model"
@@ -180,7 +210,8 @@ async def ask_gemini(
             )
         )
 
-    response = await client.aio.models.generate_content(
+    response = await asyncio.to_thread(
+        client.models.generate_content,
         model=config.gemini_model,
         contents=contents,
         config=types.GenerateContentConfig(
@@ -190,6 +221,7 @@ async def ask_gemini(
             ),
         ),
     )
+    print("\x1b[2;1;97m", "Gemini: ", "\x1b[0m", "\x1b[2m", response.text, end="\x1b[0m\n\n", file=sys.stderr)
     return response.text
 
 
@@ -211,10 +243,11 @@ async def run_chat(messages: list[ChatMessage], config: ConsensusConfig) -> Cons
     responses = {key: "" for key in MODEL_KEYS}
 
     for turn in range(1, config.max_turns + 1):
+        frozen_histories = copy.deepcopy(histories)
         results = await asyncio.gather(
-            ask_claude(anthropic_client, systems["claude"], histories["claude"], config),
-            ask_gpt(openai_client, systems["gpt"], histories["gpt"], config),
-            ask_gemini(gemini_client, systems["gemini"], histories["gemini"], config),
+            ask_claude(anthropic_client, systems["claude"], frozen_histories["claude"], config),
+            ask_gpt(openai_client, systems["gpt"], frozen_histories["gpt"], config),
+            ask_gemini(gemini_client, systems["gemini"], frozen_histories["gemini"], config),
             return_exceptions=True,
         )
 
@@ -250,5 +283,62 @@ async def run_chat(messages: list[ChatMessage], config: ConsensusConfig) -> Cons
     )
 
 
-def run_question(question: str, config: ConsensusConfig) -> ConsensusResult:
-    return asyncio.run(run_chat([ChatMessage(role="user", content=question)], config))
+def run_messages(messages: list[ChatMessage], config: ConsensusConfig) -> ConsensusResult:
+    return asyncio.run(run_chat(messages, config))
+
+
+def build_success_payload(result: ConsensusResult) -> dict[str, object]:
+    return {
+        "success": True,
+        "result": dataclasses.asdict(result),
+    }
+
+
+def build_error_payload(error: str) -> dict[str, object]:
+    return {
+        "success": False,
+        "error": error,
+    }
+
+
+def resolve_cli_question(args: list[str], stdin: IO[str]) -> str:
+    """
+    Resolve the CLI question from argv or stdin without performing output.
+
+    >>> resolve_cli_question(["What is 2+2?"], sys.stdin)
+    'What is 2+2?'
+    """
+    if args:
+        target = args[0]
+        if os.path.isfile(target):
+            with open(target, "r", encoding="utf-8") as file_handle:
+                return file_handle.read()
+        return target
+
+    if stdin.isatty():
+        raise ValueError("No question provided via argument or stdin pipe.")
+
+    question = stdin.read()
+    if question == "":
+        raise ValueError("No question provided via argument or stdin pipe.")
+    return question
+
+
+def main(argv: list[str] | None = None, stdin: IO[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    input_stream = sys.stdin if stdin is None else stdin
+
+    try:
+        question = resolve_cli_question(args, input_stream)
+        payload = build_success_payload(
+            run_messages([ChatMessage(role="user", content=question)], load_config())
+        )
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    except Exception as error:
+        print(json.dumps(build_error_payload(str(error)), indent=2, ensure_ascii=False), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
