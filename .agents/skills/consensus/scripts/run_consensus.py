@@ -10,8 +10,9 @@ import pathlib
 import sys
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+CONSENSUS_REPO_ROOT = REPO_ROOT / "vendor" / "consensus"
+if str(CONSENSUS_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(CONSENSUS_REPO_ROOT))
 
 import consensus
 
@@ -26,6 +27,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    if not CONSENSUS_REPO_ROOT.exists():
+        raise RuntimeError(f"Consensus submodule not found at {CONSENSUS_REPO_ROOT}")
+
     args = parse_args()
     config = consensus.load_config(thinking=args.thinking, max_turns=args.max_turns)
     result = consensus.run_question(args.question, config)
