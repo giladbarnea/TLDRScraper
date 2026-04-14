@@ -90,6 +90,7 @@ function _sync_external_dirs() {
 
 function run_structural_maintenance() {
   local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
+  chmod +x .githooks/*
   _ensure_agent_symlinks "$workdir"
   _generate_project_structure
   _sync_external_dirs
