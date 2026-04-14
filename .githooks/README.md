@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-14 10:53
+last_updated: 2026-04-14 11:01
 ---
 # Git Hooks
 
@@ -50,7 +50,7 @@ Then runs shared structural maintenance:
 - Makes all files in `.githooks/` executable
 - Ensures `.claude`, `.codex`, `.gemini`, and `.pi` each expose `agents` and `skills` as symlinks to `.agents/...`
 - Regenerates `PROJECT_STRUCTURE.md` and updates its `last_updated` timestamp
-- Syncs `.agents/skills/prompt-subagent` from `giladbarnea/llm-templates`
+- Syncs `.agents/skills/prompt-subagent` from `giladbarnea/llm-templates` via `sync_subdir.sh`
 - Registers synced external directories in `.git/info/exclude` so they remain untracked
 
 ### post-merge

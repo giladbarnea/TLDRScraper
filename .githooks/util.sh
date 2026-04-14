@@ -3,6 +3,8 @@
 _HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$_HOOKS_DIR/sync-subdir.sh"
 
+# _ensure_agent_symlinks [workdir=$PWD]
+# Ensures that `.agents/{skills,agents}` are symlinks to the real CLI agent configuration dirs.
 function _ensure_agent_symlinks() {
 	local dot_dirs=(".claude" ".codex" ".gemini" ".pi")
 	local workdir="${1:-${SERVER_CONTEXT_WORKDIR:-$PWD}}"
@@ -25,6 +27,8 @@ function _ensure_agent_symlinks() {
 	done
 }
 
+# _generate_project_structure [workdir=$PWD]
+# Generates the project structure markdown file and updates the last updated frontmatter field.
 function _generate_project_structure() {
 	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
 	export PATH="${HOME}/.local/bin:${PATH}"
@@ -88,6 +92,8 @@ function _sync_external_dirs() {
 	echo "[sync_external_dirs] Sync complete."
 }
 
+# run_structural_maintenance [workdir=$PWD]
+# The "public" function running idempotent structural maintenance tasks.
 function run_structural_maintenance() {
   local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
   chmod +x .githooks/*
