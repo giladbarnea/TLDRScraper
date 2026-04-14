@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-14 12:31
+last_updated: 2026-04-14 13:14
 ---
 .
 ├── .agents
@@ -88,7 +88,7 @@ last_updated: 2026-04-14 12:31
 │  ├── settings.backup.json
 │  └── settings.json
 ├── .githooks
-│  ├── post-checkout
+│  ├── post-checkout.disabled
 │  ├── post-merge
 │  ├── pre-commit
 │  ├── README.md
