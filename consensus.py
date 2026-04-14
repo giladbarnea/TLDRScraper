@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import dataclasses
 import json
 import os
@@ -15,6 +16,9 @@ import anthropic
 import openai
 from google import genai
 from google.genai import types
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import util
 
@@ -24,10 +28,10 @@ MODEL_NAMES = {
     "gpt": "GPT",
     "gemini": "Gemini",
 }
-DEFAULT_MAX_TURNS = 4
+DEFAULT_MAX_TURNS = 6
 CONCLUSION_REGEX = re.compile(r"<conclusion>(.*?)</conclusion>", re.DOTALL)
 SYSTEM_PROMPT = """\
-You are participating in a structured discussion with two other AI assistants.
+You are participating in a discussion with two other AI assistants.
 Each of you is a different model provider. Your name is {name}.
 
 Goal: collectively produce the most truthful, useful final answer for the user.
@@ -40,14 +44,22 @@ Each of you individually should:
 - Agree when agreement is warranted.
 - Disagree when disagreement is warranted.
 
-This is not a debate — it’s a productive discussion with a truth-seeking culture. 
+This is not a debate — it’s a productive discussion with a truth-seeking culture.
+The discussion is designed to minimize social pressure. This is done by making the other participants' responses visible to you only after you have taken a turn.
+You will express your initial view in a vaccum, and from that point, you will be able to see the other participants' responses and react to them.
  
 The user only sees the final discussion's conclusion, which has to be wrapped with <conclusion>...</conclusion> tags.
-Any one of you can take the initiative to end the discussion by formatting and wrapping a final answer with the conclusion tags, but only when either one of two conditions are met: 
-- Participants' views have converged. OR
-- Participants agree to disagree.
 
-Both outcomes are are good outcomes. 
+Only after all participants have expressed their views fully to each other, and feel like they have nothing more to say in response to each other, someone should take the turn to ask the group if they think the discussion can be wrapped up, or perhaps someone wants to say something. Only if everyone takes the next turn to explicitly greenlight wrapping up (quorum-like), whoever asked can take the last turn and end the discussion by formatting and wrapping a final answer with the conclusion tags.
+
+<Active discussion over N turns...>
+<Turn N+1: "Looks like we can/cannot converge on a consensus. Does anyone want to add anything? Any unclosed threads? Otherwise, I'll wrap up the discussion.">
+<
+    Turn N+2:
+    {{ If everyone else greenlights wrapping up: <Turn N+3: "<conclusion>...</conclusion>">. }}
+    {{ If anyone else wants to add something: <Turn N+3: <discussion continues>>. }}
+>
+Both converging on a conclusion or agreeing to disagree are good outcomes of a discussion.
 """
 
 
@@ -99,9 +111,9 @@ class ConsensusResult:
 
 def load_config(*, thinking: str = "high", max_turns: int = DEFAULT_MAX_TURNS) -> ConsensusConfig:
     return ConsensusConfig(
-        anthropic_model=util.resolve_env_var("ANTHROPIC_MODEL", "claude-haiku-4-5"),
-        openai_model=util.resolve_env_var("OPENAI_MODEL", "gpt-5.4-nano"),
-        gemini_model=util.resolve_env_var("GEMINI_MODEL", "gemini-3.1-flash-light"),
+        anthropic_model=util.resolve_env_var("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+        openai_model=util.resolve_env_var("OPENAI_MODEL", "gpt-5.4"),
+        gemini_model=util.resolve_env_var("GEMINI_MODEL", "gemini-3-flash-preview"),
         thinking_level=ThinkingLevel(thinking),
         max_turns=max_turns,
     )
@@ -112,8 +124,8 @@ def build_system_prompt(name: str) -> str:
 
 
 def extract_conclusion(responses: dict[str, str]) -> str | None:
-    for key in MODEL_KEYS:
-        match = CONCLUSION_REGEX.search(responses[key])
+    for key, response in responses.items():
+        match = CONCLUSION_REGEX.search(response)
         if match:
             return match.group(1).strip()
     return None
@@ -131,6 +143,7 @@ async def ask_claude(
     messages: list[dict[str, str]],
     config: ConsensusConfig,
 ) -> str:
+    # return "unavailable"
     request_kwargs: dict[str, object] = {
         "model": config.anthropic_model,
         "system": system_prompt,
@@ -156,13 +169,15 @@ async def ask_gpt(
     messages: list[dict[str, str]],
     config: ConsensusConfig,
 ) -> str:
+    # return "unavailable"
     try:
         response = await client.chat.completions.create(
             model=config.openai_model,
             messages=[{"role": "developer", "content": system_prompt}] + messages,
             reasoning_effort=config.thinking_level.openai_effort,
-            max_completion_tokens=16_000,
+            # max_completion_tokens=16_000,
         )
+        print("\x1b[2;1;97m", "GPT: ", "\x1b[0m", "\x1b[2m", response.choices[0].message.content, end="\x1b[0m\n\n", file=sys.stderr)
         return response.choices[0].message.content or ""
     except openai.BadRequestError as error:
         if "messages" not in str(error):
@@ -184,6 +199,7 @@ async def ask_gemini(
     messages: list[dict[str, str]],
     config: ConsensusConfig,
 ) -> str:
+    # return "unavailable"
     contents: list[types.Content] = []
     for message in messages:
         role = "user" if message["role"] == "user" else "model"
@@ -194,7 +210,8 @@ async def ask_gemini(
             )
         )
 
-    response = await client.aio.models.generate_content(
+    response = await asyncio.to_thread(
+        client.models.generate_content,
         model=config.gemini_model,
         contents=contents,
         config=types.GenerateContentConfig(
@@ -226,10 +243,11 @@ async def run_chat(messages: list[ChatMessage], config: ConsensusConfig) -> Cons
     responses = {key: "" for key in MODEL_KEYS}
 
     for turn in range(1, config.max_turns + 1):
+        frozen_histories = copy.deepcopy(histories)
         results = await asyncio.gather(
-            ask_claude(anthropic_client, systems["claude"], histories["claude"], config),
-            ask_gpt(openai_client, systems["gpt"], histories["gpt"], config),
-            ask_gemini(gemini_client, systems["gemini"], histories["gemini"], config),
+            ask_claude(anthropic_client, systems["claude"], frozen_histories["claude"], config),
+            ask_gpt(openai_client, systems["gpt"], frozen_histories["gpt"], config),
+            ask_gemini(gemini_client, systems["gemini"], frozen_histories["gemini"], config),
             return_exceptions=True,
         )
 
