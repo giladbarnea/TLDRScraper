@@ -265,17 +265,6 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"blog": "Hillel Wayne"},
         sort_order=3,  # 0.5/week - rare, bursty
     ),
-    "infoq": NewsletterSourceConfig(
-        source_id="infoq",
-        display_name="InfoQ",
-        base_url="https://www.infoq.com",
-        url_pattern="",
-        types=["articles"],
-        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
-        article_pattern="",
-        category_display_names={"articles": "InfoQ"},
-        sort_order=22,  # 3.8/week - deprioritized
-    ),
     "bytebytego": NewsletterSourceConfig(
         source_id="bytebytego",
         display_name="ByteByteGo",

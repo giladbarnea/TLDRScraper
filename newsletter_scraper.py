@@ -83,9 +83,6 @@ def _get_adapter_for_source(config):
     elif config.source_id == "hillel_wayne":
         from adapters.hillel_wayne_adapter import HillelWayneAdapter
         return HillelWayneAdapter(config)
-    elif config.source_id == "infoq":
-        from adapters.infoq_adapter import InfoQAdapter
-        return InfoQAdapter(config)
     elif config.source_id == "bytebytego":
         from adapters.bytebytego_adapter import ByteByteGoAdapter
         return ByteByteGoAdapter(config)

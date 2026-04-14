@@ -21,7 +21,8 @@ export default defineConfig({
     port: 3000,
     allowedHosts: [
       'handy-waters-diary-liz.trycloudflare.com',
-      'josue-ungreedy-unphysically.ngrok-free.dev'
+      'josue-ungreedy-unphysically.ngrok-free.dev',
+      'gilads-macbook-pro.taila610c4.ts.net'
     ],
     proxy: {
       '/api': {
