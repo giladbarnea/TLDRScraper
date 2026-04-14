@@ -3,15 +3,18 @@
 TLDR Newsletter Scraper backend with a proxy.
 """
 
-from flask import Flask, request, jsonify, send_from_directory
+import importlib
 import logging
-import requests
 import os
+import pathlib
+import sys
+
+from flask import Flask, request, jsonify, send_from_directory
+import requests
 
 import util
 import tldr_app
 import storage_service
-import importlib
 from summarizer import DEFAULT_MODEL, DEFAULT_SUMMARY_EFFORT
 from source_routes import source_bp
 
@@ -31,24 +34,28 @@ logging.basicConfig(
     force=True  # Override any existing configuration
 )
 logger = logging.getLogger("serve")
+CONSENSUS_SUBMODULE_DIRECTORY = pathlib.Path(__file__).resolve().parent / "vendor" / "consensus"
 
 
-def load_consensus_module():
-    """Import and return the consensus module only when consensus endpoints are called."""
-    return importlib.import_module("consensus")
+def register_consensus_submodule() -> None:
+    """Mount the standalone consensus app when the submodule is present."""
+    if not CONSENSUS_SUBMODULE_DIRECTORY.exists():
+        logger.info("Consensus submodule not found at %s", CONSENSUS_SUBMODULE_DIRECTORY)
+        return
+
+    if str(CONSENSUS_SUBMODULE_DIRECTORY) not in sys.path:
+        sys.path.insert(0, str(CONSENSUS_SUBMODULE_DIRECTORY))
+
+    consensus_module = importlib.import_module("consensus")
+    consensus_module.register_with_host_app(app)
+
+
+register_consensus_submodule()
 
 
 @app.route("/")
 def index():
     """Serve the React app"""
-    static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
-    return send_from_directory(static_dist, 'index.html')
-
-
-@app.route("/consensus")
-@app.route("/consensus/")
-def consensus_index():
-    """Serve hidden consensus client."""
     static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
     return send_from_directory(static_dist, 'index.html')
 
@@ -87,58 +94,6 @@ def scrape_newsletters_in_date_range():
             error,
         )
         return jsonify({"success": False, "error": str(error)}), 500
-
-
-@app.route("/api/consensus/health", methods=["GET"])
-def consensus_health():
-    """Expose consensus config for quick diagnostics."""
-    consensus_module = load_consensus_module()
-    config = consensus_module.load_config()
-    return jsonify(
-        {
-            "success": True,
-            "thinking_level": config.thinking_level.value,
-            "max_turns": config.max_turns,
-            "models": {
-                "anthropic": config.anthropic_model,
-                "openai": config.openai_model,
-                "gemini": config.gemini_model,
-            },
-        }
-    )
-
-
-@app.route("/api/consensus/chat", methods=["POST"])
-def consensus_chat():
-    """Run hidden consensus flow."""
-    try:
-        data = request.get_json(silent=True)
-        if data is None:
-            raise ValueError("No JSON data received")
-
-        if "messages" not in data:
-            raise ValueError("messages is required")
-
-        if not isinstance(data["messages"], list) or len(data["messages"]) == 0:
-            raise ValueError("messages must be a non-empty array")
-
-        consensus_module = load_consensus_module()
-        messages = [
-            consensus_module.ChatMessage(role=message["role"], content=message["content"])
-            for message in data["messages"]
-        ]
-        config = consensus_module.load_config(
-            thinking=data.get("thinking", "low"),
-            max_turns=int(data.get("max_turns", consensus_module.DEFAULT_MAX_TURNS)),
-        )
-        result = consensus_module.run_messages(messages, config)
-        return jsonify(consensus_module.build_success_payload(result))
-    except ValueError as error:
-        return jsonify(consensus_module.build_error_payload(str(error))), 400
-    except Exception as error:
-        logger.exception("Consensus run failed error=%s", error)
-        return jsonify(consensus_module.build_error_payload(repr(error))), 500
-
 
 @app.route("/api/summarize-url", methods=["POST"])
 def summarize_url_endpoint(model: str = DEFAULT_MODEL):
