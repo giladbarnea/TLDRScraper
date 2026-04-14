@@ -86,6 +86,11 @@ print(f"  {file_path}.last_updated -> {timestamp}")
 PY
 }
 
+function _sync_tracked_submodules() {
+	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
+	SERVER_CONTEXT_WORKDIR="$workdir" bash "$workdir/scripts/setup/ensure_submodules.sh"
+}
+
 function _sync_external_dirs() {
 	echo "[sync_external_dirs] Syncing external subdirectories..."
 	sync_untracked "https://github.com/giladbarnea/llm-templates" "skills/prompt-subagent" ".agents/skills/prompt-subagent"
@@ -98,6 +103,7 @@ function run_structural_maintenance() {
   local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
   chmod +x .githooks/*
   _ensure_agent_symlinks "$workdir"
+  _sync_tracked_submodules
   _generate_project_structure
   _sync_external_dirs
 }

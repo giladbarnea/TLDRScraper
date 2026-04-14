@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-14 10:53
+last_updated: 2026-04-14 11:23
 ---
 .
 ├── .agents
@@ -100,7 +100,6 @@ last_updated: 2026-04-14 10:53
 │  └── util.sh
 ├── .github
 │  └── workflows
-│     ├── claude.yml
 │     ├── GEMINI_REMOTE_AUTH.md
 │     ├── maintain-documentation.yml
 │     ├── nightly-vercel-cleanup.yml
@@ -221,6 +220,7 @@ last_updated: 2026-04-14 10:53
 │  │  ├── build_client.sh
 │  │  ├── common.sh
 │  │  ├── create_digests_table.sql
+│  │  ├── ensure_submodules.sh
 │  │  ├── ensure_tooling.sh
 │  │  └── ensure_uv_and_sync.sh
 │  ├── auto-pr-merge.sh
