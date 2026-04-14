@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-14 11:01
+last_updated: 2026-04-14 11:09
 ---
 # Git Hooks
 
@@ -61,37 +61,6 @@ This keeps generated project structure output, agent symlinks, and synced extern
 
 ## GitHub Actions
 
-Documentation maintenance runs automatically via a single consolidated workflow with explicit sequential dependencies to prevent race conditions:
+This git hooks-driven system is bidirectionally tied to `.github/workflows/`.
 
-```
-Feature branch:
-  commit README.md
-    ↓ pre-commit
-  last_updated: 2025-12-10 15:30  (timestamp only)
-    ↓ push
-  no CI
-    ↓ merge to main
-  CI runs → last_updated: 2025-12-10 15:35, abc1234  (completes it)
-```
-
-**Workflow:** `.github/workflows/maintain-documentation.yml`
-
-**Sequential Job Execution:**
-
-1. **update-frontmatter** (runs first):
-   - Updates YAML frontmatter in modified `*.md` files with timestamp and commit hash
-   - Commits and pushes changes
-   - Outputs list of modified files for downstream jobs
-
-2. **sync-agents-to-claude** (depends on job 1):
-   - Only runs if `AGENTS.md` was modified in job 1
-   - Copies `AGENTS.md` to `CLAUDE.md`, `GEMINI.md`, and `CODEX.md` (after frontmatter updates)
-   - Commits and pushes changes
-   - Prevents race condition by running sequentially
-
-3. **generate-structure-preview** (depends on job 2):
-   - Generates `PROJECT_STRUCTURE.md` preview in workflow logs
-   - Runs after all mutations complete
-   - File is not committed to git
-
-This design eliminates the race condition that occurred when parallel workflows (`update-doc-frontmatter.yml`, `copy-agents-to-claude.yml`) both modified and pushed changes simultaneously.
+For workflow triggers, local-to-CI frontmatter handoff, sequential job execution, and race-condition history, see [.github/workflows/WORKFLOW_DIAGRAM.md](../.github/workflows/WORKFLOW_DIAGRAM.md).

@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-14 11:01
+last_updated: 2026-04-14 11:09
 ---
 # Documentation Maintenance Workflow
 
@@ -73,6 +73,28 @@ Push to main
 │   the final state of the repository                             │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## Local-To-CI Handoff
+
+The hooks and workflow intentionally split responsibility for markdown frontmatter:
+
+```
+Feature branch:
+  commit README.md
+    ↓ pre-commit
+  last_updated: 2025-12-10 15:30
+    ↓ push feature branch
+  no maintain-documentation CI
+    ↓ merge or push to main
+  maintain-documentation.yml runs
+    ↓
+  last_updated: 2025-12-10 15:35, abc1234
+```
+
+This is the intended contract:
+- Local hooks keep working-tree markdown timestamps fresh before commit
+- GitHub Actions finalizes `last_updated` on `main` by appending the commit hash
+- `AGENTS.md` sync to `CLAUDE.md`, `GEMINI.md`, and `CODEX.md` happens only in CI after frontmatter is finalized
 
 ## Race Condition Prevention
 
