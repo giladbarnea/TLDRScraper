@@ -1,15 +1,8 @@
 ---
-last_updated: 2026-04-10 19:35
+last_updated: 2026-04-14 11:23
 ---
 .
 ├── .agents
-│  ├── agents
-│  │  ├── codebase-analyzer-multiple-subsystems.md
-│  │  ├── codebase-analyzer-single-subsystem.md
-│  │  ├── codebase-locator.md
-│  │  ├── generalist.md
-│  │  ├── react-antipattern-auditor.md
-│  │  └── web-deep-researcher.md
 │  └── skills
 │     ├── architecture-create
 │     │  └── SKILL.md
@@ -95,11 +88,6 @@ last_updated: 2026-04-10 19:35
 │     └── web-a11y-guidelines
 │        └── SKILL.md
 ├── .claude
-│  ├── hooks
-│  │  ├── block-gh-command.sh
-│  │  ├── block-until-reads.sh
-│  │  ├── README.md
-│  │  └── require-reads.sh
 │  ├── settings.backup.json
 │  └── settings.json
 ├── .githooks
@@ -112,7 +100,6 @@ last_updated: 2026-04-10 19:35
 │  └── util.sh
 ├── .github
 │  └── workflows
-│     ├── claude.yml
 │     ├── GEMINI_REMOTE_AUTH.md
 │     ├── maintain-documentation.yml
 │     ├── nightly-vercel-cleanup.yml
@@ -122,7 +109,9 @@ last_updated: 2026-04-10 19:35
 │     └── WORKFLOW_DIAGRAM.md
 ├── .pi
 │  ├── npm
-│  │  └── .gitignore
+│  │  ├── .gitignore
+│  │  ├── package-lock.json
+│  │  └── package.json
 │  └── settings.json
 ├── adapters
 │  ├── __init__.py
@@ -134,6 +123,7 @@ last_updated: 2026-04-10 19:35
 │  ├── cloudflare_adapter.py
 │  ├── danluu_adapter.py
 │  ├── deepmind_adapter.py
+│  ├── google_research_adapter.py
 │  ├── hackernews_adapter.py
 │  ├── hillel_wayne_adapter.py
 │  ├── infoq_adapter.py
@@ -178,8 +168,6 @@ last_updated: 2026-04-10 19:35
 │  │  │  ├── ToastContainer.jsx
 │  │  │  └── ZenModeOverlay.jsx
 │  │  ├── consensus
-│  │  │  ├── consensus.css
-│  │  │  └── ConsensusApp.jsx
 │  │  ├── contexts
 │  │  │  └── InteractionContext.jsx
 │  │  ├── hooks
@@ -232,6 +220,7 @@ last_updated: 2026-04-10 19:35
 │  │  ├── build_client.sh
 │  │  ├── common.sh
 │  │  ├── create_digests_table.sql
+│  │  ├── ensure_submodules.sh
 │  │  ├── ensure_tooling.sh
 │  │  └── ensure_uv_and_sync.sh
 │  ├── auto-pr-merge.sh
@@ -250,6 +239,7 @@ last_updated: 2026-04-10 19:35
 ├── tests
 │  ├── unit
 │  │  ├── test_canonicalize_url.py
+│  │  ├── test_google_research_adapter.py
 │  │  ├── test_should_rescrape.py
 │  │  └── test_trendshift_adapter.py
 │  ├── test_google_adk_smoke.py
@@ -272,15 +262,35 @@ last_updated: 2026-04-10 19:35
 │     ├── research
 │     │  └── description.md
 │     └── relevant-files.md
+├── vendor
+│  └── consensus
+│     ├── consensus
+│     │  ├── __init__.py
+│     │  ├── core.py
+│     │  └── web.py
+│     ├── web
+│     │  ├── src
+│     │  │  ├── consensus.css
+│     │  │  ├── ConsensusApp.jsx
+│     │  │  └── main.jsx
+│     │  ├── index.html
+│     │  ├── package-lock.json
+│     │  ├── package.json
+│     │  └── vite.config.js
+│     ├── .gitignore
+│     ├── pyproject.toml
+│     ├── README.md
+│     ├── serve.py
+│     └── uv.lock
 ├── .gitattributes
 ├── .gitignore
+├── .gitmodules
 ├── .vercelignore
 ├── AGENTS.md
 ├── ARCHITECTURE.md
 ├── BUGS.md
 ├── CLAUDE.md
 ├── CODEX.md
-├── consensus.py
 ├── GEMINI.md
 ├── GOTCHAS.md
 ├── newsletter_config.py
@@ -290,7 +300,6 @@ last_updated: 2026-04-10 19:35
 ├── README.md
 ├── requirements.txt
 ├── serve.py
-├── setup-hooks.sh
 ├── setup.sh
 ├── source_routes.py
 ├── storage_service.py
