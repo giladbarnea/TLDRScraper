@@ -423,7 +423,7 @@ function main() {
 
   #region ----[ Prepare & Print Docs ]----
 
-  git config core.hooksPath .githooks 2>/dev/null || true
+  git config --local core.hooksPath .githooks 2>/dev/null || true
   run_structural_maintenance || true
 
   #region ----[ Env Vars Validation ]----

@@ -1,9 +1,25 @@
 ---
-last_updated: 2026-02-17 08:01, c62aa7b
+last_updated: 2026-04-15 10:04
 ---
 # Gotchas
 
 This document catalogs recurring pitfalls in various topics, including managing client-side state persistence and reactivity, surprising design decisions, and so on.
+
+---
+
+#### 2026-04-15: Custom context menu on mobile — iOS doesn't fire `contextmenu` for text selection
+
+**Desired behavior that didn't work**: Show a custom context menu (Close reader, Mark done) when the user long-presses text in the Zen/Digest overlay on mobile, mirroring the desktop right-click behavior.
+
+**What actually happened and falsified original thesis**: On desktop, `onContextMenu` fires on right-click and the custom menu appears. On mobile (iOS Safari and iOS Arc/Chromium), long-pressing text never fires the `contextmenu` event at all — only `pointerdown` was observed, with no `touchcancel`, no `contextmenu`, nothing. We verified this with native document-level capture listeners. iOS simply doesn't dispatch `contextmenu` for plain text long-press (it does dispatch `touchcancel` → native callout for links/images, but not for text).
+
+**Wrong approaches tried**:
+1. *Simulating `contextmenu` via long-press timer* (`touchstart` → 500ms timeout → dispatch synthetic `contextmenu` on `touchend`): Worked mechanically, but the native iOS text-selection callout ("Copy | Share") appeared alongside our custom menu. Attempts to suppress it via `window.getSelection().removeAllRanges()`, `-webkit-touch-callout: none`, and `user-select: none` either failed or disabled text selection entirely — defeating the purpose.
+2. *Tunnel vision on suppressing the native callout*: Led to progressively more invasive workarounds (clearing selection, disabling user-select) that fought the platform instead of working with it.
+
+**Cause & Fix**: The idiomatic mobile approach is fundamentally different from desktop. Instead of intercepting a gesture event (`contextmenu`), listen to the `selectionchange` document event and show the custom menu when a non-empty selection exists within the overlay. Position the menu below the selection rect (via `Range.getBoundingClientRect()`) so it doesn't compete with the native callout that appears above. Gate on touch state (`touchstart`/`touchend`) so the menu appears on finger lift, not mid-gesture. On desktop, the existing `onContextMenu` (right-click) handler continues to work unchanged.
+
+**The generalized principle**: When a browser event doesn't exist on a platform (iOS has no `contextmenu` for text), don't simulate the event — find the platform-idiomatic state signal instead. For text interactions on mobile, that signal is `selectionchange`, not a gesture timer. Fighting the platform's native UX (suppressing callouts, disabling selection) is a sign you're on the wrong abstraction.
 
 ---
 
