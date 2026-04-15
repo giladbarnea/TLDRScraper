@@ -104,3 +104,14 @@ function run_structural_maintenance() {
   _generate_project_structure
   _sync_external_dirs
 }
+
+# run_structural_maintenance [workdir=$PWD]
+# The "public" function running idempotent structural maintenance tasks.
+function run_structural_maintenance() {
+  local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
+  chmod +x .githooks/*
+  _ensure_agent_symlinks "$workdir"
+  _sync_tracked_submodules
+  _generate_project_structure
+  _sync_external_dirs
+}
