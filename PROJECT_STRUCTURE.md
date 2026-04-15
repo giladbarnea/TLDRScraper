@@ -1,109 +1,13 @@
 ---
-last_updated: 2026-04-14 04:11
+last_updated: 2026-04-15 10:07
 ---
 .
 ├── .agents
-│  ├── agents
-│  │  ├── codebase-analyzer-multiple-subsystems.md
-│  │  ├── codebase-analyzer-single-subsystem.md
-│  │  ├── codebase-locator.md
-│  │  ├── generalist.md
-│  │  ├── react-antipattern-auditor.md
-│  │  └── web-deep-researcher.md
-│  └── skills
-│     ├── architecture-create
-│     │  └── SKILL.md
-│     ├── architecture-sync-since-last-updated
-│     │  └── SKILL.md
-│     ├── catchup
-│     │  └── SKILL.md
-│     ├── co-develop
-│     │  └── SKILL.md
-│     ├── consensus
-│     │  ├── scripts
-│     │  │  └── run_consensus.py
-│     │  └── SKILL.md
-│     ├── frontend-design-anthropic
-│     │  ├── metadata.json
-│     │  └── SKILL.md
-│     ├── frontend-design-openai
-│     │  ├── metadata.json
-│     │  └── SKILL.md
-│     ├── i-adapt
-│     │  └── SKILL.md
-│     ├── i-animate
-│     │  └── SKILL.md
-│     ├── i-arrange
-│     │  └── SKILL.md
-│     ├── i-audit
-│     │  └── SKILL.md
-│     ├── i-bolder
-│     │  └── SKILL.md
-│     ├── i-clarify
-│     │  └── SKILL.md
-│     ├── i-colorize
-│     │  └── SKILL.md
-│     ├── i-critique
-│     │  └── SKILL.md
-│     ├── i-delight
-│     │  └── SKILL.md
-│     ├── i-distill
-│     │  └── SKILL.md
-│     ├── i-extract
-│     │  └── SKILL.md
-│     ├── i-frontend-design
-│     │  └── SKILL.md
-│     ├── i-harden
-│     │  └── SKILL.md
-│     ├── i-normalize
-│     │  └── SKILL.md
-│     ├── i-onboard
-│     │  └── SKILL.md
-│     ├── i-optimize
-│     │  └── SKILL.md
-│     ├── i-overdrive
-│     │  └── SKILL.md
-│     ├── i-polish
-│     │  └── SKILL.md
-│     ├── i-quieter
-│     │  └── SKILL.md
-│     ├── i-teach-impeccable
-│     │  └── SKILL.md
-│     ├── i-typeset
-│     │  └── SKILL.md
-│     ├── plan
-│     │  └── SKILL.md
-│     ├── prompt-subagent
-│     │  └── SKILL.md
-│     ├── react-best-practices
-│     │  ├── AGENTS.md
-│     │  ├── metadata.json
-│     │  ├── README.md
-│     │  └── SKILL.md
-│     ├── reconcile
-│     │  └── SKILL.md
-│     ├── research-codebase
-│     │  └── SKILL.md
-│     ├── review-plan
-│     │  └── SKILL.md
-│     ├── simplify-code
-│     │  └── SKILL.md
-│     ├── to-done
-│     │  └── SKILL.md
-│     ├── vercel
-│     │  └── SKILL.md
-│     └── web-a11y-guidelines
-│        └── SKILL.md
 ├── .claude
-│  ├── hooks
-│  │  ├── block-gh-command.sh
-│  │  ├── block-until-reads.sh
-│  │  ├── README.md
-│  │  └── require-reads.sh
 │  ├── settings.backup.json
 │  └── settings.json
 ├── .githooks
-│  ├── post-checkout
+│  ├── post-checkout.disabled
 │  ├── post-merge
 │  ├── pre-commit
 │  ├── README.md
@@ -112,19 +16,13 @@ last_updated: 2026-04-14 04:11
 │  └── util.sh
 ├── .github
 │  └── workflows
-│     ├── claude.yml
 │     ├── GEMINI_REMOTE_AUTH.md
 │     ├── maintain-documentation.yml
 │     ├── nightly-vercel-cleanup.yml
-│     ├── test-gemini-wif.yml
 │     ├── weekly-branch-pr-cleanup.yml
 │     ├── weekly-supabase-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
 ├── .pi
-│  ├── npm
-│  │  ├── .gitignore
-│  │  ├── package-lock.json
-│  │  └── package.json
 │  └── settings.json
 ├── adapters
 │  ├── __init__.py
@@ -136,6 +34,7 @@ last_updated: 2026-04-14 04:11
 │  ├── cloudflare_adapter.py
 │  ├── danluu_adapter.py
 │  ├── deepmind_adapter.py
+│  ├── google_research_adapter.py
 │  ├── hackernews_adapter.py
 │  ├── hillel_wayne_adapter.py
 │  ├── jessitron_adapter.py
@@ -179,9 +78,6 @@ last_updated: 2026-04-14 04:11
 │  │  │  ├── SelectionCounterPill.jsx
 │  │  │  ├── ToastContainer.jsx
 │  │  │  └── ZenModeOverlay.jsx
-│  │  ├── consensus
-│  │  │  ├── consensus.css
-│  │  │  └── ConsensusApp.jsx
 │  │  ├── contexts
 │  │  │  └── InteractionContext.jsx
 │  │  ├── hooks
@@ -235,6 +131,7 @@ last_updated: 2026-04-14 04:11
 │  │  ├── build_client.sh
 │  │  ├── common.sh
 │  │  ├── create_digests_table.sql
+│  │  ├── ensure_submodules.sh
 │  │  ├── ensure_tooling.sh
 │  │  └── ensure_uv_and_sync.sh
 │  ├── auto-pr-merge.sh
@@ -250,14 +147,6 @@ last_updated: 2026-04-14 04:11
 │  ├── run-codex.sh
 │  ├── run-gemini.sh
 │  └── update_doc_frontmatter.py
-├── tests
-│  ├── unit
-│  │  ├── test_canonicalize_url.py
-│  │  ├── test_should_rescrape.py
-│  │  └── test_trendshift_adapter.py
-│  ├── test_google_adk_smoke.py
-│  ├── test_scrape_cache_server.py
-│  └── test_some_server_functionalities.py
 ├── thoughts
 │  ├── 25-12-21-failed-scrapes-are-retryable
 │  │  └── discussion.md
@@ -277,13 +166,13 @@ last_updated: 2026-04-14 04:11
 │     └── relevant-files.md
 ├── .gitattributes
 ├── .gitignore
+├── .gitmodules
 ├── .vercelignore
 ├── AGENTS.md
 ├── ARCHITECTURE.md
 ├── BUGS.md
 ├── CLAUDE.md
 ├── CODEX.md
-├── consensus.py
 ├── GEMINI.md
 ├── GOTCHAS.md
 ├── newsletter_config.py
@@ -293,7 +182,6 @@ last_updated: 2026-04-14 04:11
 ├── README.md
 ├── requirements.txt
 ├── serve.py
-├── setup-hooks.sh
 ├── setup.sh
 ├── source_routes.py
 ├── storage_service.py
