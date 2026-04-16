@@ -34,6 +34,7 @@ function _generate_project_structure() {
 	export PATH="${HOME}/.local/bin:${PATH}"
 	local -a ignore_glob_patterns=(
 		'.git'
+    'vendor'
 		'node_modules'
 		'__pycache__'
 		'*.pyc'
@@ -47,15 +48,11 @@ function _generate_project_structure() {
 		'.run'
 		'.codex'
 		'.gemini'
-		'.agents/agents'
-		'.claude/agents'
-		'.claude/skills'
+    '.pi/npm'
+    'tests'
+    '.*/skills'
+    '.*/agents'
 		'.claude/hooks'
-		'.pi/agents'
-		'.pi/skills'
-		'.agents/skills/react-best-practices/rules'
-		'.agents/skills/i-frontend-design/reference'
-		'.agents/skills/i-critique/reference'
 	)
 	local ignore_glob
 	local old_ifs="$IFS"
