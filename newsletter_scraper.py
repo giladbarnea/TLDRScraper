@@ -41,15 +41,9 @@ def _get_adapter_for_source(config):
     elif config.source_id == "will_larson":
         from adapters.will_larson_adapter import WillLarsonAdapter
         return WillLarsonAdapter(config)
-    elif config.source_id == "lenny_newsletter":
-        from adapters.lenny_newsletter_adapter import LennyNewsletterAdapter
-        return LennyNewsletterAdapter(config)
     elif config.source_id == "pragmatic_engineer":
         from adapters.pragmatic_engineer_adapter import PragmaticEngineerAdapter
         return PragmaticEngineerAdapter(config)
-    elif config.source_id == "cloudflare":
-        from adapters.cloudflare_adapter import CloudflareAdapter
-        return CloudflareAdapter(config)
     elif config.source_id == "jessitron":
         from adapters.jessitron_adapter import JessitronAdapter
         return JessitronAdapter(config)

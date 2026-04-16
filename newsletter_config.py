@@ -111,28 +111,6 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"blog": "Engineering Leadership"},
         sort_order=6,  # 0.8/week - rare, bursty
     ),
-    "cloudflare": NewsletterSourceConfig(
-        source_id="cloudflare",
-        display_name="Cloudflare Blog",
-        base_url="https://blog.cloudflare.com",
-        url_pattern="",
-        types=["blog"],
-        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
-        article_pattern="",
-        category_display_names={"blog": "Cloudflare Blog"},
-        sort_order=11,  # 3.2/week - moderate
-    ),
-    "lenny_newsletter": NewsletterSourceConfig(
-        source_id="lenny_newsletter",
-        display_name="Lenny's Newsletter",
-        base_url="https://www.lennysnewsletter.com",
-        url_pattern="",
-        types=["newsletter"],
-        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
-        article_pattern="",
-        category_display_names={"newsletter": "Lenny's Newsletter"},
-        sort_order=14,  # 5.0/week - moderate
-    ),
     "pragmatic_engineer": NewsletterSourceConfig(
         source_id="pragmatic_engineer",
         display_name="The Pragmatic Engineer",
