@@ -53,36 +53,6 @@ def get_daily_payload(date):
         return result.data[0]['payload']
     return None
 
-def _sanitize_loading_states(payload):
-    """Reset any transient 'loading' summary/tldr states to 'unknown' before persisting.
-
-    'loading' is an ephemeral in-flight client state. If persisted (e.g. browser
-    closed mid-request), the article card gets stuck showing the spinner forever
-    on next load with no request to complete it.
-    """
-    articles = payload.get('articles')
-    if not articles:
-        return payload
-
-    new_articles = []
-    any_changed = False
-    for article in articles:
-        changed = False
-        for field in ('summary', 'tldr'):
-            data = article.get(field)
-            if isinstance(data, dict) and data.get('status') == 'loading':
-                if not changed:
-                    article = dict(article)
-                    changed = True
-                article[field] = {**data, 'status': 'unknown'}
-        new_articles.append(article)
-        any_changed = any_changed or changed
-
-    if not any_changed:
-        return payload
-    return {**payload, 'articles': new_articles}
-
-
 def set_daily_payload(date, payload):
     """
     Save or update daily payload (upsert).
@@ -96,7 +66,7 @@ def set_daily_payload(date, payload):
     supabase = supabase_client.get_supabase_client()
     result = supabase.table('daily_cache').upsert({
         'date': date,
-        'payload': _sanitize_loading_states(payload)
+        'payload': payload
     }).execute()
 
     return result.data[0] if result.data else None
