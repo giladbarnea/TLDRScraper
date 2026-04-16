@@ -94,6 +94,7 @@ function _sync_tracked_submodules() {
 function _sync_external_dirs() {
 	echo "[sync_external_dirs] Syncing external subdirectories..."
 	sync_untracked "https://github.com/giladbarnea/llm-templates" "skills/prompt-subagent" ".agents/skills/prompt-subagent"
+	sync_untracked "https://github.com/giladbarnea/llm-templates" "skills/supabase-postgres-best-practices" ".agents/skills/supabase-postgres-best-practices"
 	echo "[sync_external_dirs] Sync complete."
 }
 
