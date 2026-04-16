@@ -3,16 +3,17 @@
 _HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$_HOOKS_DIR/sync-subdir.sh"
 
-function ensure_agent_symlinks() {
+# _ensure_agent_symlinks [workdir=$PWD]
+# Ensures that `.agents/{skills,agents}` are symlinks to the real CLI agent configuration dirs.
+function _ensure_agent_symlinks() {
 	local dot_dirs=(".claude" ".codex" ".gemini" ".pi")
 	local workdir="${1:-${SERVER_CONTEXT_WORKDIR:-$PWD}}"
-
+  local dir target link_path current_target
 	for dir in "${dot_dirs[@]}"; do
 		mkdir -p "$workdir/$dir"
 		for target in "agents" "skills"; do
-			local link_path="$workdir/$dir/$target"
+			link_path="$workdir/$dir/$target"
 			if [[ -L "$link_path" ]]; then
-				local current_target
 				current_target=$(readlink "$link_path")
 				if [[ "$current_target" != "../.agents/$target" ]]; then
 					rm "$link_path"
@@ -26,13 +27,41 @@ function ensure_agent_symlinks() {
 	done
 }
 
-function generate_project_structure() {
+# _generate_project_structure [workdir=$PWD]
+# Generates the project structure markdown file and updates the last updated frontmatter field.
+function _generate_project_structure() {
 	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
 	export PATH="${HOME}/.local/bin:${PATH}"
-	ensure_agent_symlinks "$workdir"
-	local ignore_glob='.git|node_modules|__pycache__|*.pyc|.venv|static|*.vscode|*.cursor|experimental|thoughts/done|docs|.run|.codex|.gemini|.claude/agents|.claude/skills|.pi/agents|.pi/skills|.agents/skills/react-best-practices/rules|.agents/skills/i-frontend-design/reference|.agents/skills/i-critique/reference'
-	local target="PROJECT_STRUCTURE.md"
-	local tmp; tmp=$(mktemp)
+	local -a ignore_glob_patterns=(
+		'.git'
+		'node_modules'
+		'__pycache__'
+		'*.pyc'
+		'.venv'
+		'static'
+		'*.vscode'
+		'*.cursor'
+		'experimental'
+		'thoughts/done'
+		'docs'
+		'.run'
+		'.codex'
+		'.gemini'
+		'.agents/agents'
+		'.claude/agents'
+		'.claude/skills'
+		'.claude/hooks'
+		'.pi/agents'
+		'.pi/skills'
+		'.agents/skills/react-best-practices/rules'
+		'.agents/skills/i-frontend-design/reference'
+		'.agents/skills/i-critique/reference'
+	)
+	local ignore_glob
+	local old_ifs="$IFS"
+	IFS='|'
+	ignore_glob="${ignore_glob_patterns[*]}"
+	IFS="$old_ifs"
 	uv run python3 scripts/generate_tree.py \
 		--classify \
 		--icons \
@@ -40,24 +69,42 @@ function generate_project_structure() {
 		--git-ignore \
 		--all \
 		--ignore-glob "$ignore_glob" \
-		. > "$tmp"
-	uv run python3 - "$target" "$tmp" <<'PY'
-import sys, re
-from pathlib import Path
-target, tmp = Path(sys.argv[1]), Path(sys.argv[2])
-tree = tmp.read_text()
-frontmatter = ""
-if target.exists():
-    m = re.match(r'^---\s*\n.*?---\s*\n', target.read_text(), re.DOTALL)
-    if m:
-        frontmatter = m.group(0)
-target.write_text(frontmatter + tree if frontmatter else tree)
-PY
-	rm "$tmp"
+		. > "PROJECT_STRUCTURE.md"
+	update_markdown_last_updated "PROJECT_STRUCTURE.md" "$(date -u +"%Y-%m-%d %H:%M")"
 }
 
-function sync_external_dirs() {
+function update_markdown_last_updated() {
+	local file_path="$1"
+	local timestamp="$2"
+	uv run python3 - "$file_path" "$timestamp" <<'PY'
+import sys
+sys.path.insert(0, 'scripts')
+import markdown_frontmatter
+file_path, timestamp = sys.argv[1], sys.argv[2]
+markdown_frontmatter.update(file_path, {'last_updated': timestamp})
+print(f"  {file_path}.last_updated -> {timestamp}")
+PY
+}
+
+function _sync_tracked_submodules() {
+	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
+	SERVER_CONTEXT_WORKDIR="$workdir" bash "$workdir/scripts/setup/ensure_submodules.sh"
+}
+
+function _sync_external_dirs() {
 	echo "[sync_external_dirs] Syncing external subdirectories..."
 	sync_untracked "https://github.com/giladbarnea/llm-templates" "skills/prompt-subagent" ".agents/skills/prompt-subagent"
+	sync_untracked "https://github.com/giladbarnea/llm-templates" "skills/supabase-postgres-best-practices" ".agents/skills/supabase-postgres-best-practices"
 	echo "[sync_external_dirs] Sync complete."
+}
+
+# run_structural_maintenance [workdir=$PWD]
+# The "public" function running idempotent structural maintenance tasks.
+function run_structural_maintenance() {
+  local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
+  chmod +x .githooks/*
+  _ensure_agent_symlinks "$workdir"
+  _sync_tracked_submodules
+  _generate_project_structure
+  _sync_external_dirs
 }
