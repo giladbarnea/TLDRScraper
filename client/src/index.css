@@ -235,3 +235,18 @@
 @utility animate-toast-out {
   animation: toast-slide-out 350ms cubic-bezier(0.32, 0, 0.67, 0) forwards;
 }
+
+@keyframes context-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility animate-context-menu-in {
+  animation: context-menu-in 120ms var(--ease-springy) forwards;
+}
