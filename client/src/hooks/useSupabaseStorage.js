@@ -218,6 +218,18 @@ export function useSupabaseStorage(key, defaultValue) {
     let cancelled = false
 
     const handleChange = () => {
+      if (readCache.has(key)) {
+        // Synchronous fast path: emitChange always populates readCache before firing,
+        // so valueRef is updated in the same call stack. This prevents a race where
+        // a second concurrent setValueAsync reads a stale valueRef and overwrites
+        // another article's state that was just updated.
+        const newValue = readCache.get(key)
+        if (!cancelled) {
+          setValue(newValue)
+          valueRef.current = newValue
+        }
+        return
+      }
       readValue(key, defaultValue).then(newValue => {
         if (cancelled) return
         setValue(newValue)
