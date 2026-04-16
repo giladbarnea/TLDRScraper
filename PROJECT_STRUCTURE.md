@@ -3,13 +3,6 @@ last_updated: 2026-04-16 07:05
 ---
 .
 ├── .agents
-│  ├── agents
-│  │  ├── codebase-analyzer-multiple-subsystems.md
-│  │  ├── codebase-analyzer-single-subsystem.md
-│  │  ├── codebase-locator.md
-│  │  ├── generalist.md
-│  │  ├── react-antipattern-auditor.md
-│  │  └── web-deep-researcher.md
 │  └── skills
 │     ├── architecture-create
 │     │  └── SKILL.md
@@ -22,9 +15,6 @@ last_updated: 2026-04-16 07:05
 │     ├── consensus
 │     │  ├── scripts
 │     │  │  └── run_consensus.py
-│     │  └── SKILL.md
-│     ├── frontend-design-anthropic
-│     │  ├── metadata.json
 │     │  └── SKILL.md
 │     ├── frontend-design-openai
 │     │  ├── metadata.json
@@ -95,15 +85,10 @@ last_updated: 2026-04-16 07:05
 │     └── web-a11y-guidelines
 │        └── SKILL.md
 ├── .claude
-│  ├── hooks
-│  │  ├── block-gh-command.sh
-│  │  ├── block-until-reads.sh
-│  │  ├── README.md
-│  │  └── require-reads.sh
 │  ├── settings.backup.json
 │  └── settings.json
 ├── .githooks
-│  ├── post-checkout
+│  ├── post-checkout.disabled
 │  ├── post-merge
 │  ├── pre-commit
 │  ├── README.md
@@ -112,11 +97,9 @@ last_updated: 2026-04-16 07:05
 │  └── util.sh
 ├── .github
 │  └── workflows
-│     ├── claude.yml
 │     ├── GEMINI_REMOTE_AUTH.md
 │     ├── maintain-documentation.yml
 │     ├── nightly-vercel-cleanup.yml
-│     ├── test-gemini-wif.yml
 │     ├── weekly-branch-pr-cleanup.yml
 │     ├── weekly-supabase-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
@@ -137,6 +120,7 @@ last_updated: 2026-04-16 07:05
 │  ├── hackernews_adapter.py
 │  ├── hillel_wayne_adapter.py
 │  ├── jessitron_adapter.py
+│  ├── lenny_newsletter_adapter.py
 │  ├── lucumr_adapter.py
 │  ├── martin_fowler_adapter.py
 │  ├── netflix_adapter.py
@@ -175,9 +159,6 @@ last_updated: 2026-04-16 07:05
 │  │  │  ├── SelectionCounterPill.jsx
 │  │  │  ├── ToastContainer.jsx
 │  │  │  └── ZenModeOverlay.jsx
-│  │  ├── consensus
-│  │  │  ├── consensus.css
-│  │  │  └── ConsensusApp.jsx
 │  │  ├── contexts
 │  │  │  └── InteractionContext.jsx
 │  │  ├── hooks
@@ -230,6 +211,7 @@ last_updated: 2026-04-16 07:05
 │  │  ├── build_client.sh
 │  │  ├── common.sh
 │  │  ├── create_digests_table.sql
+│  │  ├── ensure_submodules.sh
 │  │  ├── ensure_tooling.sh
 │  │  └── ensure_uv_and_sync.sh
 │  ├── auto-pr-merge.sh
@@ -271,15 +253,35 @@ last_updated: 2026-04-16 07:05
 │     ├── research
 │     │  └── description.md
 │     └── relevant-files.md
+├── vendor
+│  └── consensus
+│     ├── consensus
+│     │  ├── __init__.py
+│     │  ├── core.py
+│     │  └── web.py
+│     ├── web
+│     │  ├── src
+│     │  │  ├── consensus.css
+│     │  │  ├── ConsensusApp.jsx
+│     │  │  └── main.jsx
+│     │  ├── index.html
+│     │  ├── package-lock.json
+│     │  ├── package.json
+│     │  └── vite.config.js
+│     ├── .gitignore
+│     ├── pyproject.toml
+│     ├── README.md
+│     ├── serve.py
+│     └── uv.lock
 ├── .gitattributes
 ├── .gitignore
+├── .gitmodules
 ├── .vercelignore
 ├── AGENTS.md
 ├── ARCHITECTURE.md
 ├── BUGS.md
 ├── CLAUDE.md
 ├── CODEX.md
-├── consensus.py
 ├── GEMINI.md
 ├── GOTCHAS.md
 ├── newsletter_config.py
@@ -289,7 +291,6 @@ last_updated: 2026-04-16 07:05
 ├── README.md
 ├── requirements.txt
 ├── serve.py
-├── setup-hooks.sh
 ├── setup.sh
 ├── source_routes.py
 ├── storage_service.py
