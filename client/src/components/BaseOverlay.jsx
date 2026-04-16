@@ -22,7 +22,7 @@ function BaseOverlay({
   const scrollRef = useRef(null)
 
   const { progress, hasScrolled } = useScrollProgress(scrollRef, expanded)
-  const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose, enabled: false })
+  const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose, enabled: expanded })
   const {
     overscrollOffset,
     isOverscrolling,
@@ -100,6 +100,7 @@ function BaseOverlay({
         <div
           ref={scrollRef}
           onContextMenu={onContentContextMenu}
+          data-overlay-content
           className="flex-1 overflow-y-auto bg-white"
         >
           <div

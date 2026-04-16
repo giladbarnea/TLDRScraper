@@ -37,9 +37,10 @@ export function useOverlayContextMenu(enabled = true) {
       const sel = window.getSelection()
       if (!sel || sel.isCollapsed || !sel.toString().trim()) return
 
+      if (!sel.anchorNode?.parentElement?.closest('[data-overlay-content]')) return
+
       const range = sel.getRangeAt(0)
       const rect = range.getBoundingClientRect()
-      console.log('[ctx:selection] opening menu below rect bottom:', rect.bottom.toFixed(0))
 
       openedBySelectionRef.current = true
       setMenuState({

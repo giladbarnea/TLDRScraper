@@ -4,7 +4,7 @@ import BaseOverlay, { overlayProseClassName } from './BaseOverlay'
 import OverlayContextMenu from './OverlayContextMenu'
 
 function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
-  const contextMenu = useOverlayContextMenu()
+  const contextMenu = useOverlayContextMenu(true)
   const truncatedMeta = articleMeta && articleMeta.length > 22
     ? `${articleMeta.slice(0, 22)}...`
     : articleMeta
