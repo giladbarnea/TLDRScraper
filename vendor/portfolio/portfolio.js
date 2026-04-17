@@ -1,4 +1,3 @@
-```react
 import React, { useMemo, useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector } from 'recharts';
 
@@ -149,5 +148,3 @@ const App = () => {
 };
 
 export default App;
-
-```
