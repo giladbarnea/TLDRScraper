@@ -175,7 +175,7 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-10">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-10 overflow-x-hidden">
       <div className="sticky top-0 z-20 bg-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto">
           <div className="px-4 py-4 flex justify-between items-center">
@@ -287,8 +287,8 @@ const App = () => {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse table-fixed sm:table-auto min-w-[320px]">
+          <div className="overflow-x-auto max-w-full">
+            <table className="w-full text-left border-collapse table-fixed sm:table-auto min-w-[760px]">
               <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
                 <tr>
                   <th className="px-4 py-3 w-[40%] sm:w-auto">Asset</th>
@@ -333,8 +333,8 @@ const App = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-200 text-xs uppercase font-bold text-slate-500">Latest transactions</div>
           <div className="max-h-72 overflow-auto">
-            <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse table-fixed sm:table-auto min-w-[320px] text-xs sm:text-sm">
+            <div className="overflow-x-auto max-w-full">
+            <table className="w-full text-left border-collapse table-fixed sm:table-auto min-w-[640px] text-xs sm:text-sm">
               <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
                 <tr>
                   <th className="px-4 py-2 text-left">Timestamp</th>
