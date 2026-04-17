@@ -14,16 +14,23 @@ as $$
 declare
   current_payload jsonb;
   current_updated_at text;
+  current_updated_at_timestamp timestamptz;
+  expected_updated_at_timestamp timestamptz;
   article_index integer;
   patch_key text;
   patch_value jsonb;
   patched_payload jsonb;
   next_updated_at text;
 begin
+  expected_updated_at_timestamp := expected_updated_at::timestamptz;
   select
     daily_cache.payload,
-    coalesce(daily_cache.payload->>'storage_updated_at', daily_cache.cached_at::text)
-  into current_payload, current_updated_at
+    to_char(
+      coalesce((daily_cache.payload->>'storage_updated_at')::timestamptz, daily_cache.cached_at) at time zone 'UTC',
+      'YYYY-MM-DD"T"HH24:MI:SS.US"+00:00"'
+    ),
+    coalesce((daily_cache.payload->>'storage_updated_at')::timestamptz, daily_cache.cached_at)
+  into current_payload, current_updated_at, current_updated_at_timestamp
   from daily_cache
   where daily_cache.date = target_date;
 
@@ -31,7 +38,7 @@ begin
     raise exception 'daily_cache row not found for date %', target_date;
   end if;
 
-  if current_updated_at <> expected_updated_at then
+  if current_updated_at_timestamp <> expected_updated_at_timestamp then
     return query
       select true, current_payload, current_updated_at;
     return;
@@ -58,7 +65,10 @@ begin
     );
   end loop;
 
-  next_updated_at := now()::text;
+  next_updated_at := to_char(
+    now() at time zone 'UTC',
+    'YYYY-MM-DD"T"HH24:MI:SS.US"+00:00"'
+  );
   patched_payload := jsonb_set(
     patched_payload,
     '{storage_updated_at}',
@@ -70,7 +80,8 @@ begin
   set payload = patched_payload
   where
     daily_cache.date = target_date
-    and coalesce(daily_cache.payload->>'storage_updated_at', daily_cache.cached_at::text) = expected_updated_at;
+    and coalesce((daily_cache.payload->>'storage_updated_at')::timestamptz, daily_cache.cached_at)
+      = expected_updated_at_timestamp;
 
   if found then
     return query
@@ -80,7 +91,10 @@ begin
 
   select
     daily_cache.payload,
-    coalesce(daily_cache.payload->>'storage_updated_at', daily_cache.cached_at::text)
+    to_char(
+      coalesce((daily_cache.payload->>'storage_updated_at')::timestamptz, daily_cache.cached_at) at time zone 'UTC',
+      'YYYY-MM-DD"T"HH24:MI:SS.US"+00:00"'
+    )
   into current_payload, current_updated_at
   from daily_cache
   where daily_cache.date = target_date;

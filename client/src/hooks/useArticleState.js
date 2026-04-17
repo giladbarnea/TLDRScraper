@@ -39,20 +39,17 @@ export function useArticleState(date, url) {
 
     const persistPatch = async () => {
       let latestPayload = optimisticPayload
-      let latestArticle = latestPayload.articles.find((currentArticle) => currentArticle.url === url)
       let latestPatch = optimisticPatch
       let expectedUpdatedAt = latestPayload.storage_updated_at
 
       for (let attemptIndex = 0; attemptIndex < 2; attemptIndex += 1) {
-        if (!latestArticle) throw new Error(`Article not found for url: ${url}`)
         if (!expectedUpdatedAt) {
           const storageRow = await getDailyPayloadWithMetadata(date)
           if (!storageRow) throw new Error(`Daily payload not found for date: ${date}`)
           latestPayload = storageRow.payload
           expectedUpdatedAt = storageRow.updatedAt
-          latestArticle = latestPayload.articles.find((currentArticle) => currentArticle.url === url)
+          const latestArticle = latestPayload.articles.find((currentArticle) => currentArticle.url === url)
           if (!latestArticle) throw new Error(`Article not found for url: ${url}`)
-          latestPatch = updater(latestArticle)
           setStorageValueInMemory(storageKey, applyArticlePatchToPayload(latestPayload, url, latestPatch))
         }
 
@@ -73,9 +70,8 @@ export function useArticleState(date, url) {
 
         latestPayload = patchResult.payload
         expectedUpdatedAt = patchResult.updatedAt
-        latestArticle = latestPayload.articles.find((currentArticle) => currentArticle.url === url)
+        const latestArticle = latestPayload.articles.find((currentArticle) => currentArticle.url === url)
         if (!latestArticle) throw new Error(`Article not found for url: ${url}`)
-        latestPatch = updater(latestArticle)
         setStorageValueInMemory(storageKey, applyArticlePatchToPayload(latestPayload, url, latestPatch))
       }
 
