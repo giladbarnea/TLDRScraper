@@ -1,1 +1,1 @@
-export { default } from './portfolio.jsx'
+export { default } from '../../client/src/portfolio/PortfolioApp.jsx'
