@@ -15,6 +15,7 @@ import requests
 import util
 import tldr_app
 import storage_service
+import portfolio_service
 from summarizer import DEFAULT_MODEL, DEFAULT_SUMMARY_EFFORT
 from source_routes import source_bp
 
@@ -56,6 +57,14 @@ register_consensus_submodule()
 @app.route("/")
 def index():
     """Serve the React app"""
+    static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
+    return send_from_directory(static_dist, 'index.html')
+
+
+@app.route("/portfolio")
+@app.route("/portfolio/")
+def portfolio_index():
+    """Serve portfolio app shell."""
     static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
     return send_from_directory(static_dist, 'index.html')
 
@@ -270,6 +279,57 @@ def check_storage_is_cached(date):
             exc_info=True,
         )
         return jsonify({"success": False, "error": repr(e)}), 500
+
+
+@app.route("/api/portfolio/transactions", methods=["GET"])
+def list_portfolio_transactions():
+    """List append-only portfolio transactions."""
+    try:
+        transactions = portfolio_service.list_transactions()
+        return jsonify({"success": True, "transactions": transactions})
+    except Exception as error:
+        logger.error(
+            "portfolio transaction list failed error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(error)}), 500
+
+
+@app.route("/api/portfolio/transactions", methods=["POST"])
+def append_portfolio_transaction():
+    """Append immutable portfolio transaction."""
+    try:
+        data = request.get_json()
+        transaction = portfolio_service.append_transaction(
+            symbol_id=data["symbol_id"],
+            transaction_amount_dollars=float(data["transaction_amount_dollars"]),
+            shares=float(data["shares"]),
+        )
+        return jsonify({"success": True, "transaction": transaction})
+    except Exception as error:
+        logger.error(
+            "portfolio transaction append failed error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(error)}), 500
+
+
+@app.route("/api/portfolio/positions", methods=["GET"])
+def portfolio_positions():
+    """Aggregate portfolio transactions into current symbol positions."""
+    try:
+        transactions = portfolio_service.list_transactions()
+        positions = portfolio_service.summarize_positions(transactions)
+        return jsonify({"success": True, "positions": positions, "transactions": transactions})
+    except Exception as error:
+        logger.error(
+            "portfolio positions failed error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(error)}), 500
 
 if __name__ == "__main__":
     app.run(
