@@ -22,7 +22,7 @@ function BaseOverlay({
   const scrollRef = useRef(null)
 
   const { progress, hasScrolled } = useScrollProgress(scrollRef, expanded)
-  const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose, enabled: expanded })
+  const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose, enabled: false })
   const {
     overscrollOffset,
     isOverscrolling,
