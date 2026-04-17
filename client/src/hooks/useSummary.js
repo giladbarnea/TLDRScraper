@@ -68,6 +68,7 @@ export function useSummary(date, url, type = 'summary') {
       {
         type: summaryDataReducer.SummaryDataEventType.SUMMARY_REQUESTED,
         effort: summaryEffort,
+        requestedAt: new Date().toISOString(),
       },
       `effort=${summaryEffort}`
     )

@@ -5,6 +5,8 @@ export const SummaryDataStatus = Object.freeze({
   ERROR: 'error',
 })
 
+const MAX_LOADING_STATE_AGE_MILLISECONDS = 2 * 60 * 1000
+
 export const SummaryDataEventType = Object.freeze({
   SUMMARY_REQUESTED: 'SUMMARY_REQUESTED',
   SUMMARY_LOAD_SUCCEEDED: 'SUMMARY_LOAD_SUCCEEDED',
@@ -14,7 +16,27 @@ export const SummaryDataEventType = Object.freeze({
 })
 
 export function getSummaryDataStatus(summaryData) {
-  return summaryData?.status || SummaryDataStatus.UNKNOWN
+  const status = summaryData?.status || SummaryDataStatus.UNKNOWN
+  if (status !== SummaryDataStatus.LOADING) {
+    return status
+  }
+
+  const requestedAtIso = summaryData?.requestedAt
+  if (!requestedAtIso) {
+    return SummaryDataStatus.UNKNOWN
+  }
+
+  const requestedAtUnixMilliseconds = Date.parse(requestedAtIso)
+  if (Number.isNaN(requestedAtUnixMilliseconds)) {
+    return SummaryDataStatus.UNKNOWN
+  }
+
+  const loadingDurationMilliseconds = Date.now() - requestedAtUnixMilliseconds
+  if (loadingDurationMilliseconds > MAX_LOADING_STATE_AGE_MILLISECONDS) {
+    return SummaryDataStatus.UNKNOWN
+  }
+
+  return SummaryDataStatus.LOADING
 }
 
 /**
@@ -36,6 +58,7 @@ export function reduceSummaryData(summaryData, event) {
         patch: {
           status: SummaryDataStatus.LOADING,
           effort: event.effort,
+          requestedAt: event.requestedAt,
           errorMessage: null,
         },
       }
@@ -47,6 +70,7 @@ export function reduceSummaryData(summaryData, event) {
           markdown: event.markdown,
           effort: event.effort,
           checkedAt: event.checkedAt,
+          requestedAt: null,
           errorMessage: null,
         },
       }
@@ -55,6 +79,7 @@ export function reduceSummaryData(summaryData, event) {
         state: SummaryDataStatus.ERROR,
         patch: {
           status: SummaryDataStatus.ERROR,
+          requestedAt: null,
           errorMessage: event.errorMessage,
         },
       }
@@ -65,6 +90,7 @@ export function reduceSummaryData(summaryData, event) {
           status: SummaryDataStatus.UNKNOWN,
           markdown: '',
           errorMessage: null,
+          requestedAt: null,
           checkedAt: null,
         },
       }
@@ -75,6 +101,7 @@ export function reduceSummaryData(summaryData, event) {
           status: SummaryDataStatus.UNKNOWN,
           markdown: '',
           errorMessage: null,
+          requestedAt: null,
           checkedAt: null,
         },
       }
