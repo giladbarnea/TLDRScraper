@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector } from '../../client/node_modules/recharts/es6/index.js'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector } from 'recharts'
 
 const CATEGORY_MAP = {
   Mag7: ['AAPL', 'AMZN', 'GOOGL', 'MSFT', 'NVDA', 'TSLA'],
@@ -210,30 +210,34 @@ const App = () => {
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
           <div className="h-[300px] sm:h-[400px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  activeIndex={activeIndex}
-                  activeShape={renderActiveShape}
-                  data={viewData.items}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="65%"
-                  outerRadius="85%"
-                  dataKey="value"
-                  onMouseEnter={(_, index) => setActiveIndex(index)}
-                  onClick={(_, index) => setActiveIndex(index)}
-                >
-                  {viewData.items.map((_, index) => (
-                    <Cell key={index} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  formatter={(value) => `$${value.toLocaleString()}`}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {viewData.items.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={280}>
+                <PieChart>
+                  <Pie
+                    activeIndex={activeIndex}
+                    activeShape={renderActiveShape}
+                    data={viewData.items}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="65%"
+                    outerRadius="85%"
+                    dataKey="value"
+                    onMouseEnter={(_, index) => setActiveIndex(index)}
+                    onClick={(_, index) => setActiveIndex(index)}
+                  >
+                    {viewData.items.map((_, index) => (
+                      <Cell key={index} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    formatter={(value) => `$${value.toLocaleString()}`}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full grid place-items-center text-sm text-slate-400 font-medium">No positions yet</div>
+            )}
           </div>
         </div>
 
