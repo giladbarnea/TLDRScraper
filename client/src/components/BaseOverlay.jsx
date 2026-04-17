@@ -48,6 +48,7 @@ function BaseOverlay({ expanded = true, headerContent, onClose, onMarkRemoved, o
 
   return createPortal(
     <div
+      onClick={(e) => e.stopPropagation()}
       className="fixed inset-0 z-[100]"
       style={{
         transform: `translateY(${pullOffset}px)`,

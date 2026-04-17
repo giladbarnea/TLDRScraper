@@ -30,6 +30,7 @@ function OverlayContextMenu({ isOpen, anchorX, anchorY, actions, onClose, menuRe
   const { left, top } = clampMenuPosition(anchorX, anchorY, actions.length)
 
   function handleActionClick(action) {
+    console.log('[ctxmenu] action clicked:', action.label, '| disabled:', action.disabled)
     if (action.disabled) return
     window.getSelection()?.removeAllRanges()
     onClose()
