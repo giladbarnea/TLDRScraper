@@ -321,7 +321,8 @@ def portfolio_positions():
     """Aggregate portfolio transactions into current symbol positions."""
     try:
         transactions = portfolio_service.list_transactions()
-        positions = portfolio_service.summarize_positions(transactions)
+        summarized_positions = portfolio_service.summarize_positions(transactions)
+        positions = portfolio_service.enrich_positions_with_market_data(summarized_positions)
         return jsonify({"success": True, "positions": positions, "transactions": transactions})
     except Exception as error:
         logger.error(

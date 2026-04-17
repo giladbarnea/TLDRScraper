@@ -67,7 +67,7 @@ const App = () => {
         return aggregate
       }
 
-      aggregate[position.symbol_id] = Number(position.transaction_amount_dollars)
+      aggregate[position.symbol_id] = Number(position.current_market_value_dollars)
       return aggregate
     }, {})
 
@@ -77,12 +77,17 @@ const App = () => {
     }
 
     return Object.entries(base)
-      .map(([name, value]) => ({
-        name,
-        value: Number(value.toFixed(2)),
-        p_total: ((value / totalValue) * 100).toFixed(1),
-        cat: categorizeSymbol(name),
-      }))
+      .map(([name, value]) => {
+        const position = positions.find((item) => item.symbol_id === name)
+        return {
+          name,
+          value: Number(value.toFixed(2)),
+          p_total: ((value / totalValue) * 100).toFixed(1),
+          cat: categorizeSymbol(name),
+          total_percent_change: Number(position?.total_percent_change || 0),
+          total_dollar_gain: Number(position?.total_dollar_gain || 0),
+        }
+      })
       .sort((a, b) => b.value - a.value)
   }, [positions, includeBonds])
 
@@ -105,6 +110,16 @@ const App = () => {
       return map
     }, {})
   }, [rawData])
+
+  const pendingTransactionPricePerShare = useMemo(() => {
+    const transactionAmount = Number(transactionForm.transaction_amount_dollars)
+    const shares = Number(transactionForm.shares)
+    const symbolId = transactionForm.symbol_id.trim()
+    if (!symbolId || Number.isNaN(transactionAmount) || Number.isNaN(shares) || shares === 0) {
+      return null
+    }
+    return transactionAmount / shares
+  }, [transactionForm])
 
   useEffect(() => {
     setActiveIndex(0)
@@ -230,6 +245,12 @@ const App = () => {
           >
             {isSubmitting ? 'Saving...' : 'Add transaction'}
           </button>
+          {pendingTransactionPricePerShare !== null ? (
+            <div className="sm:col-span-4 text-xs font-semibold text-slate-500">
+              Intended transaction $/share:&nbsp;
+              <span className="text-slate-800 font-mono">{pendingTransactionPricePerShare.toFixed(4)}</span>
+            </div>
+          ) : null}
         </form>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
@@ -274,6 +295,8 @@ const App = () => {
                   <th className="px-4 py-3 text-right">Value</th>
                   <th className="px-2 py-3 text-right">Cat %</th>
                   <th className="px-4 py-3 text-right">Tot %</th>
+                  <th className="px-4 py-3 text-right">Tot % Change</th>
+                  <th className="px-4 py-3 text-right">Tot $ Gain</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -294,6 +317,12 @@ const App = () => {
                     </td>
                     <td className="px-2 py-4 text-right font-bold text-blue-600 text-[10px] sm:text-xs">{item.p_view}%</td>
                     <td className="px-4 py-4 text-right text-slate-400 text-[10px] sm:text-xs">{item.p_total}%</td>
+                    <td className={`px-4 py-4 text-right text-[10px] sm:text-xs font-bold ${item.total_percent_change >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {item.total_percent_change.toFixed(1)}%
+                    </td>
+                    <td className={`px-4 py-4 text-right text-[10px] sm:text-xs font-mono ${item.total_dollar_gain >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {item.total_dollar_gain.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
                   </tr>
                 ))}
               </tbody>
