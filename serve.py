@@ -204,11 +204,60 @@ def set_storage_setting(key):
 def get_storage_daily(date):
     """Get cached payload for a specific date."""
     try:
-        payload = storage_service.get_daily_payload(date)
-        if payload is None:
+        row = storage_service.get_daily_payload_row(date)
+        if row is None:
             return jsonify({"success": False, "error": "Date not found"}), 404
 
-        return jsonify({"success": True, "payload": payload})
+        return jsonify({
+            "success": True,
+            "payload": row["payload"],
+            "updated_at": row["updated_at"],
+        })
+
+    except Exception as e:
+        logger.error(
+            "error date=%s error=%s",
+            date, repr(e),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
+@app.route("/api/storage/daily/<date>/article", methods=["PATCH"])
+def patch_storage_daily_article(date):
+    """Patch a single article within a daily payload with optimistic concurrency."""
+    try:
+        data = request.get_json()
+        if not isinstance(data, dict):
+            return jsonify({"success": False, "error": "Invalid JSON body"}), 400
+        for key in ['url', 'patch', 'expected_updated_at']:
+            if key not in data:
+                return jsonify({"success": False, "error": f"Missing required field: {key}"}), 400
+        if not isinstance(data['patch'], dict):
+            return jsonify({"success": False, "error": "Field 'patch' must be an object"}), 400
+        if not data['patch']:
+            return jsonify({"success": False, "error": "Field 'patch' must not be empty"}), 400
+
+        rpc_result = storage_service.patch_daily_article(
+            date,
+            data['url'],
+            data['patch'],
+            data['expected_updated_at'],
+        )
+
+        if rpc_result.get('conflict'):
+            return jsonify({
+                "success": False,
+                "conflict": True,
+                "payload": rpc_result.get('payload'),
+                "updated_at": rpc_result.get('updated_at'),
+            }), 409
+
+        return jsonify({
+            "success": True,
+            "payload": rpc_result.get('payload'),
+            "updated_at": rpc_result.get('updated_at'),
+        })
 
     except Exception as e:
         logger.error(

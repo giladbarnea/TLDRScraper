@@ -1,15 +1,26 @@
 import { logTransition } from '../lib/stateTransitionLogger'
+import { getDailyPayloadWithMetadata, patchDailyArticle } from '../lib/storageApi'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import {
   ArticleLifecycleEventType,
   getArticleLifecycleState,
   reduceArticleLifecycle
 } from '../reducers/articleLifecycleReducer'
-import { useSupabaseStorage } from './useSupabaseStorage'
+import { setStorageValueInMemory, useSupabaseStorage } from './useSupabaseStorage'
+
+function applyArticlePatchToPayload(payload, url, articlePatch) {
+  if (!payload) return payload
+  return {
+    ...payload,
+    articles: payload.articles.map((article) =>
+      article.url === url ? { ...article, ...articlePatch } : article
+    )
+  }
+}
 
 export function useArticleState(date, url) {
   const storageKey = getNewsletterScrapeKey(date)
-  const [payload, setPayload, , { loading, error }] = useSupabaseStorage(storageKey, null)
+  const [payload, , , { loading, error }] = useSupabaseStorage(storageKey, null)
 
   const article = payload?.articles?.find(a => a.url === url) || null
 
@@ -19,16 +30,61 @@ export function useArticleState(date, url) {
 
   const updateArticle = (updater) => {
     if (!article) return
+    const previousPayload = payload
+    const optimisticPatch = updater(article)
+    if (!optimisticPatch || Object.keys(optimisticPatch).length === 0) return
 
-    setPayload(current => {
-      if (!current) return current
+    const optimisticPayload = applyArticlePatchToPayload(previousPayload, url, optimisticPatch)
+    setStorageValueInMemory(storageKey, optimisticPayload)
 
-      return {
-        ...current,
-        articles: current.articles.map(a =>
-          a.url === url ? { ...a, ...updater(a) } : a
-        )
+    const persistPatch = async () => {
+      let latestPayload = optimisticPayload
+      let latestArticle = latestPayload.articles.find((currentArticle) => currentArticle.url === url)
+      let latestPatch = optimisticPatch
+      let expectedUpdatedAt = latestPayload.storage_updated_at
+
+      for (let attemptIndex = 0; attemptIndex < 2; attemptIndex += 1) {
+        if (!latestArticle) throw new Error(`Article not found for url: ${url}`)
+        if (!expectedUpdatedAt) {
+          const storageRow = await getDailyPayloadWithMetadata(date)
+          if (!storageRow) throw new Error(`Daily payload not found for date: ${date}`)
+          latestPayload = storageRow.payload
+          expectedUpdatedAt = storageRow.updatedAt
+          latestArticle = latestPayload.articles.find((currentArticle) => currentArticle.url === url)
+          if (!latestArticle) throw new Error(`Article not found for url: ${url}`)
+          latestPatch = updater(latestArticle)
+          setStorageValueInMemory(storageKey, applyArticlePatchToPayload(latestPayload, url, latestPatch))
+        }
+
+        const patchResult = await patchDailyArticle(date, {
+          url,
+          patch: latestPatch,
+          expectedUpdatedAt
+        })
+
+        if (patchResult.success) {
+          setStorageValueInMemory(storageKey, patchResult.payload)
+          return
+        }
+
+        if (!patchResult.conflict) {
+          throw new Error('Daily article patch failed')
+        }
+
+        latestPayload = patchResult.payload
+        expectedUpdatedAt = patchResult.updatedAt
+        latestArticle = latestPayload.articles.find((currentArticle) => currentArticle.url === url)
+        if (!latestArticle) throw new Error(`Article not found for url: ${url}`)
+        latestPatch = updater(latestArticle)
+        setStorageValueInMemory(storageKey, applyArticlePatchToPayload(latestPayload, url, latestPatch))
       }
+
+      throw new Error('Daily article patch conflict retry exhausted')
+    }
+
+    persistPatch().catch((persistError) => {
+      console.error(`Failed to update article for ${url}:`, persistError)
+      setStorageValueInMemory(storageKey, previousPayload)
     })
   }
 

@@ -53,6 +53,21 @@ def get_daily_payload(date):
         return result.data[0]['payload']
     return None
 
+
+def get_daily_payload_row(date):
+    """Get payload and optimistic concurrency timestamp for a specific date."""
+    supabase = supabase_client.get_supabase_client()
+    result = supabase.table('daily_cache').select('payload, cached_at').eq('date', date).execute()
+    if not result.data:
+        return None
+    row = result.data[0]
+    payload = row['payload']
+    updated_at = payload.get('storage_updated_at') or row['cached_at']
+    return {
+        'payload': payload,
+        'updated_at': updated_at,
+    }
+
 def set_daily_payload(date, payload):
     """
     Save or update daily payload (upsert).
@@ -123,6 +138,23 @@ def is_date_cached(date):
     result = supabase.table('daily_cache').select('date').eq('date', date).execute()
 
     return len(result.data) > 0
+
+
+def patch_daily_article(date, url, patch, expected_updated_at):
+    """Atomically patch one article in daily_cache payload using RPC."""
+    supabase = supabase_client.get_supabase_client()
+    result = supabase.rpc(
+        'patch_daily_article',
+        {
+            'target_date': date,
+            'article_url': url,
+            'article_patch': patch,
+            'expected_updated_at': expected_updated_at,
+        },
+    ).execute()
+    if not result.data:
+        raise RuntimeError("patch_daily_article RPC returned no rows")
+    return result.data[0]
 
 
 def get_digest(digest_id: str) -> dict | None:
