@@ -13,7 +13,8 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      'recharts': fileURLToPath(new URL('./node_modules/recharts/es6/index.js', import.meta.url))
     }
   },
 
@@ -30,6 +31,10 @@ export default defineConfig({
         changeOrigin: true
       },
       '/consensus': {
+        target: 'http://localhost:5001',
+        changeOrigin: true
+      },
+      '/portfolio': {
         target: 'http://localhost:5001',
         changeOrigin: true
       }
