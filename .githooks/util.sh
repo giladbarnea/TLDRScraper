@@ -62,15 +62,25 @@ function _generate_project_structure() {
 	IFS='|'
 	ignore_glob="${ignore_glob_patterns[*]}"
 	IFS="$old_ifs"
-	uv run python3 scripts/generate_tree.py \
+	local new_content
+	new_content=$(uv run python3 scripts/generate_tree.py \
 		--classify \
 		--icons \
 		--tree \
 		--git-ignore \
 		--all \
 		--ignore-glob "$ignore_glob" \
-		. > "PROJECT_STRUCTURE.md"
-	update_markdown_last_updated "PROJECT_STRUCTURE.md" "$(date -u +"%Y-%m-%d %H:%M")"
+		.)
+
+	NEW_CONTENT="$new_content" uv run python3 - "PROJECT_STRUCTURE.md" "$(date -u +"%Y-%m-%d %H:%M")" <<'PY'
+import sys, os
+sys.path.insert(0, 'scripts')
+import markdown_frontmatter
+file_path, timestamp = sys.argv[1], sys.argv[2]
+new_body = os.environ['NEW_CONTENT']
+updated = markdown_frontmatter.update_if_body_changed(file_path, new_body, {'last_updated': timestamp})
+print(f"  {file_path}.last_updated -> {timestamp}" if updated else f"  {file_path}: no content change, skipping")
+PY
 }
 
 function update_markdown_last_updated() {

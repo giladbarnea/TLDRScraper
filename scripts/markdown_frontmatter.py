@@ -38,7 +38,7 @@ def _read_frontmatter(file_path: Path) -> tuple[dict[str, str], str]:
         logger.error(f"Error reading {file_path}: {e}")
         return {}, ""
 
-    frontmatter_pattern = r'^---\s*\n(.*?)---\s*\n'
+    frontmatter_pattern = r'^---\s*\n(.*?)---[ \t]*(?:\n|$)'
     match = re.match(frontmatter_pattern, content, re.DOTALL)
 
     if not match:
@@ -72,7 +72,7 @@ def _write_frontmatter(file_path: Path, frontmatter_dict: dict[str, str]) -> Non
     frontmatter_lines = [f"{key}: {value}" for key, value in frontmatter_dict.items()]
     frontmatter_text = '\n'.join(frontmatter_lines)
 
-    frontmatter_pattern = r'^---\s*\n(.*?)---\s*\n'
+    frontmatter_pattern = r'^---\s*\n(.*?)---[ \t]*(?:\n|$)'
     new_content = re.sub(
         frontmatter_pattern,
         f"---\n{frontmatter_text}\n---\n",
@@ -198,7 +198,7 @@ def delete(file_path: str | Path, *fields: str) -> dict[str, str]:
             logger.error(f"Error reading {file_path}: {e}")
             return {}
 
-        frontmatter_pattern = r'^---\s*\n(.*?)---\s*\n\n?'
+        frontmatter_pattern = r'^---\s*\n(.*?)---[ \t]*(?:\n\n?|$)'
         new_content = re.sub(frontmatter_pattern, '', content, count=1, flags=re.DOTALL)
 
         try:
@@ -217,6 +217,57 @@ def delete(file_path: str | Path, *fields: str) -> dict[str, str]:
         delete(file_path)
 
     return remaining_frontmatter
+
+
+def body(file_path: str | Path) -> str:
+    """
+    Return file content stripped of frontmatter. Pure read — no side effects.
+
+    >>> import tempfile
+    >>> with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+    ...     _ = f.write('---\\nfoo: bar\\n---\\n\\n# Content\\nHello')
+    ...     path = Path(f.name)
+    >>> body(path)
+    '\\n# Content\\nHello'
+    >>> body(path) == body(path)
+    True
+    >>> path.unlink()
+    """
+    file_path = Path(file_path)
+    try:
+        content = file_path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        return ""
+    match = re.match(r'^---\s*\n(.*?)---[ \t]*(?:\n|$)', content, re.DOTALL)
+    if not match:
+        return content
+    return content[match.end():]
+
+
+def update_if_body_changed(file_path: str | Path, new_body: str, frontmatter: dict[str, str]) -> bool:
+    """
+    Write new_body + frontmatter to file only if body content differs from existing (ignoring all whitespace).
+    Returns True if file was updated, False if content was identical.
+
+    >>> import tempfile
+    >>> with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+    ...     _ = f.write('---\\nlast_updated: 2024-01-01\\n---\\n\\n# Same content')
+    ...     path = Path(f.name)
+    >>> update_if_body_changed(path, '\\n# Same content', {'last_updated': '2099-01-01'})
+    False
+    >>> update_if_body_changed(path, '\\n# Different content', {'last_updated': '2099-01-01'})
+    True
+    >>> path.unlink()
+    """
+    file_path = Path(file_path)
+    existing_body = body(file_path)
+
+    if ''.join(existing_body.split()) == ''.join(new_body.split()):
+        return False
+
+    file_path.write_text(new_body, encoding='utf-8')
+    update(file_path, frontmatter)
+    return True
 
 
 if __name__ == "__main__":
