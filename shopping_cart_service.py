@@ -29,6 +29,24 @@ def _build_settings_namespace_key(created_at_iso_timestamp: str, entry_id: str) 
     return f"{SHOPPING_CART_SETTINGS_NAMESPACE_PREFIX}{created_at_iso_timestamp}:{entry_id}"
 
 
+def _normalize_price_in_dollars(raw_price_in_dollars: float | int | None) -> float:
+    """Normalize optional client input to a persisted non-null price.
+
+    >>> _normalize_price_in_dollars(None)
+    0.0
+    >>> _normalize_price_in_dollars(12)
+    12.0
+    """
+    return float(raw_price_in_dollars) if raw_price_in_dollars is not None else 0.0
+
+
+def _normalize_entry(shopping_cart_entry: dict) -> dict:
+    return {
+        **shopping_cart_entry,
+        "price_in_dollars": _normalize_price_in_dollars(shopping_cart_entry.get("price_in_dollars")),
+    }
+
+
 def _resolve_storage_mode() -> str:
     global _storage_mode
     if _storage_mode is not None:
@@ -60,7 +78,7 @@ def _list_entries_from_settings_namespace() -> list[dict]:
         .order("key", desc=True)
         .execute()
     )
-    return [row["value"] for row in (result.data or [])]
+    return [_normalize_entry(row["value"]) for row in (result.data or [])]
 
 
 def _append_entry_to_settings_namespace(shopping_cart_entry: dict) -> None:
@@ -78,21 +96,22 @@ def list_shopping_cart_entries() -> list[dict]:
         supabase = supabase_client.get_supabase_client()
         result = (
             supabase.table(SHOPPING_CART_TABLE_NAME)
-            .select("id,person_name,product_name,input_date,created_at")
+            .select("id,person_name,product_name,price_in_dollars,input_date,created_at")
             .order("created_at", desc=True)
             .execute()
         )
-        return result.data or []
+        return [_normalize_entry(shopping_cart_entry) for shopping_cart_entry in (result.data or [])]
 
     return _list_entries_from_settings_namespace()
 
 
-def append_shopping_cart_entry(person_name: str, product_name: str) -> dict:
+def append_shopping_cart_entry(person_name: str, product_name: str, price_in_dollars: float | None) -> dict:
     now_utc = datetime.now(timezone.utc)
     shopping_cart_entry = {
         "id": str(uuid.uuid4()),
         "person_name": person_name,
         "product_name": product_name,
+        "price_in_dollars": _normalize_price_in_dollars(price_in_dollars),
         "input_date": now_utc.date().isoformat(),
         "created_at": now_utc.isoformat(),
     }

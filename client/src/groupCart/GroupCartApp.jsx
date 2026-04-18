@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 const EMPTY_CART_FORM = {
   person_name: '',
   product_name: '',
+  price_in_dollars: '',
 }
 
 function formatInputDate(inputDate) {
@@ -13,6 +14,15 @@ function formatInputDate(inputDate) {
     day: 'numeric',
     timeZone: 'UTC',
   })
+}
+
+function formatPriceInDollars(rawPriceInDollars) {
+  const numericPriceInDollars = Number(rawPriceInDollars)
+  if (numericPriceInDollars === 0) {
+    return ''
+  }
+
+  return `$${numericPriceInDollars.toFixed(2)}`
 }
 
 export default function GroupCartApp() {
@@ -49,6 +59,7 @@ export default function GroupCartApp() {
         body: JSON.stringify({
           person_name: cartForm.person_name.trim(),
           product_name: cartForm.product_name.trim(),
+          price_in_dollars: cartForm.price_in_dollars.trim() === '' ? null : Number(cartForm.price_in_dollars),
         }),
       })
       const payload = await response.json()
@@ -78,7 +89,7 @@ export default function GroupCartApp() {
           <p className="text-sm text-slate-500 mt-1">Shared list for batching purchases and reducing shipping costs.</p>
         </header>
 
-        <form onSubmit={submitCartItem} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <form onSubmit={submitCartItem} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <input
             placeholder="Your name"
             required
@@ -93,6 +104,15 @@ export default function GroupCartApp() {
             onChange={(event) => setCartForm({ ...cartForm, product_name: event.target.value })}
             className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
           />
+          <input
+            placeholder="Price in $ (optional)"
+            type="number"
+            step="0.01"
+            min="0"
+            value={cartForm.price_in_dollars}
+            onChange={(event) => setCartForm({ ...cartForm, price_in_dollars: event.target.value })}
+            className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+          />
           <button
             type="submit"
             disabled={saveState === 'saving'}
@@ -100,18 +120,19 @@ export default function GroupCartApp() {
           >
             {saveButtonLabel}
           </button>
-          {requestError ? <div className="sm:col-span-3 text-sm text-rose-700 font-semibold">{requestError}</div> : null}
+          {requestError ? <div className="sm:col-span-2 lg:col-span-4 text-sm text-rose-700 font-semibold">{requestError}</div> : null}
         </form>
 
         <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-200 text-xs uppercase font-bold text-slate-500">Saved requests</div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm min-w-[520px]">
+            <table className="w-full text-left border-collapse text-sm min-w-[620px]">
               <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
                 <tr>
                   <th className="px-4 py-2">Day</th>
                   <th className="px-4 py-2">Person</th>
                   <th className="px-4 py-2">Product</th>
+                  <th className="px-4 py-2">Price</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -120,6 +141,7 @@ export default function GroupCartApp() {
                     <td className="px-4 py-2 font-mono text-xs">{formatInputDate(cartItem.input_date)}</td>
                     <td className="px-4 py-2 font-semibold">{cartItem.person_name}</td>
                     <td className="px-4 py-2">{cartItem.product_name}</td>
+                    <td className="px-4 py-2 font-mono">{formatPriceInDollars(cartItem.price_in_dollars)}</td>
                   </tr>
                 ))}
               </tbody>

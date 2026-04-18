@@ -361,9 +361,11 @@ def append_shopping_cart_item():
     """Append immutable shopping cart item entry."""
     try:
         data = request.get_json()
+        raw_price_in_dollars = data.get("price_in_dollars")
         shopping_cart_entry = shopping_cart_service.append_shopping_cart_entry(
             person_name=data["person_name"],
             product_name=data["product_name"],
+            price_in_dollars=float(raw_price_in_dollars) if raw_price_in_dollars is not None else None,
         )
         return jsonify({"success": True, "item": shopping_cart_entry})
     except Exception as error:
