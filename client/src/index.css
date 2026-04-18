@@ -97,6 +97,21 @@
   animation: dock-action-enter 220ms var(--ease-springy) both;
 }
 
+@keyframes overlay-menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@utility animate-overlay-menu-enter {
+  animation: overlay-menu-enter 130ms var(--ease-springy) both;
+}
+
 /* ── Article card border glow — summary loading state ──
  *
  * One ::after pseudo-element on [data-summary-status] drives the border animation.
