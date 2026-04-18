@@ -219,6 +219,57 @@ def delete(file_path: str | Path, *fields: str) -> dict[str, str]:
     return remaining_frontmatter
 
 
+def body(file_path: str | Path) -> str:
+    """
+    Return file content stripped of frontmatter. Pure read — no side effects.
+
+    >>> import tempfile
+    >>> with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+    ...     _ = f.write('---\\nfoo: bar\\n---\\n\\n# Content\\nHello')
+    ...     path = Path(f.name)
+    >>> body(path)
+    '# Content\\nHello'
+    >>> body(path) == body(path)
+    True
+    >>> path.unlink()
+    """
+    file_path = Path(file_path)
+    try:
+        content = file_path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        return ""
+    match = re.match(r'^---\s*\n(.*?)---\s*\n', content, re.DOTALL)
+    if not match:
+        return content
+    return content[match.end():]
+
+
+def update_if_body_changed(file_path: str | Path, new_body: str, frontmatter: dict[str, str]) -> bool:
+    """
+    Write new_body + frontmatter to file only if body content differs from existing (ignoring all whitespace).
+    Returns True if file was updated, False if content was identical.
+
+    >>> import tempfile
+    >>> with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+    ...     _ = f.write('---\\nlast_updated: 2024-01-01\\n---\\n\\n# Same content')
+    ...     path = Path(f.name)
+    >>> update_if_body_changed(path, '\\n# Same content', {'last_updated': '2099-01-01'})
+    False
+    >>> update_if_body_changed(path, '\\n# Different content', {'last_updated': '2099-01-01'})
+    True
+    >>> path.unlink()
+    """
+    file_path = Path(file_path)
+    existing_body = body(file_path)
+
+    if ''.join(existing_body.split()) == ''.join(new_body.split()):
+        return False
+
+    file_path.write_text(new_body, encoding='utf-8')
+    update(file_path, frontmatter)
+    return True
+
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()

@@ -1,15 +1,8 @@
 ---
-last_updated: 2026-04-13 21:04
+last_updated: 2026-04-18 11:12
 ---
 .
 ├── .agents
-│  ├── agents
-│  │  ├── codebase-analyzer-multiple-subsystems.md
-│  │  ├── codebase-analyzer-single-subsystem.md
-│  │  ├── codebase-locator.md
-│  │  ├── generalist.md
-│  │  ├── react-antipattern-auditor.md
-│  │  └── web-deep-researcher.md
 │  └── skills
 │     ├── architecture-create
 │     │  └── SKILL.md
@@ -22,9 +15,6 @@ last_updated: 2026-04-13 21:04
 │     ├── consensus
 │     │  ├── scripts
 │     │  │  └── run_consensus.py
-│     │  └── SKILL.md
-│     ├── frontend-design-anthropic
-│     │  ├── metadata.json
 │     │  └── SKILL.md
 │     ├── frontend-design-openai
 │     │  ├── metadata.json
@@ -88,6 +78,46 @@ last_updated: 2026-04-13 21:04
 │     │  └── SKILL.md
 │     ├── simplify-code
 │     │  └── SKILL.md
+│     ├── supabase-postgres-best-practices
+│     │  ├── references
+│     │  │  ├── _contributing.md
+│     │  │  ├── _sections.md
+│     │  │  ├── _template.md
+│     │  │  ├── advanced-full-text-search.md
+│     │  │  ├── advanced-jsonb-indexing.md
+│     │  │  ├── conn-idle-timeout.md
+│     │  │  ├── conn-limits.md
+│     │  │  ├── conn-pooling.md
+│     │  │  ├── conn-prepared-statements.md
+│     │  │  ├── data-batch-inserts.md
+│     │  │  ├── data-n-plus-one.md
+│     │  │  ├── data-pagination.md
+│     │  │  ├── data-upsert.md
+│     │  │  ├── lock-advisory.md
+│     │  │  ├── lock-deadlock-prevention.md
+│     │  │  ├── lock-short-transactions.md
+│     │  │  ├── lock-skip-locked.md
+│     │  │  ├── monitor-explain-analyze.md
+│     │  │  ├── monitor-pg-stat-statements.md
+│     │  │  ├── monitor-vacuum-analyze.md
+│     │  │  ├── query-composite-indexes.md
+│     │  │  ├── query-covering-indexes.md
+│     │  │  ├── query-index-types.md
+│     │  │  ├── query-missing-indexes.md
+│     │  │  ├── query-partial-indexes.md
+│     │  │  ├── schema-constraints.md
+│     │  │  ├── schema-data-types.md
+│     │  │  ├── schema-foreign-key-indexes.md
+│     │  │  ├── schema-lowercase-identifiers.md
+│     │  │  ├── schema-partitioning.md
+│     │  │  ├── schema-primary-keys.md
+│     │  │  ├── security-privileges.md
+│     │  │  ├── security-rls-basics.md
+│     │  │  └── security-rls-performance.md
+│     │  ├── AGENTS.md
+│     │  ├── CLAUDE.md
+│     │  ├── README.md
+│     │  └── SKILL.md
 │     ├── to-done
 │     │  └── SKILL.md
 │     ├── vercel
@@ -95,15 +125,10 @@ last_updated: 2026-04-13 21:04
 │     └── web-a11y-guidelines
 │        └── SKILL.md
 ├── .claude
-│  ├── hooks
-│  │  ├── block-gh-command.sh
-│  │  ├── block-until-reads.sh
-│  │  ├── README.md
-│  │  └── require-reads.sh
 │  ├── settings.backup.json
 │  └── settings.json
 ├── .githooks
-│  ├── post-checkout
+│  ├── post-checkout.disabled
 │  ├── post-merge
 │  ├── pre-commit
 │  ├── README.md
@@ -112,11 +137,9 @@ last_updated: 2026-04-13 21:04
 │  └── util.sh
 ├── .github
 │  └── workflows
-│     ├── claude.yml
 │     ├── GEMINI_REMOTE_AUTH.md
 │     ├── maintain-documentation.yml
 │     ├── nightly-vercel-cleanup.yml
-│     ├── test-gemini-wif.yml
 │     ├── weekly-branch-pr-cleanup.yml
 │     ├── weekly-supabase-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
@@ -168,6 +191,7 @@ last_updated: 2026-04-13 21:04
 │  │  │  ├── Feed.jsx
 │  │  │  ├── FoldableContainer.jsx
 │  │  │  ├── NewsletterDay.jsx
+│  │  │  ├── OverlayContextMenu.jsx
 │  │  │  ├── ReadStatsBadge.jsx
 │  │  │  ├── ScrapeForm.jsx
 │  │  │  ├── Selectable.jsx
@@ -175,17 +199,17 @@ last_updated: 2026-04-13 21:04
 │  │  │  ├── SelectionCounterPill.jsx
 │  │  │  ├── ToastContainer.jsx
 │  │  │  └── ZenModeOverlay.jsx
-│  │  ├── consensus
-│  │  │  ├── consensus.css
-│  │  │  └── ConsensusApp.jsx
 │  │  ├── contexts
 │  │  │  └── InteractionContext.jsx
+│  │  ├── groupCart
+│  │  │  └── GroupCartApp.jsx
 │  │  ├── hooks
 │  │  │  ├── useArticleState.js
 │  │  │  ├── useDigest.js
 │  │  │  ├── useFeedLoader.js
 │  │  │  ├── useLocalStorage.js
 │  │  │  ├── useLongPress.js
+│  │  │  ├── useOverlayContextMenu.js
 │  │  │  ├── useOverscrollUp.js
 │  │  │  ├── usePullToClose.js
 │  │  │  ├── useScrollProgress.js
@@ -207,6 +231,8 @@ last_updated: 2026-04-13 21:04
 │  │  │  ├── storageKeys.js
 │  │  │  ├── toastBus.js
 │  │  │  └── zenLock.js
+│  │  ├── portfolio
+│  │  │  └── PortfolioApp.jsx
 │  │  ├── reducers
 │  │  │  ├── articleLifecycleReducer.js
 │  │  │  ├── gestureReducer.js
@@ -226,10 +252,14 @@ last_updated: 2026-04-13 21:04
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
 ├── scripts
+│  ├── portfolio
+│  │  └── seed_baseline.py
 │  ├── setup
 │  │  ├── build_client.sh
 │  │  ├── common.sh
 │  │  ├── create_digests_table.sql
+│  │  ├── create_shopping_cart_entries_table.sql
+│  │  ├── ensure_submodules.sh
 │  │  ├── ensure_tooling.sh
 │  │  └── ensure_uv_and_sync.sh
 │  ├── auto-pr-merge.sh
@@ -271,26 +301,50 @@ last_updated: 2026-04-13 21:04
 │     ├── research
 │     │  └── description.md
 │     └── relevant-files.md
+├── vendor
+│  ├── consensus
+│  │  ├── consensus
+│  │  │  ├── __init__.py
+│  │  │  ├── core.py
+│  │  │  └── web.py
+│  │  ├── web
+│  │  │  ├── src
+│  │  │  │  ├── consensus.css
+│  │  │  │  ├── ConsensusApp.jsx
+│  │  │  │  └── main.jsx
+│  │  │  ├── index.html
+│  │  │  ├── package-lock.json
+│  │  │  ├── package.json
+│  │  │  └── vite.config.js
+│  │  ├── .gitignore
+│  │  ├── pyproject.toml
+│  │  ├── README.md
+│  │  ├── serve.py
+│  │  └── uv.lock
+│  └── portfolio
+│     ├── portfolio.js
+│     └── portfolio.jsx
 ├── .gitattributes
 ├── .gitignore
+├── .gitmodules
 ├── .vercelignore
 ├── AGENTS.md
 ├── ARCHITECTURE.md
 ├── BUGS.md
 ├── CLAUDE.md
 ├── CODEX.md
-├── consensus.py
 ├── GEMINI.md
 ├── GOTCHAS.md
 ├── newsletter_config.py
 ├── newsletter_merger.py
 ├── newsletter_scraper.py
+├── portfolio_service.py
 ├── pyproject.toml
 ├── README.md
 ├── requirements.txt
 ├── serve.py
-├── setup-hooks.sh
 ├── setup.sh
+├── shopping_cart_service.py
 ├── source_routes.py
 ├── storage_service.py
 ├── summarizer.py
