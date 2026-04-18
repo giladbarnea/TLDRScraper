@@ -1,6 +1,7 @@
 ---
-last_updated: 2026-04-18 11:12
+last_updated: 2026-04-18 16:25
 ---
+
 .
 ├── .agents
 │  └── skills
@@ -15,51 +16,6 @@ last_updated: 2026-04-18 11:12
 │     ├── consensus
 │     │  ├── scripts
 │     │  │  └── run_consensus.py
-│     │  └── SKILL.md
-│     ├── frontend-design-openai
-│     │  ├── metadata.json
-│     │  └── SKILL.md
-│     ├── i-adapt
-│     │  └── SKILL.md
-│     ├── i-animate
-│     │  └── SKILL.md
-│     ├── i-arrange
-│     │  └── SKILL.md
-│     ├── i-audit
-│     │  └── SKILL.md
-│     ├── i-bolder
-│     │  └── SKILL.md
-│     ├── i-clarify
-│     │  └── SKILL.md
-│     ├── i-colorize
-│     │  └── SKILL.md
-│     ├── i-critique
-│     │  └── SKILL.md
-│     ├── i-delight
-│     │  └── SKILL.md
-│     ├── i-distill
-│     │  └── SKILL.md
-│     ├── i-extract
-│     │  └── SKILL.md
-│     ├── i-frontend-design
-│     │  └── SKILL.md
-│     ├── i-harden
-│     │  └── SKILL.md
-│     ├── i-normalize
-│     │  └── SKILL.md
-│     ├── i-onboard
-│     │  └── SKILL.md
-│     ├── i-optimize
-│     │  └── SKILL.md
-│     ├── i-overdrive
-│     │  └── SKILL.md
-│     ├── i-polish
-│     │  └── SKILL.md
-│     ├── i-quieter
-│     │  └── SKILL.md
-│     ├── i-teach-impeccable
-│     │  └── SKILL.md
-│     ├── i-typeset
 │     │  └── SKILL.md
 │     ├── plan
 │     │  └── SKILL.md
@@ -79,54 +35,12 @@ last_updated: 2026-04-18 11:12
 │     ├── simplify-code
 │     │  └── SKILL.md
 │     ├── supabase-postgres-best-practices
-│     │  ├── references
-│     │  │  ├── _contributing.md
-│     │  │  ├── _sections.md
-│     │  │  ├── _template.md
-│     │  │  ├── advanced-full-text-search.md
-│     │  │  ├── advanced-jsonb-indexing.md
-│     │  │  ├── conn-idle-timeout.md
-│     │  │  ├── conn-limits.md
-│     │  │  ├── conn-pooling.md
-│     │  │  ├── conn-prepared-statements.md
-│     │  │  ├── data-batch-inserts.md
-│     │  │  ├── data-n-plus-one.md
-│     │  │  ├── data-pagination.md
-│     │  │  ├── data-upsert.md
-│     │  │  ├── lock-advisory.md
-│     │  │  ├── lock-deadlock-prevention.md
-│     │  │  ├── lock-short-transactions.md
-│     │  │  ├── lock-skip-locked.md
-│     │  │  ├── monitor-explain-analyze.md
-│     │  │  ├── monitor-pg-stat-statements.md
-│     │  │  ├── monitor-vacuum-analyze.md
-│     │  │  ├── query-composite-indexes.md
-│     │  │  ├── query-covering-indexes.md
-│     │  │  ├── query-index-types.md
-│     │  │  ├── query-missing-indexes.md
-│     │  │  ├── query-partial-indexes.md
-│     │  │  ├── schema-constraints.md
-│     │  │  ├── schema-data-types.md
-│     │  │  ├── schema-foreign-key-indexes.md
-│     │  │  ├── schema-lowercase-identifiers.md
-│     │  │  ├── schema-partitioning.md
-│     │  │  ├── schema-primary-keys.md
-│     │  │  ├── security-privileges.md
-│     │  │  ├── security-rls-basics.md
-│     │  │  └── security-rls-performance.md
-│     │  ├── AGENTS.md
-│     │  ├── CLAUDE.md
-│     │  ├── README.md
-│     │  └── SKILL.md
 │     ├── to-done
 │     │  └── SKILL.md
 │     ├── vercel
 │     │  └── SKILL.md
 │     └── web-a11y-guidelines
 │        └── SKILL.md
-├── .claude
-│  ├── settings.backup.json
-│  └── settings.json
 ├── .githooks
 │  ├── post-checkout.disabled
 │  ├── post-merge
@@ -143,10 +57,6 @@ last_updated: 2026-04-18 11:12
 │     ├── weekly-branch-pr-cleanup.yml
 │     ├── weekly-supabase-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
-├── .pi
-│  ├── npm
-│  │  └── .gitignore
-│  └── settings.json
 ├── adapters
 │  ├── __init__.py
 │  ├── aiwithmike_adapter.py
@@ -252,8 +162,6 @@ last_updated: 2026-04-18 11:12
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
 ├── scripts
-│  ├── portfolio
-│  │  └── seed_baseline.py
 │  ├── setup
 │  │  ├── build_client.sh
 │  │  ├── common.sh
@@ -275,32 +183,6 @@ last_updated: 2026-04-18 11:12
 │  ├── run-codex.sh
 │  ├── run-gemini.sh
 │  └── update_doc_frontmatter.py
-├── tests
-│  ├── unit
-│  │  ├── test_canonicalize_url.py
-│  │  ├── test_google_research_adapter.py
-│  │  ├── test_should_rescrape.py
-│  │  └── test_trendshift_adapter.py
-│  ├── test_google_adk_smoke.py
-│  ├── test_scrape_cache_server.py
-│  └── test_some_server_functionalities.py
-├── thoughts
-│  ├── 25-12-21-failed-scrapes-are-retryable
-│  │  └── discussion.md
-│  ├── 26-04-03-selection-dock-state-machine
-│  │  ├── plan.md
-│  │  └── plan.review.md
-│  ├── 26-04-04-workflow-machine
-│  │  ├── discussion-raw.md
-│  │  └── plan.md
-│  └── 26-04-07-context-menu-research
-│     ├── plans
-│     │  ├── plan-final.md
-│     │  ├── plan-g.md
-│     │  └── plan-x.md
-│     ├── research
-│     │  └── description.md
-│     └── relevant-files.md
 ├── vendor
 │  ├── consensus
 │  │  ├── consensus
