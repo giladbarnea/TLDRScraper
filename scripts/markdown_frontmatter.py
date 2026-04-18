@@ -38,7 +38,7 @@ def _read_frontmatter(file_path: Path) -> tuple[dict[str, str], str]:
         logger.error(f"Error reading {file_path}: {e}")
         return {}, ""
 
-    frontmatter_pattern = r'^---\s*\n(.*?)---\s*\n'
+    frontmatter_pattern = r'^---\s*\n(.*?)---[ \t]*(?:\n|$)'
     match = re.match(frontmatter_pattern, content, re.DOTALL)
 
     if not match:
@@ -72,7 +72,7 @@ def _write_frontmatter(file_path: Path, frontmatter_dict: dict[str, str]) -> Non
     frontmatter_lines = [f"{key}: {value}" for key, value in frontmatter_dict.items()]
     frontmatter_text = '\n'.join(frontmatter_lines)
 
-    frontmatter_pattern = r'^---\s*\n(.*?)---\s*\n'
+    frontmatter_pattern = r'^---\s*\n(.*?)---[ \t]*(?:\n|$)'
     new_content = re.sub(
         frontmatter_pattern,
         f"---\n{frontmatter_text}\n---\n",
@@ -198,7 +198,7 @@ def delete(file_path: str | Path, *fields: str) -> dict[str, str]:
             logger.error(f"Error reading {file_path}: {e}")
             return {}
 
-        frontmatter_pattern = r'^---\s*\n(.*?)---\s*\n\n?'
+        frontmatter_pattern = r'^---\s*\n(.*?)---[ \t]*(?:\n\n?|$)'
         new_content = re.sub(frontmatter_pattern, '', content, count=1, flags=re.DOTALL)
 
         try:
@@ -228,7 +228,7 @@ def body(file_path: str | Path) -> str:
     ...     _ = f.write('---\\nfoo: bar\\n---\\n\\n# Content\\nHello')
     ...     path = Path(f.name)
     >>> body(path)
-    '# Content\\nHello'
+    '\\n# Content\\nHello'
     >>> body(path) == body(path)
     True
     >>> path.unlink()
@@ -238,7 +238,7 @@ def body(file_path: str | Path) -> str:
         content = file_path.read_text(encoding='utf-8')
     except FileNotFoundError:
         return ""
-    match = re.match(r'^---\s*\n(.*?)---\s*\n', content, re.DOTALL)
+    match = re.match(r'^---\s*\n(.*?)---[ \t]*(?:\n|$)', content, re.DOTALL)
     if not match:
         return content
     return content[match.end():]
