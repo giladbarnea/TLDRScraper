@@ -1,6 +1,7 @@
 ---
-last_updated: 2026-04-18 11:12
+last_updated: 2026-04-18 12:17
 ---
+
 .
 ├── .agents
 │  └── skills
@@ -294,6 +295,8 @@ last_updated: 2026-04-18 11:12
 │  │  ├── discussion-raw.md
 │  │  └── plan.md
 │  └── 26-04-07-context-menu-research
+│     ├── implementation
+│     │  └── iteration-1.md
 │     ├── plans
 │     │  ├── plan-final.md
 │     │  ├── plan-g.md
