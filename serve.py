@@ -16,6 +16,7 @@ import util
 import tldr_app
 import storage_service
 import portfolio_service
+import shopping_cart_service
 from summarizer import DEFAULT_MODEL, DEFAULT_SUMMARY_EFFORT
 from source_routes import source_bp
 
@@ -65,6 +66,14 @@ def index():
 @app.route("/portfolio/")
 def portfolio_index():
     """Serve portfolio app shell."""
+    static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
+    return send_from_directory(static_dist, 'index.html')
+
+
+@app.route("/group-cart")
+@app.route("/group-cart/")
+def group_cart_index():
+    """Serve group cart app shell."""
     static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
     return send_from_directory(static_dist, 'index.html')
 
@@ -327,6 +336,39 @@ def portfolio_positions():
     except Exception as error:
         logger.error(
             "portfolio positions failed error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(error)}), 500
+
+@app.route("/api/shopping-cart/items", methods=["GET"])
+def list_shopping_cart_items():
+    """List shared shopping cart items."""
+    try:
+        shopping_cart_entries = shopping_cart_service.list_shopping_cart_entries()
+        return jsonify({"success": True, "items": shopping_cart_entries})
+    except Exception as error:
+        logger.error(
+            "shopping cart item list failed error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(error)}), 500
+
+
+@app.route("/api/shopping-cart/items", methods=["POST"])
+def append_shopping_cart_item():
+    """Append immutable shopping cart item entry."""
+    try:
+        data = request.get_json()
+        shopping_cart_entry = shopping_cart_service.append_shopping_cart_entry(
+            person_name=data["person_name"],
+            product_name=data["product_name"],
+        )
+        return jsonify({"success": True, "item": shopping_cart_entry})
+    except Exception as error:
+        logger.error(
+            "shopping cart item append failed error=%s",
             repr(error),
             exc_info=True,
         )
