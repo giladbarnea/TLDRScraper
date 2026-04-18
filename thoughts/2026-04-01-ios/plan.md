@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-08 08:18
+last_updated: 2026-04-18 05:19
 ---
 # iOS Plan: JavaScriptCore Reducer Bridge
 
@@ -31,7 +31,7 @@ All 4 reducers are **pure vanilla JS functions with zero framework dependencies*
 **Steps:**
 - [x] Move the 4 reducer files to `shared/reducers/` at the monorepo root  
   status: done
-- [ ] Symlink (or copy at Xcode build time via a Build Phase script) into the app bundle
+- [x] Copy the 4 reducer files directly into `ios/TLDRScraper/reducers/` and register as a folder reference in the Xcode project (Resources build phase)
 - [x] In Swift, implement a `ReducerBridge` class that:
   - [x] Loads the JS files into a `JSContext`
   - [x] Exposes a `dispatch(state: [String: Any], event: [String: Any]) -> [String: Any]` method

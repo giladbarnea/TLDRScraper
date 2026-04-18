@@ -11,6 +11,8 @@
 		4F2BBF90AE3D4CE69BB1098F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 436399C8A6434E038C3938B7 /* ContentView.swift */; };
 		108B73723D64495392016467 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CD9AC4E9A204470C87183206 /* Assets.xcassets */; };
 		B93DC5A97CA64B3C87333E3F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDBD1F2FE65F44B68787E01F /* Preview Assets.xcassets */; };
+		FA00000200000000000002AA /* ReducerBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA00000100000000000001AA /* ReducerBridge.swift */; };
+		FA00000400000000000004AA /* reducers in Resources */ = {isa = PBXBuildFile; fileRef = FA00000300000000000003AA /* reducers */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,6 +21,8 @@
 		436399C8A6434E038C3938B7 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		CD9AC4E9A204470C87183206 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CDBD1F2FE65F44B68787E01F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		FA00000100000000000001AA /* ReducerBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReducerBridge.swift; sourceTree = "<group>"; };
+		FA00000300000000000003AA /* reducers */ = {isa = PBXFileReference; lastKnownFileType = folder; path = reducers; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,6 +41,8 @@
 			children = (
 				D3EBA3D3C9A34F3E9431B3FB /* TLDRScraperApp.swift */,
 				436399C8A6434E038C3938B7 /* ContentView.swift */,
+				FA00000100000000000001AA /* ReducerBridge.swift */,
+				FA00000300000000000003AA /* reducers */,
 				CD9AC4E9A204470C87183206 /* Assets.xcassets */,
 				CDBD1F2FE65F44B68787E01F /* Preview Assets.xcassets */,
 				D2E27AA4C46C40AEB9A3F701 /* Products */,
@@ -112,6 +118,7 @@
 			files = (
 				108B73723D64495392016467 /* Assets.xcassets in Resources */,
 				B93DC5A97CA64B3C87333E3F /* Preview Assets.xcassets in Resources */,
+				FA00000400000000000004AA /* reducers in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -124,6 +131,7 @@
 			files = (
 				6A979A6CEC97437CAE222EFC /* TLDRScraperApp.swift in Sources */,
 				4F2BBF90AE3D4CE69BB1098F /* ContentView.swift in Sources */,
+				FA00000200000000000002AA /* ReducerBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
