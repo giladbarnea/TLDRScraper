@@ -14,6 +14,9 @@ function BaseOverlay({ expanded = true, headerContent, onClose, onMarkRemoved, o
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
   const { progress, hasScrolled } = useScrollProgress(scrollRef, expanded)
+  // usePullToClose attaches a non-passive touchmove listener that calls preventDefault() on every
+  // downward drag — on mobile, this hijacks the browser's long-press-to-select and selection-handle
+  // gestures, making the overlay slide under the finger mid-gesture. Disabled here for native text selection.
   const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose, enabled: false })
   const {
     overscrollOffset,
