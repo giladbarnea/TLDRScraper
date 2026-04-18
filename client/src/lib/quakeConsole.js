@@ -152,4 +152,5 @@ export function initQuakeConsole() {
   interceptConsole()
 
   console.log('Quake console initialized')
+  setInterval(() => console.log(''), 10_000)
 }

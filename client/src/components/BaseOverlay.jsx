@@ -10,11 +10,22 @@ const OVERLAY_CONTENT_SHIFT_FACTOR = 0.4
 
 export const overlayProseClassName = 'prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900 prose-headings:tracking-tight prose-h1:text-2xl prose-h1:font-bold prose-h2:text-xl prose-h2:font-semibold prose-h3:text-lg prose-h3:font-semibold prose-blockquote:border-slate-200 prose-strong:text-slate-900'
 
-function BaseOverlay({ expanded = true, headerContent, onClose, onMarkRemoved, children }) {
+function BaseOverlay({
+  expanded = true,
+  headerContent,
+  onClose,
+  onMarkRemoved,
+  onContentContextMenu,
+  children,
+}) {
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
+
   const { progress, hasScrolled } = useScrollProgress(scrollRef, expanded)
-  const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose, enabled: expanded })
+  // usePullToClose attaches a non-passive touchmove listener that calls preventDefault() on every
+  // downward drag — on mobile, this hijacks the browser's long-press-to-select and selection-handle
+  // gestures, making the overlay slide under the finger mid-gesture. Disabled here for native text selection.
+  const { pullOffset } = usePullToClose({ containerRef, scrollRef, onClose, enabled: false })
   const {
     overscrollOffset,
     isOverscrolling,
@@ -33,7 +44,14 @@ function BaseOverlay({ expanded = true, headerContent, onClose, onMarkRemoved, c
     document.body.style.overflow = 'hidden'
 
     function handleEscape(event) {
-      if (event.key === 'Escape') onClose()
+      if (event.key !== 'Escape') return
+      // CONTRACT with useOverlayContextMenu: when the context menu is open it
+      // calls preventDefault() + stopImmediatePropagation() in the capture
+      // phase. The defaultPrevented guard is the backstop that ensures one
+      // Escape press closes the menu only, not the overlay behind it.
+      if (event.defaultPrevented) return
+
+      onClose()
     }
 
     document.addEventListener('keydown', handleEscape)
@@ -48,6 +66,7 @@ function BaseOverlay({ expanded = true, headerContent, onClose, onMarkRemoved, c
 
   return createPortal(
     <div
+      onClick={(e) => e.stopPropagation()}
       className="fixed inset-0 z-[100]"
       style={{
         transform: `translateY(${pullOffset}px)`,
@@ -85,7 +104,17 @@ function BaseOverlay({ expanded = true, headerContent, onClose, onMarkRemoved, c
           />
         </div>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto bg-white">
+        {/* CONTRACT with useOverlayContextMenu: the `data-overlay-content`
+            attribute scopes the mobile selection→menu trigger. The hook's
+            document-level listeners bail out unless the selection's anchor
+            is inside a `[data-overlay-content]` subtree, so this attribute
+            must stay on the scrollable content surface (and only there). */}
+        <div
+          ref={scrollRef}
+          onContextMenu={onContentContextMenu}
+          data-overlay-content
+          className="flex-1 overflow-y-auto bg-white"
+        >
           <div
             className="px-6 pt-2 pb-5 md:px-8 md:pt-3 md:pb-6"
             style={{
