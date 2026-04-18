@@ -1,7 +1,7 @@
 ---
 name: client architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-04-09 09:14, 81662be
+last_updated: 2026-04-18 08:52
 scope: exhaustively-wide, equally high level view of the entire client architecture.
 ---
 # Client Architecture
@@ -172,6 +172,42 @@ Important behavioral rule:
 
 ---
 
+## Overlay Context Menu
+
+A shared right-click / selection-triggered action menu hosted inside reading overlays (ZenModeOverlay and DigestOverlay). Implemented as a hook + presentational component pair and integrated through `BaseOverlay`. See [ALL_STATES.md](ALL_STATES.md#19-overlay-context-menu) for the state machine and event model.
+
+**Key modules:** `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx`, `components/BaseOverlay.jsx` (wiring + DOM contract)
+
+### Cooperating contracts (important)
+
+The hook has two explicit contracts with `BaseOverlay` that must stay in sync. Both are commented at the point of use; listing them here for discoverability:
+
+1. **`data-overlay-content` DOM marker.** `BaseOverlay` tags its scroll/content surface with `data-overlay-content`. The mobile selection→menu path in `useOverlayContextMenu` bails out unless `window.getSelection().anchorNode` is inside a `[data-overlay-content]` subtree. This is what scopes the otherwise-global `selectionchange`/`touchstart`/`touchend` listeners to the overlay's reading surface.
+2. **Escape arbitration via `event.defaultPrevented`.** When the menu is open, the hook's Escape handler runs in the capture phase and calls `preventDefault() + stopPropagation() + stopImmediatePropagation()`. `BaseOverlay`'s own Escape handler guards with `if (event.defaultPrevented) return`. This two-sided contract is what makes the first Escape close the menu only and the second close the overlay. Remove either side and Escape closes both layers simultaneously.
+
+### Triggers
+
+- **Desktop**: `onContextMenu` on the `BaseOverlay` scroll surface (right-click) → menu anchored at cursor coordinates.
+- **Mobile**: document-level `selectionchange` / `touchstart` / `touchend` listeners. Menu opens on finger lift (`touchend`) when a non-empty text selection exists inside `[data-overlay-content]`. Menu re-closes automatically when the selection is cleared.
+
+### Close paths
+
+Outside `pointerdown`, Escape key (arbitrated — see above), overlay close/unmount (via `enabled` flip in Digest's case).
+
+### Current actions
+
+Both overlays wire the same two actions: `Close reader` and `Mark done`. Desktop positioning anchors top-left at the cursor; mobile positioning anchors top-center under the selection rect (see `clampMenuPosition` in `OverlayContextMenu.jsx`).
+
+### Status / WIP notes
+
+The implementation is the codex-branch base (`useOverlayContextMenu` with `data-overlay-content` scoping + Escape arbitration) augmented with worktree-branch debug instrumentation for an ongoing mobile-selection bug hunt:
+- Every branch of `useOverlayContextMenu` and `OverlayContextMenu.handleActionClick` emits `[ctxmenu] …` console.log lines.
+- `lib/quakeConsole.js` has a `setInterval(() => console.log(''), 10_000)` heartbeat so the quake console stays visibly alive between events.
+
+Known mobile-selection interactions that remain buggy and are pending a concrete bug list: long-hold-still, long-hold-then-drag, tapping inside the selected range, dragging selection boundaries to extend, and selections that span the top/bottom viewport edge. All affect (a) whether the menu appears, (b) where it appears, and/or (c) whether it closes prematurely. See `thoughts/26-04-07-context-menu-research/` for the research/plan history and the codex branch discussion in git for the architectural rationale.
+
+---
+
 ## Call Graph
 
 > Focus: Component dependency and execution hierarchy.
@@ -213,13 +249,17 @@ main()
 │                                           │   └── useAnimation(Framer Motion)
 │                                           │
 │                                           └── ZenModeOverlay (Conditional; short press open depends on interaction reducer)
+│                                               ├── useOverlayContextMenu()
+│                                               ├── OverlayContextMenu (portal, conditional on menu.isOpen)
 │                                               └── BaseOverlay
 │                                                   ├── useScrollProgress()
 │                                                   ├── useOverscrollUp()
-│                                                   └── usePullToClose()
+│                                                   ├── usePullToClose() (currently enabled:false — see GOTCHAS)
+│                                                   └── [data-overlay-content] marker on scroll surface
+│                                                       (contract with useOverlayContextMenu)
 ```
 
-**Note:** `BaseOverlay` is the shared foundation for both `ZenModeOverlay` and `DigestOverlay`. It handles body scroll lock, escape key, scroll progress, pull-to-close, and overscroll-up gestures. The overlay wrappers provide only header content and prose-styled children.
+**Note:** `BaseOverlay` is the shared foundation for both `ZenModeOverlay` and `DigestOverlay`. It handles body scroll lock, escape key (with `defaultPrevented` guard for context-menu arbitration), scroll progress, pull-to-close, and overscroll-up gestures. The overlay wrappers provide only header content, prose-styled children, and `onContentContextMenu` (threaded from `useOverlayContextMenu`). See the "Overlay Context Menu" section above for the DOM/event contracts between the hook and `BaseOverlay`.
 
 ---
 

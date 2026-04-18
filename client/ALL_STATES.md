@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-09 09:14, 81662be
+last_updated: 2026-04-18 08:52
 scope: a well defined yet deep view of all the client state machines
 ---
 # Client State Machines
@@ -29,6 +29,7 @@ scope: a well defined yet deep view of all the client state machines
   - [16. BaseOverlay (Shared Foundation)](#16-baseoverlay-shared-foundation)
   - [17. Tracked State](#17-tracked-state)
   - [18. Toast](#18-toast)
+  - [19. Overlay Context Menu](#19-overlay-context-menu)
 - [Part II — The Connective Tissue](#part-ii--the-connective-tissue)
   - [Topology: How They're Wired](#topology-how-theyre-wired)
   - [The Article Object: Shared Substrate](#the-article-object-shared-substrate)
@@ -553,10 +554,14 @@ All gesture handling, scroll progress, body scroll lock, and escape key logic ar
 | Trigger | Handler | Effect |
 |---|---|---|
 | ChevronDown button | `onClose()` → `summary.collapse()` | Release lock, mark read |
-| Escape key | `onClose()` → `summary.collapse()` | Release lock, mark read |
+| Escape key | `onClose()` → `summary.collapse()` | Release lock, mark read (suppressed if context menu is open — see §19) |
 | Pull-to-close threshold (80px) | `onClose()` → `summary.collapse()` | Release lock, mark read |
 | Check button | `onMarkRemoved()` | `summary.collapse(false)` + `markAsRemoved()` |
 | Overscroll-up threshold (30px) | `onMarkRemoved()` | `summary.collapse(false)` + `markAsRemoved()` |
+
+#### Context Menu
+
+ZenModeOverlay wires `useOverlayContextMenu(true)` and renders `<OverlayContextMenu>` as a sibling to `<BaseOverlay>`. The hook's `handleContextMenu` is threaded into `BaseOverlay.onContentContextMenu`. Two actions: `Close reader` and `Mark done`. See §19.
 
 ---
 
@@ -587,6 +592,11 @@ All gesture handling, scroll progress, body scroll lock, and escape key logic ar
 | Mark removed | Single article | All articles in digest |
 | Close → mark read | `summary.collapse()` → single article | `digest.collapse(false)` → all articles |
 | Check → mark removed | `summary.collapse(false)` + `markAsRemoved()` | `digest.collapse(true)` → all articles |
+| Context menu `enabled` | `true` (always, overlay always mounted when rendered) | `expanded` (passed through so menu auto-closes when digest collapses) |
+
+#### Context Menu
+
+Same pattern as Zen Mode: `useOverlayContextMenu(expanded)` + `<OverlayContextMenu>` sibling, with the hook's `handleContextMenu` threaded into `BaseOverlay.onContentContextMenu`. See §19.
 
 ---
 
@@ -720,13 +730,14 @@ Content slides up at 0.4× the offset rate during the gesture.
 BaseOverlay is the shared foundation that eliminates duplication between ZenModeOverlay and DigestOverlay. It handles all common overlay behavior:
 
 - **Body scroll lock**: `document.body.style.overflow = 'hidden'` when expanded
-- **Escape key**: Calls `onClose()` on Escape keydown
+- **Escape key**: Calls `onClose()` on Escape keydown **unless `event.defaultPrevented`** — which is the hook-side contract with `useOverlayContextMenu` so the context menu can claim Escape first (§19)
 - **Scroll progress**: Renders progress bar via `useScrollProgress`
-- **Pull-to-close**: Handles pull-down gesture via `usePullToClose`
+- **Pull-to-close**: Handles pull-down gesture via `usePullToClose` (currently passed `enabled: false` — see `usePullToClose` inline comment and GOTCHAS: the non-passive `touchmove` listener hijacks mobile long-press-to-select)
 - **Overscroll-up**: Handles pull-up-at-bottom gesture via `useOverscrollUp`
 - **Header**: Renders ChevronDown (close), `headerContent` slot, Check (mark removed) buttons
 - **Progress bar**: 2px bar at header bottom, scaled by scroll progress
 - **Overscroll zone**: CheckCircle icon that animates as overscroll progresses
+- **Context-menu surface**: Scroll surface is tagged `data-overlay-content` and receives `onContextMenu={onContentContextMenu}`. Both are contracts with `useOverlayContextMenu` (§19).
 
 #### Props
 
@@ -736,6 +747,7 @@ BaseOverlay is the shared foundation that eliminates duplication between ZenMode
 | `headerContent` | ReactNode | Slot for header middle content (domain info or article count) |
 | `onClose` | () => void | Called on ChevronDown, Escape, or pull-to-close threshold |
 | `onMarkRemoved` | () => void | Called on Check button or overscroll-up threshold |
+| `onContentContextMenu` | (event) => void | Right-click handler on the scroll surface — normally `useOverlayContextMenu().handleContextMenu` |
 | `children` | ReactNode | Content to render in scrollable area |
 
 #### Exports
@@ -748,10 +760,10 @@ BaseOverlay is the shared foundation that eliminates duplication between ZenMode
 | Hook | Configuration |
 |---|---|
 | `useScrollProgress` | `(scrollRef, expanded)` |
-| `usePullToClose` | `({ containerRef, scrollRef, onClose, enabled: expanded })` |
+| `usePullToClose` | `({ containerRef, scrollRef, onClose, enabled: false })` — currently hard-disabled for native text selection |
 | `useOverscrollUp` | `({ scrollRef, onComplete: onMarkRemoved, threshold: 60, enabled: expanded })` |
 
-All hooks receive `enabled: expanded`, so they reset when the overlay collapses.
+The `useOverlayContextMenu` hook is **not** composed by `BaseOverlay` itself — it's instantiated by each wrapper (ZenModeOverlay / DigestOverlay) and threaded in via `onContentContextMenu`, while the DOM-side contracts (`data-overlay-content`, `defaultPrevented` Escape guard) live here.
 
 ---
 
@@ -826,6 +838,84 @@ Clicking a toast calls `onOpen()` (expands the summary overlay) then dismisses i
 
 ---
 
+### 19. Overlay Context Menu
+
+| | |
+|---|---|
+| **Pattern** | `useState` + `useRef` + document-level event listeners (capture phase) |
+| **Files** | `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx` |
+| **Scope** | Per-overlay instance (one per `ZenModeOverlay` / `DigestOverlay`) |
+| **Status** | WIP — mobile selection interactions still buggy (pending concrete bug list). Debug instrumentation (`[ctxmenu]` console.logs + `quakeConsole.js` heartbeat) is intentionally left in. |
+
+#### State Shape
+
+```js
+{ isOpen: false, anchorX: 0, anchorY: 0 }
+// plus two refs:
+menuRef                  // attached to the portal's root div; used for "click inside menu" test
+openedBySelectionRef     // which open path fired — drives whether closing clears the window selection
+```
+
+#### States
+
+```
+CLOSED  ──(right-click in overlay content)──►  OPEN_BY_CLICK
+CLOSED  ──(mobile: selection settled in [data-overlay-content] after touchend)──►  OPEN_BY_SELECTION
+OPEN_*  ──(outside pointerdown / Escape / selection cleared / enabled→false)──►  CLOSED
+```
+
+`openedBySelectionRef` is the discriminator. On close:
+- If `true` (selection path): call `window.getSelection()?.removeAllRanges()` before closing.
+- If `false` (click path): do not touch the selection.
+
+This ref is reset to `false` inside both `closeMenu()` and `handleContextMenu()` — the right-click path must declare `false` authoritatively, otherwise a previous selection-open can leak its "owned the selection" flag into a subsequent right-click open.
+
+#### Events / Transitions
+
+| Event | Source | Effect |
+|---|---|---|
+| `onContextMenu` on scroll surface | `BaseOverlay.onContentContextMenu` (desktop right-click) | `preventDefault`; `openedBySelectionRef=false`; set `{isOpen, anchorX: clientX, anchorY: clientY}` |
+| `touchend` (capture, document) | mobile finger lift | If a non-empty selection exists whose `anchorNode.parentElement.closest('[data-overlay-content]')` matches → `openedBySelectionRef=true`; set menu anchored at the selection rect's bottom-center |
+| `selectionchange` (document) | mobile selection handles | If collapsed/empty and `openedBySelectionRef` → `closeMenu`. If populated and `!touchActive` → `openMenuFromSelection` |
+| `touchstart`/`touchend` (capture) | mobile | Toggle `touchActive` — gates `selectionchange` so the menu opens on finger lift rather than mid-gesture |
+| `pointerdown` (capture, document, only while open) | outside click | If outside `menuRef`: clear selection iff `openedBySelectionRef`, then `closeMenu` |
+| `keydown: Escape` (capture, document, only while open) | keyboard | `preventDefault + stopPropagation + stopImmediatePropagation`; `closeMenu`. The `defaultPrevented` flag is the backstop `BaseOverlay` checks to avoid also closing the overlay |
+| `enabled → false` | hook prop | `closeMenu` |
+| action button click | `OverlayContextMenu.handleActionClick` | Clear selection; `onClose()`; invoke `action.onSelect()` |
+
+#### DOM / Event Contracts (cooperating with BaseOverlay)
+
+1. **`data-overlay-content` marker** — `BaseOverlay` tags its scroll surface. The hook's mobile `openMenuFromSelection` bails unless the selection's `anchorNode.parentElement.closest('[data-overlay-content]')` matches. Removing the attribute turns every selection on the page into a menu trigger.
+2. **Escape arbitration via `event.defaultPrevented`** — the hook's Escape handler calls `stopImmediatePropagation()` + `preventDefault()` on the capture phase; `BaseOverlay` returns early if `event.defaultPrevented`. Removing either side causes Escape to close both menu and overlay at once.
+
+Both contracts are commented at the use site (`useOverlayContextMenu.js` top-of-file block comment + `BaseOverlay.jsx` inline comments on the Escape handler and the `data-overlay-content` div).
+
+#### Positioning
+
+`clampMenuPosition(anchorX, anchorY, actionCount)` in `OverlayContextMenu.jsx`:
+- `left = max(gap, min(anchorX, maxLeft))` — anchor is **top-left** of the menu (cursor-anchored).
+- `top = max(gap, min(anchorY, maxTop))`.
+- Mobile selection path compensates by pre-centering `anchorX = rect.left + rect.width/2` in the hook. This means the menu is *left-aligned at the selection's horizontal center* — a nuance that is worth revisiting when picking between codex and worktree-clean positioning philosophies (worktree-clean subtracts `MENU_WIDTH_PX/2` from `anchorX` inside `clampMenuPosition` to center the menu under the cursor/selection).
+
+#### Actions (current set — identical for both overlays)
+
+| Action | Icon | Effect |
+|---|---|---|
+| `Close reader` | ChevronDown | `onClose` (i.e., `summary.collapse()` / `digest.collapse(false)`) |
+| `Mark done` | Check | `onMarkRemoved` (i.e., `summary.collapse(false)+markAsRemoved()` / `digest.collapse(true)`) |
+
+#### Mobile nuances (known buggy — do not "fix by guessing")
+
+All tied to iOS / Android native selection UI; handled with care because the hook coexists with a non-React selection state machine in the browser:
+- Long-hold still vs. long-hold + drag vs. dragging selection handles to extend.
+- Tapping the already-selected range (usually collapses and may collide with `handlePointerDown`'s `getSelection().removeAllRanges()`).
+- Tapping a menu button while prose is still selected — `touchend` fires before `click`, so `openMenuFromSelection` can re-open the menu in the gap between `touchend` and the action's `handleActionClick` clearing the selection.
+- Selections that start or end outside the viewport (`range.getBoundingClientRect()` may report off-screen coordinates; `clampMenuPosition` clamps but the anchor can feel disconnected).
+
+These are instrumented (the `[ctxmenu]` logs in every branch) pending a concrete bug report.
+
+---
+
 ## Part II — The Connective Tissue
 
 ### Topology: How They're Wired
@@ -838,20 +928,22 @@ The 16 machines form a layered architecture. Understanding the layers explains w
 │                                                                             │
 │  ┌──────────────────┐   ┌──────────────────┐   ┌────────────────────────┐  │
 │  │ Zen Mode Overlay │   │ Digest Overlay   │   │ Toast                  │  │
-│  │      (thin       │   │      (thin       │   └────────────────────────┘  │
-│  │      wrapper)    │   │      wrapper)    │                              │
+│  │   + useOverlay   │   │   + useOverlay   │   └────────────────────────┘  │
+│  │   ContextMenu    │   │   ContextMenu    │                              │
 │  └────────┬─────────┘   └────────┬─────────┘                              │
 │           │                      │                                        │
 │           └──────────┬───────────┘                                        │
 │                      ▼                                                    │
-│           ┌──────────────────────┐                                        │
-│           │ BaseOverlay          │                                        │
-│           │  ├ ScrollProgress   │                                        │
-│           │  ├ PullToClose      │                                        │
-│           │  ├ OverscrollUp     │                                        │
-│           │  ├ body scroll lock │                                        │
-│           │  └ escape key      │                                        │
-│           └──────────────────────┘                                        │
+│           ┌──────────────────────────────────────┐                        │
+│           │ BaseOverlay                          │                        │
+│           │  ├ ScrollProgress                   │                        │
+│           │  ├ PullToClose (disabled for select)│                        │
+│           │  ├ OverscrollUp                     │                        │
+│           │  ├ body scroll lock                 │                        │
+│           │  ├ escape (arbitrated via           │                        │
+│           │  │   event.defaultPrevented)        │                        │
+│           │  └ [data-overlay-content] marker   │                        │
+│           └──────────────────────────────────────┘                        │
 │                      ▲                                                    │
 │                      │ zen lock (mutual exclusion)                        │
 ├──────────────────────┼────────────────────────────────────────────────────┤
@@ -1028,6 +1120,19 @@ Each cell shows the **direction** of the relationship. Read as "row affects/uses
 | **BaseOverlay** | `onMarkRemoved` | — | — | — | — | Composed by Digest | Composed by Zen | — | Composes PullToClose, OverscrollUp, ScrollProgress | Uses via hooks | — |
 | **Tracked State** | — | — | — | — | — | — | — | — | — | — | — |
 | **Toast** | — | — | — | — | — | — | Click → `expand()` | — | — | — | — |
+
+**Overlay Context Menu (§19) — coupling notes**
+
+The context menu isn't a good fit for the matrix because its couplings are **DOM-level and event-capture-level**, not data/function level. The relationships worth remembering:
+
+| Depends on | Direction | How |
+|---|---|---|
+| BaseOverlay | DOM contract | reads selection ancestry via `[data-overlay-content]` |
+| BaseOverlay | Event-phase contract | capture-phase Escape handler + `defaultPrevented` guard on BaseOverlay's bubble-phase Escape |
+| Zen Mode Overlay | Composition | instantiated in wrapper; handler threaded via `onContentContextMenu`; menu rendered as sibling portal |
+| Digest Overlay | Composition | same pattern; `enabled` is `expanded` so menu auto-closes when digest collapses |
+| Article Lifecycle | Indirect via action callbacks | `Mark done` action → `onMarkRemoved` → `markAsRemoved()` (Zen) or `digest.collapse(true)` (Digest) |
+| Summary View / Digest | Indirect via action callbacks | `Close reader` action → `onClose` → `summary.collapse()` / `digest.collapse(false)` |
 
 ---
 
