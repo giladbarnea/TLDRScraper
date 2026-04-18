@@ -12,7 +12,7 @@ import util
 
 logger = logging.getLogger("portfolio_service")
 
-ALPHA_VANTAGE_API_KEY = util.resolve_env_var("ALPHA_VANTAGE_API_KEY", "1N06QED7AXRQEBC1")
+ALPHA_VANTAGE_API_KEY = util.resolve_env_var("ALPHAVANTAGE_API_KEY", "1N06QED7AXRQEBC1")
 ALPHA_VANTAGE_DAILY_ENDPOINT = "https://www.alphavantage.co/query"
 PORTFOLIO_TRANSACTION_KEY_PREFIX = "portfolio_app:transaction:"
 PORTFOLIO_CLOSE_RATE_KEY_PREFIX = "portfolio_app:close_rate:"
