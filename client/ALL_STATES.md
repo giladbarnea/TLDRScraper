@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-18 08:52
+last_updated: 2026-04-18 09:26, 529852a
 scope: a well defined yet deep view of all the client state machines
 ---
 # Client State Machines
