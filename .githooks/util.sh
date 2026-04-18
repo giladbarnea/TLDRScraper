@@ -48,14 +48,16 @@ function _generate_project_structure() {
 		'.codex'
 		'.gemini'
 		'.agents/agents'
-		'.claude/agents'
-		'.claude/skills'
-		'.claude/hooks'
-		'.pi/agents'
-		'.pi/skills'
+		'.claude'
+		'.pi'
 		'.agents/skills/react-best-practices/rules'
-		'.agents/skills/i-frontend-design/reference'
-		'.agents/skills/i-critique/reference'
+		'.agents/skills/i-*'
+		'.agents/skills/frontend-design-*'
+		'.agents/skills/supabase-postgres-best-practices/*'
+		'scripts/portfolio'
+		'tests/'
+		'thoughts/'
+		
 	)
 	local ignore_glob
 	local old_ifs="$IFS"
