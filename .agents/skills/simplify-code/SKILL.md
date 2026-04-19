@@ -1,7 +1,7 @@
 ---
 name: simplify-code
 description: Use when the user asks you to load this skill in order to simplify code.
-last_updated: 2026-04-19 05:40
+last_updated: 2026-04-19 05:49, 82e7d5c
 adis_origin:
   url: https://github.com/addyosmani/agent-skills/blob/main/skills/code-simplification/SKILL.md
   release: 0.5.0
