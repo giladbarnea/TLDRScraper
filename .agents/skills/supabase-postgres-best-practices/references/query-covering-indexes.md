@@ -3,7 +3,7 @@ title: Use Covering Indexes to Avoid Table Lookups
 impact: MEDIUM-HIGH
 impactDescription: 2-5x faster queries by eliminating heap fetches
 tags: indexes, covering-index, include, index-only-scan
-last_updated: 2026-04-19 06:38, 7a8cda4
+last_updated: 2026-04-19 06:45
 ---
 
 ## Use Covering Indexes to Avoid Table Lookups

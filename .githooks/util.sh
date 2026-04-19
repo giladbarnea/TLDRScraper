@@ -1,7 +1,7 @@
 #!/bin/bash
 
 _HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$_HOOKS_DIR/sync-subdir.sh"
+source "$_HOOKS_DIR/sync-external-subdir.sh"
 
 # _ensure_agent_symlinks [workdir=$PWD]
 # Ensures that `.agents/{skills,agents}` are symlinks to the real CLI agent configuration dirs.
@@ -105,8 +105,8 @@ function _sync_tracked_submodules() {
 
 function _sync_external_dirs() {
 	echo "[sync_external_dirs] Syncing external subdirectories..."
-	sync_untracked "https://github.com/giladbarnea/llm-templates" "skills/prompt-subagent" ".agents/skills/prompt-subagent"
-	sync_untracked "https://github.com/giladbarnea/llm-templates" "skills/supabase-postgres-best-practices" ".agents/skills/supabase-postgres-best-practices"
+	sync_external_subdir "https://github.com/giladbarnea/llm-templates" "skills/prompt-subagent" ".agents/skills/prompt-subagent"
+	sync_external_subdir "https://github.com/giladbarnea/llm-templates" "skills/supabase-postgres-best-practices" ".agents/skills/supabase-postgres-best-practices"
 	echo "[sync_external_dirs] Sync complete."
 }
 

@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-18 16:25
+last_updated: 2026-04-19 06:45
 ---
 
 .
@@ -46,7 +46,7 @@ last_updated: 2026-04-18 16:25
 │  ├── post-merge
 │  ├── pre-commit
 │  ├── README.md
-│  ├── sync-subdir.sh
+│  ├── sync-external-subdir.sh
 │  ├── sync-upstream-suggestions.md
 │  └── util.sh
 ├── .github

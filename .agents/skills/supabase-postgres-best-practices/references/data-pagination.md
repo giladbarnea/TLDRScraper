@@ -3,7 +3,7 @@ title: Use Cursor-Based Pagination Instead of OFFSET
 impact: MEDIUM-HIGH
 impactDescription: Consistent O(1) performance regardless of page depth
 tags: pagination, cursor, keyset, offset, performance
-last_updated: 2026-04-19 06:38, 7a8cda4
+last_updated: 2026-04-19 06:45
 ---
 
 ## Use Cursor-Based Pagination Instead of OFFSET

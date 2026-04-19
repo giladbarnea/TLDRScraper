@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-19 06:38, 7a8cda4
+last_updated: 2026-04-19 06:45
 ---
 
 # Supabase Postgres Best Practices

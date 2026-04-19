@@ -3,7 +3,7 @@ title: Choose Appropriate Data Types
 impact: HIGH
 impactDescription: 50% storage reduction, faster comparisons
 tags: data-types, schema, storage, performance
-last_updated: 2026-04-19 06:38, 7a8cda4
+last_updated: 2026-04-19 06:45
 ---
 
 ## Choose Appropriate Data Types
