@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-19 16:54
+last_updated: 2026-04-19 16:54, ceaac77
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
