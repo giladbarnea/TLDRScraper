@@ -115,7 +115,7 @@ function _sync_tracked_submodules() {
 
 function _sync_external_dirs() {
 	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
-	local registry="$workdir/synced_external_subdirs.txt"
+	local registry="$workdir/scripts/ops/synced_external_subdirs.txt"
 	echo "[sync_external_dirs] Syncing external subdirectories..."
 	while IFS=' ' read -r repo_url src_dir dest_dir; do
 		[[ -z "$repo_url" || "$repo_url" == "#"* ]] && continue

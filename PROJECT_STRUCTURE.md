@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-19 15:03
+last_updated: 2026-04-19 19:27
 ---
 
 .
@@ -45,15 +45,13 @@ last_updated: 2026-04-19 15:03
 │  ├── post-merge
 │  ├── pre-commit
 │  ├── README.md
-│  ├── sync-external-subdir.sh
-│  ├── sync-upstream-suggestions.md
-│  └── util.sh
+│  └── sync-upstream-suggestions.md
 ├── .github
 │  └── workflows
-│     ├── maintain-documentation.yml
-│     ├── nightly-vercel-cleanup.yml
+│     ├── infra-cleanup.yml
+│     ├── secret-scan.yml
+│     ├── update-frontmatter.yml
 │     ├── weekly-branch-pr-cleanup.yml
-│     ├── weekly-supabase-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
 ├── adapters
 │  ├── __init__.py
@@ -159,24 +157,23 @@ last_updated: 2026-04-19 15:03
 │  ├── postcss.config.js
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
+├── db
+│  ├── create_digests_table.sql
+│  └── create_shopping_cart_entries_table.sql
 ├── scripts
-│  ├── setup
-│  │  ├── build_client.sh
-│  │  ├── common.sh
-│  │  ├── create_digests_table.sql
-│  │  ├── create_shopping_cart_entries_table.sql
-│  │  ├── ensure_submodules.sh
-│  │  ├── ensure_tooling.sh
-│  │  └── ensure_uv_and_sync.sh
-│  ├── auto-pr-merge.sh
-│  ├── clean_vercel_deployments.py
-│  ├── generate_tree.py
-│  ├── install-codex-cli.sh
-│  ├── markdown_frontmatter.py
-│  ├── run-agent-via-litellm.sh
-│  ├── run-agent.sh
-│  ├── run-codex.sh
-│  └── update_doc_frontmatter.py
+│  ├── dev
+│  │  ├── auto-pr-merge.sh
+│  │  ├── install-codex-cli.sh
+│  │  ├── run-agent-via-litellm.sh
+│  │  ├── run-agent.sh
+│  │  └── run-codex.sh
+│  └── ops
+│     ├── clean_vercel_deployments.py
+│     ├── ensure_submodules.sh
+│     ├── generate_project_tree.py
+│     ├── markdown_frontmatter.py
+│     ├── structural-maintenance.sh
+│     └── update_frontmatter.py
 ├── vendor
 │  ├── consensus
 │  │  ├── consensus
@@ -208,8 +205,6 @@ last_updated: 2026-04-19 15:03
 ├── ARCHITECTURE.md
 ├── BUGS.md
 ├── CLAUDE.md
-├── CODEX.md
-├── GEMINI.md
 ├── GOTCHAS.md
 ├── litellm_config.yaml
 ├── newsletter_config.py

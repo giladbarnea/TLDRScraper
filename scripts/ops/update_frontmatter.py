@@ -24,7 +24,7 @@ SKIP_FILES = {'PROJECT_STRUCTURE.md'}
 
 
 def _read_synced_dirs() -> list[Path]:
-    registry = Path('synced_external_subdirs.txt')
+    registry = Path(__file__).parent / 'synced_external_subdirs.txt'
     if not registry.exists():
         return []
     dirs = []
