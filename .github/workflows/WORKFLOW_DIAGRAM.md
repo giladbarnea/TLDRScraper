@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-19 17:38
+last_updated: 2026-04-19 19:14
 ---
 # Ops & Automation: Contracts and Triggers
 
@@ -9,7 +9,7 @@ last_updated: 2026-04-19 17:38
 |---|---|---|
 | `*.md` `last_updated` frontmatter (timestamp only) | file body | `pre-commit` (staged files) |
 | `*.md` `last_updated` frontmatter (timestamp + commit hash) | file body | CI push to `main` (safety net) |
-| `PROJECT_STRUCTURE.md` | repo tree via `generate_tree.py` | `post-merge`, `setup.sh` |
+| `PROJECT_STRUCTURE.md` | repo tree via `generate_project_tree.py` | `post-merge`, `setup.sh` |
 | `CLAUDE.md` / `GEMINI.md` / `CODEX.md` | `AGENTS.md` | hardlink — filesystem |
 | `.agents/skills/prompt-subagent/` | `giladbarnea/llm-templates` | `post-merge`, `setup.sh` |
 | `.agents/skills/supabase-postgres-best-practices/` | `giladbarnea/llm-templates` | `post-merge`, `setup.sh` |
@@ -30,7 +30,7 @@ git merge / git pull
             └── run_structural_maintenance()  (scripts/ops/structural-maintenance.sh)
                     ├── ensure agent symlinks (.claude/.codex/.gemini/.pi → .agents/)
                     ├── git submodule sync + update --init --recursive
-                    ├── generate_tree.py → PROJECT_STRUCTURE.md  (if body changed)
+                    ├── generate_project_tree.py → PROJECT_STRUCTURE.md  (if body changed)
                     ├── sync external dirs from synced_external_subdirs.txt
                     └── build simplify-code SKILL.md
 

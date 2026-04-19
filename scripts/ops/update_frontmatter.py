@@ -17,7 +17,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
 import markdown_frontmatter
 
 SKIP_FILES = {'PROJECT_STRUCTURE.md'}

@@ -75,7 +75,7 @@ function _generate_project_structure() {
 	ignore_glob="${ignore_glob_patterns[*]}"
 	IFS="$old_ifs"
 	local new_content
-	new_content=$(uv run python3 scripts/generate_tree.py \
+	new_content=$(uv run python3 scripts/ops/generate_project_tree.py \
 		--classify \
 		--icons \
 		--tree \
@@ -86,7 +86,7 @@ function _generate_project_structure() {
 
 	NEW_CONTENT="$new_content" uv run python3 - "PROJECT_STRUCTURE.md" "$(date -u +"%Y-%m-%d %H:%M")" <<'PY'
 import sys, os
-sys.path.insert(0, 'scripts')
+sys.path.insert(0, 'scripts/ops')
 import markdown_frontmatter
 file_path, timestamp = sys.argv[1], sys.argv[2]
 new_body = os.environ['NEW_CONTENT']
@@ -100,7 +100,7 @@ function update_markdown_last_updated() {
 	local timestamp="$2"
 	uv run python3 - "$file_path" "$timestamp" <<'PY'
 import sys
-sys.path.insert(0, 'scripts')
+sys.path.insert(0, 'scripts/ops')
 import markdown_frontmatter
 file_path, timestamp = sys.argv[1], sys.argv[2]
 markdown_frontmatter.update(file_path, {'last_updated': timestamp})
@@ -110,7 +110,7 @@ PY
 
 function _sync_tracked_submodules() {
 	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
-	SERVER_CONTEXT_WORKDIR="$workdir" bash "$workdir/scripts/setup/ensure_submodules.sh"
+	SERVER_CONTEXT_WORKDIR="$workdir" bash "$workdir/scripts/ops/ensure_submodules.sh"
 }
 
 function _sync_external_dirs() {

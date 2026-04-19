@@ -16,7 +16,7 @@ fi
 [[ "${SETUP_QUIET:-false}" == "true" || "${SETUP_QUIET}" == "1" ]] && SETUP_QUIET=true
 
 # Source common utilities
-source "$SERVER_CONTEXT_WORKDIR/scripts/setup/common.sh"
+source "$SERVER_CONTEXT_WORKDIR/scripts/env/common.sh"
 source "$SERVER_CONTEXT_WORKDIR/scripts/ops/structural-maintenance.sh"
 
 # Override message/error for setup.sh context (since this file is sourced, not executed)
@@ -416,9 +416,9 @@ function main() {
   ensure_local_bin_path --quiet="$quiet"
 
   # Launch UV install+sync and client build in parallel background processes
-  bash "$workdir/scripts/setup/ensure_uv_and_sync.sh" &
-  bash "$workdir/scripts/setup/build_client.sh" &
-  bash "$workdir/scripts/setup/ensure_tooling.sh" &
+  bash "$workdir/scripts/env/ensure_uv_and_sync.sh" &
+  bash "$workdir/scripts/env/build_client.sh" &
+  bash "$workdir/scripts/env/ensure_tooling.sh" &
   [[ "$quiet" == false ]] && message "[$0] UV sync and client build running in background..."
 
   #region ----[ Prepare & Print Docs ]----

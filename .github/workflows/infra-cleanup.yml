@@ -20,7 +20,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: uv run --with=requests python3 scripts/clean_vercel_deployments.py
+        run: uv run --with=requests python3 scripts/ops/clean_vercel_deployments.py
 
   supabase:
     name: Clean Supabase Cache

@@ -5,7 +5,7 @@ set -o pipefail
 WORKDIR="${SERVER_CONTEXT_WORKDIR:-$PWD}"
 SETUP_QUIET="${SETUP_QUIET:-false}"
 
-source "$WORKDIR/scripts/setup/common.sh"
+source "$WORKDIR/scripts/env/common.sh"
 
 function ensure_tracked_submodules() {
   local repo_root=""
