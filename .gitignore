@@ -21,6 +21,7 @@ _*cache*
 # Distribution / packaging
 .Python
 build/
+!.agents/skills/*/build/
 develop-eggs/
 dist/
 downloads/

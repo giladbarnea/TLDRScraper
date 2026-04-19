@@ -110,6 +110,10 @@ function _sync_external_dirs() {
 	echo "[sync_external_dirs] Sync complete."
 }
 
+function _build_simplify_code_skill() {
+  uv run python3 .agents/skills/simplify-code/build/build.py
+}
+
 # run_structural_maintenance [workdir=$PWD]
 # The "public" function running idempotent structural maintenance tasks.
 function run_structural_maintenance() {
@@ -119,4 +123,5 @@ function run_structural_maintenance() {
   _sync_tracked_submodules
   _generate_project_structure
   _sync_external_dirs
+  _build_simplify_code_skill
 }

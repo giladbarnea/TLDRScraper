@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Generic CRUD operations for Markdown YAML frontmatter.
-Handles reading, updating, writing, and deleting frontmatter fields.
+Handles reading, updating, writing, and deleting frontmatter fields,
+including one-level-deep nested objects (dicts as values).
 """
 
 import re
@@ -11,8 +12,69 @@ import logging
 
 logger = logging.getLogger("markdown_frontmatter")
 
+Frontmatter = dict[str, "str | dict[str, str]"]
 
-def _read_frontmatter(file_path: Path) -> tuple[dict[str, str], str]:
+
+def _parse_frontmatter_text(text: str) -> Frontmatter:
+    """
+    Parse YAML frontmatter text into a dict, supporting one-level-deep nested objects.
+
+    >>> _parse_frontmatter_text('name: foo\\ndescription: bar')
+    {'name': 'foo', 'description': 'bar'}
+    >>> _parse_frontmatter_text('name: foo\\nnested:\\n  url: https://x.com\\n  tag: v1')
+    {'name': 'foo', 'nested': {'url': 'https://x.com', 'tag': 'v1'}}
+    """
+    result: Frontmatter = {}
+    pending_key: str | None = None
+    pending_nested: dict[str, str] = {}
+
+    for line in text.split('\n'):
+        if not line.strip():
+            continue
+        is_indented = line[:1] in (' ', '\t')
+        if is_indented and pending_key is not None:
+            if ':' in line:
+                subkey, subvalue = line.strip().split(':', 1)
+                pending_nested[subkey.strip()] = subvalue.strip()
+        else:
+            if pending_key is not None:
+                result[pending_key] = pending_nested
+                pending_key = None
+                pending_nested = {}
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip()
+                value = value.strip()
+                if value:
+                    result[key] = value
+                else:
+                    pending_key = key
+
+    if pending_key is not None:
+        result[pending_key] = pending_nested
+
+    return result
+
+
+def _serialize_frontmatter(frontmatter_dict: Frontmatter) -> str:
+    """
+    Serialize a frontmatter dict to YAML text, supporting one-level-deep nested objects.
+
+    >>> _serialize_frontmatter({'name': 'foo', 'nested': {'url': 'https://x.com', 'tag': 'v1'}})
+    'name: foo\\nnested:\\n  url: https://x.com\\n  tag: v1'
+    """
+    lines = []
+    for key, value in frontmatter_dict.items():
+        if isinstance(value, dict):
+            lines.append(f"{key}:")
+            for subkey, subvalue in value.items():
+                lines.append(f"  {subkey}: {subvalue}")
+        else:
+            lines.append(f"{key}: {value}")
+    return '\n'.join(lines)
+
+
+def _read_frontmatter(file_path: Path) -> tuple[Frontmatter, str]:
     """
     Idempotently read frontmatter from a markdown file.
     Guarantees triple-dash boundaries exist at the top of the file.
@@ -53,24 +115,17 @@ def _read_frontmatter(file_path: Path) -> tuple[dict[str, str], str]:
     if not frontmatter_text:
         return {}, content
 
-    frontmatter_dict = {}
-    for line in frontmatter_text.split('\n'):
-        if ':' in line:
-            key, value = line.split(':', 1)
-            frontmatter_dict[key.strip()] = value.strip()
-
-    return frontmatter_dict, content
+    return _parse_frontmatter_text(frontmatter_text), content
 
 
-def _write_frontmatter(file_path: Path, frontmatter_dict: dict[str, str]) -> None:
+def _write_frontmatter(file_path: Path, frontmatter_dict: Frontmatter) -> None:
     """
     Write frontmatter dict to file.
     Reuses _read_frontmatter to guarantee frontmatter boundaries exist.
     """
     _, content = _read_frontmatter(file_path)
 
-    frontmatter_lines = [f"{key}: {value}" for key, value in frontmatter_dict.items()]
-    frontmatter_text = '\n'.join(frontmatter_lines)
+    frontmatter_text = _serialize_frontmatter(frontmatter_dict)
 
     frontmatter_pattern = r'^---\s*\n(.*?)---[ \t]*(?:\n|$)'
     new_content = re.sub(
@@ -88,7 +143,7 @@ def _write_frontmatter(file_path: Path, frontmatter_dict: dict[str, str]) -> Non
         raise
 
 
-def read(file_path: str | Path, *fields: str) -> dict[str, str]:
+def read(file_path: str | Path, *fields: str) -> Frontmatter:
     """
     Read frontmatter fields from a markdown file.
     If fields specified, returns only matching fields.
@@ -116,7 +171,7 @@ def read(file_path: str | Path, *fields: str) -> dict[str, str]:
     return {key: value for key, value in frontmatter_dict.items() if key in fields}
 
 
-def update(file_path: str | Path, frontmatter: dict[str, str]) -> dict[str, str]:
+def update(file_path: str | Path, frontmatter: Frontmatter) -> Frontmatter:
     """
     Update/merge frontmatter fields in a markdown file.
     Overwrites fields if they exist, adds them if they don't.
@@ -131,6 +186,8 @@ def update(file_path: str | Path, frontmatter: dict[str, str]) -> dict[str, str]
     {'foo': 'updated', 'new': 'field'}
     >>> read(path)
     {'foo': 'updated', 'new': 'field'}
+    >>> update(path, {'meta': {'url': 'https://x.com', 'tag': 'v1'}})
+    {'foo': 'updated', 'new': 'field', 'meta': {'url': 'https://x.com', 'tag': 'v1'}}
     >>> path.unlink()
     """
     if not frontmatter:
@@ -146,7 +203,7 @@ def update(file_path: str | Path, frontmatter: dict[str, str]) -> dict[str, str]
     return updated_frontmatter
 
 
-def write(file_path: str | Path, frontmatter: dict[str, str]) -> dict[str, str]:
+def write(file_path: str | Path, frontmatter: Frontmatter) -> Frontmatter:
     """
     Overwrite all frontmatter in a markdown file.
     Returns all frontmatter (which is the given frontmatter if successful).
@@ -160,6 +217,10 @@ def write(file_path: str | Path, frontmatter: dict[str, str]) -> dict[str, str]:
     {'only': 'this'}
     >>> read(path)
     {'only': 'this'}
+    >>> write(path, {'nested': {'url': 'https://x.com', 'tag': 'v1'}})
+    {'nested': {'url': 'https://x.com', 'tag': 'v1'}}
+    >>> read(path)
+    {'nested': {'url': 'https://x.com', 'tag': 'v1'}}
     >>> path.unlink()
     """
     if not frontmatter:
@@ -172,7 +233,7 @@ def write(file_path: str | Path, frontmatter: dict[str, str]) -> dict[str, str]:
     return frontmatter
 
 
-def delete(file_path: str | Path, *fields: str) -> dict[str, str]:
+def delete(file_path: str | Path, *fields: str) -> Frontmatter:
     """
     Delete frontmatter fields from a markdown file.
     If no fields specified, removes entire frontmatter including triple-dash boundaries.
@@ -244,7 +305,17 @@ def body(file_path: str | Path) -> str:
     return content[match.end():]
 
 
-def update_if_body_changed(file_path: str | Path, new_body: str, frontmatter: dict[str, str]) -> bool:
+def render(frontmatter_dict: Frontmatter, body_content: str) -> str:
+    """
+    Render a complete markdown file string with frontmatter block and body.
+
+    >>> render({'name': 'foo', 'meta': {'url': 'https://x.com'}}, '\\n# Hello')
+    '---\\nname: foo\\nmeta:\\n  url: https://x.com\\n---\\n\\n# Hello'
+    """
+    return f"---\n{_serialize_frontmatter(frontmatter_dict)}\n---\n{body_content}"
+
+
+def update_if_body_changed(file_path: str | Path, new_body: str, frontmatter: Frontmatter) -> bool:
     """
     Write new_body + frontmatter to file only if body content differs from existing (ignoring all whitespace).
     Returns True if file was updated, False if content was identical.
