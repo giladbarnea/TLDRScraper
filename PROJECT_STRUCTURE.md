@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-19 12:17
+last_updated: 2026-04-19 15:03
 ---
 
 .
@@ -42,7 +42,6 @@ last_updated: 2026-04-19 12:17
 │     └── web-a11y-guidelines
 │        └── SKILL.md
 ├── .githooks
-│  ├── post-checkout.disabled
 │  ├── post-merge
 │  ├── pre-commit
 │  ├── README.md
@@ -51,7 +50,6 @@ last_updated: 2026-04-19 12:17
 │  └── util.sh
 ├── .github
 │  └── workflows
-│     ├── GEMINI_REMOTE_AUTH.md
 │     ├── maintain-documentation.yml
 │     ├── nightly-vercel-cleanup.yml
 │     ├── weekly-branch-pr-cleanup.yml
@@ -175,6 +173,7 @@ last_updated: 2026-04-19 12:17
 │  ├── generate_tree.py
 │  ├── install-codex-cli.sh
 │  ├── markdown_frontmatter.py
+│  ├── run-agent-via-litellm.sh
 │  ├── run-agent.sh
 │  ├── run-codex.sh
 │  └── update_doc_frontmatter.py
@@ -212,6 +211,7 @@ last_updated: 2026-04-19 12:17
 ├── CODEX.md
 ├── GEMINI.md
 ├── GOTCHAS.md
+├── litellm_config.yaml
 ├── newsletter_config.py
 ├── newsletter_merger.py
 ├── newsletter_scraper.py
