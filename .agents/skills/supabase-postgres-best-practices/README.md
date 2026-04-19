@@ -1,7 +1,3 @@
----
-last_updated: 2026-04-19 10:02
----
-
 # Supabase Postgres Best Practices - Contributor Guide
 
 This skill contains Postgres performance optimization references optimized for

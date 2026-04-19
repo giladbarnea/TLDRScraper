@@ -3,7 +3,6 @@ title: Use Prepared Statements Correctly with Pooling
 impact: HIGH
 impactDescription: Avoid prepared statement conflicts in pooled environments
 tags: prepared-statements, connection-pooling, transaction-mode
-last_updated: 2026-04-19 10:02
 ---
 
 ## Use Prepared Statements Correctly with Pooling

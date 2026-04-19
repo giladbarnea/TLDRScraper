@@ -38,9 +38,15 @@ if [ -n "$staged_md" ]; then
   echo "Updating frontmatter in staged markdown files..."
 
   timestamp=$(date -u +"%Y-%m-%d %H:%M")
+  synced_dirs=$(awk 'NF && !/^#/ {print $3}' synced_external_subdirs.txt 2>/dev/null || true)
 
   for file in $staged_md; do
     if [ -f "$file" ]; then
+      skip=0
+      for dir in $synced_dirs; do
+        [[ "$file" == "$dir/"* ]] && skip=1 && break
+      done
+      [ "$skip" -eq 1 ] && continue
       update_markdown_last_updated "$file" "$timestamp"
       git add "$file"
     fi

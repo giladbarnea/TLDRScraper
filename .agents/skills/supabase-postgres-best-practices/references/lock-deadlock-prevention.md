@@ -3,7 +3,6 @@ title: Prevent Deadlocks with Consistent Lock Ordering
 impact: MEDIUM-HIGH
 impactDescription: Eliminate deadlock errors, improve reliability
 tags: deadlocks, locking, transactions, ordering
-last_updated: 2026-04-19 10:02
 ---
 
 ## Prevent Deadlocks with Consistent Lock Ordering

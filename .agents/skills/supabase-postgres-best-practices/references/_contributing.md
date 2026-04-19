@@ -1,7 +1,3 @@
----
-last_updated: 2026-04-19 10:02
----
-
 # Writing Guidelines for Postgres References
 
 This document provides guidelines for creating effective Postgres best

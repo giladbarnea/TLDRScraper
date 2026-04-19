@@ -3,7 +3,6 @@ title: Index JSONB Columns for Efficient Querying
 impact: MEDIUM
 impactDescription: 10-100x faster JSONB queries with proper indexing
 tags: jsonb, gin, indexes, json
-last_updated: 2026-04-19 10:02
 ---
 
 ## Index JSONB Columns for Efficient Querying

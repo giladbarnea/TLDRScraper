@@ -3,7 +3,6 @@ title: Optimize RLS Policies for Performance
 impact: HIGH
 impactDescription: 5-10x faster RLS queries with proper patterns
 tags: rls, performance, security, optimization
-last_updated: 2026-04-19 10:02
 ---
 
 ## Optimize RLS Policies for Performance
