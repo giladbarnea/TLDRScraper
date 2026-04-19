@@ -104,9 +104,13 @@ function _sync_tracked_submodules() {
 }
 
 function _sync_external_dirs() {
+	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
+	local registry="$workdir/synced_external_subdirs.txt"
 	echo "[sync_external_dirs] Syncing external subdirectories..."
-	sync_external_subdir "https://github.com/giladbarnea/llm-templates" "skills/prompt-subagent" ".agents/skills/prompt-subagent"
-	sync_external_subdir "https://github.com/giladbarnea/llm-templates" "skills/supabase-postgres-best-practices" ".agents/skills/supabase-postgres-best-practices"
+	while IFS=' ' read -r repo_url src_dir dest_dir; do
+		[[ -z "$repo_url" || "$repo_url" == "#"* ]] && continue
+		sync_external_subdir "$repo_url" "$src_dir" "$dest_dir"
+	done < "$registry"
 	echo "[sync_external_dirs] Sync complete."
 }
 

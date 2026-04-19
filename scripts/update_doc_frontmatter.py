@@ -4,6 +4,7 @@ Update markdown documentation frontmatter with last_updated timestamp and commit
 Runs as part of GitHub Actions workflow on merge operations.
 """
 
+import argparse
 import subprocess
 import sys
 from datetime import datetime
@@ -33,19 +34,21 @@ def run_git_command(cmd: List[str]) -> str:
         return ""
 
 
-def get_modified_markdown_files() -> List[Path]:
+def get_modified_markdown_files(skip_paths: list[Path] = []) -> List[Path]:
     """Get list of modified or added markdown files in the most recent commit."""
-    # Get files that were modified or added in the most recent commit
     output = run_git_command(["git", "diff", "--name-only", "--diff-filter=AM", "HEAD~1", "HEAD"])
 
     if not output:
         return []
 
-    # Filter for markdown files
     files = [Path(f) for f in output.split('\n') if f.endswith('.md')]
 
-    # Only return files that exist and are not in skip list
-    return [f for f in files if f.exists() and f.name not in SKIP_FILES]
+    return [
+        f for f in files
+        if f.exists()
+        and f.name not in SKIP_FILES
+        and not any(f.is_relative_to(p) for p in skip_paths)
+    ]
 
 
 def get_current_commit_info() -> Tuple[str, str]:
@@ -75,8 +78,12 @@ def update_frontmatter(file_path: Path, timestamp: str, commit_hash: str) -> boo
 
 def main():
     """Main function to update frontmatter for all modified markdown files."""
-    # Get modified markdown files
-    modified_files = get_modified_markdown_files()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--skip', default='', help='Comma-separated path prefixes to exclude')
+    args = parser.parse_args()
+    skip_paths = [Path(p) for p in args.skip.split(',') if p]
+
+    modified_files = get_modified_markdown_files(skip_paths)
 
     if not modified_files:
         print("No modified markdown files found.")

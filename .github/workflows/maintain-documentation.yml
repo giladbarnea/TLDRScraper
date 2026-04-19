@@ -31,11 +31,10 @@ jobs:
       - name: Update doc frontmatter
         id: update
         run: |
-          # Make script executable
           chmod +x scripts/update_doc_frontmatter.py
 
-          # Run the script to update frontmatter of modified markdown files
-          python scripts/update_doc_frontmatter.py > frontmatter_output.txt 2>&1
+          skip_paths=$(awk 'NF && !/^#/ {print $3}' synced_external_subdirs.txt 2>/dev/null | paste -sd, || true)
+          python scripts/update_doc_frontmatter.py --skip="$skip_paths" > frontmatter_output.txt 2>&1
           cat frontmatter_output.txt
 
           # Extract modified files from output for next job

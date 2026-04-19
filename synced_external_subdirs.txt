@@ -1,0 +1,2 @@
+https://github.com/giladbarnea/llm-templates skills/prompt-subagent .agents/skills/prompt-subagent
+https://github.com/giladbarnea/llm-templates skills/supabase-postgres-best-practices .agents/skills/supabase-postgres-best-practices

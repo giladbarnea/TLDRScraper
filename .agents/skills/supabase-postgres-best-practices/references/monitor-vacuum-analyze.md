@@ -3,7 +3,7 @@ title: Maintain Table Statistics with VACUUM and ANALYZE
 impact: MEDIUM
 impactDescription: 2-10x better query plans with accurate statistics
 tags: vacuum, analyze, statistics, maintenance, autovacuum
-last_updated: 2026-04-19 06:46, 2fe87f3
+last_updated: 2026-04-19 07:12
 ---
 
 ## Maintain Table Statistics with VACUUM and ANALYZE
