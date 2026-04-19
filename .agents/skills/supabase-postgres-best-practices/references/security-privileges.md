@@ -3,7 +3,7 @@ title: Apply Principle of Least Privilege
 impact: MEDIUM
 impactDescription: Reduced attack surface, better audit trail
 tags: privileges, security, roles, permissions
-last_updated: 2026-04-19 06:38
+last_updated: 2026-04-19 06:38, 7a8cda4
 ---
 
 ## Apply Principle of Least Privilege

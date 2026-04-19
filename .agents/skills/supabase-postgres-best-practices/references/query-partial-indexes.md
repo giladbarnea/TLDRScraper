@@ -3,7 +3,7 @@ title: Use Partial Indexes for Filtered Queries
 impact: HIGH
 impactDescription: 5-20x smaller indexes, faster writes and queries
 tags: indexes, partial-index, query-optimization, storage
-last_updated: 2026-04-19 06:38
+last_updated: 2026-04-19 06:38, 7a8cda4
 ---
 
 ## Use Partial Indexes for Filtered Queries

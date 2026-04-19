@@ -3,7 +3,7 @@ title: Use Connection Pooling for All Applications
 impact: CRITICAL
 impactDescription: Handle 10-100x more concurrent users
 tags: connection-pooling, pgbouncer, performance, scalability
-last_updated: 2026-04-19 06:38
+last_updated: 2026-04-19 06:38, 7a8cda4
 ---
 
 ## Use Connection Pooling for All Applications
