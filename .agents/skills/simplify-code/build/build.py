@@ -100,7 +100,11 @@ def strip_inspired_by(body: str) -> str:
 
 
 def run_gemini_terser(adis_body: str) -> str:
-    """Apply terse-output editing to adis_body via Gemini."""
+    """Apply terse-output editing to adis_body via Gemini.
+
+    Uses an ephemeral temp file as the edit target for run-agent.sh — written
+    before the subprocess call, read back after, deleted immediately.
+    """
     return adis_body
 
 
