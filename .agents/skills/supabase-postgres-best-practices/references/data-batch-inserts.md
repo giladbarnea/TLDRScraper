@@ -3,7 +3,7 @@ title: Batch INSERT Statements for Bulk Data
 impact: MEDIUM
 impactDescription: 10-50x faster bulk inserts
 tags: batch, insert, bulk, performance, copy
-last_updated: 2026-04-19 06:45
+last_updated: 2026-04-19 06:46, 2fe87f3
 ---
 
 ## Batch INSERT Statements for Bulk Data
