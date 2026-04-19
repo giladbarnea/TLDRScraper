@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-19 06:45
+last_updated: 2026-04-19 10:02
 ---
 
 .
@@ -231,6 +231,7 @@ last_updated: 2026-04-19 06:45
 ├── storage_service.py
 ├── summarizer.py
 ├── supabase_client.py
+├── synced_external_subdirs.txt
 ├── tldr_app.py
 ├── tldr_service.py
 ├── TLDRScraper.code-workspace

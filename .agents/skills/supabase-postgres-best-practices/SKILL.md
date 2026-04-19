@@ -8,7 +8,7 @@ metadata:
   organization: Supabase
   date: January 2026
   abstract: Comprehensive Postgres performance optimization guide for developers using Supabase and Postgres. Contains performance rules across 8 categories, prioritized by impact from critical (query performance, connection management) to incremental (advanced features). Each rule includes detailed explanations, incorrect vs. correct SQL examples, query plan analysis, and specific performance metrics to guide automated optimization and code generation.
-last_updated: 2026-04-19 07:12
+last_updated: 2026-04-19 10:02
 ---
 
 # Supabase Postgres Best Practices

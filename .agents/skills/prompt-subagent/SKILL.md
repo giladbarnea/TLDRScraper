@@ -1,7 +1,7 @@
 ---
 name: prompt-subagent
 description: Instructions for _how_ to prompt a subagent to perform any task. Load this skill before dispatching a subagent.
-last_updated: 2026-04-19 07:12
+last_updated: 2026-04-19 10:02
 ---
 
 1. Orient the agent to the project: tell it to read key context files (`README.md`, `CLAUDE.md`/`AGENTS.md`, `ARCHITECTURE.md`) and any relevant domain context directories—enough for it to understand *what this project is for* before starting the task. If the user used a context-gathering skill at the beginning of the main session, point the agent to that as well.

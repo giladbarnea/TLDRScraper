@@ -3,7 +3,7 @@ title: Eliminate N+1 Queries with Batch Loading
 impact: MEDIUM-HIGH
 impactDescription: 10-100x fewer database round trips
 tags: n-plus-one, batch, performance, queries
-last_updated: 2026-04-19 07:12
+last_updated: 2026-04-19 10:02
 ---
 
 ## Eliminate N+1 Queries with Batch Loading
