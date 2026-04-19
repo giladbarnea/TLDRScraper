@@ -1,0 +1,36 @@
+name: Update Frontmatter
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-frontmatter:
+    name: Update Markdown Frontmatter
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Update doc frontmatter
+        run: python3 scripts/ops/update_frontmatter.py --scope=since-ref
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add '*.md' || true
+          if git diff --staged --quiet; then
+            echo "No frontmatter changes"
+          else
+            git commit -m "chore: Update doc frontmatter [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi

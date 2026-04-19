@@ -1,7 +1,17 @@
 #!/bin/bash
 
-_HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$_HOOKS_DIR/sync-external-subdir.sh"
+# sync_external_subdir <REPO_URL> <SRC_DIR> <DEST_DIR>
+# Fetches a subdirectory from a remote repo into the local working tree (untracked).
+sync_external_subdir() {
+  local repo_url="$1"
+  local src_dir="$2"
+  local dest_dir="$3"
+
+  echo "==> Syncing $src_dir from $repo_url into $dest_dir"
+  git fetch "$repo_url" main --quiet
+  mkdir -p "$dest_dir"
+  git archive FETCH_HEAD:"$src_dir" | tar -x -C "$dest_dir"
+}
 
 # _ensure_agent_symlinks [workdir=$PWD]
 # Ensures that `.agents/{skills,agents}` are symlinks to the real CLI agent configuration dirs.
@@ -57,7 +67,7 @@ function _generate_project_structure() {
 		'scripts/portfolio'
 		'tests/'
 		'thoughts/'
-		
+
 	)
 	local ignore_glob
 	local old_ifs="$IFS"

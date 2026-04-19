@@ -1,27 +1,37 @@
-name: Weekly Supabase Data Cleanup
+name: Infra Cleanup
 
 on:
   schedule:
-    # Run every Sunday at 3 AM UTC (1 hour after branch cleanup)
-    - cron: '0 3 * * 0'
+    - cron: '0 1 * * *'    # Vercel: nightly at 1 AM UTC
+    - cron: '0 3 * * 0'    # Supabase: Sundays at 3 AM UTC
   workflow_dispatch:
 
 jobs:
-  cleanup:
+  vercel:
+    name: Clean Vercel Deployments
     runs-on: ubuntu-latest
-
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 1 * * *'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Delete old deployments
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: uv run --with=requests python3 scripts/clean_vercel_deployments.py
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+  supabase:
+    name: Clean Supabase Cache
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 3 * * 0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Install dependencies
-        run: pip install supabase
-
+      - run: pip install supabase
       - name: Delete old daily cache entries
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

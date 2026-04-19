@@ -1,5 +1,5 @@
 #!/bin/bash
 set -eo pipefail
 
-source ./.githooks/util.sh
+source ./scripts/ops/structural-maintenance.sh
 run_structural_maintenance || true

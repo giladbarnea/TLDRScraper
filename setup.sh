@@ -17,7 +17,7 @@ fi
 
 # Source common utilities
 source "$SERVER_CONTEXT_WORKDIR/scripts/setup/common.sh"
-source "$SERVER_CONTEXT_WORKDIR/.githooks/util.sh"
+source "$SERVER_CONTEXT_WORKDIR/scripts/ops/structural-maintenance.sh"
 
 # Override message/error for setup.sh context (since this file is sourced, not executed)
 function error() {
