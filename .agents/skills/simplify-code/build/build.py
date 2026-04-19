@@ -4,11 +4,15 @@ Build .agents/skills/simplify-code/SKILL.md by combining the current skill
 with a Gemini-tersified version of Addy Osmani's code-simplification skill.
 
 Output structure:
-    {simplify-code frontmatter + adis_origin field}
+    {simplify-code frontmatter + adis_origin object}
     {terse Addy body}
     ---
-    {current SKILL.md body}
+    {anthropics-version.md body}
+
+Early-returns if Addy's upstream file has not changed since the pinned commit.
 """
+import json
+import os
 import re
 import sys
 import urllib.request
@@ -21,15 +25,65 @@ import markdown_frontmatter
 BUILD_DIR = Path(__file__).resolve().parent
 SKILL_MD = BUILD_DIR.parent / 'SKILL.md'
 ANTHROPICS_VERSION = BUILD_DIR / 'anthropics-version.md'
-ADIS_RAW_URL = "https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/code-simplification/SKILL.md"
+
+ADIS_REPO = "addyosmani/agent-skills"
+ADIS_FILE_PATH = "skills/code-simplification/SKILL.md"
+ADIS_URL = f"https://github.com/{ADIS_REPO}/blob/main/{ADIS_FILE_PATH}"
+ADIS_RAW_URL = f"https://raw.githubusercontent.com/{ADIS_REPO}/main/{ADIS_FILE_PATH}"
+ADIS_RELEASE = "0.5.0"
+
 TERSE_OUTPUT_RAW_URL = "https://raw.githubusercontent.com/giladbarnea/llm-templates/main/skills/terse-output/SKILL.md"
-ADIS_ORIGIN = "https://github.com/addyosmani/agent-skills/blob/main/skills/code-simplification/SKILL.md, release 0.5.0, commit fea75b1"
 RUN_AGENT = PROJECT_ROOT / 'scripts' / 'run-agent.sh'
 
 
 def fetch(url: str) -> str:
     with urllib.request.urlopen(url) as response:
         return response.read().decode('utf-8')
+
+
+def github_api_fetch(path: str) -> object:
+    url = f"https://api.github.com/{path.lstrip('/')}"
+    headers = {'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'TLDRScraper-build'}
+    token = os.environ.get('GITHUB_API_TOKEN')
+    if token:
+        headers['Authorization'] = f'token {token}'
+    request = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(request) as response:
+        return json.loads(response.read().decode('utf-8'))
+
+
+def fetch_latest_upstream_commit() -> str:
+    """Return the latest commit SHA for Addy's SKILL.md."""
+    commits = github_api_fetch(f'repos/{ADIS_REPO}/commits?path={ADIS_FILE_PATH}&per_page=1')
+    return commits[0]['sha']
+
+
+def upstream_file_changed_since(pinned_commit: str, latest_commit: str) -> bool:
+    """Return True if Addy's SKILL.md changed between pinned_commit and latest_commit."""
+    comparison = github_api_fetch(f'repos/{ADIS_REPO}/compare/{pinned_commit}...{latest_commit}')
+    changed_files = {f['filename'] for f in comparison.get('files', [])}
+    return ADIS_FILE_PATH in changed_files
+
+
+def should_rebuild() -> tuple[bool, str]:
+    """Return (rebuild_needed, latest_upstream_commit_sha)."""
+    latest_commit = fetch_latest_upstream_commit()
+
+    if not SKILL_MD.exists():
+        return True, latest_commit
+
+    adis_origin = markdown_frontmatter.read(SKILL_MD).get('adis_origin')
+    if not isinstance(adis_origin, dict):
+        return True, latest_commit
+
+    pinned_commit = adis_origin.get('commit', '')
+    if not pinned_commit:
+        return True, latest_commit
+
+    if latest_commit == pinned_commit or latest_commit.startswith(pinned_commit):
+        return False, latest_commit
+
+    return upstream_file_changed_since(pinned_commit, latest_commit), latest_commit
 
 
 def strip_frontmatter(content: str) -> str:
@@ -51,15 +105,30 @@ def run_gemini_terser(adis_body: str) -> str:
 
 
 def build() -> None:
+    rebuild, latest_commit = should_rebuild()
+    if not rebuild:
+        print("simplify-code SKILL.md is up to date, skipping build")
+        return
+
     adis_body = strip_inspired_by(strip_frontmatter(fetch(ADIS_RAW_URL)))
     terse_adis_body = run_gemini_terser(adis_body)
 
     current_frontmatter = markdown_frontmatter.read(ANTHROPICS_VERSION)
     current_body = markdown_frontmatter.body(ANTHROPICS_VERSION)
 
-    output_frontmatter = {**current_frontmatter, 'adis_origin': ADIS_ORIGIN}
-    fm_lines = '\n'.join(f'{k}: {v}' for k, v in output_frontmatter.items())
-    SKILL_MD.write_text(f"---\n{fm_lines}\n---\n{terse_adis_body}\n---\n{current_body}", encoding='utf-8')
+    output_frontmatter = {
+        **current_frontmatter,
+        'adis_origin': {
+            'url': ADIS_URL,
+            'release': ADIS_RELEASE,
+            'commit': latest_commit,
+        },
+    }
+
+    SKILL_MD.write_text(
+        markdown_frontmatter.render(output_frontmatter, f"{terse_adis_body}\n---\n{current_body}"),
+        encoding='utf-8',
+    )
     print(f"Built {SKILL_MD}")
 
 
