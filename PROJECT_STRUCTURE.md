@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-19 10:02
+last_updated: 2026-04-19 12:17
 ---
 
 .
@@ -172,16 +172,11 @@ last_updated: 2026-04-19 10:02
 │  │  └── ensure_uv_and_sync.sh
 │  ├── auto-pr-merge.sh
 │  ├── clean_vercel_deployments.py
-│  ├── generate_context.py
 │  ├── generate_tree.py
 │  ├── install-codex-cli.sh
-│  ├── install-gemini-cli.sh
 │  ├── markdown_frontmatter.py
-│  ├── print_root_markdown_files.sh
-│  ├── resolve_quiet_setting.sh
 │  ├── run-agent.sh
 │  ├── run-codex.sh
-│  ├── run-gemini.sh
 │  └── update_doc_frontmatter.py
 ├── vendor
 │  ├── consensus

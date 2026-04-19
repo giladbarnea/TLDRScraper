@@ -1,7 +1,0 @@
-#!/bin/bash
-set -eo pipefail
-
-git config --local merge.ours.driver true
-
-source ./.githooks/util.sh
-run_structural_maintenance || true
