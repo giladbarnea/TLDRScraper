@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
+# # sync_external_subdir <REPO_URL> <SRC_DIR> <DEST_DIR>
 # Fetches a subdirectory from a remote repo into a local path without committing —
 # files materialize in the working tree only (untracked).
-sync_untracked() {
+sync_external_subdir() {
     local repo_url="$1"
     local src_dir="$2"
     local dest_dir="$3"
