@@ -17,7 +17,7 @@ function clampMenuPosition(anchorX, anchorY, actionCount) {
   }
 }
 
-function OverlayContextMenu({ isOpen, anchorX, anchorY, actions, onClose, menuRef }) {
+function OverlayContextMenu({ isOpen, anchorX, anchorY, actions, onClose, menuRef, selectedText }) {
   const firstActionRef = useRef(null)
 
   useEffect(() => {
@@ -33,10 +33,14 @@ function OverlayContextMenu({ isOpen, anchorX, anchorY, actions, onClose, menuRe
   function handleActionClick(action) {
     if (action.disabled) return
 
-    const selectedText = window.getSelection()?.toString() ?? ''
+    // Prefer the text captured at menu-open time; fall back to live selection.
+    // On mobile, touchstart may collapse the selection before click fires,
+    // so live getSelection() can return '' by the time this runs.
+    const text = selectedText || window.getSelection()?.toString() || ''
+    console.log('[ctxmenu] action click — key:', action.key, '| text:', text.slice(0, 40), '| live:', window.getSelection()?.toString()?.slice(0, 40))
     window.getSelection()?.removeAllRanges()
     onClose()
-    action.onSelect(selectedText)
+    action.onSelect(text)
   }
 
   return createPortal(
@@ -44,6 +48,7 @@ function OverlayContextMenu({ isOpen, anchorX, anchorY, actions, onClose, menuRe
       ref={menuRef}
       role="menu"
       aria-label="Reading actions"
+      onClick={(e) => e.stopPropagation()}
       onContextMenu={(event) => event.preventDefault()}
       className="fixed z-[150] w-[184px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-1.5 text-slate-700 shadow-elevated backdrop-blur-xl motion-safe:animate-overlay-menu-enter"
       style={{ left: position.left, top: position.top }}

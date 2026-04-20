@@ -1,9 +1,21 @@
 ---
-last_updated: 2026-02-17 08:01, c62aa7b
+last_updated: 2026-04-20 12:51
 ---
 # Gotchas
 
 This document catalogs recurring pitfalls in various topics, including managing client-side state persistence and reactivity, surprising design decisions, and so on.
+
+---
+
+#### 2026-04-20: Portal clicks bubble through React tree and ghost-click underlying components
+
+**Desired behavior that didn't work**: Tapping "Elaborate" in the context menu should start the elaboration fetch and keep the ZenModeOverlay open.
+
+**What actually happened**: The overlay closed immediately after the fetch started. Logs showed `[summary-view] expanded → collapsed` 9ms after the action click, aborting the in-flight fetch.
+
+**Cause & Fix**: React portals render into a different DOM node but events still bubble through the **React component tree**. `OverlayContextMenu` is a portal but is a React child of `ZenModeOverlay` → `ArticleCard`. The click on the menu button bubbled up to `ArticleCard`'s `onClick={handleCardClick}`. By then, `removeAllRanges()` had already cleared the selection, so the `if (selection.toString().length > 0) return` guard didn't fire, and `summary.toggle()` → `collapse()` closed the overlay. `BaseOverlay` already had `onClick={(e) => e.stopPropagation()}` for this reason. Adding the same to `OverlayContextMenu` and `ElaborationPreview` fixed it.
+
+**The generalized principle**: every portal that is a React descendant of a click-handling ancestor needs `onClick={e => e.stopPropagation()}` on its root, or clicks will silently reach ancestors via React's synthetic event bubbling regardless of DOM structure.
 
 ---
 
