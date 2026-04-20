@@ -1,7 +1,7 @@
 ---
 name: architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-04-18 09:26, 529852a
+last_updated: 2026-04-20 20:14
 scope: exhaustively-wide, equally high level view of the entire client architecture.
 ---
 # Client Architecture
@@ -174,7 +174,7 @@ Important behavioral rule:
 
 ## Overlay Context Menu
 
-A shared right-click / selection-triggered action menu hosted inside reading overlays (ZenModeOverlay and DigestOverlay). Implemented as a hook + presentational component pair and integrated through `BaseOverlay`. See [STATE_MACHINES.md](STATE_MACHINES.md#19-overlay-context-menu) for the state machine and event model.
+An overlay-level right-click / selection-triggered action menu intended to be shared by `ZenModeOverlay` and `DigestOverlay`. Today only `ZenModeOverlay` composes it; `DigestOverlay` is the planned second consumer. Implemented as a hook + presentational component pair and integrated through `BaseOverlay`. See [STATE_MACHINES.md](STATE_MACHINES.md#19-overlay-context-menu) for the state machine and event model.
 
 **Key modules:** `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx`, `components/BaseOverlay.jsx` (wiring + DOM contract)
 
@@ -192,11 +192,11 @@ The hook has two explicit contracts with `BaseOverlay` that must stay in sync. B
 
 ### Close paths
 
-Outside `pointerdown`, Escape key (arbitrated — see above), overlay close/unmount (via `enabled` flip in Digest's case).
+Outside `pointerdown`, Escape key (arbitrated — see above), overlay close/unmount.
 
 ### Current actions
 
-Both overlays wire the same two actions: `Close reader` and `Mark done`. Desktop positioning anchors top-left at the cursor; mobile positioning anchors top-center under the selection rect (see `clampMenuPosition` in `OverlayContextMenu.jsx`).
+`ZenModeOverlay` currently wires a single `Elaborate` action, which opens `ElaborationPreview` for the selected text. `DigestOverlay` does not compose the menu yet, though that remains the intended shape. Desktop positioning anchors top-left at the cursor; mobile positioning anchors top-center under the selection rect (see `clampMenuPosition` in `OverlayContextMenu.jsx`).
 
 ### Status / WIP notes
 

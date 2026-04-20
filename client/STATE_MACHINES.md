@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-18 09:26, 529852a
+last_updated: 2026-04-20 20:14
 scope: a well defined yet deep view of all the client state machines
 ---
 # Client State Machines
@@ -554,14 +554,14 @@ All gesture handling, scroll progress, body scroll lock, and escape key logic ar
 | Trigger | Handler | Effect |
 |---|---|---|
 | ChevronDown button | `onClose()` → `summary.collapse()` | Release lock, mark read |
-| Escape key | `onClose()` → `summary.collapse()` | Release lock, mark read (suppressed if context menu is open — see §19) |
+| Escape key | `onClose()` → `summary.collapse()` | Release lock, mark read (suppressed if context menu or elaboration preview is open) |
 | Pull-to-close threshold (80px) | `onClose()` → `summary.collapse()` | Release lock, mark read |
 | Check button | `onMarkRemoved()` | `summary.collapse(false)` + `markAsRemoved()` |
 | Overscroll-up threshold (30px) | `onMarkRemoved()` | `summary.collapse(false)` + `markAsRemoved()` |
 
 #### Context Menu
 
-ZenModeOverlay wires `useOverlayContextMenu(true)` and renders `<OverlayContextMenu>` as a sibling to `<BaseOverlay>`. The hook's `handleContextMenu` is threaded into `BaseOverlay.onContentContextMenu`. Two actions: `Close reader` and `Mark done`. See §19.
+ZenModeOverlay wires `useOverlayContextMenu(true)` and renders `<OverlayContextMenu>` as a sibling to `<BaseOverlay>`. The hook's `handleContextMenu` is threaded into `BaseOverlay.onContentContextMenu`. The current action set is a single `Elaborate` action that calls the overlay-owned elaboration request and renders `ElaborationPreview`. See §19.
 
 ---
 
@@ -592,11 +592,11 @@ All gesture handling, scroll progress, body scroll lock, and escape key logic ar
 | Mark removed | Single article | All articles in digest |
 | Close → mark read | `summary.collapse()` → single article | `digest.collapse(false)` → all articles |
 | Check → mark removed | `summary.collapse(false)` + `markAsRemoved()` | `digest.collapse(true)` → all articles |
-| Context menu `enabled` | `true` (always, overlay always mounted when rendered) | `expanded` (passed through so menu auto-closes when digest collapses) |
+| Context menu | currently wired | not yet wired (intended future parity with Zen) |
 
 #### Context Menu
 
-Same pattern as Zen Mode: `useOverlayContextMenu(expanded)` + `<OverlayContextMenu>` sibling, with the hook's `handleContextMenu` threaded into `BaseOverlay.onContentContextMenu`. See §19.
+DigestOverlay is the intended second consumer of the same overlay-menu primitive, but it does not currently compose `useOverlayContextMenu` or render `<OverlayContextMenu>`. See §19.
 
 ---
 
@@ -844,7 +844,7 @@ Clicking a toast calls `onOpen()` (expands the summary overlay) then dismisses i
 |---|---|
 | **Pattern** | `useState` + `useRef` + document-level event listeners (capture phase) |
 | **Files** | `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx` |
-| **Scope** | Per-overlay instance (one per `ZenModeOverlay` / `DigestOverlay`) |
+| **Scope** | Per-overlay instance (currently one per `ZenModeOverlay`; `DigestOverlay` is the intended future second consumer) |
 | **Status** | WIP — mobile selection interactions still buggy (pending concrete bug list). Debug instrumentation (`[ctxmenu]` console.logs + `quakeConsole.js` heartbeat) is intentionally left in. |
 
 #### State Shape
@@ -897,12 +897,12 @@ Both contracts are commented at the use site (`useOverlayContextMenu.js` top-of-
 - `top = max(gap, min(anchorY, maxTop))`.
 - Mobile selection path compensates by pre-centering `anchorX = rect.left + rect.width/2` in the hook. This means the menu is *left-aligned at the selection's horizontal center* — a nuance that is worth revisiting when picking between codex and worktree-clean positioning philosophies (worktree-clean subtracts `MENU_WIDTH_PX/2` from `anchorX` inside `clampMenuPosition` to center the menu under the cursor/selection).
 
-#### Actions (current set — identical for both overlays)
+#### Actions (current set)
 
-| Action | Icon | Effect |
+| Consumer | Action | Effect |
 |---|---|---|
-| `Close reader` | ChevronDown | `onClose` (i.e., `summary.collapse()` / `digest.collapse(false)`) |
-| `Mark done` | Check | `onMarkRemoved` (i.e., `summary.collapse(false)+markAsRemoved()` / `digest.collapse(true)`) |
+| `ZenModeOverlay` | `Elaborate` | Captures selected text, calls the overlay-owned elaboration request, and opens `ElaborationPreview` |
+| `DigestOverlay` | — | Not wired yet |
 
 #### Mobile nuances (known buggy — do not "fix by guessing")
 
@@ -928,8 +928,8 @@ The 16 machines form a layered architecture. Understanding the layers explains w
 │                                                                             │
 │  ┌──────────────────┐   ┌──────────────────┐   ┌────────────────────────┐  │
 │  │ Zen Mode Overlay │   │ Digest Overlay   │   │ Toast                  │  │
-│  │   + useOverlay   │   │   + useOverlay   │   └────────────────────────┘  │
-│  │   ContextMenu    │   │   ContextMenu    │                              │
+│  │   + useOverlay   │   │   (planned menu  │   └────────────────────────┘  │
+│  │   ContextMenu    │   │    consumer)     │                              │
 │  └────────┬─────────┘   └────────┬─────────┘                              │
 │           │                      │                                        │
 │           └──────────┬───────────┘                                        │
@@ -1130,9 +1130,9 @@ The context menu isn't a good fit for the matrix because its couplings are **DOM
 | BaseOverlay | DOM contract | reads selection ancestry via `[data-overlay-content]` |
 | BaseOverlay | Event-phase contract | capture-phase Escape handler + `defaultPrevented` guard on BaseOverlay's bubble-phase Escape |
 | Zen Mode Overlay | Composition | instantiated in wrapper; handler threaded via `onContentContextMenu`; menu rendered as sibling portal |
-| Digest Overlay | Composition | same pattern; `enabled` is `expanded` so menu auto-closes when digest collapses |
-| Article Lifecycle | Indirect via action callbacks | `Mark done` action → `onMarkRemoved` → `markAsRemoved()` (Zen) or `digest.collapse(true)` (Digest) |
-| Summary View / Digest | Indirect via action callbacks | `Close reader` action → `onClose` → `summary.collapse()` / `digest.collapse(false)` |
+| Digest Overlay | Intended future composition | same overlay-level menu primitive is meant to be added here, but is not currently wired |
+| Zen Mode Overlay | Indirect via action callbacks | `Elaborate` action → `runElaboration(selectedText)` |
+| Elaboration Preview | Composition | second portal layer owned by `ZenModeOverlay`, opened from the menu action |
 
 ---
 
