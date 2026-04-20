@@ -19,7 +19,7 @@ import urllib.request
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(PROJECT_ROOT / 'scripts'))
+sys.path.insert(0, str(PROJECT_ROOT / 'scripts' / 'ops'))
 import markdown_frontmatter
 
 BUILD_DIR = Path(__file__).resolve().parent
