@@ -1,5 +1,5 @@
 ---
-name: client architecture
+name: architecture
 description: Client-side architecture for the Newsletter Aggregator
 last_updated: 2026-04-18 09:26, 529852a
 scope: exhaustively-wide, equally high level view of the entire client architecture.
@@ -98,13 +98,13 @@ Selection behavior is implemented as a **declarative state machine** with a smal
 
 ---
 
-See [ALL_STATES.md](ALL_STATES.md#3-interaction) for the Interaction state machine specification (states, events, transitions, suppress latch behavior).
+See [STATE_MACHINES.md](STATE_MACHINES.md#3-interaction) for the Interaction state machine specification (states, events, transitions, suppress latch behavior).
 
 ---
 
 ## Article Lifecycle (Domain A)
 
-Article lifecycle (`unread` → `read` → `removed`) is managed via a closed reducer pattern. Components dispatch events declaratively; the reducer returns a storage patch applied via `useSupabaseStorage`. See [ALL_STATES.md](ALL_STATES.md#1-article-lifecycle) for states, events, and transitions.
+Article lifecycle (`unread` → `read` → `removed`) is managed via a closed reducer pattern. Components dispatch events declaratively; the reducer returns a storage patch applied via `useSupabaseStorage`. See [STATE_MACHINES.md](STATE_MACHINES.md#1-article-lifecycle) for states, events, and transitions.
 
 **Key modules:** `reducers/articleLifecycleReducer.js`, `hooks/useArticleState.js`
 
@@ -112,7 +112,7 @@ Article lifecycle (`unread` → `read` → `removed`) is managed via a closed re
 
 ## Summary (Domain B + View State)
 
-Summary management separates **data state** (reducer: `unknown → loading → available/error`) from **view state** (simple `useState` for expanded/collapsed). The `useSummary` hook orchestrates both. See [ALL_STATES.md](ALL_STATES.md#2-summary-data) for the data state machine.
+Summary management separates **data state** (reducer: `unknown → loading → available/error`) from **view state** (simple `useState` for expanded/collapsed). The `useSummary` hook orchestrates both. See [STATE_MACHINES.md](STATE_MACHINES.md#2-summary-data) for the data state machine.
 
 **Key modules:** `reducers/summaryDataReducer.js`, `hooks/useSummary.js`, `lib/markdownUtils.js` (markdown→HTML conversion with KaTeX support), `lib/zenLock.js` (mutual-exclusion lock), `lib/requestUtils.js` (request tokens)
 
@@ -120,7 +120,7 @@ Summary management separates **data state** (reducer: `unknown → loading → a
 
 ## Gesture / Swipe-to-Remove (Domain D)
 
-Swipe-to-remove gesture state (`idle` → `dragging` → `error`) is managed via a per-article reducer. See [ALL_STATES.md](ALL_STATES.md#4-gesture-swipe-to-remove) for the state machine specification.
+Swipe-to-remove gesture state (`idle` → `dragging` → `error`) is managed via a per-article reducer. See [STATE_MACHINES.md](STATE_MACHINES.md#4-gesture-swipe-to-remove) for the state machine specification.
 
 **Key modules:** `reducers/gestureReducer.js`, `hooks/useSwipeToRemove.js`
 
@@ -174,7 +174,7 @@ Important behavioral rule:
 
 ## Overlay Context Menu
 
-A shared right-click / selection-triggered action menu hosted inside reading overlays (ZenModeOverlay and DigestOverlay). Implemented as a hook + presentational component pair and integrated through `BaseOverlay`. See [ALL_STATES.md](ALL_STATES.md#19-overlay-context-menu) for the state machine and event model.
+A shared right-click / selection-triggered action menu hosted inside reading overlays (ZenModeOverlay and DigestOverlay). Implemented as a hook + presentational component pair and integrated through `BaseOverlay`. See [STATE_MACHINES.md](STATE_MACHINES.md#19-overlay-context-menu) for the state machine and event model.
 
 **Key modules:** `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx`, `components/BaseOverlay.jsx` (wiring + DOM contract)
 

@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-09 09:14, 81662be
+last_updated: 2026-04-20 07:37
 ---
 # Plan: Reading workflow machine
 
@@ -290,12 +290,12 @@ This preserves the intended boundary:
 - `client/src/lib/articleActionBus.js`
 - `client/src/hooks/useSummary.js`
 - `client/src/hooks/useDigest.js`
-- `client/ALL_STATES.md`
+- `client/STATE_MACHINES.md`
 
 **Changes**:
 - If `articleActionBus` still only exists for summary fetch transport, document that explicitly.
 - If a small direct replacement is obvious by the end of the refactor, remove the bus entirely.
-- Update `client/ALL_STATES.md` to add the new workflow machine and revise the ownership map.
+- Update `client/STATE_MACHINES.md` to add the new workflow machine and revise the ownership map.
 
 ### Success Criteria
 
@@ -303,7 +303,7 @@ This preserves the intended boundary:
 - [ ] `cd client && npm run build`
 - [ ] No references remain to `publishArticleAction(..., 'open-summary')`
 - [ ] `useSummary.js` no longer imports `emitToast`
-- [ ] `client/ALL_STATES.md` reflects the new workflow/domain boundary
+- [ ] `client/STATE_MACHINES.md` reflects the new workflow/domain boundary
 
 #### Manual Verification
 - [ ] Card tap with available summary opens via workflow state
@@ -356,7 +356,7 @@ This preserves the intended boundary:
 ## References
 
 - Discussion: `thoughts/26-04-04-workflow-machine/discussion-raw.md`
-- Current state map: `client/ALL_STATES.md`
+- Current state map: `client/STATE_MACHINES.md`
 - Current summary hook: `client/src/hooks/useSummary.js`
 - Current digest hook: `client/src/hooks/useDigest.js`
 - Current app orchestration: `client/src/App.jsx`

@@ -2,12 +2,12 @@
 name: catchup
 description: Gather rudimentary project context and current project state first thing upon session start. Optionally establish continuity with specific recent work.
 argument-hint: [optional-specific-effort]
-last_updated: 2026-04-16 06:44
+last_updated: 2026-04-20 07:37
 ---
 1. **Run `setup.sh` Synchronously**. Wait for it to finish. It generates documentation.
 
 2. **Read Root Markdown Files** - `README.md`, `CLAUDE.md`, `ARCHITECTURE.md`, `PROJECT_STRUCTURE.md`, `GOTCHAS.md`. Read these files in full. Follow any context-gathering instructions in them.
-     If specified effort concerns the client side, also read `client/CLIENT_ARCHITECTURE.md` and `client/ALL_STATES.md` in full.
+     If specified effort concerns the client side, also read `client/ARCHITECTURE.md` and `client/STATE_MACHINES.md` in full.
 
 3. **Git log** - run `git log --numstat --shortstat --all --graph -15`. If the user referenced a specific effort, read affected files in full, and note commit messages and branch names.
 

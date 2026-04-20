@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-10 19:37, 40271a2
+last_updated: 2026-04-20 07:37
 description: A high-level documented snapshot of the big-ticket flows, components, and layers of the system. The style is behavioral and declarative.
 scope: Strictly high level, no implementation details. Inter-layer, inter-subsystem relationships. No enhancement suggestions.
 ---
@@ -166,7 +166,7 @@ TLDRScraper is a newsletter aggregator that scrapes tech newsletters from multip
 
 **Note:** No tailwind.config.js file - Tailwind v4 uses CSS-based configuration
 
-Client-side state machines, reducers, overlay lifecycles, and persistence tiers are documented in `client/ALL_STATES.md`.
+Client-side state machines, reducers, overlay lifecycles, and persistence tiers are documented in `client/STATE_MACHINES.md`.
 
 ---
 
@@ -423,7 +423,7 @@ User requests a summary from the client
 
 ## Data Structures
 
-Client payload shape, embedded article state, and client-side persistence tiers are documented in `client/ALL_STATES.md`.
+Client payload shape, embedded article state, and client-side persistence tiers are documented in `client/STATE_MACHINES.md`.
 
 ### Issue
 
@@ -453,7 +453,7 @@ Client payload shape, embedded article state, and client-side persistence tiers 
 ```typescript
 {
   success: boolean,
-  articles: Article[],       // All articles (flattened); see client/ALL_STATES.md for shape
+  articles: Article[],       // All articles (flattened); see client/STATE_MACHINES.md for shape
   issues: Issue[],           // All issues
   stats: {
     total_articles: number,
@@ -602,4 +602,4 @@ CREATE TABLE daily_cache (
 
 ### Client State Reference
 
-Client-side storage keys, cache tiers, merge behavior, and interaction-state ownership are documented in `client/ALL_STATES.md`.
+Client-side storage keys, cache tiers, merge behavior, and interaction-state ownership are documented in `client/STATE_MACHINES.md`.
