@@ -1,7 +1,7 @@
 ---
 name: Context Menu Implementation Round 1
 done: 2026-04-18, 529852a7
-last_updated: 2026-04-20 13:04
+last_updated: 2026-04-20 13:36
 ---
 # Context Menu Implementation Round 1
 
@@ -9,13 +9,13 @@ last_updated: 2026-04-20 13:04
 
 "See client files abc, checked todo items in ../xyz, and doc updates 1,2,3 in files foo bar baz"
 
-Implements context menu triggered by mobile text selection within `ZenModeOverlay` and `DigestOverlay`. Provides quick actions ("Close reader", "Mark done") without extra UI.
+Implements context menu triggered by mobile text selection within `ZenModeOverlay`. Provides quick actions ("Close reader", "Mark done") without extra UI. Digest integration is out of scope.
 
 ## Key Changes
 - **`useOverlayContextMenu.js`**: Manages state and triggers (desktop right-click, mobile text selection). Coordinates Escape key.
 - **`OverlayContextMenu.jsx`**: Renders positioned portal with action buttons. Clamps to viewport. Auto-focuses first action on desktop.
 - **`BaseOverlay`**: Adds `onContentContextMenu` prop. Adds `data-overlay-content` attribute to scope selection. Escape handler checks `defaultPrevented`. Disables `usePullToClose` to allow native text selection.
-- **`ZenModeOverlay` & `DigestOverlay`**: Integrates hook and component with specific actions.
+- **`ZenModeOverlay`**: Integrates hook and component with specific actions. `DigestOverlay` is out of scope.
 - **`index.css`**: Adds `overlay-menu-enter` animation.
 
 ## Implementation Details
