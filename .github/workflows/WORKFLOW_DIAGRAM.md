@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-19 19:14
+last_updated: 2026-04-20 08:09
 ---
 # Ops & Automation: Contracts and Triggers
 
@@ -10,7 +10,7 @@ last_updated: 2026-04-19 19:14
 | `*.md` `last_updated` frontmatter (timestamp only) | file body | `pre-commit` (staged files) |
 | `*.md` `last_updated` frontmatter (timestamp + commit hash) | file body | CI push to `main` (safety net) |
 | `PROJECT_STRUCTURE.md` | repo tree via `generate_project_tree.py` | `post-merge`, `setup.sh` |
-| `CLAUDE.md` / `GEMINI.md` / `CODEX.md` | `AGENTS.md` | hardlink — filesystem |
+| `CLAUDE.md` | `AGENTS.md` | hardlink — filesystem |
 | `.agents/skills/prompt-subagent/` | `giladbarnea/llm-templates` | `post-merge`, `setup.sh` |
 | `.agents/skills/supabase-postgres-best-practices/` | `giladbarnea/llm-templates` | `post-merge`, `setup.sh` |
 | `vendor/consensus/` | `.gitmodules` | `post-merge`, `setup.sh` |
@@ -36,9 +36,9 @@ git merge / git pull
 
 source setup.sh
     └── main()
-            ├── scripts/setup/ensure_uv_and_sync.sh  &  (background)
-            ├── scripts/setup/build_client.sh          &  (background)
-            ├── scripts/setup/ensure_tooling.sh        &  (background)
+            ├── scripts/env/ensure_uv_and_sync.sh  &  (background)
+            ├── scripts/env/build_client.sh        &  (background)
+            ├── scripts/env/ensure_tooling.sh      &  (background)
             └── run_structural_maintenance()  (same as post-merge)
 
 push to main
