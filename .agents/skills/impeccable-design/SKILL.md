@@ -3,7 +3,7 @@ name: impeccable-design
 description: Unified frontend design skill covering the full spectrum of UI/UX work
 user-invocable: true
 argument-hint: "[sub-skill] [target]"
-last_updated: 2026-04-20 08:01, 3c865a0
+last_updated: 2026-04-20 08:18
 ---
 
 Unified design skill for producing distinctive, production-grade frontend interfaces. Contains 21 sub-skills covering every dimension of UI/UX quality.
@@ -12,14 +12,13 @@ Unified design skill for producing distinctive, production-grade frontend interf
 
 Before doing any design work, always read `references/frontend-design/SKILL.md` — it defines the design principles, anti-patterns (the AI Slop Test), and the **Context Gathering Protocol**.
 
-If no design context exists for the project yet, read `references/teach-impeccable/SKILL.md` and run it first. Design work without project context produces generic output.
+If no design context exists for the project yet, read `client/UI_DESIGN.md` first. Design work without project context produces generic output.
 
 ## Sub-Skill Directory
 
 | Sub-Skill | What it does | Read when... |
 |-----------|-------------|-------------|
 | `references/frontend-design/SKILL.md` | Core principles, anti-patterns, and context gathering | Always — mandatory first step |
-| `references/teach-impeccable/SKILL.md` | One-time project context setup, writes `.impeccable.md` | No design context exists yet |
 | `references/arrange/SKILL.md` | Layout, spacing, visual rhythm, hierarchy | Layout feels off, crowded, monotonous |
 | `references/animate/SKILL.md` | Animations, micro-interactions, motion design | Adding animation, transitions, hover effects |
 | `references/adapt/SKILL.md` | Responsive design, breakpoints, cross-device | Mobile layouts, viewport adaptation |
@@ -87,7 +86,6 @@ Then follow the loaded reference's instructions.
 ### Power Tools
 - `overdrive` — push past conventional limits
 - `frontend-design` — core principles (always first)
-- `teach-impeccable` — project context setup (run once)
 
 ## References Within frontend-design
 

@@ -3,11 +3,11 @@ name: polish
 description: Performs a final quality pass fixing alignment, spacing, consistency, and micro-detail issues before shipping. Use when the user mentions polish, finishing touches, pre-launch review, something looks off, or wants to go from good to great.
 user-invocable: true
 argument-hint: "[target]"
-last_updated: 2026-04-07 22:27
+last_updated: 2026-04-20 08:18
 ---
 ## MANDATORY PREPARATION
 
-Read `references/frontend-design/SKILL.md` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read `references/teach-impeccable/SKILL.md` first. Additionally gather: quality bar (MVP vs flagship).
+Read `references/frontend-design/SKILL.md` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read `client/UI_DESIGN.md` first. Additionally gather: quality bar (MVP vs flagship).
 
 ---
 

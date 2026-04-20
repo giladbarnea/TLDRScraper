@@ -2,7 +2,7 @@
 name: frontend-design
 description: Create distinctive, production-grade frontend interfaces with high design quality. Generates creative, polished code that avoids generic AI aesthetics. Use when the user asks to build web components, pages, artifacts, posters, or applications, or when any design skill requires project context.
 license: Apache 2.0. Based on Anthropic's i-frontend-design skill. See NOTICE.md for attribution.
-last_updated: 2026-04-07 22:27
+last_updated: 2026-04-20 08:18
 ---
 This skill guides creation of distinctive, production-grade frontend interfaces that avoid generic "AI slop" aesthetics. Implement real working code with exceptional attention to aesthetic details and creative choices.
 
@@ -21,8 +21,7 @@ Individual skills may require additional context — check the skill's preparati
 
 **Gathering order:**
 1. **Check current instructions (instant)**: If your loaded instructions already contain a **Design Context** section, proceed immediately.
-2. **Check .impeccable.md (fast)**: If not in instructions, read `.impeccable.md` from the project root. If it exists and contains the required context, proceed.
-3. **Run teach-impeccable (REQUIRED)**: If neither source has context, you MUST read `references/teach-impeccable/SKILL.md` NOW before doing anything else. Do NOT skip this step. Do NOT attempt to infer context from the codebase instead.
+2. **Read client/UI_DESIGN.md (REQUIRED)**: If not in instructions, read `client/UI_DESIGN.md`. It contains project design context. Proceed with the context found there.
 
 ---
 

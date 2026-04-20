@@ -3,13 +3,13 @@ name: colorize
 description: Add strategic color to features that are too monochromatic or lack visual interest, making interfaces more engaging and expressive. Use when the user mentions the design looking gray, dull, lacking warmth, needing more color, or wanting a more vibrant or expressive palette.
 user-invocable: true
 argument-hint: "[target]"
-last_updated: 2026-04-07 22:27
+last_updated: 2026-04-20 08:18
 ---
 Strategically introduce color to designs that are too monochromatic, gray, or lacking in visual warmth and personality.
 
 ## MANDATORY PREPARATION
 
-Read `references/frontend-design/SKILL.md` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read `references/teach-impeccable/SKILL.md` first. Additionally gather: existing brand colors.
+Read `references/frontend-design/SKILL.md` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read `client/UI_DESIGN.md` first. Additionally gather: existing brand colors.
 
 ---
 

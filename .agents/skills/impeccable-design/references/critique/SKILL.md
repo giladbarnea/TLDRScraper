@@ -3,11 +3,11 @@ name: critique
 description: Evaluate design from a UX perspective, assessing visual hierarchy, information architecture, emotional resonance, cognitive load, and overall quality with quantitative scoring, persona-based testing, and actionable feedback. Use when the user asks to review, critique, evaluate, or give feedback on a design or component.
 user-invocable: true
 argument-hint: "[area (feature, page, component...)]"
-last_updated: 2026-04-07 22:27
+last_updated: 2026-04-20 08:18
 ---
 ## MANDATORY PREPARATION
 
-Read `references/frontend-design/SKILL.md` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read `references/teach-impeccable/SKILL.md` first. Additionally gather: what the interface is trying to accomplish.
+Read `references/frontend-design/SKILL.md` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read `client/UI_DESIGN.md` first. Additionally gather: what the interface is trying to accomplish.
 
 ---
 
@@ -131,7 +131,7 @@ For each issue, tag with **P0–P3 severity** (consult [heuristics-scoring](refe
 ### Persona Red Flags
 > *Consult [personas](reference/personas.md)*
 
-Auto-select 2–3 personas most relevant to this interface type (use the selection table in the reference). If `.github/copilot-instructions.md` contains a `## Design Context` section from `teach-impeccable`, also generate 1–2 project-specific personas from the audience/brand info.
+Auto-select 2–3 personas most relevant to this interface type (use the selection table in the reference). If `client/UI_DESIGN.md` contains audience/brand info, also generate 1–2 project-specific personas from it.
 
 For each selected persona, walk through the primary user action and list specific red flags found:
 

@@ -3,13 +3,13 @@ name: distill
 description: Strip designs to their essence by removing unnecessary complexity. Great design is simple, powerful, and clean. Use when the user asks to simplify, declutter, reduce noise, remove elements, or make a UI cleaner and more focused.
 user-invocable: true
 argument-hint: "[target]"
-last_updated: 2026-04-07 22:27
+last_updated: 2026-04-20 08:18
 ---
 Remove unnecessary complexity from designs, revealing the essential elements and creating clarity through ruthless simplification.
 
 ## MANDATORY PREPARATION
 
-Read `references/frontend-design/SKILL.md` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read `references/teach-impeccable/SKILL.md` first.
+Read `references/frontend-design/SKILL.md` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read `client/UI_DESIGN.md` first.
 
 ---
 

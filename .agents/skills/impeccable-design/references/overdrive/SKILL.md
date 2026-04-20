@@ -3,7 +3,7 @@ name: overdrive
 description: Pushes interfaces past conventional limits with technically ambitious implementations — shaders, spring physics, scroll-driven reveals, 60fps animations. Use when the user wants to wow, impress, go all-out, or make something that feels extraordinary.
 user-invocable: true
 argument-hint: "[target]"
-last_updated: 2026-04-07 22:27
+last_updated: 2026-04-20 08:18
 ---
 Start your response with:
 
@@ -16,7 +16,7 @@ Push an interface past conventional limits. This isn't just about visual effects
 
 ## MANDATORY PREPARATION
 
-Read `references/frontend-design/SKILL.md` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read `references/teach-impeccable/SKILL.md` first.
+Read `references/frontend-design/SKILL.md` — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST read `client/UI_DESIGN.md` first.
 
 **EXTRA IMPORTANT FOR THIS SKILL**: Context determines what "extraordinary" means. A particle system on a creative portfolio is impressive. The same particle system on a settings page is embarrassing. But a settings page with instant optimistic saves and animated state transitions? That's extraordinary too. Understand the project's personality and goals before deciding what's appropriate.
 
