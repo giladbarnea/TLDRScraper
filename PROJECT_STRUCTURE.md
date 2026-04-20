@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-20 09:58
+last_updated: 2026-04-20 10:01
 ---
 
 .
@@ -97,6 +97,7 @@ last_updated: 2026-04-20 09:58
 │  │  │  ├── CalendarDay.jsx
 │  │  │  ├── DigestButton.jsx
 │  │  │  ├── DigestOverlay.jsx
+│  │  │  ├── ElaborationPreview.jsx
 │  │  │  ├── Feed.jsx
 │  │  │  ├── FoldableContainer.jsx
 │  │  │  ├── NewsletterDay.jsx
