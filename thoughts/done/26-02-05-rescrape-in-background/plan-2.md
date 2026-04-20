@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-02-17 08:01, c62aa7b
+last_updated: 2026-04-20 07:37
 ---
 # Rescrape “Today” in Background (Non-Blocking Feed Hydration)
 
@@ -308,7 +308,7 @@ TLDRScraper
 │   │   └── main.jsx
 │   ├── .gitignore
 │   ├── biome.json
-│   ├── CLIENT_ARCHITECTURE.md
+│   ├── ARCHITECTURE.md
 │   ├── index.html
 │   ├── package-lock.json
 │   ├── package.json
