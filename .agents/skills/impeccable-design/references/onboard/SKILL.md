@@ -3,7 +3,7 @@ name: onboard
 description: Designs and improves onboarding flows, empty states, and first-run experiences to help users reach value quickly. Use when the user mentions onboarding, first-time users, empty states, activation, getting started, or new user flows.
 user-invocable: true
 argument-hint: "[target]"
-last_updated: 2026-04-20 08:18
+last_updated: 2026-04-20 08:18, 4951888
 ---
 ## MANDATORY PREPARATION
 

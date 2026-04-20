@@ -3,7 +3,7 @@ name: audit
 description: Run technical quality checks across accessibility, performance, theming, responsive design, and anti-patterns. Generates a scored report with P0-P3 severity ratings and actionable plan. Use when the user wants an accessibility check, performance audit, or technical quality review.
 user-invocable: true
 argument-hint: "[area (feature, page, component...)]"
-last_updated: 2026-04-20 08:18
+last_updated: 2026-04-20 08:18, 4951888
 ---
 ## MANDATORY PREPARATION
 

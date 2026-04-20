@@ -3,7 +3,7 @@ name: normalize
 description: Audits and realigns UI to match design system standards, spacing, tokens, and patterns. Use when the user mentions consistency, design drift, mismatched styles, tokens, or wants to bring a feature back in line with the system.
 user-invocable: true
 argument-hint: "[feature (page, route, component...)]"
-last_updated: 2026-04-20 08:18
+last_updated: 2026-04-20 08:18, 4951888
 ---
 Analyze and redesign the feature to perfectly match our design system standards, aesthetics, and established patterns.
 
