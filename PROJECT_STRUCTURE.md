@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-19 19:27
+last_updated: 2026-04-20 08:00
 ---
 
 .
@@ -16,6 +16,9 @@ last_updated: 2026-04-19 19:27
 │     ├── consensus
 │     │  ├── scripts
 │     │  │  └── run_consensus.py
+│     │  └── SKILL.md
+│     ├── impeccable-design
+│     │  ├── references
 │     │  └── SKILL.md
 │     ├── plan
 │     │  └── SKILL.md
@@ -148,13 +151,13 @@ last_updated: 2026-04-19 19:27
 │  │  ├── index.css
 │  │  └── main.jsx
 │  ├── .gitignore
-│  ├── ALL_STATES.md
+│  ├── ARCHITECTURE.md
 │  ├── biome.json
-│  ├── CLIENT_ARCHITECTURE.md
 │  ├── index.html
 │  ├── package-lock.json
 │  ├── package.json
 │  ├── postcss.config.js
+│  ├── STATE_MACHINES.md
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
 ├── db
@@ -173,6 +176,7 @@ last_updated: 2026-04-19 19:27
 │     ├── generate_project_tree.py
 │     ├── markdown_frontmatter.py
 │     ├── structural-maintenance.sh
+│     ├── synced_external_subdirs.txt
 │     └── update_frontmatter.py
 ├── vendor
 │  ├── consensus
@@ -221,7 +225,6 @@ last_updated: 2026-04-19 19:27
 ├── storage_service.py
 ├── summarizer.py
 ├── supabase_client.py
-├── synced_external_subdirs.txt
 ├── tldr_app.py
 ├── tldr_service.py
 ├── TLDRScraper.code-workspace

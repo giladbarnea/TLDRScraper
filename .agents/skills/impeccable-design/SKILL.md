@@ -1,10 +1,9 @@
 ---
 name: impeccable-design
-description: >
-Unified frontend design skill covering the full spectrum of UI/UX work:
+description: Unified frontend design skill covering the full spectrum of UI/UX work
 user-invocable: true
 argument-hint: "[sub-skill] [target]"
-last_updated: 2026-04-20 04:55, 3f236d9
+last_updated: 2026-04-20 08:00
 ---
 
 Unified design skill for producing distinctive, production-grade frontend interfaces. Contains 21 sub-skills covering every dimension of UI/UX quality.

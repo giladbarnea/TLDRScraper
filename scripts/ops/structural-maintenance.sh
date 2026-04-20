@@ -16,75 +16,75 @@ sync_external_subdir() {
 # _ensure_agent_symlinks [workdir=$PWD]
 # Ensures that `.agents/{skills,agents}` are symlinks to the real CLI agent configuration dirs.
 function _ensure_agent_symlinks() {
-	local dot_dirs=(".claude" ".codex" ".gemini" ".pi")
-	local workdir="${1:-${SERVER_CONTEXT_WORKDIR:-$PWD}}"
+  local dot_dirs=(".claude" ".codex" ".gemini" ".pi")
+  local workdir="${1:-${SERVER_CONTEXT_WORKDIR:-$PWD}}"
   local dir target link_path current_target
-	for dir in "${dot_dirs[@]}"; do
-		mkdir -p "$workdir/$dir"
-		for target in "agents" "skills"; do
-			link_path="$workdir/$dir/$target"
-			if [[ -L "$link_path" ]]; then
-				current_target=$(readlink "$link_path")
-				if [[ "$current_target" != "../.agents/$target" ]]; then
-					rm "$link_path"
-					ln -s "../.agents/$target" "$link_path"
-				fi
-			else
-				rm -rf "$link_path"
-				ln -s "../.agents/$target" "$link_path"
-			fi
-		done
-	done
+  for dir in "${dot_dirs[@]}"; do
+    mkdir -p "$workdir/$dir"
+    for target in "agents" "skills"; do
+      link_path="$workdir/$dir/$target"
+      if [[ -L "$link_path" ]]; then
+        current_target=$(readlink "$link_path")
+        if [[ "$current_target" != "../.agents/$target" ]]; then
+          rm "$link_path"
+          ln -s "../.agents/$target" "$link_path"
+        fi
+      else
+        rm -rf "$link_path"
+        ln -s "../.agents/$target" "$link_path"
+      fi
+    done
+  done
 }
 
 # _generate_project_structure [workdir=$PWD]
 # Generates the project structure markdown file and updates the last updated frontmatter field.
 function _generate_project_structure() {
-	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
-	export PATH="${HOME}/.local/bin:${PATH}"
-	local -a ignore_glob_patterns=(
-		'.git'
-		'node_modules'
-		'__pycache__'
-		'*.pyc'
-		'.venv'
-		'static'
-		'*.vscode'
-		'*.cursor'
-		'experimental'
-		'thoughts/done'
-		'docs'
-		'.run'
-		'.codex'
-		'.gemini'
-		'.agents/agents'
-		'.claude'
-		'.pi'
-		'.agents/skills/react-best-practices/rules'
-		'.agents/skills/i-*'
-		'.agents/skills/frontend-design-*'
-		'.agents/skills/supabase-postgres-best-practices/*'
-		'scripts/portfolio'
-		'tests/'
-		'thoughts/'
+  local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
+  export PATH="${HOME}/.local/bin:${PATH}"
+  local -a ignore_glob_patterns=(
+    '.git'
+    'node_modules'
+    '__pycache__'
+    '*.pyc'
+    '.venv'
+    'static'
+    '*.vscode'
+    '*.cursor'
+    'experimental'
+    'thoughts/done'
+    'docs'
+    '.run'
+    '.codex'
+    '.gemini'
+    '.agents/agents'
+    '.claude'
+    '.pi'
+    '.agents/skills/react-best-practices/rules'
+    '.agents/skills/impeccable-design/references/*'
+    '.agents/skills/frontend-design-*'
+    '.agents/skills/supabase-postgres-best-practices/*'
+    'scripts/portfolio'
+    'tests/'
+    'thoughts/'
 
-	)
-	local ignore_glob
-	local old_ifs="$IFS"
-	IFS='|'
-	ignore_glob="${ignore_glob_patterns[*]}"
-	IFS="$old_ifs"
-	local new_content
-	new_content=$(uv run python3 scripts/ops/generate_project_tree.py \
-		--classify \
-		--icons \
-		--tree \
-		--git-ignore \
-		--all \
-		--ignore-glob "$ignore_glob" \
-		.)
+  )
+  local ignore_glob
+  local old_ifs="$IFS"
+  IFS='|'
+  ignore_glob="${ignore_glob_patterns[*]}"
+  IFS="$old_ifs"
+  local new_content
+  new_content=$(uv run python3 scripts/ops/generate_project_tree.py \
+    --classify \
+    --icons \
+    --tree \
+    --git-ignore \
+    --all \
+    --ignore-glob "$ignore_glob" \
+    .)
 
-	NEW_CONTENT="$new_content" uv run python3 - "PROJECT_STRUCTURE.md" "$(date -u +"%Y-%m-%d %H:%M")" <<'PY'
+  NEW_CONTENT="$new_content" uv run python3 - "PROJECT_STRUCTURE.md" "$(date -u +"%Y-%m-%d %H:%M")" <<'PY'
 import sys, os
 sys.path.insert(0, 'scripts/ops')
 import markdown_frontmatter
@@ -96,9 +96,9 @@ PY
 }
 
 function update_markdown_last_updated() {
-	local file_path="$1"
-	local timestamp="$2"
-	uv run python3 - "$file_path" "$timestamp" <<'PY'
+  local file_path="$1"
+  local timestamp="$2"
+  uv run python3 - "$file_path" "$timestamp" <<'PY'
 import sys
 sys.path.insert(0, 'scripts/ops')
 import markdown_frontmatter
@@ -109,19 +109,19 @@ PY
 }
 
 function _sync_tracked_submodules() {
-	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
-	SERVER_CONTEXT_WORKDIR="$workdir" bash "$workdir/scripts/ops/ensure_submodules.sh"
+  local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
+  SERVER_CONTEXT_WORKDIR="$workdir" bash "$workdir/scripts/ops/ensure_submodules.sh"
 }
 
 function _sync_external_dirs() {
-	local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
-	local registry="$workdir/scripts/ops/synced_external_subdirs.txt"
-	echo "[sync_external_dirs] Syncing external subdirectories..."
-	while IFS=' ' read -r repo_url src_dir dest_dir; do
-		[[ -z "$repo_url" || "$repo_url" == "#"* ]] && continue
-		sync_external_subdir "$repo_url" "$src_dir" "$dest_dir"
-	done < "$registry"
-	echo "[sync_external_dirs] Sync complete."
+  local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
+  local registry="$workdir/scripts/ops/synced_external_subdirs.txt"
+  echo "[sync_external_dirs] Syncing external subdirectories..."
+  while IFS=' ' read -r repo_url src_dir dest_dir; do
+    [[ -z "$repo_url" || "$repo_url" == "#"* ]] && continue
+    sync_external_subdir "$repo_url" "$src_dir" "$dest_dir"
+  done <"$registry"
+  echo "[sync_external_dirs] Sync complete."
 }
 
 function _build_simplify_code_skill() {
