@@ -67,3 +67,25 @@ def summarize_url(
     return payload
 
 
+def elaborate_url(
+    url: str,
+    selected_text: str,
+    summary_markdown: str,
+    *,
+    model: str = DEFAULT_MODEL,
+) -> dict:
+    """Shape the elaboration response for the HTTP layer."""
+    result = tldr_service.elaborate_url_content(
+        url,
+        selected_text,
+        summary_markdown,
+        model=model,
+    )
+
+    return {
+        "success": True,
+        "elaboration_markdown": result["elaboration_markdown"],
+        "canonical_url": result["canonical_url"],
+    }
+
+

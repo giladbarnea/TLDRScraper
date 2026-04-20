@@ -434,3 +434,42 @@ def summarize_url_content(
         "canonical_url": canonical_url,
         "summarize_effort": normalized_effort,
     }
+
+
+def elaborate_url_content(
+    url: str,
+    selected_text: str,
+    summary_markdown: str,
+    *,
+    model: str = DEFAULT_MODEL,
+) -> dict:
+    """Canonicalize `url`, scrape it, and ask the LLM to elaborate on `selected_text` given the prior `summary_markdown`."""
+    cleaned_url = (url or "").strip()
+    if not cleaned_url:
+        raise ValueError("Missing url")
+    if not (selected_text or "").strip():
+        raise ValueError("Missing selected_text")
+    if not (summary_markdown or "").strip():
+        raise ValueError("Missing summary_markdown")
+
+    canonical_url = util.canonicalize_url(cleaned_url)
+
+    try:
+        elaboration_markdown = summarizer.elaborate_url(
+            canonical_url,
+            selected_text,
+            summary_markdown,
+            model=model,
+        )
+    except requests.RequestException as error:
+        logger.error(
+            "request error error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        raise
+
+    return {
+        "elaboration_markdown": elaboration_markdown,
+        "canonical_url": canonical_url,
+    }

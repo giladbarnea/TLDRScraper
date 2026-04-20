@@ -1,26 +1,30 @@
-import { Check, ChevronDown } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { useOverlayContextMenu } from '../hooks/useOverlayContextMenu'
 import BaseOverlay, { overlayProseClassName } from './BaseOverlay'
 import OverlayContextMenu from './OverlayContextMenu'
 
-function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
+function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
   const contextMenu = useOverlayContextMenu(true)
   const truncatedMeta = articleMeta && articleMeta.length > 22
     ? `${articleMeta.slice(0, 22)}...`
     : articleMeta
   const actions = [
     {
-      key: 'close-reader',
-      label: 'Close reader',
-      icon: <ChevronDown size={15} />,
-      onSelect: onClose,
-    },
-    {
-      key: 'mark-done',
-      label: 'Mark done',
-      icon: <Check size={15} />,
-      onSelect: onMarkRemoved,
-      tone: 'success',
+      key: 'elaborate',
+      label: 'Elaborate',
+      icon: <Sparkles size={15} />,
+      onSelect: (selectedText) => {
+        if (!selectedText.trim()) return
+        window.fetch('/api/elaborate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url,
+            selected_text: selectedText,
+            summary_markdown: summaryMarkdown,
+          }),
+        })
+      },
     },
   ]
 

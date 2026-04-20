@@ -33,9 +33,10 @@ function OverlayContextMenu({ isOpen, anchorX, anchorY, actions, onClose, menuRe
   function handleActionClick(action) {
     if (action.disabled) return
 
+    const selectedText = window.getSelection()?.toString() ?? ''
     window.getSelection()?.removeAllRanges()
     onClose()
-    action.onSelect()
+    action.onSelect(selectedText)
   }
 
   return createPortal(
