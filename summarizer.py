@@ -306,6 +306,40 @@ def summarize_url(url: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, mode
     return summary
 
 
+def _build_elaborate_prompt(selected_text: str, summary_markdown: str, article_markdown: str) -> str:
+    """Construct the Elaborate prompt instructing the LLM to expand on a selected slice of the summary.
+
+    >>> prompt = _build_elaborate_prompt("sel", "sum", "body")
+    >>> '<selected-text-to-elaborate-on>' in prompt and '<summary>' in prompt and '<original-article>' in prompt
+    True
+    >>> prompt.index('<selected-text-to-elaborate-on>') < prompt.index('<summary>') < prompt.index('<original-article>')
+    True
+    """
+    return (
+        "The user has read the given summary and has requested to understand the following part better "
+        "In the original article. Because in that particular part, the summary was too lossy.\n\n"
+        f"<selected-text-to-elaborate-on>\n{selected_text}\n</selected-text-to-elaborate-on>\n\n"
+        f"<summary>\n{summary_markdown}\n</summary>\n\n"
+        f"<original-article>\n{article_markdown}\n</original-article>\n\n"
+        "You can think as long as you deem necessary but make sure your user-facing tokens are just the elaboration. "
+        "The elaboration should be without pleasantries, introductions, and so on. "
+        "Richly use Markdown syntax to improve the reading experience."
+    )
+
+
+def elaborate_url(
+    url: str,
+    selected_text: str,
+    summary_markdown: str,
+    *,
+    model: str = DEFAULT_MODEL,
+) -> str:
+    """Scrape the article at `url` and ask the LLM to elaborate on `selected_text` using the prior summary as context."""
+    article_markdown = url_to_markdown(url)
+    prompt = _build_elaborate_prompt(selected_text, summary_markdown, article_markdown)
+    return _call_llm(prompt, summarize_effort="high", model=model)
+
+
 def _fetch_prompt(
     *,
     owner: str,

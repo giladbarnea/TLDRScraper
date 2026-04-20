@@ -149,6 +149,41 @@ def summarize_url_endpoint(model: str = DEFAULT_MODEL):
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
+@app.route("/api/elaborate", methods=["POST"])
+def elaborate_endpoint(model: str = DEFAULT_MODEL):
+    """Elaborate on a selected portion of a previously-generated summary.
+
+    Requires 'url', 'selected_text', and 'summary_markdown' in the JSON body. Optional 'model' query param.
+    """
+    try:
+        data = request.get_json()
+        model_param = request.args.get("model", DEFAULT_MODEL)
+        result = tldr_app.elaborate_url(
+            data["url"],
+            data["selected_text"],
+            data["summary_markdown"],
+            model=model_param,
+        )
+        return jsonify(result)
+
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except requests.RequestException as error:
+        logger.error(
+            "request error error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": f"Network error: {repr(error)}"}), 502
+    except Exception as error:
+        logger.error(
+            "error error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(error)}), 500
+
+
 @app.route("/api/digest", methods=["POST"])
 def digest_endpoint():
     """Generate a synthesized digest from multiple article URLs.
