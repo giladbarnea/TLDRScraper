@@ -250,14 +250,6 @@ export function useDigest(results) {
     void runDigest()
   }, [pendingRequest, payload, targetDate, clearSelection, expand, markDigestArticlesLoading, restoreDigestArticlesSummary, writeDigest, groupDescriptorsByDate])
 
-  useEffect(() => {
-    if (status !== summaryDataReducer.SummaryDataStatus.LOADING) return
-    writeDigest({
-      status: summaryDataReducer.SummaryDataStatus.UNKNOWN,
-      errorMessage: null,
-    })
-  }, [status, writeDigest])
-
   const collapse = useCallback(async (shouldRemove = false) => {
     try {
       if (status === summaryDataReducer.SummaryDataStatus.AVAILABLE && data?.articleUrls?.length > 0) {
