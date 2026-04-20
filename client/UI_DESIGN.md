@@ -1,9 +1,9 @@
 ---
-last_updated: 2026-02-13 07:16, 42b39ca
+last_updated: 2026-04-20 08:31
 ---
 # UI Design Principles
 
-This document captures the design thinking behind the interface. It's meant to guide future decisions by explaining *why* things are the way they are, so that new work stays cohesive rather than drifting.
+This document captures the design thinking behind the interface. It's meant to guide future decisions by explaining *why* things are the way they are, so that new work stays cohesive rather than drifting. View these screenshots ([main screen](main-screen.png), [summary overlay](summary-overlay.png)) to get a feel for the design.
 
 ## Values derive from a system, not from the moment
 
