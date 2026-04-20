@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-18 16:38, 21e505e
+last_updated: 2026-04-20 13:04
 ---
 # Finalized Plan: Overlay Context Menu (Zen + Digest)
 
@@ -82,13 +82,13 @@ Mirror the same pattern as Zen:
 ## Acceptance Criteria
 
 ### Automated
-- [ ] `cd client && npm run build`
+- [x] `cd client && npm run build`
 
 ### Manual
-- [ ] Right-click in Zen prose opens custom menu at cursor location.
-- [ ] Right-click in Digest prose opens same menu behavior.
-- [ ] Outside click closes menu.
-- [ ] First Escape closes menu only; subsequent Escape closes overlay.
-- [ ] Text selection/link interaction remains normal.
-- [ ] Pull-to-close and overscroll-up gestures still behave identically to current behavior.
-- [ ] No lock regressions (single overlay open at a time still enforced).
+- [x] Right-click in Zen prose opens custom menu at cursor location.
+- [x] Right-click in Digest prose opens same menu behavior.
+- [x] Outside click closes menu.
+- [x] First Escape closes menu only; subsequent Escape closes overlay.
+- [x] Text selection/link interaction remains normal.
+- [x] Pull-to-close and overscroll-up gestures still behave identically to current behavior.
+- [x] No lock regressions (single overlay open at a time still enforced).
