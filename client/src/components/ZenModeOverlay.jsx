@@ -1,29 +1,93 @@
 import { Sparkles } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useOverlayContextMenu } from '../hooks/useOverlayContextMenu'
 import BaseOverlay, { overlayProseClassName } from './BaseOverlay'
+import ElaborationPreview from './ElaborationPreview'
 import OverlayContextMenu from './OverlayContextMenu'
+
+const IDLE_ELABORATION = Object.freeze({
+  status: 'idle',
+  selectedText: '',
+  markdown: '',
+  errorMessage: '',
+})
 
 function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
   const contextMenu = useOverlayContextMenu(true)
+  const [elaboration, setElaboration] = useState(IDLE_ELABORATION)
+  const abortControllerRef = useRef(null)
+
   const truncatedMeta = articleMeta && articleMeta.length > 22
     ? `${articleMeta.slice(0, 22)}...`
     : articleMeta
+
+  useEffect(() => {
+    return () => abortControllerRef.current?.abort()
+  }, [])
+
+  function closeElaboration() {
+    abortControllerRef.current?.abort()
+    abortControllerRef.current = null
+    setElaboration(IDLE_ELABORATION)
+  }
+
+  async function runElaboration(selectedText) {
+    abortControllerRef.current?.abort()
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
+    setElaboration({ status: 'loading', selectedText, markdown: '', errorMessage: '' })
+
+    try {
+      const response = await window.fetch('/api/elaborate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          selected_text: selectedText,
+          summary_markdown: summaryMarkdown,
+        }),
+        signal: controller.signal,
+      })
+      const result = await response.json()
+      if (controller.signal.aborted) return
+
+      if (!response.ok || !result.success) {
+        setElaboration({
+          status: 'error',
+          selectedText,
+          markdown: '',
+          errorMessage: result.error || 'Failed to elaborate.',
+        })
+        return
+      }
+
+      setElaboration({
+        status: 'available',
+        selectedText,
+        markdown: result.elaboration_markdown,
+        errorMessage: '',
+      })
+    } catch (error) {
+      if (error.name === 'AbortError') return
+      setElaboration({
+        status: 'error',
+        selectedText,
+        markdown: '',
+        errorMessage: error.message || 'Failed to elaborate.',
+      })
+    }
+  }
+
   const actions = [
     {
       key: 'elaborate',
       label: 'Elaborate',
       icon: <Sparkles size={15} />,
       onSelect: (selectedText) => {
-        if (!selectedText.trim()) return
-        window.fetch('/api/elaborate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            url,
-            selected_text: selectedText,
-            summary_markdown: summaryMarkdown,
-          }),
-        })
+        const trimmed = selectedText.trim()
+        if (!trimmed) return
+        runElaboration(trimmed)
       },
     },
   ]
@@ -65,6 +129,15 @@ function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, a
         actions={actions}
         onClose={contextMenu.closeMenu}
         menuRef={contextMenu.menuRef}
+      />
+
+      <ElaborationPreview
+        isOpen={elaboration.status !== 'idle'}
+        status={elaboration.status}
+        selectedText={elaboration.selectedText}
+        markdown={elaboration.markdown}
+        errorMessage={elaboration.errorMessage}
+        onClose={closeElaboration}
       />
     </>
   )
