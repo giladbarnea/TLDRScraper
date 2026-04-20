@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 
 import tldr_service
-from summarizer import DEFAULT_MODEL, DEFAULT_SUMMARY_EFFORT
+from summarizer import DEFAULT_MODEL, DEFAULT_THINKING_EFFORT
 
 logger = logging.getLogger("tldr_app")
 
@@ -42,7 +42,7 @@ def generate_digest(articles: list[dict], effort: str = "low") -> dict:
 def summarize_url(
     url: str,
     *,
-    summarize_effort: str = DEFAULT_SUMMARY_EFFORT,
+    summarize_effort: str = DEFAULT_THINKING_EFFORT,
     model: str = DEFAULT_MODEL,
 ) -> dict:
     result = tldr_service.summarize_url_content(
@@ -72,7 +72,7 @@ def elaborate_url(
     selected_text: str,
     summary_markdown: str,
     *,
-    model: str = DEFAULT_MODEL,
+    model: str,
 ) -> dict:
     """Shape the elaboration response for the HTTP layer."""
     result = tldr_service.elaborate_url_content(

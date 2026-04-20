@@ -75,6 +75,7 @@ function ElaborationPreview({ isOpen, status, selectedText, markdown, errorMessa
       {isOpen && (
         <motion.div
           className="fixed inset-0 z-[210] flex items-center justify-center"
+          onClick={(e) => e.stopPropagation()}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

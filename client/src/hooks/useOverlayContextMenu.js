@@ -4,6 +4,7 @@ const CLOSED_MENU_STATE = Object.freeze({
   isOpen: false,
   anchorX: 0,
   anchorY: 0,
+  selectedText: '',
 })
 
 // CONTRACT — this hook pairs with two things that must cooperate:
@@ -68,17 +69,23 @@ export function useOverlayContextMenu(enabled = true) {
         isOpen: true,
         anchorX: rect.left + rect.width / 2,
         anchorY: rect.bottom + 12,
+        selectedText: text,
       })
-      console.log('[ctxmenu] opened via selection at', rect.left + rect.width / 2, rect.bottom + 12)
+      console.log('[ctxmenu] opened via selection at', rect.left + rect.width / 2, rect.bottom + 12, '| text:', text.slice(0, 40))
     }
 
     function handleSelectionChange() {
       const selection = window.getSelection()
       const text = selection?.toString().trim() ?? ''
       if (!selection || selection.isCollapsed || !text) {
-        if (openedBySelectionRef.current) {
-          console.log('[ctxmenu] selectionchange — cleared, closing menu')
+        // Guard: don't close the menu mid-touch. On mobile a tap on the menu
+        // button collapses the selection (touchstart) before click fires —
+        // closing here would ghost-click whatever is underneath the menu.
+        if (openedBySelectionRef.current && !touchActive) {
+          console.log('[ctxmenu] selectionchange — cleared (not touching), closing menu')
           closeMenu()
+        } else if (openedBySelectionRef.current) {
+          console.log('[ctxmenu] selectionchange — cleared but touchActive, keeping menu open to avoid ghost click')
         }
         return
       }

@@ -26,20 +26,21 @@ _SUMMARY_PROMPT_CACHE = None
 _DIGEST_PROMPT_CACHE = None
 
 SUMMARIZE_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
-DEFAULT_SUMMARY_EFFORT = "low"
+DEFAULT_THINKING_EFFORT = "low"
 DEFAULT_MODEL = "gemini-3.1-pro-preview"
+DEFAULT_ELABORATE_MODEL="gemini-3-flash-preview"
 
 
 def normalize_summarize_effort(value: str) -> str:
     """Normalize summary effort value to a supported option."""
     if not isinstance(value, str):
-        return DEFAULT_SUMMARY_EFFORT
+        return DEFAULT_THINKING_EFFORT
 
     normalized = value.strip().lower()
     if normalized in SUMMARIZE_EFFORT_OPTIONS:
         return normalized
 
-    return DEFAULT_SUMMARY_EFFORT
+    return DEFAULT_THINKING_EFFORT
 
 
 def _is_github_repo_url(url: str) -> bool:
@@ -285,7 +286,7 @@ def url_to_markdown(url: str) -> str:
     return markdown
 
 
-def summarize_url(url: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, model: str = DEFAULT_MODEL) -> str:
+def summarize_url(url: str, summarize_effort: str = DEFAULT_THINKING_EFFORT, model: str = DEFAULT_MODEL) -> str:
     """Get markdown content from URL and create a summary with LLM.
 
     Args:
@@ -301,7 +302,7 @@ def summarize_url(url: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, mode
 
     template = _fetch_summary_prompt()
     prompt = f"{template}\n\n<tldr this>\n{markdown}/n</tldr this>"
-    summary = _call_llm(prompt, summarize_effort=effort, model=model)
+    summary = _call_llm(prompt, thinking_effort=effort, model=model)
 
     return summary
 
@@ -316,13 +317,15 @@ def _build_elaborate_prompt(selected_text: str, summary_markdown: str, article_m
     True
     """
     return (
-        "The user has read the given summary and has requested to understand the following part better "
-        "In the original article. Because in that particular part, the summary was too lossy.\n\n"
+        "The user has read the given summary and has request to understand the selected text better.\n"
+        "Draw from the original article to provide more depth, in a way which meshes organically with that part’s role in the article.\n\n"
+        "Don’t be lengthy in your response. Not verbose. Direct, succinct, concise, focused, rich, and just enough content to get the information across.\n\n"
         f"<selected-text-to-elaborate-on>\n{selected_text}\n</selected-text-to-elaborate-on>\n\n"
         f"<summary>\n{summary_markdown}\n</summary>\n\n"
         f"<original-article>\n{article_markdown}\n</original-article>\n\n"
+        "---\n\n"
         "You can think as long as you deem necessary but make sure your user-facing tokens are just the elaboration. "
-        "The elaboration should be without pleasantries, introductions, and so on. "
+        "No pleasantries, introductions, and so on. "
         "Richly use Markdown syntax to improve the reading experience."
     )
 
@@ -332,12 +335,12 @@ def elaborate_url(
     selected_text: str,
     summary_markdown: str,
     *,
-    model: str = DEFAULT_MODEL,
+    model: str,
 ) -> str:
     """Scrape the article at `url` and ask the LLM to elaborate on `selected_text` using the prior summary as context."""
     article_markdown = url_to_markdown(url)
     prompt = _build_elaborate_prompt(selected_text, summary_markdown, article_markdown)
-    return _call_llm(prompt, summarize_effort="high", model=model)
+    return _call_llm(prompt, thinking_effort="high", model=model)
 
 
 def _fetch_prompt(
@@ -490,7 +493,7 @@ def _map_reasoning_effort_to_thinking_level(summarize_effort: str) -> str:
     return "high"
 
 
-def _call_llm(prompt: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, model: str = DEFAULT_MODEL) -> str:
+def _call_llm(prompt: str, thinking_effort: str = DEFAULT_THINKING_EFFORT, model: str = DEFAULT_MODEL) -> str:
     """Call Gemini API with prompt."""
     api_key = util.resolve_env_var("GEMINI_API_KEY", "")
     if not api_key:
@@ -498,7 +501,7 @@ def _call_llm(prompt: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, model
     if not prompt.strip():
         raise ValueError("Prompt is empty")
 
-    thinking_level = _map_reasoning_effort_to_thinking_level(summarize_effort)
+    thinking_level = _map_reasoning_effort_to_thinking_level(thinking_effort)
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     headers = {

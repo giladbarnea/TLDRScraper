@@ -36,9 +36,11 @@ function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, a
     const controller = new AbortController()
     abortControllerRef.current = controller
 
+    console.log('[elaborate] starting — text:', selectedText.slice(0, 60))
     setElaboration({ status: 'loading', selectedText, markdown: '', errorMessage: '' })
 
     try {
+      console.log('[elaborate] sending POST /api/elaborate')
       const response = await window.fetch('/api/elaborate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -49,10 +51,15 @@ function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, a
         }),
         signal: controller.signal,
       })
+      console.log('[elaborate] response received — status:', response.status, '| aborted:', controller.signal.aborted)
       const result = await response.json()
-      if (controller.signal.aborted) return
+      if (controller.signal.aborted) {
+        console.log('[elaborate] aborted after response — discarding')
+        return
+      }
 
       if (!response.ok || !result.success) {
+        console.log('[elaborate] error response —', result.error)
         setElaboration({
           status: 'error',
           selectedText,
@@ -62,6 +69,7 @@ function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, a
         return
       }
 
+      console.log('[elaborate] success — markdown length:', result.elaboration_markdown?.length)
       setElaboration({
         status: 'available',
         selectedText,
@@ -69,7 +77,11 @@ function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, a
         errorMessage: '',
       })
     } catch (error) {
-      if (error.name === 'AbortError') return
+      if (error.name === 'AbortError') {
+        console.log('[elaborate] fetch aborted')
+        return
+      }
+      console.log('[elaborate] fetch error —', error.message)
       setElaboration({
         status: 'error',
         selectedText,
@@ -86,6 +98,7 @@ function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, a
       icon: <Sparkles size={15} />,
       onSelect: (selectedText) => {
         const trimmed = selectedText.trim()
+        console.log('[elaborate] onSelect — raw:', JSON.stringify(selectedText.slice(0, 40)), '| trimmed:', JSON.stringify(trimmed.slice(0, 40)))
         if (!trimmed) return
         runElaboration(trimmed)
       },
@@ -129,6 +142,7 @@ function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, a
         actions={actions}
         onClose={contextMenu.closeMenu}
         menuRef={contextMenu.menuRef}
+        selectedText={contextMenu.selectedText}
       />
 
       <ElaborationPreview

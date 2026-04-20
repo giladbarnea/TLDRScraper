@@ -38,6 +38,9 @@ last_updated: 2026-04-23 11:53
 │     ├── simplify-code
 │     │  └── SKILL.md
 │     ├── supabase-postgres-best-practices
+│     ├── terse-output
+│     │  ├── metadata.yaml
+│     │  └── SKILL.md
 │     ├── to-done
 │     │  └── SKILL.md
 │     ├── vercel
@@ -221,6 +224,7 @@ last_updated: 2026-04-23 11:53
 ├── README.md
 ├── requirements.txt
 ├── serve.py
+├── sessions.yaml
 ├── setup.sh
 ├── shopping_cart_service.py
 ├── source_routes.py

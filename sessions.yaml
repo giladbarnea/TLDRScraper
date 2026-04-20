@@ -1,0 +1,48 @@
+# sessions.yaml Schema:
+# ```yaml
+# sessions: <SessionID: SessionEntry>
+# ignored: <SessionID[]>   # A list of zero or more session ids to not include in the `sessions` object.
+# ```
+
+# SessionEntry Schema:
+# ```yaml
+#   description (str OR str[]): A 1–2 phrase summary of the purpose of the session (why did it take place) and progress (what was done). Include no implementation details. If the session is exceptionally long, this field may be a list, allowing the session to be split into “chapters,” with each chapter given its own description string.
+#   custom_title (optional str): if explicitly provided in the input.
+#   directories (str[]): a list of the session’s directory and any root directories of other repos if such repos where actively researched or modified.
+#   updated_when_message_count_was (int): the number of messages in the session when it was last updated. This data should be available from the conversation’s metadata.
+#   keywords (optional str[]): 1–3 session-specific, domain-specific keywords that capture the domain/business and entities as well as the session’s essence(s)—brainstorming, planning, implementation, research, or anything else of this nature, or any combination thereof. Think: “If someone wanted to find past sessions for domain context, or to recall a useful technique or piece of information on a specific topic, what keywords would help them discover this session?” Keywords should be MECE.
+#   prominent_tech_stack (optional str[]): important tech stack used or discussed, if it all. usually between 0 and 2 items. this field should heavily optimize for precision disregarding recall (e.g. high session-relevancy threshold for including any item)
+#   new_files (optional str[]): list of new files created in the session.
+#   edited_files (optional str[]): list of files edited in the session.
+#   branch (optional str): the branch of the session, if applicable.
+#   jira_issue_id (optional str): the JIRA issue ID of the session, if applicable.
+#   forked (optional str): the session ID the attached session was forked from, only if explicitly referenced in the beginning of the text.
+# ```
+
+# Ignored Sessions List. Schema:
+# ```yaml
+# ignored: <SessionID[]>
+# ```
+
+# -------
+# Example sessions.yaml file:
+sessions:
+  # Apr 20 2026
+  8d2faf95-fdde-48d4-89eb-67fe0c1c683b:
+    description:
+      - "Debugged broken 'Elaborate on selected text' context menu: mobile selection collapsed before click fired (fixed by capturing selectedText at menu-open time), and a touchActive guard was missing causing ghost-clicks to close the menu."
+      - "Found the actual root cause — React portal event bubbling through the React component tree (not DOM) caused clicks on the context menu to reach ArticleCard's onClick and collapse the overlay; fixed with e.stopPropagation() on portal containers. Documented in GOTCHAS."
+    custom_title: "elaborate context menu client impl"
+    directories: [~/dev/TLDRScraper]
+    keywords: [elaborate, context-menu, react-portal-event-bubbling, mobile-selection]
+    prominent_tech_stack: [React]
+    updated_when_message_count_was: 32
+    edited_files:
+      - client/src/components/ElaborationPreview.jsx
+      - client/src/components/OverlayContextMenu.jsx
+      - client/src/components/ZenModeOverlay.jsx
+      - client/src/hooks/useOverlayContextMenu.js
+      - GOTCHAS.md
+    branch: claude/add-elaborate-context-menu-jRtLS
+
+ignored: [dda16bd3-68fa-4cc9-86b5-fb6e6a532b41]
