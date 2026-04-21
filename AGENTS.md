@@ -1,11 +1,14 @@
 ---
-last_updated: 2026-04-19 19:14
+last_updated: 2026-04-21 07:44
 description: Fundamental instructions for AI coding agents.
 ---
+
 # Agents Guide
 
 ## Project overview
+
 <project-overview>
+
 Newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered summaries.
 
 - Stack:
@@ -17,10 +20,13 @@ Newsletter aggregator that scrapes tech newsletters from multiple sources, displ
 - Cache mechanism: Server-side storage with cache-first scraping for past dates (early return if cached). Today always scrapes and unions with cache to capture new articles published later in the day. Daily payloads stored as JSONB in PostgreSQL.
 
 Study [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
+
 </project-overview>
 
 ## Environment
+
 <environment>
+
 *Note*: The `./setup.sh` command is mentioned multiple times in this document with different described effects. This is intentional: sourcing it triggers a chain of idempotent setup operations.
 
 The single source of truth for what is available locally is the output of:
@@ -46,26 +52,35 @@ env | grep -E -o '^[A-Z_]+' | grep -e TOKEN -e API -e KEY -e SUPABASE -e VERCEL 
 - VERCEL_TOKEN
 
 This is true both for local and production environments.
+
 </environment>
 
 ## Agentic Ecosystem
 
 <agentic-ecosystem>
+
 Powerful tools are available to you out of the box.
 - `.claude/skills/` contains pre-packaged abilities.
 - `.claude/agents/` contains ready-to-fire specialized agents for various use cases.
 Be aware of what each of these directories have to offer.
 Note: if you are Codex, then you might have your own `.codex/{skills/agents}` (same content) for more organic invocation.
+
 </agentic-ecosystem>
 
 ## Context Gathering
+
 <context-gathering>
+
 This is a crucial step: run the `/catchup` skill (`.claude/skills/catchup/SKILL.md`) right after `./setup.sh` is finished.
+
 </context-gathering>
 
 ## Development & Setup
+
 <development-and-setup>
+
 ### Running the server in a background process
+
 ```bash
 # Install dependencies, build client, generate docs and and verify the environment.
 ./setup.sh
@@ -113,10 +128,13 @@ import dep1, dep2, dep3, os
 dep1.do(os.environ["MY_API_KEY"])
 PY
 ```
+
 </development-and-setup>
 
 ## Practical guidance
+
 <practical-guidance>
+
 - Trust and Verify: Lean heavily on interactively making sure you know what you're doing, that you are expecting the right behavior, and to verify assumptions that any particular way of doing something is indeed the right way. This is doubly true when it comes to third-party integrations, third-party libraries, network requests, APIs, implementation.
   a. Curling
   b. Running transient Python programs in a check-verify-trial-and-error process
@@ -124,10 +142,13 @@ PY
 
 Run `./setup.sh` to verify the environment and dependencies are set up correctly. Generously exercise the API with `curl` requests (e.g., `/api/scrape`, `/api/summarize-url`) and run temp python scripts throughout the development process to catch regressions early.
 - Verify every new behavior, fix or modification you make by utilizing your shell. If possible, execute the modified flow to ensure nothing is broken.
+
 </practical-guidance>
 
 ## Using (Sub-)Agents
+
 <using-sub-agents>
+
 Make note of the multiple available agents (`.claude/agents/**/*.md`) and use them as they describe in their frontmatter.
 
 Dispatch an agent whenever you need to either:
@@ -158,10 +179,13 @@ Delegating exploration and research tasks to agents leads to improved results an
 
 Be generous in giving the agent wider context—understanding *why* it's performing the task will boost its performance. Don't micromanage nor over-instruct it. The agent already has a highly detailed system prompt. It is also highly intelligent, just like you, and is able to navigate around uncertainties well. Avoid prescribing instructions or giving it "how-to" examples; Avoid prescribing it which files or symbols to look at; just declare what kind of *understanding* you're seeking.
 Sharing only why it's been dispatched, and what you hope to achieve by the time the agent completes its task directly frees it up to find the best way to achieve *your* goal.
+
 </using-sub-agents>
 
 ## Development Conventions
+
 <development-conventions>
+
 1. Do not abbreviate variable, function or class names. Use complete words. Write clean code.
 2. Write code that fails early and clearly rather than writing fallbacks to "maybe broken" inputs. Zero "Just in case my inputs are corrupted" code. Fallback-rich code is to be avoided because it explodes complexity and often just silently propagates bugs downstream. Good code assumes that its inputs are valid and complete. It trusts upstream code to have completed its job. This ties closely to separation of concerns. And if something important fails, or an assumption is broken, fail early and clearly. Broken code should be discovered early and loudly and fixed quickly; It should not be tolerated, nor worked around.
 3. Write highly cohesive, decoupled logic.
@@ -221,10 +245,13 @@ for word in response.words or []:
     ...  # Single indentation level; as safe if not safer than the bad, defensive example above.
 ```
 </Good: straightforward, confident, flatter code with fewer logical branches>
+
 </development-conventions>
 
 ## Core Engineering Tenets
+
 <core-engineering-tenets>
+
 1. Avoid increasing complexity without a truly justified reason. Each new line of code or logical branch increases complexity. Complexity is the enemy of the project. In your decision-making, ask yourself how might you **REDUCE complexity** in your solution, rather than just solve the immediate problem ad-hoc. Oftentimes, reducing complexity means **removing code**, which is OK. If done right, removing code is beneficial similarly to how clearing Tetris blocks is beneficial — it simplifies and creates more space.
 2. Prefer declarative code design over imperative approaches. From a variable to an entire system, if it can be declaratively expressed upfront, do so. People understand things better when they can see the full picture instead of having to dive in. Difficulty arises when flow and logic are embedded implicitly in a sprawling implementation.
 3. Avoid over-engineering and excessive abstraction. Abstractions have to be clearly justified. Simplicity and clarity are key.
@@ -233,26 +260,36 @@ for word in response.words or []:
 6. For simple tasks that could be performed straight away, do not think much. Just do it. For more complex tasks that would benefit from thinking, think deeper, proportionally to the task's complexity. Regardless, always present your final response in a direct and concise manner. No fluff.
 7. Do NOT fix linter errors unless instructed by the user to do so.
 8. Docstrings should be succinct and direct. Should start with 1-2 sentences max of what the function does and its role in its larger calling scope. No need to document arguments and return type: use type annotations for that. Do document if it intentionally raises exceptions.
+
 </core-engineering-tenets>
 
 ## Crucial Important Rules: How To Approach a Task.
+
 <crucial-important-rules-how-to-approach-a-task>
+
 The following points are close to my heart:
 1. Before starting your task, you must understand how big the affected scope is. Will the change affect the entire stack & flow, from the db architecture to the client logic? Map out the moving parts and coupling instances before thinking and planning. Utilize the appropriate agents for that.
 2. If you are fixing a bug, hypothesize of the root cause before planning your changes.
 3. Plan step-by-step. Account for the moving parts and coupling you found in step (1).
 4. When making changes, be absolutely SURGICAL. Every line of code you add incurs a small debt; this debt compounds over time through maintenance costs, potential bugs, and cognitive load for everyone who must understand it later. Therefore, make only laser-focused changes.
 4. No band-aid fixes. When encountering a problem, first brainstorm what possible root causes may explain it. band-aid fixes are bad because they increase complexity significantly. Root-cause solutions are good because they reduce complexity.
+
 </crucial-important-rules-how-to-approach-a-task>
 
 ## Being an Effective AI Agent
+
 <being-an-effective-ai-agent>
+
 1. Know your weaknesses: your eagerness to solve a problem can cause tunnel vision. You may fix the issue but unintentionally create code duplication, deviate from the existing design, or introduce a regression in other coupled parts of the project you didn't consider. The solution is to literally look around beyond the immediate fix, be aware of (and account for) coupling around the codebase, integrate with the existing design, and periodically refactor.
 2. You do your best work when you can verify yourself. With self-verification, you can and should practice continuous trial and error instead of a single shot in the dark.
+
 </being-an-effective-ai-agent>
 
 ## Documentation
+
 <documentation>
+
 1. YAML frontmatter is automatically updated in CI. Do not manually update it.
 2. CLAUDE.md, GEMINI.md, and CODEX.md are read-only exact copies of AGENTS.md. They are generated automatically in CI. They are read-only for you. Any updates should be made in AGENTS.md and not in these files.
+
 </documentation>
