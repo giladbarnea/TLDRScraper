@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-21 21:03
+last_updated: 2026-04-22 09:31
 originates_from: impl-review/review-1.md
 ---
 
@@ -7,7 +7,7 @@ originates_from: impl-review/review-1.md
 
 ## Goal
 
-Decompose the monolithic `useOverlayContextMenu` hook into two narrow, self-contained hooks — `useDesktopContextMenu` and `useMobileSelectionMenu` — while keeping `useOverlayContextMenu` as the stable public API. This directly addresses Review-1 point 4 ("Split desktop and mobile") and shrinks the surface area for the follow-up reducer refactor (Recommended order step 2).
+Decompose the `useOverlayContextMenu` hook into two separate hooks — `useDesktopContextMenu` and `useMobileSelectionMenu` — while keeping `useOverlayContextMenu` as the public API. This addresses Review-1 point 4 ("Split desktop and mobile") and isolates the scope for the follow-up reducer refactor (Recommended order step 2).
 
 ## Scope
 
@@ -23,11 +23,11 @@ Decompose the monolithic `useOverlayContextMenu` hook into two narrow, self-cont
 - No reducer refactor yet (that is step 2 in the recommended order).
 - No Floating UI or focus-stack changes yet (steps 4 and 5).
 
-## Why this is the right first move
+## Rationale
 
-- High impact: it untangles two genuinely different interaction models (right-click vs. text-selection-then-touch) that currently share one state object and one set of refs.
-- Low product risk: the external contract is unchanged; `ZenModeOverlay` and `BaseOverlay` require zero changes.
-- Paves the way: a later mobile reducer only needs to touch `useMobileSelectionMenu.js`, and a Floating UI positioning adapter can wrap both sub-hooks through the same outer API.
+- Separates the two interaction models (right-click vs. text-selection-then-touch) that currently share one state object and one set of refs.
+- The external contract is unchanged; `ZenModeOverlay` and `BaseOverlay` require no changes.
+- A future mobile reducer will only need to modify `useMobileSelectionMenu.js`, and a Floating UI positioning adapter can wrap both sub-hooks via the outer API.
 
 ## New file: `client/src/hooks/useDesktopContextMenu.js`
 
@@ -90,9 +90,9 @@ export function useDesktopContextMenu(enabled) {
 }
 ```
 
-Key decisions:
-- Captures `selectedText` at open time so `OverlayContextMenu` never needs a live-selection fallback. This keeps the desktop path consistent with the mobile fix from iteration 2.
-- Keeps the capture-phase Escape suppression exactly as today; `BaseOverlay` still guards with `defaultPrevented`.
+Implementation details:
+- Captures `selectedText` at open time, removing the need for a live-selection fallback in `OverlayContextMenu`. This aligns the desktop path with the mobile implementation from iteration 2.
+- Keeps the capture-phase Escape suppression as is; `BaseOverlay` continues to check `defaultPrevented`.
 
 ## New file: `client/src/hooks/useMobileSelectionMenu.js`
 
@@ -196,14 +196,14 @@ export function useMobileSelectionMenu(enabled) {
 }
 ```
 
-Key decisions:
-- The `touchActive` flag stays a local `let` inside the effect (not state or ref) because it is purely an event-boundary guard, not UI state.
-- `openedBySelectionRef` stays a ref because it is read synchronously inside event handlers and must not trigger re-renders.
-- Returns `handleContextMenu: null` because mobile has no right-click path; `BaseOverlay`'s `onContextMenu={null}` is harmless.
+Implementation details:
+- The `touchActive` flag is maintained as a local `let` inside the effect, functioning as an event-boundary guard rather than UI state.
+- `openedBySelectionRef` remains a ref to allow synchronous reading inside event handlers without triggering re-renders.
+- Returns `handleContextMenu: null` as mobile has no right-click path; passing `onContextMenu={null}` to `BaseOverlay` is valid.
 
 ## Rewrite: `client/src/hooks/useOverlayContextMenu.js`
 
-Becomes a reactive router that picks the correct sub-hook based on pointer type.
+Acts as a router that selects the active sub-hook based on pointer type.
 
 ```js
 import { useEffect, useState } from 'react'
@@ -231,15 +231,15 @@ export function useOverlayContextMenu(enabled = true) {
 }
 ```
 
-Key decisions:
-- Both sub-hooks are called unconditionally (required by Rules of Hooks). Each receives its own `enabled` boolean and internally no-ops when disabled.
-- `matchMedia` is read into state with a change listener so devtools mobile emulation toggles are handled without a reload.
-- Preserve the existing debug log for continuity.
-- The CONTRACT comment block that lives in this file today (documenting `data-overlay-content` and `defaultPrevented`) stays here, because it describes the public contract between `useOverlayContextMenu` and its consumers.
+Implementation details:
+- Both sub-hooks are called unconditionally to comply with the Rules of Hooks. Each receives its own `enabled` boolean and no-ops internally when disabled.
+- `matchMedia` is read into state with a change listener to support devtools mobile emulation toggles without reloading.
+- Preserves the existing debug log.
+- Retains the CONTRACT comment block in this file, as it documents the public contract (`data-overlay-content` and `defaultPrevented`) for consumers of `useOverlayContextMenu`.
 
 ## Minor update: `client/src/components/OverlayContextMenu.jsx`
 
-Because both sub-hooks now capture `selectedText` at menu-open time, the live-selection fallback is dead code.
+Both sub-hooks capture `selectedText` at menu-open time, making the live-selection fallback redundant.
 
 In `handleActionClick`:
 
@@ -285,12 +285,12 @@ The `window.getSelection()?.removeAllRanges()` call after `onClose()` stays; cle
 
 | Risk | Mitigation |
 |------|-----------|
-| Hook-switching on `matchMedia` change causes stale state from the previously-active sub-hook | Acceptable: the inactive sub-hook’s state is simply ignored. Its listeners are disabled via its own `enabled` effect, so it cannot open spontaneously. |
+| Hook-switching on `matchMedia` change causes stale state from the previously-active sub-hook | The inactive sub-hook’s state is ignored. Its listeners are disabled via its own `enabled` effect, preventing it from opening spontaneously. |
 | `handleContextMenu: null` on mobile causes React warning | `onContextMenu={null}` is valid React and attaches no listener. |
-| `useDesktopContextMenu` and `useMobileSelectionMenu` duplicate the dismiss effect (pointerdown + Escape) | Acceptable for now. The duplicated block is ~15 lines. If a third menu variant appears, extract a shared `useMenuDismiss` hook. Do not pre-emptively abstract. |
+| `useDesktopContextMenu` and `useMobileSelectionMenu` duplicate the dismiss effect (pointerdown + Escape) | The duplicated block is ~15 lines. Extracting a shared `useMenuDismiss` hook is deferred until a third menu variant is introduced. |
 
-## What this paves
+## Future Steps Enabled
 
-- **Step 2 (mobile reducer)**: `useMobileSelectionMenu.js` is now isolated; replacing `openedBySelectionRef` + `touchActive` with an explicit state machine only touches one file.
-- **Step 4 (Floating UI positioning)**: Positioning logic can be injected into both sub-hooks through a shared helper without touching `ZenModeOverlay` or `BaseOverlay`.
-- **Step 3 (shared overlay-menu contract)**: Once `DigestOverlay` adopts the menu, it can call `useOverlayContextMenu` exactly as `ZenModeOverlay` does today.
+- **Step 2 (mobile reducer)**: `useMobileSelectionMenu.js` is isolated; replacing `openedBySelectionRef` and `touchActive` with a state machine will affect only one file.
+- **Step 4 (Floating UI positioning)**: Positioning logic can be added to both sub-hooks via a shared helper without modifying `ZenModeOverlay` or `BaseOverlay`.
+- **Step 3 (shared overlay-menu contract)**: `DigestOverlay` will be able to call `useOverlayContextMenu` using the same interface as `ZenModeOverlay`.
