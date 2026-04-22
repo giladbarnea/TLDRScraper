@@ -1,5 +1,6 @@
 ---
 last_updated: 2026-04-21 21:03
+originates_from: impl-review/review-1.md
 ---
 
 # Plan: Split Desktop and Mobile Context-Menu Paths

@@ -1,5 +1,7 @@
 ---
 last_updated: 2026-04-20 13:36
+originates_from: research/description.md
+implemented_by: implementation/iteration-1.md
 ---
 # Finalized Plan: Overlay Context Menu (Zen)
 
