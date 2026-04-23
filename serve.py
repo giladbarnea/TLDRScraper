@@ -15,8 +15,8 @@ import requests
 import util
 import tldr_app
 import storage_service
-import portfolio_service
 import shopping_cart_service
+from hidden_apps.portfolio.routes import portfolio_bp
 from summarizer import DEFAULT_MODEL, DEFAULT_SUMMARY_EFFORT
 from source_routes import source_bp
 
@@ -27,6 +27,7 @@ app = Flask(
     static_url_path='/assets'
 )
 app.register_blueprint(source_bp)
+app.register_blueprint(portfolio_bp)
 
 # Configure logging with timestamps and detailed format
 log_format = "%(asctime)s %(levelname)s │ %(name)s %(filename)s:%(lineno)d %(funcName)s │ %(message)s"
@@ -290,57 +291,6 @@ def check_storage_is_cached(date):
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
-@app.route("/api/portfolio/transactions", methods=["GET"])
-def list_portfolio_transactions():
-    """List append-only portfolio transactions."""
-    try:
-        transactions = portfolio_service.list_transactions()
-        return jsonify({"success": True, "transactions": transactions})
-    except Exception as error:
-        logger.error(
-            "portfolio transaction list failed error=%s",
-            repr(error),
-            exc_info=True,
-        )
-        return jsonify({"success": False, "error": repr(error)}), 500
-
-
-@app.route("/api/portfolio/transactions", methods=["POST"])
-def append_portfolio_transaction():
-    """Append immutable portfolio transaction."""
-    try:
-        data = request.get_json()
-        transaction = portfolio_service.append_transaction(
-            symbol_id=data["symbol_id"],
-            transaction_amount_dollars=float(data["transaction_amount_dollars"]),
-            shares=float(data["shares"]),
-        )
-        return jsonify({"success": True, "transaction": transaction})
-    except Exception as error:
-        logger.error(
-            "portfolio transaction append failed error=%s",
-            repr(error),
-            exc_info=True,
-        )
-        return jsonify({"success": False, "error": repr(error)}), 500
-
-
-@app.route("/api/portfolio/positions", methods=["GET"])
-def portfolio_positions():
-    """Aggregate portfolio transactions into current symbol positions."""
-    try:
-        transactions = portfolio_service.list_transactions()
-        summarized_positions = portfolio_service.summarize_positions(transactions)
-        positions = portfolio_service.enrich_positions_with_market_data(summarized_positions)
-        return jsonify({"success": True, "positions": positions, "transactions": transactions})
-    except Exception as error:
-        logger.error(
-            "portfolio positions failed error=%s",
-            repr(error),
-            exc_info=True,
-        )
-        return jsonify({"success": False, "error": repr(error)}), 500
-
 @app.route("/api/shopping-cart/items", methods=["GET"])
 def list_shopping_cart_items():
     """List shared shopping cart items."""
@@ -380,10 +330,8 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=5001,
-        debug=False,
+        debug=True,
         threaded=True,
-        use_reloader=False,
         use_evalex=True,
-        processes=1,
         use_debugger=False,
     )

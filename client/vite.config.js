@@ -32,10 +32,6 @@ export default defineConfig({
       '/consensus': {
         target: 'http://localhost:5001',
         changeOrigin: true
-      },
-      '/portfolio': {
-        target: 'http://localhost:5001',
-        changeOrigin: true
       }
     }
   },

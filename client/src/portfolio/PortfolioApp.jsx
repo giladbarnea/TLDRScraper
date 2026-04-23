@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Sector, Tooltip } from 'recharts'
 
 const CATEGORY_MAP = {
@@ -45,8 +45,10 @@ const App = () => {
   const [transactions, setTransactions] = useState([])
   const [transactionForm, setTransactionForm] = useState(EMPTY_TRANSACTION_FORM)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [portfolioError, setPortfolioError] = useState('')
 
-  async function refreshPortfolioData() {
+  const refreshPortfolioData = useCallback(async function refreshPortfolioData() {
+    setPortfolioError('')
     const response = await fetch('/api/portfolio/positions')
     const payload = await response.json()
     if (!response.ok || !payload.success) {
@@ -55,11 +57,11 @@ const App = () => {
 
     setPositions(payload.positions)
     setTransactions(payload.transactions)
-  }
+  }, [])
 
   useEffect(() => {
-    refreshPortfolioData()
-  }, [])
+    refreshPortfolioData().catch((error) => setPortfolioError(error.message))
+  }, [refreshPortfolioData])
 
   const rawData = useMemo(() => {
     const base = positions.reduce((aggregate, position) => {
@@ -121,10 +123,6 @@ const App = () => {
     return transactionAmount / shares
   }, [transactionForm])
 
-  useEffect(() => {
-    setActiveIndex(0)
-  }, [activeTab])
-
   async function submitTransaction(event) {
     event.preventDefault()
     setIsSubmitting(true)
@@ -137,6 +135,7 @@ const App = () => {
           symbol_id: transactionForm.symbol_id.trim(),
           transaction_amount_dollars: Number(transactionForm.transaction_amount_dollars),
           shares: Number(transactionForm.shares),
+          entry_kind: 'trade',
         }),
       })
       const payload = await response.json()
@@ -146,6 +145,8 @@ const App = () => {
 
       setTransactionForm(EMPTY_TRANSACTION_FORM)
       await refreshPortfolioData()
+    } catch (error) {
+      setPortfolioError(error.message)
     } finally {
       setIsSubmitting(false)
     }
@@ -199,7 +200,7 @@ const App = () => {
             {['All', ...Object.keys(CATEGORY_MAP), ...(includeBonds ? ['Bonds'] : [])].map((tabName) => (
               <button
                 key={tabName}
-                onClick={() => setActiveTab(tabName)}
+                onClick={() => { setActiveTab(tabName); setActiveIndex(0) }}
                 className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
                   activeTab === tabName ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
@@ -212,6 +213,13 @@ const App = () => {
       </div>
 
       <div className="max-w-4xl mx-auto p-4 space-y-4">
+        {portfolioError ? (
+          <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+            <div className="font-bold">Portfolio data error</div>
+            <div className="mt-1 break-words font-mono text-xs">{portfolioError}</div>
+          </div>
+        ) : null}
+
         <form onSubmit={submitTransaction} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
           <input
             placeholder="Symbol ID"
@@ -372,3 +380,4 @@ const App = () => {
 }
 
 export default App
+
