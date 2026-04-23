@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-20 12:46
+last_updated: 2026-04-23 14:21
 ---
 
 .
@@ -169,6 +169,8 @@ last_updated: 2026-04-20 12:46
 ├── db
 │  ├── create_digests_table.sql
 │  └── create_shopping_cart_entries_table.sql
+├── hidden_apps
+│  └── portfolio
 ├── scripts
 │  ├── dev
 │  │  ├── auto-pr-merge.sh
