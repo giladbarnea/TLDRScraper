@@ -155,7 +155,6 @@ def test_latest_close_rate_uses_fresh_supabase_cache_before_yahoo(monkeypatch):
         "close_price": 125.0,
         "close_date": "2026-04-22",
         "source_symbol": "AAPL",
-        "source_provider": "yahoo",
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 

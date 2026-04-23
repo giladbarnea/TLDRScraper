@@ -16,9 +16,9 @@ logger = logging.getLogger("hidden_apps.portfolio.service")
 
 YAHOO_CHART_ENDPOINT = "https://query1.finance.yahoo.com/v8/finance/chart"
 YAHOO_CHART_RANGE = "5y"
-YAHOO_SOURCE_PROVIDER = "yahoo"
-PORTFOLIO_TRANSACTION_KEY_PREFIX = "portfolio_app:transaction:"
-PORTFOLIO_CLOSE_RATE_KEY_PREFIX = "portfolio_app:close_rate:yahoo:"
+PORTFOLIO_TRANSACTION_TABLE = "portfolio_transactions"
+PORTFOLIO_LATEST_CLOSE_RATE_TABLE = "portfolio_latest_close_rates"
+PORTFOLIO_HISTORICAL_CLOSE_RATE_TABLE = "portfolio_historical_close_rates"
 _daily_close_prices_by_symbol_and_fetch_date: dict[tuple[str, str], dict[str, float]] = {}
 
 YAHOO_SYMBOL_MAP = {
@@ -57,21 +57,25 @@ class PositionAccumulator:
     snapshot_lots: list[SnapshotLot] = field(default_factory=list)
 
 
-def _get_settings_rows_by_prefix(key_prefix: str) -> list[dict]:
-    supabase = supabase_client.get_supabase_client()
-    result = (
-        supabase.table("settings")
-        .select("key,value")
-        .like("key", f"{key_prefix}%")
-        .order("key", desc=False)
-        .execute()
-    )
-    return result.data or []
+def _transaction_row_to_payload(row: dict) -> dict:
+    return {
+        "id": str(row["id"]),
+        "symbol_id": str(row["symbol_id"]),
+        "transaction_amount_dollars": float(row["transaction_amount_dollars"]),
+        "shares": float(row["shares"]),
+        "transaction_timestamp": str(row["transaction_timestamp"]),
+    }
 
 
 def list_transactions() -> list[dict]:
-    rows = _get_settings_rows_by_prefix(PORTFOLIO_TRANSACTION_KEY_PREFIX)
-    return [row["value"] for row in rows]
+    supabase = supabase_client.get_supabase_client()
+    result = (
+        supabase.table(PORTFOLIO_TRANSACTION_TABLE)
+        .select("id,symbol_id,transaction_amount_dollars,shares,transaction_timestamp")
+        .order("transaction_timestamp", desc=False)
+        .execute()
+    )
+    return [_transaction_row_to_payload(row) for row in result.data or []]
 
 
 def append_transaction(symbol_id: str, transaction_amount_dollars: float, shares: float) -> dict:
@@ -84,10 +88,9 @@ def append_transaction(symbol_id: str, transaction_amount_dollars: float, shares
         "shares": shares,
         "transaction_timestamp": transaction_timestamp,
     }
-    transaction_key = f"{PORTFOLIO_TRANSACTION_KEY_PREFIX}{transaction_timestamp}:{transaction_id}"
 
     supabase = supabase_client.get_supabase_client()
-    supabase.table("settings").insert({"key": transaction_key, "value": transaction}).execute()
+    supabase.table(PORTFOLIO_TRANSACTION_TABLE).insert(transaction).execute()
     return transaction
 
 
@@ -211,35 +214,70 @@ def _fetch_close_rate_from_yahoo(symbol: str, requested_date: str | None = None)
     }
 
 
-def _close_rate_cache_key(symbol_id: str, requested_date: str | None = None) -> str:
+def _close_rate_row_to_payload(row: dict, requested_date: str | None = None) -> dict:
+    close_rate = {
+        "symbol_id": str(row["symbol_id"]),
+        "close_price": float(row["close_price"]),
+        "close_date": str(row["close_date"]),
+        "source_symbol": str(row["source_symbol"]),
+        "updated_at": str(row["updated_at"]),
+    }
     if requested_date is not None:
-        return f"{PORTFOLIO_CLOSE_RATE_KEY_PREFIX}{symbol_id}:{requested_date}"
+        close_rate["requested_date"] = requested_date
 
-    return f"{PORTFOLIO_CLOSE_RATE_KEY_PREFIX}{symbol_id}"
+    return close_rate
+
+
+def _get_cached_latest_close_rate(symbol_id: str) -> dict | None:
+    supabase = supabase_client.get_supabase_client()
+    result = (
+        supabase.table(PORTFOLIO_LATEST_CLOSE_RATE_TABLE)
+        .select("symbol_id,close_price,close_date,source_symbol,updated_at")
+        .eq("symbol_id", symbol_id)
+        .execute()
+    )
+    return _close_rate_row_to_payload(result.data[0]) if result.data else None
+
+
+def _get_cached_historical_close_rate(symbol_id: str, requested_date: str) -> dict | None:
+    supabase = supabase_client.get_supabase_client()
+    result = (
+        supabase.table(PORTFOLIO_HISTORICAL_CLOSE_RATE_TABLE)
+        .select("symbol_id,requested_date,close_price,close_date,source_symbol,updated_at")
+        .eq("symbol_id", symbol_id)
+        .eq("requested_date", requested_date)
+        .execute()
+    )
+    return _close_rate_row_to_payload(result.data[0], requested_date) if result.data else None
 
 
 def _get_cached_close_rate(symbol_id: str, requested_date: str | None = None) -> dict | None:
-    cache_key = _close_rate_cache_key(symbol_id, requested_date)
-    supabase = supabase_client.get_supabase_client()
-    result = supabase.table("settings").select("value").eq("key", cache_key).execute()
-    return result.data[0]["value"] if result.data else None
+    if requested_date is not None:
+        return _get_cached_historical_close_rate(symbol_id, requested_date)
+
+    return _get_cached_latest_close_rate(symbol_id)
 
 
-def _upsert_cached_close_rate(symbol_id: str, close_rate: dict, requested_date: str | None = None) -> dict:
-    cache_key = _close_rate_cache_key(symbol_id, requested_date)
-    cache_value = {
+def _close_rate_payload(symbol_id: str, close_rate: dict, requested_date: str | None = None) -> dict:
+    payload = {
         "symbol_id": symbol_id,
         "close_price": close_rate["close_price"],
         "close_date": close_rate["close_date"],
         "source_symbol": close_rate["source_symbol"],
-        "source_provider": YAHOO_SOURCE_PROVIDER,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     if requested_date is not None:
-        cache_value["requested_date"] = requested_date
+        payload["requested_date"] = requested_date
+
+    return payload
+
+
+def _upsert_cached_close_rate(symbol_id: str, close_rate: dict, requested_date: str | None = None) -> dict:
+    cache_value = _close_rate_payload(symbol_id, close_rate, requested_date)
+    table_name = PORTFOLIO_HISTORICAL_CLOSE_RATE_TABLE if requested_date is not None else PORTFOLIO_LATEST_CLOSE_RATE_TABLE
 
     supabase = supabase_client.get_supabase_client()
-    supabase.table("settings").upsert({"key": cache_key, "value": cache_value}).execute()
+    supabase.table(table_name).upsert(cache_value).execute()
     return cache_value
 
 
