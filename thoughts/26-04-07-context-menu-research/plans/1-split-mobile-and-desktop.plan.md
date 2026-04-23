@@ -1,7 +1,7 @@
 ---
-last_updated: 2026-04-23 20:11
+last_updated: 2026-04-23 20:31
 originates_from: impl-review/review-1.md
-status: implemented
+status: implemented, 6c389c5
 ---
 
 # Split Desktop and Mobile Overlay Menu Paths Implementation Plan
