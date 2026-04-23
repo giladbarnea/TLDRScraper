@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-20 08:00
+last_updated: 2026-04-23 11:53
 ---
 
 .
@@ -154,10 +154,12 @@ last_updated: 2026-04-20 08:00
 │  ├── ARCHITECTURE.md
 │  ├── biome.json
 │  ├── index.html
+│  ├── main-screen.png
 │  ├── package-lock.json
 │  ├── package.json
 │  ├── postcss.config.js
 │  ├── STATE_MACHINES.md
+│  ├── summary-overlay.png
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
 ├── db

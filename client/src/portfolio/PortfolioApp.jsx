@@ -45,8 +45,10 @@ const App = () => {
   const [transactions, setTransactions] = useState([])
   const [transactionForm, setTransactionForm] = useState(EMPTY_TRANSACTION_FORM)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [portfolioError, setPortfolioError] = useState('')
 
   async function refreshPortfolioData() {
+    setPortfolioError('')
     const response = await fetch('/api/portfolio/positions')
     const payload = await response.json()
     if (!response.ok || !payload.success) {
@@ -58,7 +60,7 @@ const App = () => {
   }
 
   useEffect(() => {
-    refreshPortfolioData()
+    refreshPortfolioData().catch((error) => setPortfolioError(error.message))
   }, [])
 
   const rawData = useMemo(() => {
@@ -146,6 +148,8 @@ const App = () => {
 
       setTransactionForm(EMPTY_TRANSACTION_FORM)
       await refreshPortfolioData()
+    } catch (error) {
+      setPortfolioError(error.message)
     } finally {
       setIsSubmitting(false)
     }
@@ -212,6 +216,13 @@ const App = () => {
       </div>
 
       <div className="max-w-4xl mx-auto p-4 space-y-4">
+        {portfolioError ? (
+          <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+            <div className="font-bold">Portfolio data error</div>
+            <div className="mt-1 break-words font-mono text-xs">{portfolioError}</div>
+          </div>
+        ) : null}
+
         <form onSubmit={submitTransaction} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
           <input
             placeholder="Symbol ID"
