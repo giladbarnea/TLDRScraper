@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Sector, Tooltip } from 'recharts'
 
 const CATEGORY_MAP = {
@@ -47,7 +47,7 @@ const App = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [portfolioError, setPortfolioError] = useState('')
 
-  async function refreshPortfolioData() {
+  const refreshPortfolioData = useCallback(async function refreshPortfolioData() {
     setPortfolioError('')
     const response = await fetch('/api/portfolio/positions')
     const payload = await response.json()
@@ -57,11 +57,11 @@ const App = () => {
 
     setPositions(payload.positions)
     setTransactions(payload.transactions)
-  }
+  }, [])
 
   useEffect(() => {
     refreshPortfolioData().catch((error) => setPortfolioError(error.message))
-  }, [])
+  }, [refreshPortfolioData])
 
   const rawData = useMemo(() => {
     const base = positions.reduce((aggregate, position) => {
@@ -122,10 +122,6 @@ const App = () => {
     }
     return transactionAmount / shares
   }, [transactionForm])
-
-  useEffect(() => {
-    setActiveIndex(0)
-  }, [activeTab])
 
   async function submitTransaction(event) {
     event.preventDefault()
@@ -204,7 +200,7 @@ const App = () => {
             {['All', ...Object.keys(CATEGORY_MAP), ...(includeBonds ? ['Bonds'] : [])].map((tabName) => (
               <button
                 key={tabName}
-                onClick={() => setActiveTab(tabName)}
+                onClick={() => { setActiveTab(tabName); setActiveIndex(0) }}
                 className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
                   activeTab === tabName ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
@@ -384,3 +380,4 @@ const App = () => {
 }
 
 export default App
+
