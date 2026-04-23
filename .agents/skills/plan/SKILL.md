@@ -3,7 +3,7 @@ description: Create detailed implementation plans based on thorough research and
 model: inherit
 argument-hint: [optional_requirements_file_path_and_additional_instructions]
 name: plan
-last_updated: 2026-04-08 10:34, b103138
+last_updated: 2026-04-23 20:30
 ---
 # Implementation Plan
 
@@ -22,18 +22,16 @@ You are tasked with creating detailed implementation plans through an interactiv
    - Task files (e.g., `thoughts/yy-mm-dd-ENG-1234/ticket.md`)
    - Research documents
    - Related implementation plans
-   - Any JSON/data files mentioned
    - **IMPORTANT**: Use the Read tool WITHOUT limit/offset parameters to read entire files
    - **CRITICAL**: DO NOT spawn sub-tasks before reading these files yourself in the main context
    - **NEVER** read files partially - if a file is mentioned, read it completely
 
 2. **_Unless research has already been conducted_, Spawn initial research tasks to gather context**:
-   Before asking the user any questions, use specialized agents to research in parallel:
+   Before asking the user any questions, use the following map-then-dive method to conduct research: 
 <deep-context-grokking-method>
-   - **codebase-locator(model=haiku)** - To find all the files that have to do with the discussed behavior (e.g., "find all files concerning this and that")
-   - **codebase-analyzer:multiple-subsystems** - To understand all the details of the given scope (e.g., "analyze how such and such works")
+   Spawn a **codebase-locator(model=haiku)** - To find all the files that have to do with the discussed behavior (e.g., "find all files concerning this and that")
 
-   These agents will:
+   It will:
    - Find relevant source files, configs, and tests
    - Trace data flow and key functions
    - Return detailed explanations with file:line references
@@ -80,11 +78,6 @@ You are tasked with creating detailed implementation plans through an interactiv
 2. **Create a research todo list** using TodoWrite to track exploration tasks
 
 3. **Spawn parallel sub-tasks for comprehensive research**: apply the 'deep-context-grokking-method' as described above.
-
-<how-to-prompt-subagents>
-Load the `/prompt-subagent` skill for best practices that get the most value out of subagents. The gist is:
-Do not tell the agents how to do their jobs, nor spoon feed them with actionable steps. The agents have an extensive and well designed system prompt - they know the job out of the box. Only shortly tell them the wider context of what we're doing, what's the end value you need from their research (declarative), and why you need that added value (purpose). Even a prompt as short as e.g., "I need to understand how the scraping mechanism works, as well as how it relates to the client page load." is a good example for how to prompt a sub agent — note how there's only a short description of your needs and zero micro-management. Specify a generous timeout of 15 minutes.
-</how-to-prompt-subagents>
 
 4. **Wait for ALL sub-agents to complete** before proceeding.
 
@@ -170,10 +163,7 @@ After structure approval:
 
 [High-level strategy and reasoning]
 
-## Phase 1: [Descriptive Name]
-
-### Overview
-[What this phase accomplishes]
+---
 
 ### Changes Required:
 
@@ -187,32 +177,15 @@ After structure approval:
 
 ### Success Criteria:
 
-#### Automated Verification:
-{% for check in existing_automated_means_for_verifying_and_testing_changes %}
-- [ ] {{ check }}
-{% endfor %}
-
 #### Manual Verification
 - [ ] Feature works as expected when tested via the user interface and API
 - [ ] Edge case handling verified manually
 - [ ] No regressions in rest of project's functionality
 </plan-template>
 
-**Implementation Note**: After completing this phase and all automated verification passes, pause here for manual confirmation from the human that the manual testing was successful before proceeding to the next phase.
-
----
-
-## (If applicable) Phase 2: [Descriptive Name]
-
-[Similar structure as Phase 1.]
-
 ---
 
 ## Testing Strategy
-
-### Unit Tests:
-- [What to test]
-- [Key edge cases]
 
 ### Integration Tests:
 - [Verify integration points at the seams of major tech stack components]
@@ -280,8 +253,8 @@ After structure approval:
    - Include "what we're NOT doing"
 
 5. **Crucial research methodology**: all research consists of 2-phases: 
-  a) Explore to have a map of the entire search space. What domains does it include? (codebase-locator)
-  b) Deep dive into each domain: unearth all the details to fully grok the entire scope (multi-subsystems)
+  a) Explore to have a map of the entire search space. What domains does it include? (grep, codebase-locator)
+  b) Deep dive into each domain: unearth all the details to fully grok the entire scope 
 
 5. **Track Progress**:
    - Use TodoWrite to track planning tasks
