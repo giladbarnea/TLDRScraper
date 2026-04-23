@@ -36,18 +36,24 @@ export function useOverlayContextMenu(enabled = true) {
   console.log('[ctxmenu] render — enabled:', enabled, '| isOpen:', menuState.isOpen)
 
   const openMenu = useCallback(({ source, anchorX, anchorY, selectedText = '' }) => {
-    setMenuState({
+    const nextState = {
       isOpen: true,
       anchorX,
       anchorY,
       selectedText,
       source,
-    })
+    }
+    // Mutate the ref synchronously so document listeners that fire between
+    // setState and React's commit still see the authoritative `source`.
+    // The useEffect mirror above is a backstop for any non-command path.
+    menuStateRef.current = nextState
+    setMenuState(nextState)
   }, [])
 
   const closeMenu = useCallback(({ clearSelection = false } = {}) => {
     console.log('[ctxmenu] closeMenu — clearSelection:', clearSelection, '| source:', menuStateRef.current.source)
     if (clearSelection) window.getSelection()?.removeAllRanges()
+    menuStateRef.current = CLOSED_MENU_STATE
     setMenuState(CLOSED_MENU_STATE)
   }, [])
 
