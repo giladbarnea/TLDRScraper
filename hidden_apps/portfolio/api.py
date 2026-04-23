@@ -34,7 +34,7 @@ def list_transactions_response() -> JsonResponse:
 def append_transaction_response(data: dict[str, object]) -> JsonResponse:
     """Append a portfolio transaction from request-shaped data.
 
-    >>> append_transaction_response({"symbol_id": "AAPL", "transaction_amount_dollars": 1, "shares": 1}) # doctest: +SKIP
+    >>> append_transaction_response({"symbol_id": "AAPL", "transaction_amount_dollars": 1, "shares": 1, "entry_kind": "trade"}) # doctest: +SKIP
     ({'success': True, 'transaction': {...}}, 200)
     """
     try:
@@ -42,6 +42,7 @@ def append_transaction_response(data: dict[str, object]) -> JsonResponse:
             symbol_id=str(data["symbol_id"]),
             transaction_amount_dollars=float(data["transaction_amount_dollars"]),
             shares=float(data["shares"]),
+            entry_kind=str(data["entry_kind"]),
         )
         return {"success": True, "transaction": transaction}, 200
     except Exception as error:

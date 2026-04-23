@@ -20,6 +20,7 @@ FIXTURE_TRANSACTIONS = [
         "transaction_amount_dollars": 1000,
         "shares": 0,
         "transaction_timestamp": "2026-04-17T13:39:14.002625+00:00",
+        "entry_kind": "snapshot",
     }
 ]
 

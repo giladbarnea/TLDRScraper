@@ -139,6 +139,7 @@ const App = () => {
           symbol_id: transactionForm.symbol_id.trim(),
           transaction_amount_dollars: Number(transactionForm.transaction_amount_dollars),
           shares: Number(transactionForm.shares),
+          entry_kind: 'trade',
         }),
       })
       const payload = await response.json()

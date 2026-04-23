@@ -17,6 +17,7 @@ def test_snapshot_position_infers_shares_from_snapshot_close(monkeypatch):
                 "transaction_amount_dollars": 1000,
                 "shares": 0,
                 "transaction_timestamp": "2026-04-17T13:39:14.002625+00:00",
+                "entry_kind": "snapshot",
             }
         ]
     )
@@ -63,6 +64,7 @@ def test_non_market_value_position_stays_amount_based(monkeypatch):
                 "transaction_amount_dollars": 1000,
                 "shares": 0,
                 "transaction_timestamp": "2026-04-17T13:39:14.002625+00:00",
+                "entry_kind": "snapshot",
             }
         ]
     )
@@ -94,6 +96,7 @@ def test_market_position_with_shares_uses_close_rate(monkeypatch):
                 "transaction_amount_dollars": 1000,
                 "shares": 5,
                 "transaction_timestamp": "2026-04-17T13:39:14.002625+00:00",
+                "entry_kind": "trade",
             }
         ]
     )
@@ -124,6 +127,7 @@ def test_positions_response_runs_portfolio_flow_without_flask(monkeypatch):
             "transaction_amount_dollars": 1000,
             "shares": 0,
             "transaction_timestamp": "2026-04-17T13:39:14.002625+00:00",
+            "entry_kind": "snapshot",
         }
     ]
 
@@ -146,6 +150,33 @@ def test_positions_response_runs_portfolio_flow_without_flask(monkeypatch):
     position = payload["positions"][0]
     assert math.isclose(position["total_dollar_gain"], 250.0), (
         f"Expected API response to include gain since snapshot. Got {payload=!r}"
+    )
+
+
+def test_zero_share_trade_does_not_become_snapshot(monkeypatch):
+    positions = portfolio_service.summarize_positions(
+        [
+            {
+                "symbol_id": "AAPL",
+                "transaction_amount_dollars": 1000,
+                "shares": 0,
+                "transaction_timestamp": "2026-04-17T13:39:14.002625+00:00",
+                "entry_kind": "trade",
+            }
+        ]
+    )
+
+    def fail_close_rate_lookup(*args: object) -> dict:
+        raise AssertionError(f"Zero-share trade should not request market data. Got {args=!r}")
+
+    monkeypatch.setattr(portfolio_service, "get_or_fetch_close_rate_on_or_before", fail_close_rate_lookup)
+    monkeypatch.setattr(portfolio_service, "get_or_fetch_latest_close_rate", fail_close_rate_lookup)
+
+    enriched_position = portfolio_service.enrich_positions_with_market_data(positions)[0]
+
+    assert positions[0]["snapshot_lots"] == [], f"Expected trade entry to stay out of snapshot lots. Got {positions=!r}"
+    assert enriched_position["current_market_value_dollars"] == 1000.0, (
+        f"Expected zero-share trade to stay amount-based. Got {enriched_position=!r}"
     )
 
 

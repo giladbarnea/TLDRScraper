@@ -3,9 +3,32 @@ CREATE TABLE IF NOT EXISTS portfolio_transactions (
     symbol_id TEXT NOT NULL,
     transaction_amount_dollars NUMERIC NOT NULL,
     shares NUMERIC NOT NULL,
+    entry_kind TEXT NOT NULL DEFAULT 'trade',
     transaction_timestamp TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE portfolio_transactions
+    ADD COLUMN IF NOT EXISTS entry_kind TEXT NOT NULL DEFAULT 'trade';
+
+ALTER TABLE portfolio_transactions
+    ALTER COLUMN entry_kind SET DEFAULT 'trade';
+
+ALTER TABLE portfolio_transactions
+    ALTER COLUMN entry_kind SET NOT NULL;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'portfolio_transactions_entry_kind_check'
+    ) THEN
+        ALTER TABLE portfolio_transactions
+            ADD CONSTRAINT portfolio_transactions_entry_kind_check
+            CHECK (entry_kind IN ('snapshot', 'trade'));
+    END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS portfolio_transactions_transaction_timestamp_idx
     ON portfolio_transactions (transaction_timestamp DESC);

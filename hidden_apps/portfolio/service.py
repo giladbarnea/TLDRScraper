@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from decimal import Decimal
 from datetime import datetime, timezone
+from enum import StrEnum
 import logging
 import uuid
 from urllib.parse import quote
@@ -44,6 +45,11 @@ YAHOO_SYMBOL_MAP = {
 }
 
 
+class PortfolioEntryKind(StrEnum):
+    SNAPSHOT = "snapshot"
+    TRADE = "trade"
+
+
 @dataclass
 class SnapshotLot:
     snapshot_market_value_dollars: Decimal
@@ -64,6 +70,7 @@ def _transaction_row_to_payload(row: dict) -> dict:
         "transaction_amount_dollars": float(row["transaction_amount_dollars"]),
         "shares": float(row["shares"]),
         "transaction_timestamp": str(row["transaction_timestamp"]),
+        "entry_kind": PortfolioEntryKind(str(row["entry_kind"])).value,
     }
 
 
@@ -71,14 +78,19 @@ def list_transactions() -> list[dict]:
     supabase = supabase_client.get_supabase_client()
     result = (
         supabase.table(PORTFOLIO_TRANSACTION_TABLE)
-        .select("id,symbol_id,transaction_amount_dollars,shares,transaction_timestamp")
+        .select("id,symbol_id,transaction_amount_dollars,shares,transaction_timestamp,entry_kind")
         .order("transaction_timestamp", desc=False)
         .execute()
     )
     return [_transaction_row_to_payload(row) for row in result.data or []]
 
 
-def append_transaction(symbol_id: str, transaction_amount_dollars: float, shares: float) -> dict:
+def append_transaction(
+    symbol_id: str,
+    transaction_amount_dollars: float,
+    shares: float,
+    entry_kind: str = PortfolioEntryKind.TRADE.value,
+) -> dict:
     transaction_id = str(uuid.uuid4())
     transaction_timestamp = datetime.now(timezone.utc).isoformat()
     transaction = {
@@ -87,6 +99,7 @@ def append_transaction(symbol_id: str, transaction_amount_dollars: float, shares
         "transaction_amount_dollars": transaction_amount_dollars,
         "shares": shares,
         "transaction_timestamp": transaction_timestamp,
+        "entry_kind": PortfolioEntryKind(entry_kind).value,
     }
 
     supabase = supabase_client.get_supabase_client()
@@ -103,12 +116,8 @@ def _transaction_date(transaction: dict) -> str:
     return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).date().isoformat()
 
 
-def _is_snapshot_lot(symbol_id: str, transaction_amount_dollars: Decimal, shares: Decimal) -> bool:
-    return (
-        shares == Decimal("0")
-        and transaction_amount_dollars != Decimal("0")
-        and _mapped_market_symbol(symbol_id) is not None
-    )
+def _is_market_snapshot_entry(symbol_id: str, entry_kind: PortfolioEntryKind) -> bool:
+    return entry_kind == PortfolioEntryKind.SNAPSHOT and _mapped_market_symbol(symbol_id) is not None
 
 
 def summarize_positions(transactions: list[dict]) -> list[dict]:
@@ -125,11 +134,15 @@ def summarize_positions(transactions: list[dict]) -> list[dict]:
         symbol_id = transaction["symbol_id"]
         transaction_amount_dollars = Decimal(str(transaction["transaction_amount_dollars"]))
         shares = Decimal(str(transaction["shares"]))
+        entry_kind = PortfolioEntryKind(str(transaction["entry_kind"]))
+        if entry_kind == PortfolioEntryKind.SNAPSHOT and shares != Decimal("0"):
+            raise ValueError(f"Portfolio snapshot entry {symbol_id} must have shares=0.")
+
         accumulator = positions_by_symbol.setdefault(symbol_id, PositionAccumulator())
 
         accumulator.transaction_amount_dollars += transaction_amount_dollars
         accumulator.shares += shares
-        if _is_snapshot_lot(symbol_id, transaction_amount_dollars, shares):
+        if _is_market_snapshot_entry(symbol_id, entry_kind):
             accumulator.snapshot_lots.append(
                 SnapshotLot(
                     snapshot_market_value_dollars=transaction_amount_dollars,
