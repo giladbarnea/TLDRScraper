@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+const MenuOpenSource = Object.freeze({
+  NONE: 'none',
+  DESKTOP: 'desktop',
+  MOBILE_SELECTION: 'mobile-selection',
+})
+
 const CLOSED_MENU_STATE = Object.freeze({
   isOpen: false,
   anchorX: 0,
   anchorY: 0,
   selectedText: '',
+  source: MenuOpenSource.NONE,
 })
 
 // CONTRACT — this hook pairs with two things that must cooperate:
@@ -20,30 +27,72 @@ const CLOSED_MENU_STATE = Object.freeze({
 export function useOverlayContextMenu(enabled = true) {
   const [menuState, setMenuState] = useState(CLOSED_MENU_STATE)
   const menuRef = useRef(null)
-  const openedBySelectionRef = useRef(false)
+  const menuStateRef = useRef(menuState)
+
+  useEffect(() => {
+    menuStateRef.current = menuState
+  }, [menuState])
 
   console.log('[ctxmenu] render — enabled:', enabled, '| isOpen:', menuState.isOpen)
 
-  const closeMenu = useCallback(() => {
-    console.log('[ctxmenu] closeMenu — openedBySelection:', openedBySelectionRef.current)
-    openedBySelectionRef.current = false
+  const openMenu = useCallback(({ source, anchorX, anchorY, selectedText = '' }) => {
+    setMenuState({
+      isOpen: true,
+      anchorX,
+      anchorY,
+      selectedText,
+      source,
+    })
+  }, [])
+
+  const closeMenu = useCallback(({ clearSelection = false } = {}) => {
+    console.log('[ctxmenu] closeMenu — clearSelection:', clearSelection, '| source:', menuStateRef.current.source)
+    if (clearSelection) window.getSelection()?.removeAllRanges()
     setMenuState(CLOSED_MENU_STATE)
   }, [])
 
-  const handleContextMenu = useCallback((event) => {
+  const handleContextMenu = useDesktopContextMenu({ enabled, openMenu })
+  useMobileSelectionMenu({ enabled, openMenu, closeMenu, menuStateRef })
+  useOverlayMenuDismissal({
+    isOpen: menuState.isOpen,
+    menuRef,
+    closeMenu,
+    menuStateRef,
+  })
+
+  useEffect(() => {
+    if (enabled) return
+    closeMenu()
+  }, [closeMenu, enabled])
+
+  return {
+    isOpen: menuState.isOpen,
+    anchorX: menuState.anchorX,
+    anchorY: menuState.anchorY,
+    selectedText: menuState.selectedText,
+    menuRef,
+    handleContextMenu,
+    closeMenu,
+  }
+}
+
+function useDesktopContextMenu({ enabled, openMenu }) {
+  return useCallback((event) => {
     console.log('[ctxmenu] handleContextMenu — enabled:', enabled, '| target:', event.target.tagName)
     if (!enabled) return
 
     event.preventDefault()
-    openedBySelectionRef.current = false
-    setMenuState({
-      isOpen: true,
+    openMenu({
+      source: MenuOpenSource.DESKTOP,
       anchorX: event.clientX,
       anchorY: event.clientY,
+      selectedText: '',
     })
     console.log('[ctxmenu] opened via right-click at', event.clientX, event.clientY)
-  }, [enabled])
+  }, [enabled, openMenu])
+}
 
+function useMobileSelectionMenu({ enabled, openMenu, closeMenu, menuStateRef }) {
   useEffect(() => {
     if (!enabled) return
     const isTouch = matchMedia('(pointer: coarse)').matches
@@ -52,82 +101,92 @@ export function useOverlayContextMenu(enabled = true) {
 
     let touchActive = false
 
-    function openMenuFromSelection() {
-      const sel = window.getSelection()
-      const text = sel?.toString().trim() ?? ''
-      console.log('[ctxmenu] openMenuFromSelection — collapsed:', sel?.isCollapsed, '| text:', text.slice(0, 40))
-      if (!sel || sel.isCollapsed || !text) return
-
-      if (!sel.anchorNode?.parentElement?.closest('[data-overlay-content]')) {
-        console.log('[ctxmenu] openMenuFromSelection — selection not inside [data-overlay-content], skipping')
-        return
+    function readOverlaySelection() {
+      const selection = window.getSelection()
+      const selectedText = selection?.toString().trim() ?? ''
+      if (!selection || selection.isCollapsed || !selectedText) return null
+      if (!selection.anchorNode?.parentElement?.closest('[data-overlay-content]')) {
+        console.log('[ctxmenu] readOverlaySelection — selection not inside [data-overlay-content], skipping')
+        return null
       }
 
-      const rect = sel.getRangeAt(0).getBoundingClientRect()
-      openedBySelectionRef.current = true
-      setMenuState({
-        isOpen: true,
+      const rect = selection.getRangeAt(0).getBoundingClientRect()
+      return {
         anchorX: rect.left + rect.width / 2,
         anchorY: rect.bottom + 12,
-        selectedText: text,
+        selectedText,
+      }
+    }
+
+    function openFromSelection() {
+      const selectionMenu = readOverlaySelection()
+      if (!selectionMenu) return
+      openMenu({
+        source: MenuOpenSource.MOBILE_SELECTION,
+        ...selectionMenu,
       })
-      console.log('[ctxmenu] opened via selection at', rect.left + rect.width / 2, rect.bottom + 12, '| text:', text.slice(0, 40))
+      console.log('[ctxmenu] opened via selection at', selectionMenu.anchorX, selectionMenu.anchorY, '| text:', selectionMenu.selectedText.slice(0, 40))
     }
 
     function handleSelectionChange() {
-      const selection = window.getSelection()
-      const text = selection?.toString().trim() ?? ''
-      if (!selection || selection.isCollapsed || !text) {
+      const selectionMenu = readOverlaySelection()
+      const openedFromMobileSelection =
+        menuStateRef.current.source === MenuOpenSource.MOBILE_SELECTION
+
+      if (!selectionMenu) {
         // Guard: don't close the menu mid-touch. On mobile a tap on the menu
         // button collapses the selection (touchstart) before click fires —
         // closing here would ghost-click whatever is underneath the menu.
-        if (openedBySelectionRef.current && !touchActive) {
+        if (openedFromMobileSelection && !touchActive) {
           console.log('[ctxmenu] selectionchange — cleared (not touching), closing menu')
           closeMenu()
-        } else if (openedBySelectionRef.current) {
+        } else if (openedFromMobileSelection) {
           console.log('[ctxmenu] selectionchange — cleared but touchActive, keeping menu open to avoid ghost click')
         }
         return
       }
-      console.log('[ctxmenu] selectionchange — touchActive:', touchActive, '| text:', text.slice(0, 40))
-      if (!touchActive) openMenuFromSelection()
+
+      console.log('[ctxmenu] selectionchange — touchActive:', touchActive, '| text:', selectionMenu.selectedText.slice(0, 40))
+      if (!touchActive) openFromSelection()
     }
 
     function handleTouchStart() {
       touchActive = true
       console.log('[ctxmenu] touchstart')
     }
+
     function handleTouchEnd() {
       touchActive = false
-      console.log('[ctxmenu] touchend — will attempt openMenuFromSelection')
-      openMenuFromSelection()
+      console.log('[ctxmenu] touchend — will attempt openFromSelection')
+      openFromSelection()
     }
 
     document.addEventListener('selectionchange', handleSelectionChange)
     document.addEventListener('touchstart', handleTouchStart, true)
     document.addEventListener('touchend', handleTouchEnd, true)
+
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange)
       document.removeEventListener('touchstart', handleTouchStart, true)
       document.removeEventListener('touchend', handleTouchEnd, true)
     }
-  }, [enabled, closeMenu])
+  }, [enabled, openMenu, closeMenu, menuStateRef])
+}
 
+function useOverlayMenuDismissal({ isOpen, menuRef, closeMenu, menuStateRef }) {
   useEffect(() => {
-    if (enabled) return
-    closeMenu()
-  }, [closeMenu, enabled])
-
-  useEffect(() => {
-    if (!menuState.isOpen) return
+    if (!isOpen) return
     console.log('[ctxmenu] attaching close listeners (menu open)')
 
     function handlePointerDown(event) {
       const isInsideMenu = menuRef.current?.contains(event.target)
       console.log('[ctxmenu] pointerdown — insideMenu:', isInsideMenu)
       if (isInsideMenu) return
-      if (openedBySelectionRef.current) window.getSelection()?.removeAllRanges()
-      closeMenu()
+
+      closeMenu({
+        clearSelection:
+          menuStateRef.current.source === MenuOpenSource.MOBILE_SELECTION,
+      })
     }
 
     function handleKeyDown(event) {
@@ -147,12 +206,5 @@ export function useOverlayContextMenu(enabled = true) {
       document.removeEventListener('pointerdown', handlePointerDown, true)
       document.removeEventListener('keydown', handleKeyDown, true)
     }
-  }, [closeMenu, menuState.isOpen])
-
-  return {
-    ...menuState,
-    menuRef,
-    handleContextMenu,
-    closeMenu,
-  }
+  }, [closeMenu, isOpen, menuRef, menuStateRef])
 }
