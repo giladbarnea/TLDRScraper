@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-20 20:14
+last_updated: 2026-04-23 21:11
 scope: a well defined yet deep view of all the client state machines
 ---
 # Client State Machines
@@ -842,50 +842,66 @@ Clicking a toast calls `onOpen()` (expands the summary overlay) then dismisses i
 
 | | |
 |---|---|
-| **Pattern** | `useState` + `useRef` + document-level event listeners (capture phase) |
+| **Pattern** | `useState` + synchronously-mirrored `useRef` + three private hooks coordinating document-level event listeners (capture phase) |
 | **Files** | `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx` |
 | **Scope** | Per-overlay instance (currently one per `ZenModeOverlay`; `DigestOverlay` is the intended future second consumer) |
 | **Status** | WIP — mobile selection interactions still buggy (pending concrete bug list). Debug instrumentation (`[ctxmenu]` console.logs + `quakeConsole.js` heartbeat) is intentionally left in. |
 
+#### Internal Composition
+
+The exported `useOverlayContextMenu` is a thin coordinator that composes three private hooks in the same file:
+
+- `useDesktopContextMenu({ enabled, openMenu })` — owns `onContextMenu` (desktop right-click) only.
+- `useMobileSelectionMenu({ enabled, openMenu, closeMenu, menuStateRef })` — owns `selectionchange` / `touchstart` / `touchend` (mobile native text selection) only.
+- `useOverlayMenuDismissal({ isOpen, menuRef, closeMenu, menuStateRef })` — owns outside `pointerdown` and capture-phase Escape only.
+
+The split replaces the previous monolithic hook. Desktop right-click and mobile selection are now independent paths that do not share close semantics except via the shared `closeMenu` command.
+
 #### State Shape
 
 ```js
-{ isOpen: false, anchorX: 0, anchorY: 0 }
+{ isOpen: false, anchorX: 0, anchorY: 0, selectedText: '', source: 'none' }
+// source ∈ { 'none', 'desktop', 'mobile-selection' }   (MenuOpenSource)
 // plus two refs:
 menuRef                  // attached to the portal's root div; used for "click inside menu" test
-openedBySelectionRef     // which open path fired — drives whether closing clears the window selection
+menuStateRef             // mirrors menuState so capture-phase document listeners can read the
+                         // current `source` without reattaching. Mutated synchronously inside
+                         // openMenu()/closeMenu() so it is authoritative even before React commits;
+                         // a useEffect also mirrors post-commit as a backstop.
 ```
+
+`source` is internal coordination state — it is **not** exposed from the hook's return value.
 
 #### States
 
 ```
-CLOSED  ──(right-click in overlay content)──►  OPEN_BY_CLICK
-CLOSED  ──(mobile: selection settled in [data-overlay-content] after touchend)──►  OPEN_BY_SELECTION
-OPEN_*  ──(outside pointerdown / Escape / selection cleared / enabled→false)──►  CLOSED
+CLOSED  ──(right-click in overlay content)──►  OPEN (source=desktop)
+CLOSED  ──(mobile: selection settled in [data-overlay-content] after touchend)──►  OPEN (source=mobile-selection)
+OPEN    ──(outside pointerdown / Escape / selection cleared / enabled→false)──►  CLOSED
 ```
 
-`openedBySelectionRef` is the discriminator. On close:
-- If `true` (selection path): call `window.getSelection()?.removeAllRanges()` before closing.
-- If `false` (click path): do not touch the selection.
+`menuStateRef.current.source` is the discriminator. On close:
+- If `source === 'mobile-selection'` (via `closeMenu({ clearSelection: true })` from outside-pointerdown): call `window.getSelection()?.removeAllRanges()` before closing.
+- Otherwise: do not touch the selection.
 
-This ref is reset to `false` inside both `closeMenu()` and `handleContextMenu()` — the right-click path must declare `false` authoritatively, otherwise a previous selection-open can leak its "owned the selection" flag into a subsequent right-click open.
+Because `source` lives inside `menuState` (not a standalone ref), the right-click and mobile-selection paths can't leak their flag into each other — every `openMenu` call declares `source` authoritatively.
 
 #### Events / Transitions
 
 | Event | Source | Effect |
 |---|---|---|
-| `onContextMenu` on scroll surface | `BaseOverlay.onContentContextMenu` (desktop right-click) | `preventDefault`; `openedBySelectionRef=false`; set `{isOpen, anchorX: clientX, anchorY: clientY}` |
-| `touchend` (capture, document) | mobile finger lift | If a non-empty selection exists whose `anchorNode.parentElement.closest('[data-overlay-content]')` matches → `openedBySelectionRef=true`; set menu anchored at the selection rect's bottom-center |
-| `selectionchange` (document) | mobile selection handles | If collapsed/empty and `openedBySelectionRef` → `closeMenu`. If populated and `!touchActive` → `openMenuFromSelection` |
-| `touchstart`/`touchend` (capture) | mobile | Toggle `touchActive` — gates `selectionchange` so the menu opens on finger lift rather than mid-gesture |
-| `pointerdown` (capture, document, only while open) | outside click | If outside `menuRef`: clear selection iff `openedBySelectionRef`, then `closeMenu` |
-| `keydown: Escape` (capture, document, only while open) | keyboard | `preventDefault + stopPropagation + stopImmediatePropagation`; `closeMenu`. The `defaultPrevented` flag is the backstop `BaseOverlay` checks to avoid also closing the overlay |
-| `enabled → false` | hook prop | `closeMenu` |
+| `onContextMenu` on scroll surface | `useDesktopContextMenu` (via `BaseOverlay.onContentContextMenu`, desktop right-click) | `preventDefault`; `openMenu({ source: 'desktop', anchorX: clientX, anchorY: clientY })` |
+| `touchend` (capture, document) | `useMobileSelectionMenu` (mobile finger lift) | If a non-empty selection exists whose `anchorNode.parentElement.closest('[data-overlay-content]')` matches → `openMenu({ source: 'mobile-selection', ...selectionRect })` |
+| `selectionchange` (document) | `useMobileSelectionMenu` (mobile selection handles) | If collapsed/empty and `menuStateRef.current.source === 'mobile-selection'` and `!touchActive` → `closeMenu()`. If populated and `!touchActive` → open from selection |
+| `touchstart`/`touchend` (capture) | `useMobileSelectionMenu` | Toggle local `touchActive` — gates `selectionchange` so the menu opens on finger lift rather than mid-gesture |
+| `pointerdown` (capture, document, only while open) | `useOverlayMenuDismissal` (outside click) | If outside `menuRef`: `closeMenu({ clearSelection: menuStateRef.current.source === 'mobile-selection' })` |
+| `keydown: Escape` (capture, document, only while open) | `useOverlayMenuDismissal` (keyboard) | `preventDefault + stopPropagation + stopImmediatePropagation`; `closeMenu()`. The `defaultPrevented` flag is the backstop `BaseOverlay` checks to avoid also closing the overlay |
+| `enabled → false` | coordinator effect | `closeMenu()` |
 | action button click | `OverlayContextMenu.handleActionClick` | Clear selection; `onClose()`; invoke `action.onSelect()` |
 
 #### DOM / Event Contracts (cooperating with BaseOverlay)
 
-1. **`data-overlay-content` marker** — `BaseOverlay` tags its scroll surface. The hook's mobile `openMenuFromSelection` bails unless the selection's `anchorNode.parentElement.closest('[data-overlay-content]')` matches. Removing the attribute turns every selection on the page into a menu trigger.
+1. **`data-overlay-content` marker** — `BaseOverlay` tags its scroll surface. `useMobileSelectionMenu`'s selection reader bails unless the selection's `anchorNode.parentElement.closest('[data-overlay-content]')` matches. Removing the attribute turns every selection on the page into a menu trigger.
 2. **Escape arbitration via `event.defaultPrevented`** — the hook's Escape handler calls `stopImmediatePropagation()` + `preventDefault()` on the capture phase; `BaseOverlay` returns early if `event.defaultPrevented`. Removing either side causes Escape to close both menu and overlay at once.
 
 Both contracts are commented at the use site (`useOverlayContextMenu.js` top-of-file block comment + `BaseOverlay.jsx` inline comments on the Escape handler and the `data-overlay-content` div).
@@ -909,7 +925,7 @@ Both contracts are commented at the use site (`useOverlayContextMenu.js` top-of-
 All tied to iOS / Android native selection UI; handled with care because the hook coexists with a non-React selection state machine in the browser:
 - Long-hold still vs. long-hold + drag vs. dragging selection handles to extend.
 - Tapping the already-selected range (usually collapses and may collide with `handlePointerDown`'s `getSelection().removeAllRanges()`).
-- Tapping a menu button while prose is still selected — `touchend` fires before `click`, so `openMenuFromSelection` can re-open the menu in the gap between `touchend` and the action's `handleActionClick` clearing the selection.
+- Tapping a menu button while prose is still selected — `touchend` fires before `click`, so `useMobileSelectionMenu`'s `openFromSelection` can re-open the menu in the gap between `touchend` and the action's `handleActionClick` clearing the selection.
 - Selections that start or end outside the viewport (`range.getBoundingClientRect()` may report off-screen coordinates; `clampMenuPosition` clamps but the anchor can feel disconnected).
 
 These are instrumented (the `[ctxmenu]` logs in every branch) pending a concrete bug report.
