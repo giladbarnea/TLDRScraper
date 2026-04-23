@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-23 05:30
+last_updated: 2026-04-23 15:22
 ---
 
 # Make Mobile Selection State Explicit Implementation Plan
@@ -509,17 +509,17 @@ Regression checks:
 
 ## References
 
-- `thoughts/26-04-07-context-menu-research/impl-review/review-1.md`
-- `thoughts/26-04-07-context-menu-research/plans/1-split-mobile-and-desktop.plan.md`
-- `thoughts/26-04-07-context-menu-research/implementation/iteration-1.md`
-- `thoughts/26-04-07-context-menu-research/implementation/iteration-2.md`
-- `thoughts/26-04-07-context-menu-research/feature-map.md`
-- `client/src/hooks/useOverlayContextMenu.js`
-- `client/src/components/OverlayContextMenu.jsx`
-- `client/src/components/BaseOverlay.jsx`
-- `client/src/components/ZenModeOverlay.jsx`
-- `client/src/components/DigestOverlay.jsx`
-- `client/src/reducers/interactionReducer.js`
-- `client/src/reducers/gestureReducer.js`
 - `client/ARCHITECTURE.md`
 - `client/STATE_MACHINES.md`
+- `client/src/components/BaseOverlay.jsx`
+- `client/src/components/DigestOverlay.jsx`
+- `client/src/components/OverlayContextMenu.jsx`
+- `client/src/components/ZenModeOverlay.jsx`
+- `client/src/hooks/useOverlayContextMenu.js`
+- `client/src/reducers/gestureReducer.js`
+- `client/src/reducers/interactionReducer.js`
+- `thoughts/26-04-07-context-menu-research/feature-map.md`
+- `thoughts/26-04-07-context-menu-research/impl-review/review-1.md`
+- `thoughts/26-04-07-context-menu-research/implementation/iteration-1.md`
+- `thoughts/26-04-07-context-menu-research/implementation/iteration-2.md`
+- `thoughts/26-04-07-context-menu-research/plans/1-split-mobile-and-desktop.plan.md`
