@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-24 15:36
+last_updated: 2026-04-24 18:52
 ---
 
 .
@@ -150,6 +150,7 @@ last_updated: 2026-04-24 15:36
 │  │  │  ├── articleLifecycleReducer.js
 │  │  │  ├── gestureReducer.js
 │  │  │  ├── interactionReducer.js
+│  │  │  ├── mobileSelectionMenuReducer.js
 │  │  │  └── summaryDataReducer.js
 │  │  ├── App.jsx
 │  │  ├── index.css
