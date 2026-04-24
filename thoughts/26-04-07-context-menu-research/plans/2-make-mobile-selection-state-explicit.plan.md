@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-23 15:22
+last_updated: 2026-04-24 08:03
 ---
 
 # Make Mobile Selection State Explicit Implementation Plan
@@ -8,32 +8,27 @@ last_updated: 2026-04-23 15:22
 
 Implement the second item from `impl-review/review-1.md`: make the mobile native-text-selection path inside the overlay context menu explicit with a reducer.
 
-This plan is intentionally the follow-up to `plans/1-split-mobile-and-desktop.plan.md`. The first plan separates desktop right-click from mobile selection. This plan then replaces the mobile path's implicit listener-local state with a named state machine so future mobile bugs become transition edits instead of more refs and flags.
+This plan is intentionally the follow-up to `plans/1-split-mobile-and-desktop.plan.md`, which has already separated desktop right-click from mobile selection. This plan replaces the mobile path's remaining listener-local transition state with a small pure reducer so future mobile bugs become transition edits instead of more refs and flags.
 
 ## Current State Analysis
 
-The current checked-in hook still has one combined owner in `client/src/hooks/useOverlayContextMenu.js`:
+The current checked-in hook already has the plan-1 split in `client/src/hooks/useOverlayContextMenu.js`:
 
-- `openedBySelectionRef` tracks whether close should clear selection.
-- `touchActive` is a local variable inside the mobile effect.
-- `selectionchange`, `touchstart`, and `touchend` encode transitions across separate handlers.
+- `useDesktopContextMenu` owns desktop right-click.
+- `useMobileSelectionMenu` owns mobile native text selection.
+- `useOverlayMenuDismissal` owns outside pointerdown and Escape.
+- `menuState.source` tracks whether close should clear native selection.
+- `touchActive` is still a local variable inside `useMobileSelectionMenu`.
+- `selectionchange`, `touchstart`, and `touchend` still encode mobile transitions across separate handlers.
 - The ghost-click guard is behavioral but implicit: when selection clears during a touch, the menu stays open so the later click can reach the menu action.
 
-`plans/1-split-mobile-and-desktop.plan.md` defines the prerequisite shape:
-
-- Keep one exported `useOverlayContextMenu`.
-- Add internal `useDesktopContextMenu`.
-- Add internal `useMobileSelectionMenu`.
-- Add internal `useOverlayMenuDismissal`.
-- Use source-aware menu state so shared dismissal knows whether a menu was opened by mobile selection.
-
-This second plan should be implemented only after that split has landed. If `useMobileSelectionMenu` does not exist yet, implement and verify plan 1 first. Do not fold both plans into one larger refactor.
+This plan should stay within that already-landed split. Do not fold in Digest wiring, BaseOverlay contract relocation, positioning, focus-stack, or pull-to-close work.
 
 ## Desired End State
 
 After this plan is implemented:
 
-- The mobile selection flow is represented by a pure reducer with named modes and events.
+- The mobile selection flow is represented by a pure reducer with a tiny explicit state record and named events.
 - `useMobileSelectionMenu` still owns DOM reads and document listeners, but transition decisions come from the reducer.
 - The exported `useOverlayContextMenu` API remains unchanged.
 - The visible menu behavior remains unchanged before any bug fixes:
@@ -47,7 +42,7 @@ After this plan is implemented:
 
 ## Key Discoveries
 
-- `client/src/hooks/useOverlayContextMenu.js` is the current complexity center. The mobile path's state is distributed across `openedBySelectionRef`, `touchActive`, and document listeners.
+- `client/src/hooks/useOverlayContextMenu.js` is the current complexity center. The mobile path's state is now mostly isolated, but the transition state is still split between `touchActive`, source-aware menu state, and document listeners.
 - `client/src/components/BaseOverlay.jsx` owns the shared DOM contract: `data-overlay-content` on the scroll surface and Escape yielding via `event.defaultPrevented`.
 - `client/src/components/OverlayContextMenu.jsx` already consumes captured `selectedText`, which is required because mobile `touchstart` can collapse the live browser selection before click.
 - `client/src/components/ZenModeOverlay.jsx` is the only current consumer of `useOverlayContextMenu`.
@@ -87,11 +82,29 @@ const { state: nextState, decision } = reduceMobileSelectionMenu(currentState, e
 
 Then the hook executes the decision after updating the reducer state ref.
 
+The complexity-reducing design is deliberately smaller than a five-mode enum. The reducer owns only three facts:
+
+```js
+{
+  isTouching: false,
+  isOpen: false,
+  selection: null,
+}
+```
+
+That state is enough to preserve current behavior:
+
+- `isTouching` gates side effects. While true, selection observations update reducer state but do not open or close the menu.
+- `isOpen` gates close behavior. A cleared selection closes the menu only when the menu is open and the user is not touching.
+- `selection` stores the latest observed selection snapshot, but action-click still uses the menu state's captured `selectedText` as today.
+
+This makes the mobile path declarative without inventing more states than the behavior actually needs.
+
 ## Phase 1: Add The Mobile Selection Reducer
 
 ### Overview
 
-Create a pure reducer that describes mobile selection modes and transitions in one file.
+Create a pure reducer that describes mobile selection transitions in one file.
 
 ### Changes Required
 
@@ -102,14 +115,6 @@ Create a pure reducer that describes mobile selection modes and transitions in o
 Add exported constants and helpers:
 
 ```js
-export const MobileSelectionMenuMode = Object.freeze({
-  IDLE: 'idle',
-  TOUCHING: 'touching',
-  SELECTED_TOUCHING: 'selected-touching',
-  OPEN: 'open',
-  OPEN_TOUCHING: 'open-touching',
-})
-
 export const MobileSelectionMenuEventType = Object.freeze({
   TOUCH_STARTED: 'TOUCH_STARTED',
   TOUCH_ENDED: 'TOUCH_ENDED',
@@ -129,7 +134,8 @@ Use this state shape:
 
 ```js
 {
-  mode: MobileSelectionMenuMode.IDLE,
+  isTouching: false,
+  isOpen: false,
   selection: null,
 }
 ```
@@ -187,43 +193,132 @@ or:
 
 Do not include a `CLEAR_SELECTION` decision in this reducer. Selection clearing is part of shared dismissal and action click behavior, not the mobile selection observer itself.
 
-#### 2. Define behavior-preserving transitions
+#### 2. Define behavior-preserving transitions declaratively
 
 **File**: `client/src/reducers/mobileSelectionMenuReducer.js`
 
-Implement these transitions:
+Implement the reducer as a small transition map keyed by event type. Keep helper branches inside the event handlers instead of scattering them across DOM listeners:
 
-| Current mode | Event | Next mode | Decision | Notes |
-|---|---|---|---|---|
-| `idle` | `TOUCH_STARTED` | `touching` | none | Native selection may be starting. |
-| `touching` | `SELECTION_OBSERVED(selection)` | `selected-touching` | none | Store selection but do not open mid-touch. |
-| `selected-touching` | `SELECTION_OBSERVED(selection)` | `selected-touching` | none | Update stored selection while handles move. |
-| `touching` | `TOUCH_ENDED` with selection | `open` | open menu | Opens after finger lift. |
-| `selected-touching` | `TOUCH_ENDED` with selection | `open` | open menu | Opens with latest selection. |
-| `touching` | `TOUCH_ENDED` without selection | `idle` | none | No selected text. |
-| `selected-touching` | `TOUCH_ENDED` without selection | `idle` | none | Selection disappeared before lift. |
-| `idle` | `SELECTION_OBSERVED(selection)` | `open` | open menu | Covers non-touch selectionchange on coarse pointer. |
-| `open` | `SELECTION_OBSERVED(selection)` | `open` | open menu | Reposition/update text after selection handle changes while not touching. |
-| `open` | `SELECTION_CLEARED` | `idle` | close menu | Current behavior closes when selection clears and no touch is active. |
-| `open` | `TOUCH_STARTED` | `open-touching` | none | Preserve open menu during action tap or range tap. |
-| `open-touching` | `SELECTION_CLEARED` | `open-touching` | none | Current ghost-click guard: do not close mid-touch. |
-| `open-touching` | `SELECTION_OBSERVED(selection)` | `open-touching` | none | Store latest selection while touching, do not reopen mid-touch. |
-| `open-touching` | `TOUCH_ENDED` with selection | `open` | open menu | Update anchor/text after finger lift. |
-| `open-touching` | `TOUCH_ENDED` without selection | `open` | none | Preserve current behavior so a menu-button click can still fire after selection collapsed on touchstart. |
-| any | `MENU_CLOSED` | `idle` | none | Sync reducer when shared dismissal or action click closes menu. |
+```js
+const NONE_DECISION = Object.freeze({
+  type: MobileSelectionMenuDecisionType.NONE,
+})
+
+function openMenuDecision(selection) {
+  return {
+    type: MobileSelectionMenuDecisionType.OPEN_MENU,
+    selection,
+  }
+}
+
+const MOBILE_SELECTION_TRANSITIONS = Object.freeze({
+  [MobileSelectionMenuEventType.TOUCH_STARTED]: (state) => ({
+    state: { ...state, isTouching: true },
+    decision: NONE_DECISION,
+  }),
+
+  [MobileSelectionMenuEventType.TOUCH_ENDED]: (state, event) => {
+    if (!event.selection) {
+      return {
+        state: { ...state, isTouching: false },
+        decision: NONE_DECISION,
+      }
+    }
+
+    return {
+      state: {
+        isTouching: false,
+        isOpen: true,
+        selection: event.selection,
+      },
+      decision: openMenuDecision(event.selection),
+    }
+  },
+
+  [MobileSelectionMenuEventType.SELECTION_OBSERVED]: (state, event) => {
+    if (state.isTouching) {
+      return {
+        state: { ...state, selection: event.selection },
+        decision: NONE_DECISION,
+      }
+    }
+
+    return {
+      state: {
+        isTouching: false,
+        isOpen: true,
+        selection: event.selection,
+      },
+      decision: openMenuDecision(event.selection),
+    }
+  },
+
+  [MobileSelectionMenuEventType.SELECTION_CLEARED]: (state) => {
+    if (state.isTouching) {
+      return {
+        state: {
+          ...state,
+          selection: state.isOpen ? state.selection : null,
+        },
+        decision: NONE_DECISION,
+      }
+    }
+
+    if (!state.isOpen) {
+      return {
+        state: createInitialMobileSelectionMenuState(),
+        decision: NONE_DECISION,
+      }
+    }
+
+    return {
+      state: createInitialMobileSelectionMenuState(),
+      decision: {
+        type: MobileSelectionMenuDecisionType.CLOSE_MENU,
+      },
+    }
+  },
+
+  [MobileSelectionMenuEventType.MENU_CLOSED]: () => ({
+    state: createInitialMobileSelectionMenuState(),
+    decision: NONE_DECISION,
+  }),
+})
+```
+
+This transition map preserves the important current cases:
+
+| Situation | Reducer behavior |
+|---|---|
+| Long-press selection is still in progress | Store observed selection, do not open mid-touch. |
+| Finger lifts with selected text | Open menu with latest selection snapshot. |
+| Selection changes while not touching | Open/reposition menu with latest selection snapshot. |
+| Selection clears while not touching and menu is open | Close menu. |
+| Selection clears while touching a menu action or selected range | Keep menu open; do not ghost-click underlying content. |
+| Touch ends after action tap collapsed the selection | Keep menu open and emit no decision; the click handler can still run. |
+| Shared dismissal or action click closes the menu | Reset reducer to initial state. |
 
 Keep default behavior boring:
 
 ```js
-default:
-  return { state, decision: NONE_DECISION }
+const transition = MOBILE_SELECTION_TRANSITIONS[event.type]
+if (!transition) return { state, decision: NONE_DECISION }
+return transition(state, event)
 ```
 
 #### 3. Add small pure reducer verification target
 
 **File**: `client/src/reducers/mobileSelectionMenuReducer.js`
 
-Add concise examples in comments only if they clarify the transition table. Do not add broad comments that restate every line.
+Add a tiny reducer verification target during implementation. At minimum, assert:
+
+- touch start + observed selection + touch end with selection opens once with the latest selection.
+- observed selection while not touching opens/repositions.
+- open + touch start + selection cleared + touch end without selection keeps the menu open and emits no close decision.
+- open + selection cleared while not touching emits `CLOSE_MENU`.
+- `MENU_CLOSED` resets to the initial state.
+
+Prefer committed test coverage if the client already has a test pattern by implementation time. Otherwise, run a small transient Node script during implementation and record the result in the implementation note.
 
 ## Phase 2: Wire The Reducer Into The Mobile Hook
 
@@ -382,8 +477,10 @@ The least invasive shape is to keep `closeMenu` as the single exported close com
 ```js
 const resetMobileSelectionStateRef = useRef(() => {})
 
-const closeMenu = useCallback((options) => {
+const closeMenu = useCallback(({ clearSelection = false } = {}) => {
   resetMobileSelectionStateRef.current()
+  if (clearSelection) window.getSelection()?.removeAllRanges()
+  menuStateRef.current = CLOSED_MENU_STATE
   setMenuState(CLOSED_MENU_STATE)
 }, [])
 ```
@@ -436,7 +533,8 @@ Document:
 - `useOverlayContextMenu` still exports one overlay-menu primitive.
 - Desktop and mobile paths are internally split.
 - Mobile selection is now reducer-driven.
-- The reducer owns modes/events/decisions, while the hook owns DOM reads and side effects.
+- The reducer owns state fields, events, and decisions, while the hook owns DOM reads and side effects.
+- Reducer verification covers the ghost-click-preservation path.
 - The `BaseOverlay` contracts remain unchanged.
 - Digest remains the intended future consumer, not implemented here.
 
@@ -450,6 +548,7 @@ Create a short implementation note after the change lands:
 
 - what reducer was added
 - what hook state it replaced
+- what reducer verification was run
 - which behaviors were verified
 - any mobile bugs deliberately preserved for later targeted fixes
 
@@ -463,8 +562,9 @@ Do not turn the implementation note into a second plan.
 - [ ] `cd client && CI=1 npm run lint`
 - [ ] `rg -n "let touchActive|openedBySelectionRef" client/src/hooks/useOverlayContextMenu.js`
   - Expected: no matches.
-- [ ] `rg -n "reduceMobileSelectionMenu|MobileSelectionMenuMode|MobileSelectionMenuEventType" client/src`
+- [ ] `rg -n "reduceMobileSelectionMenu|MobileSelectionMenuEventType|MobileSelectionMenuDecisionType" client/src`
   - Expected: reducer module plus hook import/use and docs.
+- [ ] Reducer verification for the transition cases listed in Phase 1.
 - [ ] `rg -n "useOverlayContextMenu\\(" client/src`
   - Expected: `ZenModeOverlay` remains the only current call site.
 
@@ -502,7 +602,7 @@ Regression checks:
 ## Risk Notes
 
 - Mobile native selection is browser-owned state. The reducer must make the existing behavior explicit before changing it.
-- `OPEN_TOUCHING` is important. It preserves the current guard where a touch on the menu action may collapse native selection before the click event fires.
+- `isOpen && isTouching` is important. It preserves the current guard where a touch on the menu action may collapse native selection before the click event fires.
 - Do not use React render state as the only source for document-listener decisions. Keep a synchronized ref or reducer dispatch helper so capture-phase document handlers read the latest mode immediately.
 - Keep `selectedText` capture at menu-open time. Removing it reintroduces the mobile race fixed in iteration 2.
 - Do not let this reducer grow into a generic overlay menu reducer. It is only for mobile selection lifecycle.
