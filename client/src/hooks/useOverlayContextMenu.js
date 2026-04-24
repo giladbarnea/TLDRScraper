@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  createInitialMobileSelectionMenuState,
+  MobileSelectionMenuDecisionType,
+  MobileSelectionMenuEventType,
+  reduceMobileSelectionMenu,
+} from '../reducers/mobileSelectionMenuReducer'
 
 const MenuOpenSource = Object.freeze({
   NONE: 'none',
@@ -28,6 +34,7 @@ export function useOverlayContextMenu(enabled = true) {
   const [menuState, setMenuState] = useState(CLOSED_MENU_STATE)
   const menuRef = useRef(null)
   const menuStateRef = useRef(menuState)
+  const resetMobileSelectionStateRef = useRef(() => {})
 
   useEffect(() => {
     menuStateRef.current = menuState
@@ -52,13 +59,14 @@ export function useOverlayContextMenu(enabled = true) {
 
   const closeMenu = useCallback(({ clearSelection = false } = {}) => {
     console.log('[ctxmenu] closeMenu — clearSelection:', clearSelection, '| source:', menuStateRef.current.source)
+    resetMobileSelectionStateRef.current()
     if (clearSelection) window.getSelection()?.removeAllRanges()
     menuStateRef.current = CLOSED_MENU_STATE
     setMenuState(CLOSED_MENU_STATE)
   }, [])
 
   const handleContextMenu = useDesktopContextMenu({ enabled, openMenu })
-  useMobileSelectionMenu({ enabled, openMenu, closeMenu, menuStateRef })
+  useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelectionStateRef })
   useOverlayMenuDismissal({
     isOpen: menuState.isOpen,
     menuRef,
@@ -98,14 +106,18 @@ function useDesktopContextMenu({ enabled, openMenu }) {
   }, [enabled, openMenu])
 }
 
-function useMobileSelectionMenu({ enabled, openMenu, closeMenu, menuStateRef }) {
+function useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelectionStateRef }) {
   useEffect(() => {
     if (!enabled) return
     const isTouch = matchMedia('(pointer: coarse)').matches
     console.log('[ctxmenu] mobile effect — isTouch:', isTouch)
     if (!isTouch) return
 
-    let touchActive = false
+    const mobileStateRef = { current: createInitialMobileSelectionMenuState() }
+
+    resetMobileSelectionStateRef.current = () => {
+      mobileStateRef.current = createInitialMobileSelectionMenuState()
+    }
 
     function readOverlaySelection() {
       const selection = window.getSelection()
@@ -124,47 +136,52 @@ function useMobileSelectionMenu({ enabled, openMenu, closeMenu, menuStateRef }) 
       }
     }
 
-    function openFromSelection() {
-      const selectionMenu = readOverlaySelection()
-      if (!selectionMenu) return
-      openMenu({
-        source: MenuOpenSource.MOBILE_SELECTION,
-        ...selectionMenu,
-      })
-      console.log('[ctxmenu] opened via selection at', selectionMenu.anchorX, selectionMenu.anchorY, '| text:', selectionMenu.selectedText.slice(0, 40))
-    }
-
-    function handleSelectionChange() {
-      const selectionMenu = readOverlaySelection()
-      const openedFromMobileSelection =
-        menuStateRef.current.source === MenuOpenSource.MOBILE_SELECTION
-
-      if (!selectionMenu) {
-        // Guard: don't close the menu mid-touch. On mobile a tap on the menu
-        // button collapses the selection (touchstart) before click fires —
-        // closing here would ghost-click whatever is underneath the menu.
-        if (openedFromMobileSelection && !touchActive) {
-          console.log('[ctxmenu] selectionchange — cleared (not touching), closing menu')
-          closeMenu()
-        } else if (openedFromMobileSelection) {
-          console.log('[ctxmenu] selectionchange — cleared but touchActive, keeping menu open to avoid ghost click')
-        }
+    function runMobileSelectionDecision(decision) {
+      if (decision.type === MobileSelectionMenuDecisionType.OPEN_MENU) {
+        openMenu({
+          source: MenuOpenSource.MOBILE_SELECTION,
+          ...decision.selection,
+        })
+        console.log('[ctxmenu] opened via selection at', decision.selection.anchorX, decision.selection.anchorY, '| text:', decision.selection.selectedText.slice(0, 40))
         return
       }
 
-      console.log('[ctxmenu] selectionchange — touchActive:', touchActive, '| text:', selectionMenu.selectedText.slice(0, 40))
-      if (!touchActive) openFromSelection()
+      if (decision.type === MobileSelectionMenuDecisionType.CLOSE_MENU) {
+        console.log('[ctxmenu] mobile reducer -> CLOSE_MENU')
+        closeMenu()
+      }
+    }
+
+    function dispatchMobileSelectionEvent(event) {
+      const { state, decision } = reduceMobileSelectionMenu(mobileStateRef.current, event)
+      mobileStateRef.current = state
+      runMobileSelectionDecision(decision)
     }
 
     function handleTouchStart() {
-      touchActive = true
       console.log('[ctxmenu] touchstart')
+      dispatchMobileSelectionEvent({
+        type: MobileSelectionMenuEventType.TOUCH_STARTED,
+      })
     }
 
     function handleTouchEnd() {
-      touchActive = false
-      console.log('[ctxmenu] touchend — will attempt openFromSelection')
-      openFromSelection()
+      const selection = readOverlaySelection()
+      console.log('[ctxmenu] touchend — selection:', selection ? selection.selectedText.slice(0, 40) : 'null')
+      dispatchMobileSelectionEvent({
+        type: MobileSelectionMenuEventType.TOUCH_ENDED,
+        selection,
+      })
+    }
+
+    function handleSelectionChange() {
+      const selection = readOverlaySelection()
+      console.log('[ctxmenu] selectionchange — selection:', selection ? selection.selectedText.slice(0, 40) : 'null')
+      dispatchMobileSelectionEvent(
+        selection
+          ? { type: MobileSelectionMenuEventType.SELECTION_OBSERVED, selection }
+          : { type: MobileSelectionMenuEventType.SELECTION_CLEARED }
+      )
     }
 
     document.addEventListener('selectionchange', handleSelectionChange)
@@ -175,8 +192,9 @@ function useMobileSelectionMenu({ enabled, openMenu, closeMenu, menuStateRef }) 
       document.removeEventListener('selectionchange', handleSelectionChange)
       document.removeEventListener('touchstart', handleTouchStart, true)
       document.removeEventListener('touchend', handleTouchEnd, true)
+      resetMobileSelectionStateRef.current = () => {}
     }
-  }, [enabled, openMenu, closeMenu, menuStateRef])
+  }, [enabled, openMenu, closeMenu, resetMobileSelectionStateRef])
 }
 
 function useOverlayMenuDismissal({ isOpen, menuRef, closeMenu, menuStateRef }) {

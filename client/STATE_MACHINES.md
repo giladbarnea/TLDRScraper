@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-23 21:11
+last_updated: 2026-04-24 18:46
 scope: a well defined yet deep view of all the client state machines
 ---
 # Client State Machines
@@ -842,8 +842,8 @@ Clicking a toast calls `onOpen()` (expands the summary overlay) then dismisses i
 
 | | |
 |---|---|
-| **Pattern** | `useState` + synchronously-mirrored `useRef` + three private hooks coordinating document-level event listeners (capture phase) |
-| **Files** | `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx` |
+| **Pattern** | `useState` + synchronously-mirrored `useRef` + three private hooks coordinating document-level event listeners (capture phase). The mobile selection path is driven by a pure reducer (`reduceMobileSelectionMenu`) rather than listener-local flags. |
+| **Files** | `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx`, `reducers/mobileSelectionMenuReducer.js` |
 | **Scope** | Per-overlay instance (currently one per `ZenModeOverlay`; `DigestOverlay` is the intended future second consumer) |
 | **Status** | WIP — mobile selection interactions still buggy (pending concrete bug list). Debug instrumentation (`[ctxmenu]` console.logs + `quakeConsole.js` heartbeat) is intentionally left in. |
 
@@ -852,10 +852,10 @@ Clicking a toast calls `onOpen()` (expands the summary overlay) then dismisses i
 The exported `useOverlayContextMenu` is a thin coordinator that composes three private hooks in the same file:
 
 - `useDesktopContextMenu({ enabled, openMenu })` — owns `onContextMenu` (desktop right-click) only.
-- `useMobileSelectionMenu({ enabled, openMenu, closeMenu, menuStateRef })` — owns `selectionchange` / `touchstart` / `touchend` (mobile native text selection) only.
+- `useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelectionStateRef })` — owns `selectionchange` / `touchstart` / `touchend` (mobile native text selection) only. Transition decisions are delegated to `reduceMobileSelectionMenu` in `reducers/mobileSelectionMenuReducer.js`; the hook only does DOM reads, listener setup/teardown, and decision execution.
 - `useOverlayMenuDismissal({ isOpen, menuRef, closeMenu, menuStateRef })` — owns outside `pointerdown` and capture-phase Escape only.
 
-The split replaces the previous monolithic hook. Desktop right-click and mobile selection are now independent paths that do not share close semantics except via the shared `closeMenu` command.
+The split replaces the previous monolithic hook. Desktop right-click and mobile selection are now independent paths that do not share close semantics except via the shared `closeMenu` command. `closeMenu` also calls `resetMobileSelectionStateRef.current()` so any external close path (outside pointerdown, Escape, action click, `enabled → false`) puts the mobile reducer back in its initial state.
 
 #### State Shape
 
@@ -891,13 +891,13 @@ Because `source` lives inside `menuState` (not a standalone ref), the right-clic
 | Event | Source | Effect |
 |---|---|---|
 | `onContextMenu` on scroll surface | `useDesktopContextMenu` (via `BaseOverlay.onContentContextMenu`, desktop right-click) | `preventDefault`; `openMenu({ source: 'desktop', anchorX: clientX, anchorY: clientY })` |
-| `touchend` (capture, document) | `useMobileSelectionMenu` (mobile finger lift) | If a non-empty selection exists whose `anchorNode.parentElement.closest('[data-overlay-content]')` matches → `openMenu({ source: 'mobile-selection', ...selectionRect })` |
-| `selectionchange` (document) | `useMobileSelectionMenu` (mobile selection handles) | If collapsed/empty and `menuStateRef.current.source === 'mobile-selection'` and `!touchActive` → `closeMenu()`. If populated and `!touchActive` → open from selection |
-| `touchstart`/`touchend` (capture) | `useMobileSelectionMenu` | Toggle local `touchActive` — gates `selectionchange` so the menu opens on finger lift rather than mid-gesture |
-| `pointerdown` (capture, document, only while open) | `useOverlayMenuDismissal` (outside click) | If outside `menuRef`: `closeMenu({ clearSelection: menuStateRef.current.source === 'mobile-selection' })` |
+| `touchstart` (capture, document) | `useMobileSelectionMenu` | Dispatches `TOUCH_STARTED` into `reduceMobileSelectionMenu`; reducer flips `isTouching=true`. Menu will not open or close mid-touch. |
+| `touchend` (capture, document) | `useMobileSelectionMenu` (mobile finger lift) | Reads current `[data-overlay-content]` selection; dispatches `TOUCH_ENDED { selection }`. Reducer returns `OPEN_MENU` when a selection is present, `NONE` otherwise (preserving the ghost-click guard when the selection collapsed mid-tap). |
+| `selectionchange` (document) | `useMobileSelectionMenu` (mobile selection handles) | Dispatches `SELECTION_OBSERVED` when a non-empty overlay selection exists, else `SELECTION_CLEARED`. Reducer decides: mid-touch → store or hold; idle and open → `CLOSE_MENU`; idle and closed → reposition/open via `OPEN_MENU`. |
+| `pointerdown` (capture, document, only while open) | `useOverlayMenuDismissal` (outside click) | If outside `menuRef`: `closeMenu({ clearSelection: menuStateRef.current.source === 'mobile-selection' })`. `closeMenu` resets the mobile reducer to initial state. |
 | `keydown: Escape` (capture, document, only while open) | `useOverlayMenuDismissal` (keyboard) | `preventDefault + stopPropagation + stopImmediatePropagation`; `closeMenu()`. The `defaultPrevented` flag is the backstop `BaseOverlay` checks to avoid also closing the overlay |
-| `enabled → false` | coordinator effect | `closeMenu()` |
-| action button click | `OverlayContextMenu.handleActionClick` | Clear selection; `onClose()`; invoke `action.onSelect()` |
+| `enabled → false` | coordinator effect | `closeMenu()` (also resets mobile reducer) |
+| action button click | `OverlayContextMenu.handleActionClick` | Clear selection; `onClose()` (resets mobile reducer via `closeMenu`); invoke `action.onSelect()` |
 
 #### DOM / Event Contracts (cooperating with BaseOverlay)
 
@@ -920,12 +920,59 @@ Both contracts are commented at the use site (`useOverlayContextMenu.js` top-of-
 | `ZenModeOverlay` | `Elaborate` | Captures selected text, calls the overlay-owned elaboration request, and opens `ElaborationPreview` |
 | `DigestOverlay` | — | Not wired yet |
 
+#### Mobile selection reducer
+
+`reducers/mobileSelectionMenuReducer.js` owns the mobile selection lifecycle as a pure reducer. The hook (`useMobileSelectionMenu`) keeps all side effects (DOM reads, listener setup, calling `openMenu`/`closeMenu`, clearing the native selection via shared dismissal). The reducer owns transition decisions only.
+
+State shape:
+
+```js
+{ isTouching: false, isOpen: false, selection: null }
+// selection, when non-null, is { anchorX, anchorY, selectedText } produced by readOverlaySelection()
+```
+
+Events:
+
+```
+TOUCH_STARTED
+TOUCH_ENDED       { selection: Selection | null }
+SELECTION_OBSERVED { selection: Selection }
+SELECTION_CLEARED
+MENU_CLOSED       // dispatched implicitly via resetMobileSelectionStateRef from closeMenu
+```
+
+Decisions the reducer returns to the hook:
+
+```
+{ type: 'NONE' }
+{ type: 'OPEN_MENU', selection }
+{ type: 'CLOSE_MENU' }
+```
+
+Transition summary:
+
+| Situation | State change | Decision |
+|---|---|---|
+| `TOUCH_STARTED` | `isTouching → true` | NONE |
+| `TOUCH_ENDED` with selection | `isTouching → false`, `isOpen → true`, store selection | OPEN_MENU |
+| `TOUCH_ENDED` with no selection | `isTouching → false` (keep `isOpen`/`selection`) | NONE (preserves ghost-click guard: click about to fire on menu action) |
+| `SELECTION_OBSERVED` while touching | store selection | NONE (do not open mid-gesture) |
+| `SELECTION_OBSERVED` while idle | `isOpen → true`, store selection | OPEN_MENU (opens or repositions) |
+| `SELECTION_CLEARED` while touching | optionally clear `selection` | NONE |
+| `SELECTION_CLEARED` while idle, menu open | reset to initial | CLOSE_MENU |
+| `SELECTION_CLEARED` while idle, menu closed | reset to initial | NONE |
+| `MENU_CLOSED` | reset to initial | NONE |
+
+`closeMenu` in the coordinator calls `resetMobileSelectionStateRef.current()` before it clears selection or updates menu state. This keeps the mobile reducer in sync whenever an external path (Escape, outside pointerdown, action click, `enabled → false`) closes the menu. The `MENU_CLOSED` event is implicit through this reset; it is exported on the event enum for completeness and for any future caller that wants to dispatch it explicitly.
+
+`resetMobileSelectionStateRef` is a `useRef(() => {})` owned by the coordinator and populated by `useMobileSelectionMenu` once listeners are attached. On effect cleanup it is restored to a no-op so stale resets do not fire against a non-attached reducer.
+
 #### Mobile nuances (known buggy — do not "fix by guessing")
 
 All tied to iOS / Android native selection UI; handled with care because the hook coexists with a non-React selection state machine in the browser:
 - Long-hold still vs. long-hold + drag vs. dragging selection handles to extend.
 - Tapping the already-selected range (usually collapses and may collide with `handlePointerDown`'s `getSelection().removeAllRanges()`).
-- Tapping a menu button while prose is still selected — `touchend` fires before `click`, so `useMobileSelectionMenu`'s `openFromSelection` can re-open the menu in the gap between `touchend` and the action's `handleActionClick` clearing the selection.
+- Tapping a menu button while prose is still selected — `touchend` fires before `click`. The reducer's `TOUCH_ENDED` transition returns `NONE` when the selection has collapsed mid-tap, so the menu does not re-open in the gap before the action's `handleActionClick` runs. The captured `selectedText` on menu state is what the action uses anyway, so this is robust even if the live selection is empty by click time.
 - Selections that start or end outside the viewport (`range.getBoundingClientRect()` may report off-screen coordinates; `clampMenuPosition` clamps but the anchor can feel disconnected).
 
 These are instrumented (the `[ctxmenu]` logs in every branch) pending a concrete bug report.

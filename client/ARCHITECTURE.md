@@ -1,7 +1,7 @@
 ---
 name: architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-04-20 20:14
+last_updated: 2026-04-24 18:46
 scope: exhaustively-wide, equally high level view of the entire client architecture.
 ---
 # Client Architecture
@@ -176,7 +176,7 @@ Important behavioral rule:
 
 An overlay-level right-click / selection-triggered action menu intended to be shared by `ZenModeOverlay` and `DigestOverlay`. Today only `ZenModeOverlay` composes it; `DigestOverlay` is the planned second consumer. Implemented as a hook + presentational component pair and integrated through `BaseOverlay`. See [STATE_MACHINES.md](STATE_MACHINES.md#19-overlay-context-menu) for the state machine and event model.
 
-**Key modules:** `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx`, `components/BaseOverlay.jsx` (wiring + DOM contract)
+**Key modules:** `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx`, `components/BaseOverlay.jsx` (wiring + DOM contract), `reducers/mobileSelectionMenuReducer.js` (mobile selection lifecycle as a pure reducer consumed by `useMobileSelectionMenu`)
 
 ### Cooperating contracts (important)
 
@@ -188,7 +188,7 @@ The hook has two explicit contracts with `BaseOverlay` that must stay in sync. B
 ### Triggers
 
 - **Desktop**: `onContextMenu` on the `BaseOverlay` scroll surface (right-click) → menu anchored at cursor coordinates.
-- **Mobile**: document-level `selectionchange` / `touchstart` / `touchend` listeners. Menu opens on finger lift (`touchend`) when a non-empty text selection exists inside `[data-overlay-content]`. Menu re-closes automatically when the selection is cleared.
+- **Mobile**: document-level `selectionchange` / `touchstart` / `touchend` listeners. The mobile selection lifecycle is a pure reducer (`reduceMobileSelectionMenu`) driven by these listeners. The hook dispatches `TOUCH_STARTED` / `TOUCH_ENDED { selection }` / `SELECTION_OBSERVED { selection }` / `SELECTION_CLEARED`; the reducer returns `OPEN_MENU` / `CLOSE_MENU` / `NONE` decisions. Menu opens on finger lift (`touchend`) when a non-empty text selection exists inside `[data-overlay-content]`. Menu re-closes automatically when the selection is cleared while the user is not touching. The reducer preserves the ghost-click guard: when `touchend` finds no selection but the menu is open (tap on a menu button collapsed it), the reducer returns `NONE` so the pending click still reaches the action handler.
 
 ### Close paths
 
