@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-24 07:37
+last_updated: 2026-04-24 11:30
 ---
 
 .
@@ -157,6 +157,7 @@ last_updated: 2026-04-24 07:37
 │  │  ├── index.css
 │  │  └── main.jsx
 │  ├── .gitignore
+│  ├── .nvmrc
 │  ├── ARCHITECTURE.md
 │  ├── biome.json
 │  ├── index.html
@@ -215,6 +216,8 @@ last_updated: 2026-04-24 07:37
 ├── .gitignore
 ├── .gitmodules
 ├── .vercelignore
+├── _tmp_bg_client_up.sh
+├── _tmp_bg_serve_up.sh
 ├── AGENTS.md
 ├── ARCHITECTURE.md
 ├── BUGS.md
