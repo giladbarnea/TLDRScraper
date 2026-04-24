@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-24 11:30
+last_updated: 2026-04-24 14:19
 ---
 
 .
@@ -216,8 +216,6 @@ last_updated: 2026-04-24 11:30
 ├── .gitignore
 ├── .gitmodules
 ├── .vercelignore
-├── _tmp_bg_client_up.sh
-├── _tmp_bg_serve_up.sh
 ├── AGENTS.md
 ├── ARCHITECTURE.md
 ├── BUGS.md
