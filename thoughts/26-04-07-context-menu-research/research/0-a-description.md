@@ -1,4 +1,5 @@
 ---
+name: Context Menu Research
 date: 2026-04-08
 topic: "Custom Context Menu in Zen Overlay"
 status: complete

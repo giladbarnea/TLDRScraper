@@ -1,13 +1,13 @@
 ---
-originates_from: impl-review/review-1.md
-last_updated: 2026-04-23 20:31
+originates_from: impl-review/0-g-review-1.md
+last_updated: 2026-04-24 18:05
 ---
 
 # Define Shared Overlay Menu Contract Then Wire Digest Implementation Plan
 
 ## Overview
 
-Implement the third item from `impl-review/review-1.md`: move the overlay-menu contract out of the current Zen-only integration shape and make `DigestOverlay` a real consumer of the same shared contract.
+Implement the third item from `impl-review/0-g-review-1.md`: move the overlay-menu contract out of the current Zen-only integration shape and make `DigestOverlay` a real consumer of the same shared contract.
 
 The goal is not to make `BaseOverlay` own the menu state machine. The goal is to make `BaseOverlay` own the menu **surface contract** explicitly, because it already owns the portal shell, the scroll surface, the Escape close path, and the touch-gesture hooks that the menu must coexist with.
 
@@ -308,7 +308,7 @@ The old phrasing that Digest is only a "planned second consumer" should be remov
 
 **Files**:
 
-- `thoughts/26-04-07-context-menu-research/feature-map.md`
+- `thoughts/26-04-07-context-menu-research/0-b-feature-map.md`
 - `thoughts/26-04-07-context-menu-research/implementation/iteration-3.md`
 
 Update the feature map so it reflects the new ownership boundary:
@@ -380,10 +380,10 @@ Only fix build or lint failures introduced by this work.
 
 ## References
 
-- `thoughts/26-04-07-context-menu-research/impl-review/review-1.md`
+- `thoughts/26-04-07-context-menu-research/impl-review/0-g-review-1.md`
 - `thoughts/26-04-07-context-menu-research/plans/1-split-mobile-and-desktop.plan.md`
 - `thoughts/26-04-07-context-menu-research/plans/2-make-mobile-selection-state-explicit.plan.md`
-- `thoughts/26-04-07-context-menu-research/feature-map.md`
+- `thoughts/26-04-07-context-menu-research/0-b-feature-map.md`
 - `client/ARCHITECTURE.md`
 - `client/STATE_MACHINES.md`
 - `client/src/components/BaseOverlay.jsx`

@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-24 14:19
+last_updated: 2026-04-24 15:36
 ---
 
 .
@@ -34,8 +34,6 @@ last_updated: 2026-04-24 14:19
 │     ├── reconcile
 │     │  └── SKILL.md
 │     ├── research-codebase
-│     │  └── SKILL.md
-│     ├── review-plan
 │     │  └── SKILL.md
 │     ├── simplify-code
 │     │  └── SKILL.md

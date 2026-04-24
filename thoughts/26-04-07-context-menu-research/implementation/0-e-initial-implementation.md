@@ -1,6 +1,9 @@
 ---
-name: Context Menu Implementation Round 1
+name: Context Menu Initial Implementation
 done: 2026-04-18, 529852a7
+implements: plans/0-d-overlay-context-menu.plan.md
+followed_by: implementation/0-f-elaborate-action.md
+reviewed_by: impl-review/0-g-review-1.md
 last_updated: 2026-04-20 20:10
 ---
 # Context Menu Implementation Round 1

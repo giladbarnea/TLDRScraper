@@ -1,7 +1,10 @@
 ---
+name: Overlay Context Menu Plan
 last_updated: 2026-04-20 13:36
-originates_from: research/description.md
-implemented_by: implementation/iteration-1.md
+originates_from: research/0-a-description.md
+implemented_by:
+  - implementation/0-e-initial-implementation.md
+  - implementation/0-f-elaborate-action.md
 ---
 # Finalized Plan: Overlay Context Menu (Zen)
 

@@ -1,6 +1,6 @@
 ---
-last_updated: 2026-04-24 14:18
-originates_from: impl-review/review-1.md
+last_updated: 2026-04-24 18:05
+originates_from: impl-review/0-g-review-1.md
 status: implemented, 6c389c5
 implemented_by: implementation/1-split-mobile-and-desktop.md
 ---
@@ -9,7 +9,7 @@ implemented_by: implementation/1-split-mobile-and-desktop.md
 
 ## Overview
 
-Implement the first item from `impl-review/review-1.md`: split the desktop right-click path and the mobile text-selection path inside the overlay context menu. The goal is a behavior-preserving refactor that reduces timing/race complexity while keeping the public `useOverlayContextMenu` API stable for `ZenModeOverlay`.
+Implement the first item from `impl-review/0-g-review-1.md`: split the desktop right-click path and the mobile text-selection path inside the overlay context menu. The goal is a behavior-preserving refactor that reduces timing/race complexity while keeping the public `useOverlayContextMenu` API stable for `ZenModeOverlay`.
 
 This is intentionally a small first move. It should make later work easier, especially the mobile reducer and eventual Floating UI/BaseUI migration, without changing the visible product behavior in this pass.
 
@@ -449,9 +449,9 @@ Regression checks:
 
 ## References
 
-- `thoughts/26-04-07-context-menu-research/impl-review/review-1.md`
-- `thoughts/26-04-07-context-menu-research/implementation/iteration-1.md`
-- `thoughts/26-04-07-context-menu-research/implementation/iteration-2.md`
+- `thoughts/26-04-07-context-menu-research/impl-review/0-g-review-1.md`
+- `thoughts/26-04-07-context-menu-research/implementation/0-e-initial-implementation.md`
+- `thoughts/26-04-07-context-menu-research/implementation/0-f-elaborate-action.md`
 - `client/src/hooks/useOverlayContextMenu.js`
 - `client/src/components/OverlayContextMenu.jsx`
 - `client/src/components/BaseOverlay.jsx`

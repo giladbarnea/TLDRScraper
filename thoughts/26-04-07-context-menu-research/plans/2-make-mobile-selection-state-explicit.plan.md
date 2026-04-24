@@ -1,12 +1,13 @@
 ---
-last_updated: 2026-04-24 08:03
+last_updated: 2026-04-24 18:05
+originates_from: impl-review/0-g-review-1.md
 ---
 
 # Make Mobile Selection State Explicit Implementation Plan
 
 ## Overview
 
-Implement the second item from `impl-review/review-1.md`: make the mobile native-text-selection path inside the overlay context menu explicit with a reducer.
+Implement the second item from `impl-review/0-g-review-1.md`: make the mobile native-text-selection path inside the overlay context menu explicit with a reducer.
 
 This plan is intentionally the follow-up to `plans/1-split-mobile-and-desktop.plan.md`, which has already separated desktop right-click from mobile selection. This plan replaces the mobile path's remaining listener-local transition state with a small pure reducer so future mobile bugs become transition edits instead of more refs and flags.
 
@@ -618,8 +619,8 @@ Regression checks:
 - `client/src/hooks/useOverlayContextMenu.js`
 - `client/src/reducers/gestureReducer.js`
 - `client/src/reducers/interactionReducer.js`
-- `thoughts/26-04-07-context-menu-research/feature-map.md`
-- `thoughts/26-04-07-context-menu-research/impl-review/review-1.md`
-- `thoughts/26-04-07-context-menu-research/implementation/iteration-1.md`
-- `thoughts/26-04-07-context-menu-research/implementation/iteration-2.md`
+- `thoughts/26-04-07-context-menu-research/0-b-feature-map.md`
+- `thoughts/26-04-07-context-menu-research/impl-review/0-g-review-1.md`
+- `thoughts/26-04-07-context-menu-research/implementation/0-e-initial-implementation.md`
+- `thoughts/26-04-07-context-menu-research/implementation/0-f-elaborate-action.md`
 - `thoughts/26-04-07-context-menu-research/plans/1-split-mobile-and-desktop.plan.md`
