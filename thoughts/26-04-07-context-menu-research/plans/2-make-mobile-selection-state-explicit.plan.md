@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-24 18:05
+last_updated: 2026-04-24 18:14
 originates_from: impl-review/0-g-review-1.md
 ---
 
@@ -543,7 +543,7 @@ Do not manually edit YAML frontmatter timestamps.
 
 #### 2. Add implementation log
 
-**File**: `thoughts/26-04-07-context-menu-research/implementation/iteration-3.md`
+**File**: `thoughts/26-04-07-context-menu-research/implementation/2-make-mobile-selection-state-explicit.md`
 
 Create a short implementation note after the change lands:
 
@@ -563,7 +563,7 @@ Do not turn the implementation note into a second plan.
 - [ ] `cd client && CI=1 npm run lint`
 - [ ] `rg -n "let touchActive|openedBySelectionRef" client/src/hooks/useOverlayContextMenu.js`
   - Expected: no matches.
-- [ ] `rg -n "reduceMobileSelectionMenu|MobileSelectionMenuEventType|MobileSelectionMenuDecisionType" client/src`
+- [ ] `rg -n "reduceMobileSelectionMenu|MobileSelectionMenuEventType|MobileSelectionMenuDecisionType" client/src client/ARCHITECTURE.md client/STATE_MACHINES.md`
   - Expected: reducer module plus hook import/use and docs.
 - [ ] Reducer verification for the transition cases listed in Phase 1.
 - [ ] `rg -n "useOverlayContextMenu\\(" client/src`
