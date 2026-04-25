@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useOverlayContextMenu } from '../hooks/useOverlayContextMenu'
 import BaseOverlay, { overlayProseClassName } from './BaseOverlay'
 import ElaborationPreview from './ElaborationPreview'
-import OverlayContextMenu from './OverlayContextMenu'
 
 const IDLE_ELABORATION = Object.freeze({
   status: 'idle',
@@ -105,6 +104,17 @@ function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, a
     },
   ]
 
+  const overlayMenu = {
+    isOpen: contextMenu.isOpen,
+    anchorX: contextMenu.anchorX,
+    anchorY: contextMenu.anchorY,
+    selectedText: contextMenu.selectedText,
+    menuRef: contextMenu.menuRef,
+    handleContextMenu: contextMenu.handleContextMenu,
+    closeMenu: contextMenu.closeMenu,
+    actions,
+  }
+
   return (
     <>
       <BaseOverlay
@@ -130,20 +140,10 @@ function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, a
         )}
         onClose={onClose}
         onMarkRemoved={onMarkRemoved}
-        onContentContextMenu={contextMenu.handleContextMenu}
+        overlayMenu={overlayMenu}
       >
         <div className={overlayProseClassName} dangerouslySetInnerHTML={{ __html: html }} />
       </BaseOverlay>
-
-      <OverlayContextMenu
-        isOpen={contextMenu.isOpen}
-        anchorX={contextMenu.anchorX}
-        anchorY={contextMenu.anchorY}
-        actions={actions}
-        onClose={contextMenu.closeMenu}
-        menuRef={contextMenu.menuRef}
-        selectedText={contextMenu.selectedText}
-      />
 
       <ElaborationPreview
         isOpen={elaboration.status !== 'idle'}

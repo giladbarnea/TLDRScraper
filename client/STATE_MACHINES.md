@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-24 18:46
+last_updated: 2026-04-25 20:50
 scope: a well defined yet deep view of all the client state machines
 ---
 # Client State Machines
@@ -546,8 +546,9 @@ Client-side only: starts at 10%, increments 5% every 500ms capped at 90%, jumps 
 ZenModeOverlay is now a minimal component that composes `BaseOverlay`, providing only:
 - `headerContent`: Domain favicon + displayDomain + truncated articleMeta, wrapped in a link to the original URL
 - `children`: Prose-styled HTML via `overlayProseClassName`
+- `overlayMenu`: optional menu surface contract built from `useOverlayContextMenu` plus Zen's action list
 
-All gesture handling, scroll progress, body scroll lock, and escape key logic are delegated to `BaseOverlay`.
+All gesture handling, scroll progress, body scroll lock, escape key logic, and menu surface rendering are delegated to `BaseOverlay`.
 
 #### Close Triggers
 
@@ -561,7 +562,7 @@ All gesture handling, scroll progress, body scroll lock, and escape key logic ar
 
 #### Context Menu
 
-ZenModeOverlay wires `useOverlayContextMenu(true)` and renders `<OverlayContextMenu>` as a sibling to `<BaseOverlay>`. The hook's `handleContextMenu` is threaded into `BaseOverlay.onContentContextMenu`. The current action set is a single `Elaborate` action that calls the overlay-owned elaboration request and renders `ElaborationPreview`. See §19.
+ZenModeOverlay wires `useOverlayContextMenu(true)`, defines a single `Elaborate` action, and passes the resulting `overlayMenu` contract to `BaseOverlay`. `BaseOverlay` renders `<OverlayContextMenu>` when that contract is present. The action calls the overlay-owned elaboration request and renders `ElaborationPreview`. See §19.
 
 ---
 
@@ -578,9 +579,9 @@ ZenModeOverlay wires `useOverlayContextMenu(true)` and renders `<OverlayContextM
 DigestOverlay composes `BaseOverlay`, providing only:
 - `headerContent`: BookOpen icon + article count label
 - `children`: Prose-styled HTML (or error message if `errorMessage && !html`)
-- `expanded`: Controls whether BaseOverlay renders
 
 All gesture handling, scroll progress, body scroll lock, and escape key logic are delegated to `BaseOverlay`.
+`App.jsx` mounts `DigestOverlay` only while `digest.expanded` is true, matching the conditional mount lifecycle of `ZenModeOverlay`.
 
 #### Differences from Zen Mode
 
@@ -596,7 +597,7 @@ All gesture handling, scroll progress, body scroll lock, and escape key logic ar
 
 #### Context Menu
 
-DigestOverlay is the intended second consumer of the same overlay-menu primitive, but it does not currently compose `useOverlayContextMenu` or render `<OverlayContextMenu>`. See §19.
+DigestOverlay is the intended second consumer of the same overlay-menu primitive, but it does not currently compose `useOverlayContextMenu` or pass `overlayMenu`. See §19.
 
 ---
 
@@ -727,9 +728,9 @@ Content slides up at 0.4× the offset rate during the gesture.
 
 #### Architecture
 
-BaseOverlay is the shared foundation that eliminates duplication between ZenModeOverlay and DigestOverlay. It handles all common overlay behavior:
+BaseOverlay is the shared foundation that eliminates duplication between ZenModeOverlay and DigestOverlay. If it is mounted, the overlay is open; callers control visibility by mounting/unmounting it. It handles all common overlay behavior:
 
-- **Body scroll lock**: `document.body.style.overflow = 'hidden'` when expanded
+- **Body scroll lock**: `document.body.style.overflow = 'hidden'` while mounted
 - **Escape key**: Calls `onClose()` on Escape keydown **unless `event.defaultPrevented`** — which is the hook-side contract with `useOverlayContextMenu` so the context menu can claim Escape first (§19)
 - **Scroll progress**: Renders progress bar via `useScrollProgress`
 - **Pull-to-close**: Handles pull-down gesture via `usePullToClose` (currently passed `enabled: false` — see `usePullToClose` inline comment and GOTCHAS: the non-passive `touchmove` listener hijacks mobile long-press-to-select)
@@ -737,17 +738,16 @@ BaseOverlay is the shared foundation that eliminates duplication between ZenMode
 - **Header**: Renders ChevronDown (close), `headerContent` slot, Check (mark removed) buttons
 - **Progress bar**: 2px bar at header bottom, scaled by scroll progress
 - **Overscroll zone**: CheckCircle icon that animates as overscroll progresses
-- **Context-menu surface**: Scroll surface is tagged `data-overlay-content` and receives `onContextMenu={onContentContextMenu}`. Both are contracts with `useOverlayContextMenu` (§19).
+- **Context-menu surface**: When `overlayMenu` is present, the scroll surface is tagged `data-overlay-content`, receives `overlayMenu.handleContextMenu`, and `BaseOverlay` renders `OverlayContextMenu` with the provided state/actions. Without `overlayMenu`, the shell has no context-menu participation.
 
 #### Props
 
 | Prop | Type | Description |
 |---|---|---|
-| `expanded` | boolean | Controls whether overlay renders (default: `true`) |
 | `headerContent` | ReactNode | Slot for header middle content (domain info or article count) |
 | `onClose` | () => void | Called on ChevronDown, Escape, or pull-to-close threshold |
 | `onMarkRemoved` | () => void | Called on Check button or overscroll-up threshold |
-| `onContentContextMenu` | (event) => void | Right-click handler on the scroll surface — normally `useOverlayContextMenu().handleContextMenu` |
+| `overlayMenu` | object \| undefined | Optional menu surface contract: menu state, `handleContextMenu`, `closeMenu`, `menuRef`, and wrapper-owned actions |
 | `children` | ReactNode | Content to render in scrollable area |
 
 #### Exports
@@ -759,11 +759,11 @@ BaseOverlay is the shared foundation that eliminates duplication between ZenMode
 
 | Hook | Configuration |
 |---|---|
-| `useScrollProgress` | `(scrollRef, expanded)` |
+| `useScrollProgress` | `(scrollRef)` |
 | `usePullToClose` | `({ containerRef, scrollRef, onClose, enabled: false })` — currently hard-disabled for native text selection |
-| `useOverscrollUp` | `({ scrollRef, onComplete: onMarkRemoved, threshold: 60, enabled: expanded })` |
+| `useOverscrollUp` | `({ scrollRef, onComplete: onMarkRemoved, threshold: 60 })` |
 
-The `useOverlayContextMenu` hook is **not** composed by `BaseOverlay` itself — it's instantiated by each wrapper (ZenModeOverlay / DigestOverlay) and threaded in via `onContentContextMenu`, while the DOM-side contracts (`data-overlay-content`, `defaultPrevented` Escape guard) live here.
+The `useOverlayContextMenu` hook is **not** composed by `BaseOverlay` itself. Wrappers instantiate it and pass an `overlayMenu` contract when they want menu behavior. `BaseOverlay` owns the opted-in DOM surface, the `OverlayContextMenu` render site, and the Escape `defaultPrevented` guard.
 
 ---
 
@@ -844,7 +844,7 @@ Clicking a toast calls `onOpen()` (expands the summary overlay) then dismisses i
 |---|---|
 | **Pattern** | `useState` + synchronously-mirrored `useRef` + three private hooks coordinating document-level event listeners (capture phase). The mobile selection path is driven by a pure reducer (`reduceMobileSelectionMenu`) rather than listener-local flags. |
 | **Files** | `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx`, `reducers/mobileSelectionMenuReducer.js` |
-| **Scope** | Per-overlay instance (currently one per `ZenModeOverlay`; `DigestOverlay` is the intended future second consumer) |
+| **Scope** | Per-overlay hook instance (currently one per `ZenModeOverlay`; `DigestOverlay` is the intended future second consumer) |
 | **Status** | WIP — mobile selection interactions still buggy (pending concrete bug list). Debug instrumentation (`[ctxmenu]` console.logs + `quakeConsole.js` heartbeat) is intentionally left in. |
 
 #### Internal Composition
@@ -890,7 +890,7 @@ Because `source` lives inside `menuState` (not a standalone ref), the right-clic
 
 | Event | Source | Effect |
 |---|---|---|
-| `onContextMenu` on scroll surface | `useDesktopContextMenu` (via `BaseOverlay.onContentContextMenu`, desktop right-click) | `preventDefault`; `openMenu({ source: 'desktop', anchorX: clientX, anchorY: clientY })` |
+| `onContextMenu` on scroll surface | `useDesktopContextMenu` (via `BaseOverlay`'s `overlayMenu` contract, desktop right-click) | `preventDefault`; `openMenu({ source: 'desktop', anchorX: clientX, anchorY: clientY })` |
 | `touchstart` (capture, document) | `useMobileSelectionMenu` | Dispatches `TOUCH_STARTED` into `reduceMobileSelectionMenu`; reducer flips `isTouching=true`. Menu will not open or close mid-touch. |
 | `touchend` (capture, document) | `useMobileSelectionMenu` (mobile finger lift) | Reads current `[data-overlay-content]` selection; dispatches `TOUCH_ENDED { selection }`. Reducer returns `OPEN_MENU` when a selection is present, `NONE` otherwise (preserving the ghost-click guard when the selection collapsed mid-tap). |
 | `selectionchange` (document) | `useMobileSelectionMenu` (mobile selection handles) | Dispatches `SELECTION_OBSERVED` when a non-empty overlay selection exists, else `SELECTION_CLEARED`. Reducer decides: mid-touch → store or hold; idle and open → `CLOSE_MENU`; idle and closed → reposition/open via `OPEN_MENU`. |
@@ -901,10 +901,10 @@ Because `source` lives inside `menuState` (not a standalone ref), the right-clic
 
 #### DOM / Event Contracts (cooperating with BaseOverlay)
 
-1. **`data-overlay-content` marker** — `BaseOverlay` tags its scroll surface. `useMobileSelectionMenu`'s selection reader bails unless the selection's `anchorNode.parentElement.closest('[data-overlay-content]')` matches. Removing the attribute turns every selection on the page into a menu trigger.
+1. **`data-overlay-content` marker** — `BaseOverlay` tags its scroll surface only when `overlayMenu` is present. `useMobileSelectionMenu`'s selection reader bails unless the selection's `anchorNode.parentElement.closest('[data-overlay-content]')` matches. Removing the attribute from an opted-in menu surface disables mobile selection-triggered menus; applying it too broadly turns unrelated selections into menu triggers.
 2. **Escape arbitration via `event.defaultPrevented`** — the hook's Escape handler calls `stopImmediatePropagation()` + `preventDefault()` on the capture phase; `BaseOverlay` returns early if `event.defaultPrevented`. Removing either side causes Escape to close both menu and overlay at once.
 
-Both contracts are commented at the use site (`useOverlayContextMenu.js` top-of-file block comment + `BaseOverlay.jsx` inline comments on the Escape handler and the `data-overlay-content` div).
+Both contracts are commented at the use site (`useOverlayContextMenu.js` top-of-file block comment + `BaseOverlay.jsx` inline comments on Escape and the opted-in menu surface).
 
 #### Positioning
 
@@ -918,7 +918,7 @@ Both contracts are commented at the use site (`useOverlayContextMenu.js` top-of-
 | Consumer | Action | Effect |
 |---|---|---|
 | `ZenModeOverlay` | `Elaborate` | Captures selected text, calls the overlay-owned elaboration request, and opens `ElaborationPreview` |
-| `DigestOverlay` | — | Not wired yet |
+| `DigestOverlay` | — | Not wired yet; it does not pass `overlayMenu` |
 
 #### Mobile selection reducer
 
@@ -1190,9 +1190,9 @@ The context menu isn't a good fit for the matrix because its couplings are **DOM
 
 | Depends on | Direction | How |
 |---|---|---|
-| BaseOverlay | DOM contract | reads selection ancestry via `[data-overlay-content]` |
+| BaseOverlay | DOM contract | owns `[data-overlay-content]` only when `overlayMenu` is present |
 | BaseOverlay | Event-phase contract | capture-phase Escape handler + `defaultPrevented` guard on BaseOverlay's bubble-phase Escape |
-| Zen Mode Overlay | Composition | instantiated in wrapper; handler threaded via `onContentContextMenu`; menu rendered as sibling portal |
+| Zen Mode Overlay | Composition | instantiates hook and passes action-bearing `overlayMenu` into BaseOverlay |
 | Digest Overlay | Intended future composition | same overlay-level menu primitive is meant to be added here, but is not currently wired |
 | Zen Mode Overlay | Indirect via action callbacks | `Elaborate` action → `runElaboration(selectedText)` |
 | Elaboration Preview | Composition | second portal layer owned by `ZenModeOverlay`, opened from the menu action |

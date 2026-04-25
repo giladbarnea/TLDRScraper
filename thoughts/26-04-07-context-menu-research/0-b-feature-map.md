@@ -1,20 +1,20 @@
 ---
 name: Context Menu Feature Map
 originates_from: research/0-a-description.md
-last_updated: 2026-04-20 14:18
+last_updated: 2026-04-25 20:50
 ---
 
 # Context Menu Feature Map
 
 ## Scope
 
-Current feature: a shared overlay context menu in `ZenModeOverlay` that triggers an `Elaborate` action. `DigestOverlay` does not use the menu.
+Current feature: a shared overlay context menu surface contract owned by `BaseOverlay`, consumed only by `ZenModeOverlay`, with one `Elaborate` action. `DigestOverlay` now shares Zen's mount lifecycle but still does not use the menu.
 
 ## Client Flow
 
 1. `ArticleCard` opens `ZenModeOverlay` when summary state is expanded.
-2. `ZenModeOverlay` composes `useOverlayContextMenu(true)`, `BaseOverlay`, `OverlayContextMenu`, and `ElaborationPreview`.
-3. `BaseOverlay` marks the scroll surface with `data-overlay-content` and threads `onContextMenu` into that surface.
+2. `ZenModeOverlay` composes `useOverlayContextMenu(true)`, defines the `Elaborate` action, and passes an `overlayMenu` contract into `BaseOverlay`.
+3. `BaseOverlay` renders `OverlayContextMenu` and opts its scroll surface into the menu contract by adding `data-overlay-content` plus the `onContextMenu` handler when `overlayMenu` is present.
 4. `useOverlayContextMenu` opens the menu on:
    - desktop right-click in the overlay content surface
    - mobile text selection settled inside `[data-overlay-content]`
@@ -25,7 +25,8 @@ Current feature: a shared overlay context menu in `ZenModeOverlay` that triggers
 ## Verified Coupling Points
 
 - `BaseOverlay` → `useOverlayContextMenu`
-  - `data-overlay-content` scopes mobile selection detection.
+  - `overlayMenu` is the explicit opt-in contract for menu surface wiring.
+  - `data-overlay-content` scopes mobile selection detection only when the contract is present.
   - `event.defaultPrevented` in `BaseOverlay` lets the menu claim Escape first.
 - `useOverlayContextMenu` → `BaseOverlay`
   - capture-phase Escape handler calls `preventDefault()` + `stopImmediatePropagation()`.
@@ -42,7 +43,8 @@ Current feature: a shared overlay context menu in `ZenModeOverlay` that triggers
 
 ## Not Coupled
 
-- `DigestOverlay` does not compose `useOverlayContextMenu`.
+- `DigestOverlay` does not compose `useOverlayContextMenu` or pass `overlayMenu`.
+- `DigestOverlay` is mounted only while `digest.expanded` is true, matching `ZenModeOverlay`.
 - Feed cards do not use this menu.
 - No global `contextmenu` interception exists outside overlay content.
 

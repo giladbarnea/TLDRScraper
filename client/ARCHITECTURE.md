@@ -1,7 +1,7 @@
 ---
 name: architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-04-24 18:46
+last_updated: 2026-04-25 20:50
 scope: exhaustively-wide, equally high level view of the entire client architecture.
 ---
 # Client Architecture
@@ -174,15 +174,15 @@ Important behavioral rule:
 
 ## Overlay Context Menu
 
-An overlay-level right-click / selection-triggered action menu intended to be shared by `ZenModeOverlay` and `DigestOverlay`. Today only `ZenModeOverlay` composes it; `DigestOverlay` is the planned second consumer. Implemented as a hook + presentational component pair and integrated through `BaseOverlay`. See [STATE_MACHINES.md](STATE_MACHINES.md#19-overlay-context-menu) for the state machine and event model.
+An overlay-level right-click / selection-triggered action menu intended to be shared by overlay readers. Today only `ZenModeOverlay` composes `useOverlayContextMenu` and passes an `overlayMenu` contract into `BaseOverlay`; `DigestOverlay` is the planned second consumer after `/api/elaborate` supports digest-shaped context. See [STATE_MACHINES.md](STATE_MACHINES.md#19-overlay-context-menu) for the state machine and event model.
 
-**Key modules:** `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx`, `components/BaseOverlay.jsx` (wiring + DOM contract), `reducers/mobileSelectionMenuReducer.js` (mobile selection lifecycle as a pure reducer consumed by `useMobileSelectionMenu`)
+**Key modules:** `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx`, `components/BaseOverlay.jsx` (explicit `overlayMenu` surface contract and render site), `reducers/mobileSelectionMenuReducer.js` (mobile selection lifecycle as a pure reducer consumed by `useMobileSelectionMenu`)
 
 ### Cooperating contracts (important)
 
-The hook has two explicit contracts with `BaseOverlay` that must stay in sync. Both are commented at the point of use; listing them here for discoverability:
+The menu contract is explicit: a wrapper owns a `useOverlayContextMenu` instance plus action definitions, then passes an `overlayMenu` object into `BaseOverlay`. When that contract is present, `BaseOverlay` owns the menu surface wiring and render site.
 
-1. **`data-overlay-content` DOM marker.** `BaseOverlay` tags its scroll/content surface with `data-overlay-content`. The mobile selection→menu path in `useOverlayContextMenu` bails out unless `window.getSelection().anchorNode` is inside a `[data-overlay-content]` subtree. This is what scopes the otherwise-global `selectionchange`/`touchstart`/`touchend` listeners to the overlay's reading surface.
+1. **`data-overlay-content` DOM marker.** `BaseOverlay` tags its scroll/content surface with `data-overlay-content` only when `overlayMenu` is present. The mobile selection→menu path in `useOverlayContextMenu` bails out unless `window.getSelection().anchorNode` is inside a `[data-overlay-content]` subtree. This scopes the otherwise-global `selectionchange`/`touchstart`/`touchend` listeners to the opted-in overlay reading surface.
 2. **Escape arbitration via `event.defaultPrevented`.** When the menu is open, the hook's Escape handler runs in the capture phase and calls `preventDefault() + stopPropagation() + stopImmediatePropagation()`. `BaseOverlay`'s own Escape handler guards with `if (event.defaultPrevented) return`. This two-sided contract is what makes the first Escape close the menu only and the second close the overlay. Remove either side and Escape closes both layers simultaneously.
 
 ### Triggers
@@ -196,7 +196,7 @@ Outside `pointerdown`, Escape key (arbitrated — see above), overlay close/unmo
 
 ### Current actions
 
-`ZenModeOverlay` currently wires a single `Elaborate` action, which opens `ElaborationPreview` for the selected text. `DigestOverlay` does not compose the menu yet, though that remains the intended shape. Desktop positioning anchors top-left at the cursor; mobile positioning anchors top-center under the selection rect (see `clampMenuPosition` in `OverlayContextMenu.jsx`).
+`ZenModeOverlay` currently wires a single `Elaborate` action, which opens `ElaborationPreview` for the selected text. `DigestOverlay` does not pass `overlayMenu` yet, though that remains the intended shape after the elaboration endpoint is generalized. Desktop positioning anchors top-left at the cursor; mobile positioning anchors top-center under the selection rect (see `clampMenuPosition` in `OverlayContextMenu.jsx`).
 
 ### Status / WIP notes
 
@@ -250,16 +250,14 @@ main()
 │                                           │
 │                                           └── ZenModeOverlay (Conditional; short press open depends on interaction reducer)
 │                                               ├── useOverlayContextMenu()
-│                                               ├── OverlayContextMenu (portal, conditional on menu.isOpen)
 │                                               └── BaseOverlay
 │                                                   ├── useScrollProgress()
 │                                                   ├── useOverscrollUp()
 │                                                   ├── usePullToClose() (currently enabled:false — see GOTCHAS)
-│                                                   └── [data-overlay-content] marker on scroll surface
-│                                                       (contract with useOverlayContextMenu)
+│                                                   └── OverlayContextMenu (via overlayMenu contract)
 ```
 
-**Note:** `BaseOverlay` is the shared foundation for both `ZenModeOverlay` and `DigestOverlay`. It handles body scroll lock, escape key (with `defaultPrevented` guard for context-menu arbitration), scroll progress, pull-to-close, and overscroll-up gestures. The overlay wrappers provide only header content, prose-styled children, and `onContentContextMenu` (threaded from `useOverlayContextMenu`). See the "Overlay Context Menu" section above for the DOM/event contracts between the hook and `BaseOverlay`.
+**Note:** `BaseOverlay` is the shared foundation for both `ZenModeOverlay` and `DigestOverlay`. It handles body scroll lock, escape key (with `defaultPrevented` guard for context-menu arbitration), scroll progress, pull-to-close, and overscroll-up gestures. Overlay wrappers provide header content, prose-styled children, lifecycle callbacks, and optionally an `overlayMenu` contract. See the "Overlay Context Menu" section above for the DOM/event contracts between the hook and `BaseOverlay`.
 
 ---
 

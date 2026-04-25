@@ -203,14 +203,15 @@ function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
         </main>
       </div>
 
-      <DigestOverlay
-        html={digest.html}
-        expanded={digest.expanded}
-        articleCount={digest.articleCount}
-        errorMessage={digest.errorMessage}
-        onClose={() => digest.collapse(false)}
-        onMarkRemoved={() => digest.collapse(true)}
-      />
+      {digest.expanded && (
+        <DigestOverlay
+          html={digest.html}
+          articleCount={digest.articleCount}
+          errorMessage={digest.errorMessage}
+          onClose={() => digest.collapse(false)}
+          onMarkRemoved={() => digest.collapse(true)}
+        />
+      )}
 
       <SelectionActionDock
         isSelectMode={isSelectMode}

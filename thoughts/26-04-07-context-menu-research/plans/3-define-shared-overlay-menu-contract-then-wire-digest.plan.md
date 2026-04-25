@@ -1,9 +1,11 @@
 ---
 originates_from: impl-review/0-g-review-1.md
-last_updated: 2026-04-25 15:26
+last_updated: 2026-04-25 20:50
 ---
 
 # Hoist Overlay Menu Surface Contract Into BaseOverlay; Align Digest Mount Lifecycle Implementation Plan
+
+Implemented by: `implementation/3-define-shared-overlay-menu-contract-then-wire-digest.md`
 
 ## Overview
 

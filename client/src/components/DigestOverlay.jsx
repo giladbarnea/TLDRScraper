@@ -1,10 +1,9 @@
 import { BookOpen } from 'lucide-react'
 import BaseOverlay, { overlayProseClassName } from './BaseOverlay'
 
-function DigestOverlay({ html, expanded, articleCount, errorMessage, onClose, onMarkRemoved }) {
+function DigestOverlay({ html, articleCount, errorMessage, onClose, onMarkRemoved }) {
   return (
     <BaseOverlay
-      expanded={expanded}
       headerContent={(
         <div className="flex items-center gap-2">
           <BookOpen size={16} className="text-slate-500" />
