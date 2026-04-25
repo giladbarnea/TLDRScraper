@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-24 18:52
+last_updated: 2026-04-25 14:22
 ---
 
 .
@@ -21,6 +21,9 @@ last_updated: 2026-04-24 18:52
 │     │  ├── references
 │     │  └── SKILL.md
 │     ├── peer-review
+│     │  ├── references
+│     │  │  ├── direct-peer-review-instructions.md
+│     │  │  └── self-peer-review.md
 │     │  └── SKILL.md
 │     ├── plan
 │     │  └── SKILL.md
