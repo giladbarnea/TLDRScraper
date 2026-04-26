@@ -1,6 +1,6 @@
 ---
 originates_from: impl-review/0-g-review-1.md
-last_updated: 2026-04-25 20:50
+last_updated: 2026-04-26 07:07
 ---
 
 # Hoist Overlay Menu Surface Contract Into BaseOverlay; Align Digest Mount Lifecycle Implementation Plan
@@ -9,7 +9,7 @@ Implemented by: `implementation/3-define-shared-overlay-menu-contract-then-wire-
 
 ## Overview
 
-Implement the third item from `impl-review/0-g-review-1.md`: move the overlay-menu surface contract out of the current Zen-only integration shape and align `DigestOverlay`'s mount lifecycle with `ZenModeOverlay`. This plan does **not** wire Digest as a menu consumer; that step is deferred to a separate plan that also generalizes `/api/elaborate` so Digest can inherit Zen's `Elaborate` action without a bespoke action set.
+Implement the third item from `impl-review/0-g-review-1.md`: move the overlay-menu surface contract out of the current Zen-only integration shape and align `DigestOverlay`'s mount lifecycle with `ZenModeOverlay`. This plan does **not** wire Digest as a menu consumer; that step is deferred to `plans/3-b-generalize-elaborate-and-wire-digest.plan.md`, which also generalizes `/api/elaborate` so Digest can inherit Zen's `Elaborate` action without a bespoke action set.
 
 The goal is not to make `BaseOverlay` own the menu state machine. The goal is to make `BaseOverlay` own the menu **surface contract** explicitly, because it already owns the portal shell, the scroll surface, the Escape close path, and the touch-gesture hooks the menu must coexist with.
 
@@ -383,6 +383,7 @@ The single load-bearing behavior for whether the `expanded` deletion was clean:
 - `thoughts/26-04-07-context-menu-research/impl-review/0-g-review-1.md`
 - `thoughts/26-04-07-context-menu-research/plans/1-split-mobile-and-desktop.plan.md`
 - `thoughts/26-04-07-context-menu-research/plans/2-make-mobile-selection-state-explicit.plan.md`
+- `thoughts/26-04-07-context-menu-research/plans/3-b-generalize-elaborate-and-wire-digest.plan.md`
 - `thoughts/26-04-07-context-menu-research/0-b-feature-map.md`
 - `client/ARCHITECTURE.md`
 - `client/STATE_MACHINES.md`
