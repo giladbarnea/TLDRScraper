@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-25 14:22
+last_updated: 2026-04-26 06:22
 ---
 
 .
@@ -10,8 +10,6 @@ last_updated: 2026-04-25 14:22
 │     ├── architecture-sync-since-last-updated
 │     │  └── SKILL.md
 │     ├── catchup
-│     │  └── SKILL.md
-│     ├── co-develop
 │     │  └── SKILL.md
 │     ├── consensus
 │     │  ├── scripts
