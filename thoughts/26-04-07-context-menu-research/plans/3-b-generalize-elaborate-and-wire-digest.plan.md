@@ -1,6 +1,7 @@
 ---
 originates_from: plans/3-define-shared-overlay-menu-contract-then-wire-digest.plan.md
-last_updated: 2026-04-25 20:21
+last_updated: 2026-04-26 12:29
+implemented_by: implementation/3-b-generalize-elaborate-and-wire-digest.md
 ---
 
 # Generalize Elaborate Endpoint And Wire Digest As Menu Consumer Implementation Plan

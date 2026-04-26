@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-25 20:50
+last_updated: 2026-04-26 12:29
 scope: a well defined yet deep view of all the client state machines
 ---
 # Client State Machines
@@ -546,9 +546,9 @@ Client-side only: starts at 10%, increments 5% every 500ms capped at 90%, jumps 
 ZenModeOverlay is now a minimal component that composes `BaseOverlay`, providing only:
 - `headerContent`: Domain favicon + displayDomain + truncated articleMeta, wrapped in a link to the original URL
 - `children`: Prose-styled HTML via `overlayProseClassName`
-- `overlayMenu`: optional menu surface contract built from `useOverlayContextMenu` plus Zen's action list
+- `overlayMenu`: menu surface contract built from `useOverlayContextMenu` plus Zen's action list (single `Elaborate` action whose handler is `runElaboration` from the shared `useElaboration` hook)
 
-All gesture handling, scroll progress, body scroll lock, escape key logic, and menu surface rendering are delegated to `BaseOverlay`.
+It also renders `<ElaborationPreview>` against the shared hook's state (`elaboration.status`, `markdown`, `errorMessage`). All gesture handling, scroll progress, body scroll lock, escape key logic, and menu surface rendering are delegated to `BaseOverlay`. All elaboration state, abort lifecycle, and `/api/elaborate` POST live in `useElaboration`.
 
 #### Close Triggers
 
@@ -562,7 +562,7 @@ All gesture handling, scroll progress, body scroll lock, escape key logic, and m
 
 #### Context Menu
 
-ZenModeOverlay wires `useOverlayContextMenu(true)`, defines a single `Elaborate` action, and passes the resulting `overlayMenu` contract to `BaseOverlay`. `BaseOverlay` renders `<OverlayContextMenu>` when that contract is present. The action calls the overlay-owned elaboration request and renders `ElaborationPreview`. See §19.
+ZenModeOverlay wires `useOverlayContextMenu(true)`, defines a single `Elaborate` action against `runElaboration` from `useElaboration({ sourceMarkdown: summaryMarkdown, articleUrls: [url] })`, and passes the resulting `overlayMenu` contract to `BaseOverlay`. `BaseOverlay` renders `<OverlayContextMenu>` when that contract is present. The action invokes the shared elaboration request hook and Zen renders `ElaborationPreview` against the hook's state. The exact same wiring lives in `DigestOverlay` (see §12 and §19).
 
 ---
 
@@ -576,11 +576,12 @@ ZenModeOverlay wires `useOverlayContextMenu(true)`, defines a single `Elaborate`
 
 #### Architecture
 
-DigestOverlay composes `BaseOverlay`, providing only:
+DigestOverlay composes `BaseOverlay`, providing:
 - `headerContent`: BookOpen icon + article count label
 - `children`: Prose-styled HTML (or error message if `errorMessage && !html`)
+- `overlayMenu`: menu surface contract built from `useOverlayContextMenu` plus a single `Elaborate` action whose handler is `runElaboration` from the shared `useElaboration` hook
 
-All gesture handling, scroll progress, body scroll lock, and escape key logic are delegated to `BaseOverlay`.
+It also renders `<ElaborationPreview>` against the shared hook's state. All gesture handling, scroll progress, body scroll lock, and escape key logic are delegated to `BaseOverlay`. All elaboration state and `/api/elaborate` POST live in `useElaboration`.
 `App.jsx` mounts `DigestOverlay` only while `digest.expanded` is true, matching the conditional mount lifecycle of `ZenModeOverlay`.
 
 #### Differences from Zen Mode
@@ -588,16 +589,17 @@ All gesture handling, scroll progress, body scroll lock, and escape key logic ar
 | Aspect | Zen Mode | Digest Overlay |
 |---|---|---|
 | Content source | Single `article.summary.markdown` | `payload.digest.markdown` (multi-article) |
+| `useElaboration` `articleUrls` | `[url]` (one element) | `data.articleUrls` (N elements) |
 | Zen lock owner | `article.url` | `'digest'` |
 | Header info | Domain + favicon | Article count |
 | Mark removed | Single article | All articles in digest |
 | Close → mark read | `summary.collapse()` → single article | `digest.collapse(false)` → all articles |
 | Check → mark removed | `summary.collapse(false)` + `markAsRemoved()` | `digest.collapse(true)` → all articles |
-| Context menu | currently wired | not yet wired (intended future parity with Zen) |
+| Context menu | wired (single `Elaborate` action) | wired (same `Elaborate` action, undifferentiated) |
 
 #### Context Menu
 
-DigestOverlay is the intended second consumer of the same overlay-menu primitive, but it does not currently compose `useOverlayContextMenu` or pass `overlayMenu`. See §19.
+DigestOverlay wires `useOverlayContextMenu(true)`, instantiates `useElaboration({ sourceMarkdown: markdown, articleUrls })`, defines an `Elaborate` action with the same key/label/icon/trampoline as Zen's, and passes the resulting `overlayMenu` contract to `BaseOverlay`. The duplication of the action definition is deliberate (two callers don't earn an `actionFactory` abstraction yet). See §19.
 
 ---
 
@@ -844,7 +846,7 @@ Clicking a toast calls `onOpen()` (expands the summary overlay) then dismisses i
 |---|---|
 | **Pattern** | `useState` + synchronously-mirrored `useRef` + three private hooks coordinating document-level event listeners (capture phase). The mobile selection path is driven by a pure reducer (`reduceMobileSelectionMenu`) rather than listener-local flags. |
 | **Files** | `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx`, `reducers/mobileSelectionMenuReducer.js` |
-| **Scope** | Per-overlay hook instance (currently one per `ZenModeOverlay`; `DigestOverlay` is the intended future second consumer) |
+| **Scope** | Per-overlay hook instance — one per `ZenModeOverlay`, one per `DigestOverlay` |
 | **Status** | WIP — mobile selection interactions still buggy (pending concrete bug list). Debug instrumentation (`[ctxmenu]` console.logs + `quakeConsole.js` heartbeat) is intentionally left in. |
 
 #### Internal Composition
@@ -917,8 +919,8 @@ Both contracts are commented at the use site (`useOverlayContextMenu.js` top-of-
 
 | Consumer | Action | Effect |
 |---|---|---|
-| `ZenModeOverlay` | `Elaborate` | Captures selected text, calls the overlay-owned elaboration request, and opens `ElaborationPreview` |
-| `DigestOverlay` | — | Not wired yet; it does not pass `overlayMenu` |
+| `ZenModeOverlay` | `Elaborate` | Captures selected text, calls `runElaboration` from `useElaboration({ sourceMarkdown: summaryMarkdown, articleUrls: [url] })`, and opens `ElaborationPreview` |
+| `DigestOverlay` | `Elaborate` | Captures selected text, calls `runElaboration` from `useElaboration({ sourceMarkdown: markdown, articleUrls })`, and opens `ElaborationPreview`. Identical action shape; only the URL list differs (Digest passes N source URLs vs Zen's one) |
 
 #### Mobile selection reducer
 
@@ -991,8 +993,9 @@ The 16 machines form a layered architecture. Understanding the layers explains w
 │                                                                             │
 │  ┌──────────────────┐   ┌──────────────────┐   ┌────────────────────────┐  │
 │  │ Zen Mode Overlay │   │ Digest Overlay   │   │ Toast                  │  │
-│  │   + useOverlay   │   │   (planned menu  │   └────────────────────────┘  │
-│  │   ContextMenu    │   │    consumer)     │                              │
+│  │   + useOverlay   │   │   + useOverlay   │   └────────────────────────┘  │
+│  │   ContextMenu    │   │   ContextMenu    │                              │
+│  │   + useElabor.   │   │   + useElabor.   │                              │
 │  └────────┬─────────┘   └────────┬─────────┘                              │
 │           │                      │                                        │
 │           └──────────┬───────────┘                                        │
@@ -1193,9 +1196,9 @@ The context menu isn't a good fit for the matrix because its couplings are **DOM
 | BaseOverlay | DOM contract | owns `[data-overlay-content]` only when `overlayMenu` is present |
 | BaseOverlay | Event-phase contract | capture-phase Escape handler + `defaultPrevented` guard on BaseOverlay's bubble-phase Escape |
 | Zen Mode Overlay | Composition | instantiates hook and passes action-bearing `overlayMenu` into BaseOverlay |
-| Digest Overlay | Intended future composition | same overlay-level menu primitive is meant to be added here, but is not currently wired |
-| Zen Mode Overlay | Indirect via action callbacks | `Elaborate` action → `runElaboration(selectedText)` |
-| Elaboration Preview | Composition | second portal layer owned by `ZenModeOverlay`, opened from the menu action |
+| Digest Overlay | Composition | instantiates hook and passes action-bearing `overlayMenu` into BaseOverlay (identical wiring to Zen) |
+| useElaboration | Indirect via action callbacks | `Elaborate` action → `runElaboration(selectedText)` (shared hook, used by both wrappers) |
+| Elaboration Preview | Composition | second portal layer rendered by each wrapper against `useElaboration`'s state |
 
 ---
 

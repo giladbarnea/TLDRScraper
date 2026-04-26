@@ -206,6 +206,8 @@ function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
       {digest.expanded && (
         <DigestOverlay
           html={digest.html}
+          markdown={digest.markdown}
+          articleUrls={digest.articleUrls}
           articleCount={digest.articleCount}
           errorMessage={digest.errorMessage}
           onClose={() => digest.collapse(false)}

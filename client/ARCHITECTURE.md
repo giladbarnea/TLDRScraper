@@ -1,7 +1,7 @@
 ---
 name: architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-04-25 20:50
+last_updated: 2026-04-26 12:29
 scope: exhaustively-wide, equally high level view of the entire client architecture.
 ---
 # Client Architecture
@@ -174,9 +174,9 @@ Important behavioral rule:
 
 ## Overlay Context Menu
 
-An overlay-level right-click / selection-triggered action menu intended to be shared by overlay readers. Today only `ZenModeOverlay` composes `useOverlayContextMenu` and passes an `overlayMenu` contract into `BaseOverlay`; `DigestOverlay` is the planned second consumer after `/api/elaborate` supports digest-shaped context. See [STATE_MACHINES.md](STATE_MACHINES.md#19-overlay-context-menu) for the state machine and event model.
+An overlay-level right-click / selection-triggered action menu shared by overlay readers. Both `ZenModeOverlay` and `DigestOverlay` compose `useOverlayContextMenu`, instantiate `useElaboration`, and pass an `overlayMenu` contract into `BaseOverlay`. The two consumers wire structurally-identical `Elaborate` actions; the only difference is the URL-list shape they pass to the hook (Zen: one URL; Digest: the digest's source URL list). See [STATE_MACHINES.md](STATE_MACHINES.md#19-overlay-context-menu) for the state machine and event model.
 
-**Key modules:** `hooks/useOverlayContextMenu.js`, `components/OverlayContextMenu.jsx`, `components/BaseOverlay.jsx` (explicit `overlayMenu` surface contract and render site), `reducers/mobileSelectionMenuReducer.js` (mobile selection lifecycle as a pure reducer consumed by `useMobileSelectionMenu`)
+**Key modules:** `hooks/useOverlayContextMenu.js`, `hooks/useElaboration.js` (shared elaboration state + `AbortController` + POST `/api/elaborate`), `components/OverlayContextMenu.jsx`, `components/BaseOverlay.jsx` (explicit `overlayMenu` surface contract and render site), `components/ElaborationPreview.jsx` (presentational; rendered against the hook's state by each wrapper), `reducers/mobileSelectionMenuReducer.js` (mobile selection lifecycle as a pure reducer consumed by `useMobileSelectionMenu`)
 
 ### Cooperating contracts (important)
 
@@ -196,7 +196,7 @@ Outside `pointerdown`, Escape key (arbitrated — see above), overlay close/unmo
 
 ### Current actions
 
-`ZenModeOverlay` currently wires a single `Elaborate` action, which opens `ElaborationPreview` for the selected text. `DigestOverlay` does not pass `overlayMenu` yet, though that remains the intended shape after the elaboration endpoint is generalized. Desktop positioning anchors top-left at the cursor; mobile positioning anchors top-center under the selection rect (see `clampMenuPosition` in `OverlayContextMenu.jsx`).
+Both `ZenModeOverlay` and `DigestOverlay` wire a single `Elaborate` action with the same key, label, icon, and trampoline (`onSelect: runElaboration`). The action opens `ElaborationPreview` for the selected text. The only difference between the two consumers is the URL list passed to `useElaboration`: Zen sends `[url]`; Digest sends `data.articleUrls`. The backend always scrapes all URLs in parallel and feeds the concatenated bodies to the LLM as `<source-articles>`. Desktop positioning anchors top-left at the cursor; mobile positioning anchors top-center under the selection rect (see `clampMenuPosition` in `OverlayContextMenu.jsx`).
 
 ### Status / WIP notes
 
@@ -250,14 +250,22 @@ main()
 │                                           │
 │                                           └── ZenModeOverlay (Conditional; short press open depends on interaction reducer)
 │                                               ├── useOverlayContextMenu()
+│                                               ├── useElaboration({ sourceMarkdown, articleUrls: [url] })
 │                                               └── BaseOverlay
 │                                                   ├── useScrollProgress()
 │                                                   ├── useOverscrollUp()
 │                                                   ├── usePullToClose() (currently enabled:false — see GOTCHAS)
 │                                                   └── OverlayContextMenu (via overlayMenu contract)
+
+App
+└── DigestOverlay (Conditional; mounted while digest.expanded)
+    ├── useOverlayContextMenu()
+    ├── useElaboration({ sourceMarkdown: markdown, articleUrls })
+    └── BaseOverlay
+        └── OverlayContextMenu (via overlayMenu contract)
 ```
 
-**Note:** `BaseOverlay` is the shared foundation for both `ZenModeOverlay` and `DigestOverlay`. It handles body scroll lock, escape key (with `defaultPrevented` guard for context-menu arbitration), scroll progress, pull-to-close, and overscroll-up gestures. Overlay wrappers provide header content, prose-styled children, lifecycle callbacks, and optionally an `overlayMenu` contract. See the "Overlay Context Menu" section above for the DOM/event contracts between the hook and `BaseOverlay`.
+**Note:** `BaseOverlay` is the shared foundation for both `ZenModeOverlay` and `DigestOverlay`. It handles body scroll lock, escape key (with `defaultPrevented` guard for context-menu arbitration), scroll progress, pull-to-close, and overscroll-up gestures. Overlay wrappers provide header content, prose-styled children, lifecycle callbacks, and optionally an `overlayMenu` contract. Both wrappers also instantiate `useElaboration` and render `ElaborationPreview` against its state. See the "Overlay Context Menu" section above for the DOM/event contracts between the hook and `BaseOverlay`.
 
 ---
 

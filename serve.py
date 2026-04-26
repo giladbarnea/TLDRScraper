@@ -15,7 +15,7 @@ import requests
 import util
 import tldr_app
 import storage_service
-import portfolio_service
+
 import shopping_cart_service
 from summarizer import DEFAULT_MODEL, DEFAULT_THINKING_EFFORT, DEFAULT_ELABORATE_MODEL
 from source_routes import source_bp
@@ -61,13 +61,6 @@ def index():
     static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
     return send_from_directory(static_dist, 'index.html')
 
-
-@app.route("/portfolio")
-@app.route("/portfolio/")
-def portfolio_index():
-    """Serve portfolio app shell."""
-    static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
-    return send_from_directory(static_dist, 'index.html')
 
 
 @app.route("/group-cart")
@@ -151,17 +144,20 @@ def summarize_url_endpoint(model: str = DEFAULT_MODEL):
 
 @app.route("/api/elaborate", methods=["POST"])
 def elaborate_endpoint(model: str = DEFAULT_ELABORATE_MODEL):
-    """Elaborate on a selected portion of a previously-generated summary.
+    """Elaborate on a selected portion of a previously-rendered source (summary or digest).
 
-    Requires 'url', 'selected_text', and 'summary_markdown' in the JSON body. Optional 'model' query param.
+    Requires 'selected_text' (non-empty string), 'source_markdown' (non-empty string), and
+    'article_urls' (non-empty list of strings) in the JSON body. The backend canonicalizes
+    each URL, scrapes all of them in parallel, and feeds the concatenated bodies to the
+    LLM as <source-articles>. Optional 'model' query param.
     """
     try:
         data = request.get_json()
         model_param = request.args.get("model", DEFAULT_ELABORATE_MODEL)
-        result = tldr_app.elaborate_url(
-            data["url"],
-            data["selected_text"],
-            data["summary_markdown"],
+        result = tldr_app.elaborate(
+            data.get("selected_text"),
+            data.get("source_markdown"),
+            data.get("article_urls"),
             model=model_param,
         )
         return jsonify(result)
@@ -325,56 +321,6 @@ def check_storage_is_cached(date):
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
-@app.route("/api/portfolio/transactions", methods=["GET"])
-def list_portfolio_transactions():
-    """List append-only portfolio transactions."""
-    try:
-        transactions = portfolio_service.list_transactions()
-        return jsonify({"success": True, "transactions": transactions})
-    except Exception as error:
-        logger.error(
-            "portfolio transaction list failed error=%s",
-            repr(error),
-            exc_info=True,
-        )
-        return jsonify({"success": False, "error": repr(error)}), 500
-
-
-@app.route("/api/portfolio/transactions", methods=["POST"])
-def append_portfolio_transaction():
-    """Append immutable portfolio transaction."""
-    try:
-        data = request.get_json()
-        transaction = portfolio_service.append_transaction(
-            symbol_id=data["symbol_id"],
-            transaction_amount_dollars=float(data["transaction_amount_dollars"]),
-            shares=float(data["shares"]),
-        )
-        return jsonify({"success": True, "transaction": transaction})
-    except Exception as error:
-        logger.error(
-            "portfolio transaction append failed error=%s",
-            repr(error),
-            exc_info=True,
-        )
-        return jsonify({"success": False, "error": repr(error)}), 500
-
-
-@app.route("/api/portfolio/positions", methods=["GET"])
-def portfolio_positions():
-    """Aggregate portfolio transactions into current symbol positions."""
-    try:
-        transactions = portfolio_service.list_transactions()
-        summarized_positions = portfolio_service.summarize_positions(transactions)
-        positions = portfolio_service.enrich_positions_with_market_data(summarized_positions)
-        return jsonify({"success": True, "positions": positions, "transactions": transactions})
-    except Exception as error:
-        logger.error(
-            "portfolio positions failed error=%s",
-            repr(error),
-            exc_info=True,
-        )
-        return jsonify({"success": False, "error": repr(error)}), 500
 
 @app.route("/api/shopping-cart/items", methods=["GET"])
 def list_shopping_cart_items():

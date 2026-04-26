@@ -1,106 +1,26 @@
 import { Sparkles } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useElaboration } from '../hooks/useElaboration'
 import { useOverlayContextMenu } from '../hooks/useOverlayContextMenu'
 import BaseOverlay, { overlayProseClassName } from './BaseOverlay'
 import ElaborationPreview from './ElaborationPreview'
 
-const IDLE_ELABORATION = Object.freeze({
-  status: 'idle',
-  selectedText: '',
-  markdown: '',
-  errorMessage: '',
-})
-
 function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
   const contextMenu = useOverlayContextMenu(true)
-  const [elaboration, setElaboration] = useState(IDLE_ELABORATION)
-  const abortControllerRef = useRef(null)
+  const { elaboration, runElaboration, closeElaboration } = useElaboration({
+    sourceMarkdown: summaryMarkdown,
+    articleUrls: [url],
+  })
 
   const truncatedMeta = articleMeta && articleMeta.length > 22
     ? `${articleMeta.slice(0, 22)}...`
     : articleMeta
-
-  useEffect(() => {
-    return () => abortControllerRef.current?.abort()
-  }, [])
-
-  function closeElaboration() {
-    abortControllerRef.current?.abort()
-    abortControllerRef.current = null
-    setElaboration(IDLE_ELABORATION)
-  }
-
-  async function runElaboration(selectedText) {
-    abortControllerRef.current?.abort()
-    const controller = new AbortController()
-    abortControllerRef.current = controller
-
-    console.log('[elaborate] starting — text:', selectedText.slice(0, 60))
-    setElaboration({ status: 'loading', selectedText, markdown: '', errorMessage: '' })
-
-    try {
-      console.log('[elaborate] sending POST /api/elaborate')
-      const response = await window.fetch('/api/elaborate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url,
-          selected_text: selectedText,
-          summary_markdown: summaryMarkdown,
-        }),
-        signal: controller.signal,
-      })
-      console.log('[elaborate] response received — status:', response.status, '| aborted:', controller.signal.aborted)
-      const result = await response.json()
-      if (controller.signal.aborted) {
-        console.log('[elaborate] aborted after response — discarding')
-        return
-      }
-
-      if (!response.ok || !result.success) {
-        console.log('[elaborate] error response —', result.error)
-        setElaboration({
-          status: 'error',
-          selectedText,
-          markdown: '',
-          errorMessage: result.error || 'Failed to elaborate.',
-        })
-        return
-      }
-
-      console.log('[elaborate] success — markdown length:', result.elaboration_markdown?.length)
-      setElaboration({
-        status: 'available',
-        selectedText,
-        markdown: result.elaboration_markdown,
-        errorMessage: '',
-      })
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('[elaborate] fetch aborted')
-        return
-      }
-      console.log('[elaborate] fetch error —', error.message)
-      setElaboration({
-        status: 'error',
-        selectedText,
-        markdown: '',
-        errorMessage: error.message || 'Failed to elaborate.',
-      })
-    }
-  }
 
   const actions = [
     {
       key: 'elaborate',
       label: 'Elaborate',
       icon: <Sparkles size={15} />,
-      onSelect: (selectedText) => {
-        const trimmed = selectedText.trim()
-        console.log('[elaborate] onSelect — raw:', JSON.stringify(selectedText.slice(0, 40)), '| trimmed:', JSON.stringify(trimmed.slice(0, 40)))
-        if (!trimmed) return
-        runElaboration(trimmed)
-      },
+      onSelect: runElaboration,
     },
   ]
 

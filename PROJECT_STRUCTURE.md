@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-26 06:22
+last_updated: 2026-04-26 12:22
 ---
 
 .
@@ -120,6 +120,7 @@ last_updated: 2026-04-26 06:22
 │  │  ├── hooks
 │  │  │  ├── useArticleState.js
 │  │  │  ├── useDigest.js
+│  │  │  ├── useElaboration.js
 │  │  │  ├── useFeedLoader.js
 │  │  │  ├── useLocalStorage.js
 │  │  │  ├── useLongPress.js
@@ -146,7 +147,6 @@ last_updated: 2026-04-26 06:22
 │  │  │  ├── toastBus.js
 │  │  │  └── zenLock.js
 │  │  ├── portfolio
-│  │  │  └── PortfolioApp.jsx
 │  │  ├── reducers
 │  │  │  ├── articleLifecycleReducer.js
 │  │  │  ├── gestureReducer.js
@@ -210,8 +210,6 @@ last_updated: 2026-04-26 06:22
 │  │  ├── serve.py
 │  │  └── uv.lock
 │  └── portfolio
-│     ├── portfolio.js
-│     └── portfolio.jsx
 ├── .gitattributes
 ├── .gitignore
 ├── .gitmodules
@@ -225,7 +223,6 @@ last_updated: 2026-04-26 06:22
 ├── newsletter_config.py
 ├── newsletter_merger.py
 ├── newsletter_scraper.py
-├── portfolio_service.py
 ├── pyproject.toml
 ├── README.md
 ├── requirements.txt
@@ -237,6 +234,7 @@ last_updated: 2026-04-26 06:22
 ├── storage_service.py
 ├── summarizer.py
 ├── supabase_client.py
+├── Syncing
 ├── tldr_app.py
 ├── tldr_service.py
 ├── TLDRScraper.code-workspace
