@@ -6,7 +6,7 @@ import { getDailyPayloadsRange } from '../lib/storageApi'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import { mergeIntoCache } from './useSupabaseStorage'
 
-const SESSION_CACHE_TTL_MS = 10 * 60 * 1000
+const SESSION_CACHE_TTL_MS = 30 * 60 * 1000  // 30 minutes
 
 function toIsoDateString(date) {
   return date.toISOString().split('T')[0]
