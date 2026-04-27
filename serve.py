@@ -16,7 +16,7 @@ import util
 import tldr_app
 import storage_service
 import shopping_cart_service
-from summarizer import DEFAULT_MODEL, DEFAULT_SUMMARY_EFFORT
+from summarizer import DEFAULT_MODEL, DEFAULT_THINKING_EFFORT
 from source_routes import source_bp
 
 # Configure Flask to serve React build output
@@ -115,7 +115,7 @@ def summarize_url_endpoint(model: str = DEFAULT_MODEL):
         model_param = request.args.get("model", DEFAULT_MODEL)
         result = tldr_app.summarize_url(
             data.get("url", ""),
-            summarize_effort=data.get("summarize_effort", DEFAULT_SUMMARY_EFFORT),
+            summarize_effort=data.get("summarize_effort", DEFAULT_THINKING_EFFORT),
             model=model_param,
         )
 
