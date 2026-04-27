@@ -26,20 +26,20 @@ _SUMMARY_PROMPT_CACHE = None
 _DIGEST_PROMPT_CACHE = None
 
 SUMMARIZE_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
-DEFAULT_SUMMARY_EFFORT = "low"
+DEFAULT_THINKING_EFFORT = "low"
 DEFAULT_MODEL = "gemini-3.1-pro-preview"
 
 
 def normalize_summarize_effort(value: str) -> str:
     """Normalize summary effort value to a supported option."""
     if not isinstance(value, str):
-        return DEFAULT_SUMMARY_EFFORT
+        return DEFAULT_THINKING_EFFORT
 
     normalized = value.strip().lower()
     if normalized in SUMMARIZE_EFFORT_OPTIONS:
         return normalized
 
-    return DEFAULT_SUMMARY_EFFORT
+    return DEFAULT_THINKING_EFFORT
 
 
 def _is_github_repo_url(url: str) -> bool:
@@ -285,7 +285,7 @@ def url_to_markdown(url: str) -> str:
     return markdown
 
 
-def summarize_url(url: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, model: str = DEFAULT_MODEL) -> str:
+def summarize_url(url: str, summarize_effort: str = DEFAULT_THINKING_EFFORT, model: str = DEFAULT_MODEL) -> str:
     """Get markdown content from URL and create a summary with LLM.
 
     Args:
@@ -301,7 +301,7 @@ def summarize_url(url: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, mode
 
     template = _fetch_summary_prompt()
     prompt = f"{template}\n\n<tldr this>\n{markdown}/n</tldr this>"
-    summary = _call_llm(prompt, summarize_effort=effort, model=model)
+    summary = _call_llm(prompt, thinking_effort=effort, model=model)
 
     return summary
 
@@ -456,7 +456,7 @@ def _map_reasoning_effort_to_thinking_level(summarize_effort: str) -> str:
     return "high"
 
 
-def _call_llm(prompt: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, model: str = DEFAULT_MODEL) -> str:
+def _call_llm(prompt: str, thinking_effort: str = DEFAULT_THINKING_EFFORT, model: str = DEFAULT_MODEL) -> str:
     """Call Gemini API with prompt."""
     api_key = util.resolve_env_var("GEMINI_API_KEY", "")
     if not api_key:
@@ -464,7 +464,7 @@ def _call_llm(prompt: str, summarize_effort: str = DEFAULT_SUMMARY_EFFORT, model
     if not prompt.strip():
         raise ValueError("Prompt is empty")
 
-    thinking_level = _map_reasoning_effort_to_thinking_level(summarize_effort)
+    thinking_level = _map_reasoning_effort_to_thinking_level(thinking_effort)
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     headers = {

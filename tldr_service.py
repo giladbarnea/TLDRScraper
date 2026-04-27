@@ -16,7 +16,7 @@ from newsletter_scraper import (
 import summarizer
 from summarizer import (
     DEFAULT_MODEL,
-    DEFAULT_SUMMARY_EFFORT,
+    DEFAULT_THINKING_EFFORT,
     _fetch_summary_prompt,
     normalize_summarize_effort,
     summarize_url,
@@ -384,7 +384,7 @@ def generate_digest(articles: list[dict], effort: str = "low") -> dict:
     template = summarizer._fetch_digest_prompt()
     prompt = summarizer._build_digest_prompt(template, successful)
 
-    digest_markdown = summarizer._call_llm(prompt, summarize_effort=normalized_effort)
+    digest_markdown = summarizer._call_llm(prompt, thinking_effort=normalized_effort)
 
     included_urls = [article["url"] for article in successful]
     storage_service.set_digest(digest_id, digest_markdown, included_urls, len(successful), normalized_effort)
@@ -405,7 +405,7 @@ def fetch_summary_prompt_template() -> str:
 def summarize_url_content(
     url: str,
     *,
-    summarize_effort: str = DEFAULT_SUMMARY_EFFORT,
+    summarize_effort: str = DEFAULT_THINKING_EFFORT,
     model: str = DEFAULT_MODEL,
 ) -> dict:
     cleaned_url = (url or "").strip()
