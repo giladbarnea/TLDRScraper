@@ -1,7 +1,7 @@
 ---
 name: Context Menu Feature Timeline
 originates_from: research/0-a-description.md
-last_updated: 2026-04-20 14:18
+last_updated: 2026-04-27 21:21, b387f55
 ---
 
 - `0046ac5` `2026-04-08` `docs: finalize overlay context-menu implementation plan`

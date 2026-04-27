@@ -1,13 +1,8 @@
 ---
 name: Context Menu Implementation Review 1
 reviews:
-  - implementation/0-e-initial-implementation.md
-  - implementation/0-f-elaborate-action.md
 leads_to:
-  - plans/1-split-mobile-and-desktop.plan.md
-  - plans/2-make-mobile-selection-state-explicit.plan.md
-  - plans/3-define-shared-overlay-menu-contract-then-wire-digest.plan.md
-last_updated: 2026-04-21 13:57
+last_updated: 2026-04-27 21:21, b387f55
 ---
 
 # Implementation Review 1

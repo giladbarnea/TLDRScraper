@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-24 18:46
+last_updated: 2026-04-27 21:21, b387f55
 originates_from: impl-review/0-g-review-1.md
 implemented_by: implementation/2-make-mobile-selection-state-explicit.md
 ---

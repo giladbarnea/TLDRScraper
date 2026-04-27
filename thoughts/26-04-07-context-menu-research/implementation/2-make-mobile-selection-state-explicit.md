@@ -1,7 +1,7 @@
 ---
 name: Make Mobile Selection State Explicit
 implements: plans/2-make-mobile-selection-state-explicit.plan.md
-last_updated: 2026-04-24 18:46
+last_updated: 2026-04-27 21:21, b387f55
 ---
 
 ## Decisions

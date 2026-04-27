@@ -1,7 +1,7 @@
 ---
 name: Generalize Elaborate Endpoint And Wire Digest As Menu Consumer
 implements: plans/3-b-generalize-elaborate-and-wire-digest.plan.md
-last_updated: 2026-04-26 12:29
+last_updated: 2026-04-27 21:21, b387f55
 ---
 
 # Generalize Elaborate Endpoint And Wire Digest As Menu Consumer

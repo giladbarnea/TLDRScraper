@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-24 18:05
+last_updated: 2026-04-27 21:21, b387f55
 originates_from: impl-review/0-g-review-1.md
 status: implemented, 6c389c5
 implemented_by: implementation/1-split-mobile-and-desktop.md

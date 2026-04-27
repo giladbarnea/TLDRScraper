@@ -1,6 +1,6 @@
 ---
 originates_from: plans/3-define-shared-overlay-menu-contract-then-wire-digest.plan.md
-last_updated: 2026-04-26 12:29
+last_updated: 2026-04-27 21:21, b387f55
 implemented_by: implementation/3-b-generalize-elaborate-and-wire-digest.md
 ---
 

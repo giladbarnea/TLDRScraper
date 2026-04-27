@@ -2,7 +2,7 @@
 name: Split Desktop and Mobile Overlay Menu Paths
 done: 2026-04-23, 6c389c5
 implements: plans/1-split-mobile-and-desktop.plan.md
-last_updated: 2026-04-24 14:18
+last_updated: 2026-04-27 21:21, b387f55
 ---
 
 # Split Desktop and Mobile Overlay Menu Paths
