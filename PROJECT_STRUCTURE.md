@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-26 12:22
+last_updated: 2026-04-27 21:11
 ---
 
 .
@@ -8,7 +8,6 @@ last_updated: 2026-04-26 12:22
 │     ├── architecture-create
 │     │  └── SKILL.md
 │     ├── architecture-sync-since-last-updated
-│     │  └── SKILL.md
 │     ├── catchup
 │     │  └── SKILL.md
 │     ├── consensus
@@ -36,6 +35,7 @@ last_updated: 2026-04-26 12:22
 │     │  └── SKILL.md
 │     ├── research-codebase
 │     │  └── SKILL.md
+│     ├── review-plan
 │     ├── simplify-code
 │     │  └── SKILL.md
 │     ├── supabase-postgres-best-practices
@@ -65,7 +65,6 @@ last_updated: 2026-04-26 12:22
 │  ├── aiwithmike_adapter.py
 │  ├── anthropic_adapter.py
 │  ├── anthropic_news_adapter.py
-│  ├── bytebytego_adapter.py
 │  ├── claude_blog_adapter.py
 │  ├── danluu_adapter.py
 │  ├── deepmind_adapter.py
@@ -146,7 +145,6 @@ last_updated: 2026-04-26 12:22
 │  │  │  ├── storageKeys.js
 │  │  │  ├── toastBus.js
 │  │  │  └── zenLock.js
-│  │  ├── portfolio
 │  │  ├── reducers
 │  │  │  ├── articleLifecycleReducer.js
 │  │  │  ├── gestureReducer.js
@@ -173,7 +171,8 @@ last_updated: 2026-04-26 12:22
 │  ├── create_digests_table.sql
 │  └── create_shopping_cart_entries_table.sql
 ├── hidden_apps
-│  └── portfolio
+│  ├── portfolio
+│  └── __init__.py
 ├── scripts
 │  ├── dev
 │  │  ├── auto-pr-merge.sh
@@ -190,26 +189,25 @@ last_updated: 2026-04-26 12:22
 │     ├── synced_external_subdirs.txt
 │     └── update_frontmatter.py
 ├── vendor
-│  ├── consensus
-│  │  ├── consensus
-│  │  │  ├── __init__.py
-│  │  │  ├── core.py
-│  │  │  └── web.py
-│  │  ├── web
-│  │  │  ├── src
-│  │  │  │  ├── consensus.css
-│  │  │  │  ├── ConsensusApp.jsx
-│  │  │  │  └── main.jsx
-│  │  │  ├── index.html
-│  │  │  ├── package-lock.json
-│  │  │  ├── package.json
-│  │  │  └── vite.config.js
-│  │  ├── .gitignore
-│  │  ├── pyproject.toml
-│  │  ├── README.md
-│  │  ├── serve.py
-│  │  └── uv.lock
-│  └── portfolio
+│  └── consensus
+│     ├── consensus
+│     │  ├── __init__.py
+│     │  ├── core.py
+│     │  └── web.py
+│     ├── web
+│     │  ├── src
+│     │  │  ├── consensus.css
+│     │  │  ├── ConsensusApp.jsx
+│     │  │  └── main.jsx
+│     │  ├── index.html
+│     │  ├── package-lock.json
+│     │  ├── package.json
+│     │  └── vite.config.js
+│     ├── .gitignore
+│     ├── pyproject.toml
+│     ├── README.md
+│     ├── serve.py
+│     └── uv.lock
 ├── .gitattributes
 ├── .gitignore
 ├── .gitmodules
@@ -219,6 +217,7 @@ last_updated: 2026-04-26 12:22
 ├── BUGS.md
 ├── CLAUDE.md
 ├── GOTCHAS.md
+├── Justfile
 ├── litellm_config.yaml
 ├── newsletter_config.py
 ├── newsletter_merger.py
@@ -234,7 +233,6 @@ last_updated: 2026-04-26 12:22
 ├── storage_service.py
 ├── summarizer.py
 ├── supabase_client.py
-├── Syncing
 ├── tldr_app.py
 ├── tldr_service.py
 ├── TLDRScraper.code-workspace
