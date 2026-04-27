@@ -16,7 +16,6 @@ import util
 import tldr_app
 import storage_service
 import shopping_cart_service
-from hidden_apps.portfolio.routes import portfolio_bp
 from summarizer import DEFAULT_MODEL, DEFAULT_SUMMARY_EFFORT
 from source_routes import source_bp
 
@@ -27,7 +26,6 @@ app = Flask(
     static_url_path='/assets'
 )
 app.register_blueprint(source_bp)
-app.register_blueprint(portfolio_bp)
 
 # Configure logging with timestamps and detailed format
 log_format = "%(asctime)s %(levelname)s │ %(name)s %(filename)s:%(lineno)d %(funcName)s │ %(message)s"
@@ -59,14 +57,6 @@ register_consensus_submodule()
 @app.route("/")
 def index():
     """Serve the React app"""
-    static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
-    return send_from_directory(static_dist, 'index.html')
-
-
-@app.route("/portfolio")
-@app.route("/portfolio/")
-def portfolio_index():
-    """Serve portfolio app shell."""
     static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
     return send_from_directory(static_dist, 'index.html')
 
