@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { useOverscrollUp } from '../hooks/useOverscrollUp'
 import { usePullToClose } from '../hooks/usePullToClose'
 import { useScrollProgress } from '../hooks/useScrollProgress'
+import OverlayContextMenu from './OverlayContextMenu'
 
 const OVERLAY_OVERSCROLL_THRESHOLD = 60
 const OVERLAY_CONTENT_SHIFT_FACTOR = 0.4
@@ -11,17 +12,16 @@ const OVERLAY_CONTENT_SHIFT_FACTOR = 0.4
 export const overlayProseClassName = 'prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900 prose-headings:tracking-tight prose-h1:text-2xl prose-h1:font-bold prose-h2:text-xl prose-h2:font-semibold prose-h3:text-lg prose-h3:font-semibold prose-blockquote:border-slate-200 prose-strong:text-slate-900'
 
 function BaseOverlay({
-  expanded = true,
   headerContent,
   onClose,
   onMarkRemoved,
-  onContentContextMenu,
+  overlayMenu,
   children,
 }) {
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
 
-  const { progress, hasScrolled } = useScrollProgress(scrollRef, expanded)
+  const { progress, hasScrolled } = useScrollProgress(scrollRef)
   // usePullToClose attaches a non-passive touchmove listener that calls preventDefault() on every
   // downward drag — on mobile, this hijacks the browser's long-press-to-select and selection-handle
   // gestures, making the overlay slide under the finger mid-gesture. Disabled here for native text selection.
@@ -35,20 +35,15 @@ function BaseOverlay({
     scrollRef,
     onComplete: onMarkRemoved,
     threshold: OVERLAY_OVERSCROLL_THRESHOLD,
-    enabled: expanded,
   })
 
   useEffect(() => {
-    if (!expanded) return
-
     document.body.style.overflow = 'hidden'
 
     function handleEscape(event) {
       if (event.key !== 'Escape') return
-      // CONTRACT with useOverlayContextMenu: when the context menu is open it
-      // calls preventDefault() + stopImmediatePropagation() in the capture
-      // phase. The defaultPrevented guard is the backstop that ensures one
-      // Escape press closes the menu only, not the overlay behind it.
+      // CONTRACT with overlayMenu: the menu claims Escape in capture phase,
+      // and this guard lets that first Escape close only the menu.
       if (event.defaultPrevented) return
 
       onClose()
@@ -60,97 +55,107 @@ function BaseOverlay({
       document.body.style.overflow = ''
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [expanded, onClose])
+  }, [onClose])
 
-  if (!expanded) return null
-
-  return createPortal(
-    <div
-      onClick={(e) => e.stopPropagation()}
-      className="fixed inset-0 z-[100]"
-      style={{
-        transform: `translateY(${pullOffset}px)`,
-        transition: pullOffset === 0 ? 'transform 0.3s ease-out' : 'none',
-      }}
-    >
-      <div ref={containerRef} className="w-full h-full bg-white flex flex-col animate-zen-enter">
+  return (
+    <>
+      {createPortal(
         <div
-          className={`
+          onClick={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-[100]"
+          style={{
+            transform: `translateY(${pullOffset}px)`,
+            transition: pullOffset === 0 ? 'transform 0.3s ease-out' : 'none',
+          }}
+        >
+          <div ref={containerRef} className="w-full h-full bg-white flex flex-col animate-zen-enter">
+            <div
+              className={`
             relative shrink-0 z-10
             flex items-center justify-between px-4 py-3
             transition-all duration-200
             ${hasScrolled ? 'bg-white/80 backdrop-blur-md border-b border-slate-200/60' : 'bg-white'}
           `}
-        >
-          <button
-            onClick={onClose}
-            className="shrink-0 p-2 rounded-full hover:bg-slate-200/80 text-slate-500 hover:text-slate-700 transition-colors"
-          >
-            <ChevronDown size={20} />
-          </button>
+            >
+              <button
+                onClick={onClose}
+                className="shrink-0 p-2 rounded-full hover:bg-slate-200/80 text-slate-500 hover:text-slate-700 transition-colors"
+              >
+                <ChevronDown size={20} />
+              </button>
 
-          {headerContent}
+              {headerContent}
 
-          <button
-            onClick={onMarkRemoved}
-            className="shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
-          >
-            <Check size={20} />
-          </button>
+              <button
+                onClick={onMarkRemoved}
+                className="shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
+              >
+                <Check size={20} />
+              </button>
 
-          <div
-            className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500 origin-left transition-transform duration-100"
-            style={{ transform: `scaleX(${progress})` }}
-          />
-        </div>
+              <div
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500 origin-left transition-transform duration-100"
+                style={{ transform: `scaleX(${progress})` }}
+              />
+            </div>
 
-        {/* CONTRACT with useOverlayContextMenu: the `data-overlay-content`
-            attribute scopes the mobile selection→menu trigger. The hook's
-            document-level listeners bail out unless the selection's anchor
-            is inside a `[data-overlay-content]` subtree, so this attribute
-            must stay on the scrollable content surface (and only there). */}
-        <div
-          ref={scrollRef}
-          onContextMenu={onContentContextMenu}
-          data-overlay-content
-          className="flex-1 overflow-y-auto bg-white"
-        >
-          <div
-            className="px-6 pt-2 pb-5 md:px-8 md:pt-3 md:pb-6"
-            style={{
-              transform: `translateY(-${overscrollOffset * OVERLAY_CONTENT_SHIFT_FACTOR}px)`,
-              transition: isOverscrolling ? 'none' : 'transform 0.2s ease-out',
-            }}
-          >
-            <div className="max-w-3xl mx-auto">{children}</div>
-          </div>
+            {/* overlayMenu fully opts this scroll surface into menu selection handling. */}
+            <div
+              ref={scrollRef}
+              onContextMenu={overlayMenu?.handleContextMenu}
+              data-overlay-content={overlayMenu ? true : undefined}
+              className="flex-1 overflow-y-auto bg-white"
+            >
+              <div
+                className="px-6 pt-2 pb-5 md:px-8 md:pt-3 md:pb-6"
+                style={{
+                  transform: `translateY(-${overscrollOffset * OVERLAY_CONTENT_SHIFT_FACTOR}px)`,
+                  transition: isOverscrolling ? 'none' : 'transform 0.2s ease-out',
+                }}
+              >
+                <div className="max-w-3xl mx-auto">{children}</div>
+              </div>
 
-          <div
-            className={`
+              <div
+                className={`
               flex items-center justify-center py-16 transition-all duration-150
               ${isOverscrolling ? 'opacity-100' : 'opacity-0'}
             `}
-            style={{ transform: `translateY(${isOverscrolling ? 0 : 20}px)` }}
-          >
-            <div
-              className={`
+                style={{ transform: `translateY(${isOverscrolling ? 0 : 20}px)` }}
+              >
+                <div
+                  className={`
                 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-150
                 ${overscrollComplete ? 'bg-green-500 text-white scale-110' : 'bg-slate-100 text-slate-400'}
               `}
-            >
-              <CheckCircle
-                size={24}
-                style={{
-                  opacity: 0.3 + overscrollProgress * 0.7,
-                  transform: `scale(${0.8 + overscrollProgress * 0.2})`,
-                }}
-              />
+                >
+                  <CheckCircle
+                    size={24}
+                    style={{
+                      opacity: 0.3 + overscrollProgress * 0.7,
+                      transform: `scale(${0.8 + overscrollProgress * 0.2})`,
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>,
-    document.body
+        </div>,
+        document.body
+      )}
+
+      {overlayMenu && (
+        <OverlayContextMenu
+          isOpen={overlayMenu.isOpen}
+          anchorX={overlayMenu.anchorX}
+          anchorY={overlayMenu.anchorY}
+          actions={overlayMenu.actions}
+          onClose={overlayMenu.closeMenu}
+          menuRef={overlayMenu.menuRef}
+          selectedText={overlayMenu.selectedText}
+        />
+      )}
+    </>
   )
 }
 

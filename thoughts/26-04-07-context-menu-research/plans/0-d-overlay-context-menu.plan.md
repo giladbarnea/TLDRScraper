@@ -1,19 +1,24 @@
 ---
-last_updated: 2026-04-18 16:38, 21e505e
+name: Overlay Context Menu Plan
+last_updated: 2026-04-20 13:36
+originates_from: research/0-a-description.md
+implemented_by:
+  - implementation/0-e-initial-implementation.md
+  - implementation/0-f-elaborate-action.md
 ---
-# Finalized Plan: Overlay Context Menu (Zen + Digest)
+# Finalized Plan: Overlay Context Menu (Zen)
 
 ## Scope
 
 Implement a shared right-click context menu for overlay reading surfaces only:
 - `ZenModeOverlay` in `client/src/components/ZenModeOverlay.jsx`
-- `DigestOverlay` in `client/src/components/DigestOverlay.jsx`
 
 ### Out of Scope
 - No card/feed-level context menu.
-- No touch long-press custom menu.
+- No touch long-press custom menu on article cards.
 - No changes to lock ownership (`client/src/lib/zenLock.js` behavior stays intact).
 - No changes to pull-to-close / overscroll gesture hooks.
+- Digest overlay (`DigestOverlay.jsx`) is out of scope for this implementation.
 
 ## Current State Analysis
 
@@ -24,7 +29,7 @@ Implement a shared right-click context menu for overlay reading surfaces only:
 
 ## Desired End State
 
-Right-clicking within summary/digest prose opens a project-owned context menu with consistent options and positioning in both overlays. Menu lifecycle remains local to each overlay and closes on outside click, Escape, and overlay close. Existing pull-to-close/overscroll gestures and overlay locking behavior continue unchanged.
+Right-clicking within summary prose opens a project-owned context menu with consistent options and positioning in the Zen overlay. Menu lifecycle remains local to the overlay and closes on outside click, Escape, and overlay close. Existing pull-to-close/overscroll gestures and overlay locking behavior continue unchanged.
 
 ## Implementation Plan
 
@@ -60,14 +65,6 @@ Inside `ZenModeOverlay`:
 - render `OverlayContextMenu`
 - ensure menu state resets on overlay close/unmount.
 
-#### 2. Digest integration
-**File**: `client/src/components/DigestOverlay.jsx`
-
-Mirror the same pattern as Zen:
-- same attach point semantics through `BaseOverlay` (`scrollRef` area)
-- same Escape arbitration behavior
-- same close/unmount cleanup
-
 ### Keep lock and gesture systems untouched
 **Files**:
 - `client/src/hooks/useSummary.js`
@@ -82,13 +79,12 @@ Mirror the same pattern as Zen:
 ## Acceptance Criteria
 
 ### Automated
-- [ ] `cd client && npm run build`
+- [x] `cd client && npm run build`
 
 ### Manual
-- [ ] Right-click in Zen prose opens custom menu at cursor location.
-- [ ] Right-click in Digest prose opens same menu behavior.
+- [x] Right-click in Zen prose opens custom menu at cursor location.
 - [ ] Outside click closes menu.
-- [ ] First Escape closes menu only; subsequent Escape closes overlay.
-- [ ] Text selection/link interaction remains normal.
-- [ ] Pull-to-close and overscroll-up gestures still behave identically to current behavior.
-- [ ] No lock regressions (single overlay open at a time still enforced).
+- [x] First Escape closes menu only; subsequent Escape closes overlay.
+- [x] Text selection/link interaction remains normal.
+- [x] Pull-to-close and overscroll-up gestures still behave identically to current behavior.
+- [x] No lock regressions (single overlay open at a time still enforced).

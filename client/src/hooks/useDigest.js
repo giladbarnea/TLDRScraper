@@ -41,6 +41,7 @@ export function useDigest(results) {
   const data = activePayload?.digest || null
   const status = summaryDataReducer.getSummaryDataStatus(data)
   const markdown = data?.markdown || ''
+  const articleUrls = data?.articleUrls || []
 
   const html = markdownToHtml(markdown)
 
@@ -48,7 +49,7 @@ export function useDigest(results) {
   const isAvailable = status === summaryDataReducer.SummaryDataStatus.AVAILABLE && markdown
   const loading = triggering
   const isError = status === summaryDataReducer.SummaryDataStatus.ERROR
-  const articleCount = data?.articleUrls?.length ?? 0
+  const articleCount = articleUrls.length
 
   const groupDescriptorsByDate = useCallback((articleDescriptors) => {
     const dateByUrl = new Map()
@@ -288,6 +289,8 @@ export function useDigest(results) {
     data,
     status,
     html,
+    markdown,
+    articleUrls,
     errorMessage,
     loading,
     expanded,

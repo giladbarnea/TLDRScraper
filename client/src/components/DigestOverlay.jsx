@@ -1,30 +1,39 @@
-import { BookOpen, Check, ChevronDown } from 'lucide-react'
+import { BookOpen, Sparkles } from 'lucide-react'
+import { useElaboration } from '../hooks/useElaboration'
 import { useOverlayContextMenu } from '../hooks/useOverlayContextMenu'
 import BaseOverlay, { overlayProseClassName } from './BaseOverlay'
-import OverlayContextMenu from './OverlayContextMenu'
+import ElaborationPreview from './ElaborationPreview'
 
-function DigestOverlay({ html, expanded, articleCount, errorMessage, onClose, onMarkRemoved }) {
-  const contextMenu = useOverlayContextMenu(expanded)
+function DigestOverlay({ html, markdown, articleUrls, articleCount, errorMessage, onClose, onMarkRemoved }) {
+  const contextMenu = useOverlayContextMenu(true)
+  const { elaboration, runElaboration, closeElaboration } = useElaboration({
+    sourceMarkdown: markdown,
+    articleUrls,
+  })
+
   const actions = [
     {
-      key: 'close-reader',
-      label: 'Close reader',
-      icon: <ChevronDown size={15} />,
-      onSelect: onClose,
-    },
-    {
-      key: 'mark-done',
-      label: 'Mark done',
-      icon: <Check size={15} />,
-      onSelect: onMarkRemoved,
-      tone: 'success',
+      key: 'elaborate',
+      label: 'Elaborate',
+      icon: <Sparkles size={15} />,
+      onSelect: runElaboration,
     },
   ]
+
+  const overlayMenu = {
+    isOpen: contextMenu.isOpen,
+    anchorX: contextMenu.anchorX,
+    anchorY: contextMenu.anchorY,
+    selectedText: contextMenu.selectedText,
+    menuRef: contextMenu.menuRef,
+    handleContextMenu: contextMenu.handleContextMenu,
+    closeMenu: contextMenu.closeMenu,
+    actions,
+  }
 
   return (
     <>
       <BaseOverlay
-        expanded={expanded}
         headerContent={(
           <div className="flex items-center gap-2">
             <BookOpen size={16} className="text-slate-500" />
@@ -35,7 +44,7 @@ function DigestOverlay({ html, expanded, articleCount, errorMessage, onClose, on
         )}
         onClose={onClose}
         onMarkRemoved={onMarkRemoved}
-        onContentContextMenu={contextMenu.handleContextMenu}
+        overlayMenu={overlayMenu}
       >
         {errorMessage && !html ? (
           <div className="text-sm text-red-500 bg-red-50 p-4 rounded-lg">{errorMessage}</div>
@@ -44,13 +53,13 @@ function DigestOverlay({ html, expanded, articleCount, errorMessage, onClose, on
         )}
       </BaseOverlay>
 
-      <OverlayContextMenu
-        isOpen={contextMenu.isOpen}
-        anchorX={contextMenu.anchorX}
-        anchorY={contextMenu.anchorY}
-        actions={actions}
-        onClose={contextMenu.closeMenu}
-        menuRef={contextMenu.menuRef}
+      <ElaborationPreview
+        isOpen={elaboration.status !== 'idle'}
+        status={elaboration.status}
+        selectedText={elaboration.selectedText}
+        markdown={elaboration.markdown}
+        errorMessage={elaboration.errorMessage}
+        onClose={closeElaboration}
       />
     </>
   )

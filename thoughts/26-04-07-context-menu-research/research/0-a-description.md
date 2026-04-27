@@ -1,13 +1,14 @@
 ---
+name: Context Menu Research
 date: 2026-04-08
-topic: "Custom Context Menu in Zen/Digest Overlays"
+topic: "Custom Context Menu in Zen Overlay"
 status: complete
-last_updated: 2026-04-09 15:10, e8d6966
+last_updated: 2026-04-20 13:36
 ---
-# Research: Custom Context Menu in Zen/Digest Overlays
+# Research: Custom Context Menu in Zen Overlay
 
 ## Executive Summary
-Zen and Digest overlays are rendered as full-screen portals through a shared `BaseOverlay` shell with mobile-first touch gesture hooks. Neither overlay currently handles `onContextMenu`, and there is no global contextmenu interception in `client/src/`. Right-click interactions are therefore left to browser default behavior. For cards, `useLongPress` explicitly ignores non-primary mouse buttons, so right-click does not enter select mode. A custom context menu should be implemented as a shared overlay-level interaction primitive used by both `ZenModeOverlay` and `DigestOverlay`, while preserving existing pull-to-close and overscroll-to-complete touch gestures.
+Zen and Digest overlays are rendered as full-screen portals through a shared `BaseOverlay` shell with mobile-first touch gesture hooks. Neither overlay currently handles `onContextMenu`, and there is no global contextmenu interception in `client/src/`. Right-click interactions are therefore left to browser default behavior. For cards, `useLongPress` explicitly ignores non-primary mouse buttons, so right-click does not enter select mode. A custom context menu should be implemented as a shared overlay-level interaction primitive used by `ZenModeOverlay`, while preserving existing pull-to-close and overscroll-to-complete touch gestures. Digest overlay is considered out of scope for this research path to maintain implementation focus.
 
 ## Detailed Findings
 
@@ -79,7 +80,7 @@ Zen and Digest overlays are rendered as full-screen portals through a shared `Ba
 ## Open Questions / Risks
 - [ ] **Event conflict risk**: Adding pointer/mouse handlers for custom context menu in overlay content may interfere with touch gesture hooks if listeners are attached too high in the DOM tree.
 - [ ] **Selection-in-prose risk**: Custom context menu should avoid blocking text selection and link opening inside rendered prose.
-- [ ] **Consistency risk**: Zen/Digest wrapper behavior can drift around the shared `BaseOverlay`; implementing context menu in only one wrapper still creates behavior mismatch.
+- [ ] **Consistency risk**: Zen/Digest wrapper behavior can drift around the shared `BaseOverlay`; implementing context menu in only one wrapper creates a behavior mismatch, as Digest is currently out of scope.
 - [ ] **Layering risk**: Context menu portal z-index must be above overlay (`z-[100]`) and toast layer (`z-[300]`) if interaction priority requires it.
 
 ## Concrete Integration Points
@@ -87,9 +88,8 @@ Zen and Digest overlays are rendered as full-screen portals through a shared `Ba
    - Tracks anchor position and menu visibility.
    - Handles `onContextMenu` (desktop) and optional long-press fallback inside overlay content area.
    - Closes on outside click, Escape, and overlay close.
-2. Attach the handler to both overlay content roots:
+2. Attach the handler to the Zen overlay content root:
    - Thread it through `ZenModeOverlay` into the shared `BaseOverlay` scroll/content wrapper.
-   - Thread it through `DigestOverlay` into the shared `BaseOverlay` scroll/content wrapper.
 3. Keep lifecycle ownership unchanged:
    - Do **not** alter `client/src/lib/zenLock.js` semantics.
    - Menu visibility should be ephemeral UI state inside each overlay and reset on close.

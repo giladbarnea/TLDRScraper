@@ -225,6 +225,7 @@ function ArticleCard({ article }) {
               <ZenModeOverlay
                 url={fullUrl}
                 html={summary.html}
+                summaryMarkdown={summary.markdown}
                 hostname={hostname}
                 displayDomain={displayDomain}
                 articleMeta={article.articleMeta}

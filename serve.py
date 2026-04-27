@@ -15,8 +15,9 @@ import requests
 import util
 import tldr_app
 import storage_service
+
 import shopping_cart_service
-from summarizer import DEFAULT_MODEL, DEFAULT_THINKING_EFFORT
+from summarizer import DEFAULT_MODEL, DEFAULT_THINKING_EFFORT, DEFAULT_ELABORATE_MODEL
 from source_routes import source_bp
 
 # Configure Flask to serve React build output
@@ -59,6 +60,7 @@ def index():
     """Serve the React app"""
     static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
     return send_from_directory(static_dist, 'index.html')
+
 
 
 @app.route("/group-cart")
@@ -138,6 +140,44 @@ def summarize_url_endpoint(model: str = DEFAULT_MODEL):
             exc_info=True,
         )
         return jsonify({"success": False, "error": repr(e)}), 500
+
+
+@app.route("/api/elaborate", methods=["POST"])
+def elaborate_endpoint(model: str = DEFAULT_ELABORATE_MODEL):
+    """Elaborate on a selected portion of a previously-rendered source (summary or digest).
+
+    Requires 'selected_text' (non-empty string), 'source_markdown' (non-empty string), and
+    'article_urls' (non-empty list of strings) in the JSON body. The backend canonicalizes
+    each URL, scrapes all of them in parallel, and feeds the concatenated bodies to the
+    LLM as <source-articles>. Optional 'model' query param.
+    """
+    try:
+        data = request.get_json()
+        model_param = request.args.get("model", DEFAULT_ELABORATE_MODEL)
+        result = tldr_app.elaborate(
+            data.get("selected_text"),
+            data.get("source_markdown"),
+            data.get("article_urls"),
+            model=model_param,
+        )
+        return jsonify(result)
+
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except requests.RequestException as error:
+        logger.error(
+            "request error error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": f"Network error: {repr(error)}"}), 502
+    except Exception as error:
+        logger.error(
+            "error error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(error)}), 500
 
 
 @app.route("/api/digest", methods=["POST"])
@@ -279,6 +319,7 @@ def check_storage_is_cached(date):
             exc_info=True,
         )
         return jsonify({"success": False, "error": repr(e)}), 500
+
 
 
 @app.route("/api/shopping-cart/items", methods=["GET"])

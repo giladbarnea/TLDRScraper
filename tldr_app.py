@@ -67,3 +67,29 @@ def summarize_url(
     return payload
 
 
+def elaborate(
+    selected_text: str,
+    source_markdown: str,
+    article_urls: list[str],
+    *,
+    model: str,
+) -> dict:
+    """Shape the elaboration response for the HTTP layer.
+
+    `article_urls` must be a non-empty list. Returns `canonical_urls` (plural) in the same
+    order as the input.
+    """
+    result = tldr_service.elaborate_content(
+        selected_text,
+        source_markdown,
+        article_urls,
+        model=model,
+    )
+
+    return {
+        "success": True,
+        "elaboration_markdown": result["elaboration_markdown"],
+        "canonical_urls": result["canonical_urls"],
+    }
+
+

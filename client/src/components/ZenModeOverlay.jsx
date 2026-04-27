@@ -1,28 +1,39 @@
-import { Check, ChevronDown } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
+import { useElaboration } from '../hooks/useElaboration'
 import { useOverlayContextMenu } from '../hooks/useOverlayContextMenu'
 import BaseOverlay, { overlayProseClassName } from './BaseOverlay'
-import OverlayContextMenu from './OverlayContextMenu'
+import ElaborationPreview from './ElaborationPreview'
 
-function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
+function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
   const contextMenu = useOverlayContextMenu(true)
+  const { elaboration, runElaboration, closeElaboration } = useElaboration({
+    sourceMarkdown: summaryMarkdown,
+    articleUrls: [url],
+  })
+
   const truncatedMeta = articleMeta && articleMeta.length > 22
     ? `${articleMeta.slice(0, 22)}...`
     : articleMeta
+
   const actions = [
     {
-      key: 'close-reader',
-      label: 'Close reader',
-      icon: <ChevronDown size={15} />,
-      onSelect: onClose,
-    },
-    {
-      key: 'mark-done',
-      label: 'Mark done',
-      icon: <Check size={15} />,
-      onSelect: onMarkRemoved,
-      tone: 'success',
+      key: 'elaborate',
+      label: 'Elaborate',
+      icon: <Sparkles size={15} />,
+      onSelect: runElaboration,
     },
   ]
+
+  const overlayMenu = {
+    isOpen: contextMenu.isOpen,
+    anchorX: contextMenu.anchorX,
+    anchorY: contextMenu.anchorY,
+    selectedText: contextMenu.selectedText,
+    menuRef: contextMenu.menuRef,
+    handleContextMenu: contextMenu.handleContextMenu,
+    closeMenu: contextMenu.closeMenu,
+    actions,
+  }
 
   return (
     <>
@@ -49,18 +60,18 @@ function ZenModeOverlay({ url, html, hostname, displayDomain, articleMeta, onClo
         )}
         onClose={onClose}
         onMarkRemoved={onMarkRemoved}
-        onContentContextMenu={contextMenu.handleContextMenu}
+        overlayMenu={overlayMenu}
       >
         <div className={overlayProseClassName} dangerouslySetInnerHTML={{ __html: html }} />
       </BaseOverlay>
 
-      <OverlayContextMenu
-        isOpen={contextMenu.isOpen}
-        anchorX={contextMenu.anchorX}
-        anchorY={contextMenu.anchorY}
-        actions={actions}
-        onClose={contextMenu.closeMenu}
-        menuRef={contextMenu.menuRef}
+      <ElaborationPreview
+        isOpen={elaboration.status !== 'idle'}
+        status={elaboration.status}
+        selectedText={elaboration.selectedText}
+        markdown={elaboration.markdown}
+        errorMessage={elaboration.errorMessage}
+        onClose={closeElaboration}
       />
     </>
   )

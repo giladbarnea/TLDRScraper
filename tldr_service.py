@@ -343,6 +343,41 @@ def _fetch_articles_content_parallel(articles: list[dict]) -> tuple[list[dict], 
     return successful, failed
 
 
+def _fetch_article_markdowns_parallel(article_urls: list[str]) -> dict[str, str]:
+    """Fetch markdown for each entry in `article_urls` in parallel; raise if any fail.
+
+    Sibling of `_fetch_articles_content_parallel` for the elaborate path. Elaboration
+    quality depends on having every source-article body, so this helper is intolerant
+    of partial success — a single failed scrape aborts the request rather than silently
+    degrading the prompt.
+    """
+    bodies_by_url: dict[str, str] = {}
+    failures: list[tuple[str, str]] = []
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_url = {
+            executor.submit(summarizer.url_to_markdown, url): url
+            for url in article_urls
+        }
+        for future in as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                bodies_by_url[url] = future.result()
+            except Exception as error:
+                logger.error(
+                    "Failed to fetch article content url=%s error=%s",
+                    url,
+                    repr(error),
+                )
+                failures.append((url, str(error)))
+
+    if failures:
+        formatted = ", ".join(f"{url}: {reason}" for url, reason in failures)
+        raise RuntimeError(f"Failed to fetch article content for: {formatted}")
+
+    return bodies_by_url
+
+
 def generate_digest(articles: list[dict], effort: str = "low") -> dict:
     """Orchestrate multi-article digest: fetch content in parallel, build prompt, call LLM.
 
@@ -433,4 +468,57 @@ def summarize_url_content(
         "summary_markdown": summary_markdown,
         "canonical_url": canonical_url,
         "summarize_effort": normalized_effort,
+    }
+
+
+def elaborate_content(
+    selected_text: str,
+    source_markdown: str,
+    article_urls: list[str],
+    *,
+    model: str,
+) -> dict:
+    """Canonicalize each entry of `article_urls`, scrape them in parallel, and ask the LLM to elaborate on `selected_text`.
+
+    The shape is uniform across consumers: Zen passes a one-element list (the article URL);
+    Digest passes the digest's source URL list. The backend always scrapes all URLs and
+    always builds the same three-section prompt; partial scrape success is rejected.
+    """
+    if not (selected_text or "").strip():
+        raise ValueError("Missing selected_text")
+    if not (source_markdown or "").strip():
+        raise ValueError("Missing source_markdown")
+    if not isinstance(article_urls, list) or not article_urls:
+        raise ValueError("article_urls must be a non-empty list")
+
+    cleaned_urls: list[str] = []
+    for raw_url in article_urls:
+        if not isinstance(raw_url, str) or not raw_url.strip():
+            raise ValueError("article_urls must contain non-empty strings")
+        cleaned_urls.append(raw_url.strip())
+
+    canonical_urls = [util.canonicalize_url(url) for url in cleaned_urls]
+
+    try:
+        bodies_by_url = _fetch_article_markdowns_parallel(canonical_urls)
+    except requests.RequestException as error:
+        logger.error(
+            "request error error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        raise
+
+    article_bodies = [bodies_by_url[url] for url in canonical_urls]
+
+    elaboration_markdown = summarizer.elaborate(
+        selected_text,
+        source_markdown,
+        article_bodies,
+        model=model,
+    )
+
+    return {
+        "elaboration_markdown": elaboration_markdown,
+        "canonical_urls": canonical_urls,
     }

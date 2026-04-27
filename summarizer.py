@@ -28,6 +28,7 @@ _DIGEST_PROMPT_CACHE = None
 SUMMARIZE_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
 DEFAULT_THINKING_EFFORT = "low"
 DEFAULT_MODEL = "gemini-3.1-pro-preview"
+DEFAULT_ELABORATE_MODEL="gemini-3-flash-preview"
 
 
 def normalize_summarize_effort(value: str) -> str:
@@ -304,6 +305,69 @@ def summarize_url(url: str, summarize_effort: str = DEFAULT_THINKING_EFFORT, mod
     summary = _call_llm(prompt, thinking_effort=effort, model=model)
 
     return summary
+
+
+def _build_elaborate_prompt(
+    selected_text: str, source_markdown: str, article_bodies: list[str]
+) -> str:
+    """Construct the Elaborate prompt instructing the LLM to expand on a selected slice of the source.
+
+    `article_bodies` carries one or more underlying article markdowns. When a single body
+    is provided it is inlined directly under <source-articles>; when multiple are provided
+    each body is wrapped in <article index="N">...</article> so the LLM can attribute spans.
+
+    >>> single = _build_elaborate_prompt("sel", "sum", ["body"])
+    >>> '<selected-text-to-elaborate-on>' in single and '<summary>' in single and '<source-articles>' in single
+    True
+    >>> single.index('<selected-text-to-elaborate-on>') < single.index('<summary>') < single.index('<source-articles>')
+    True
+    >>> 'body' in single and '<article ' not in single
+    True
+    >>> multi = _build_elaborate_prompt("sel", "sum", ["body1", "body2"])
+    >>> '<article index="1">' in multi and '<article index="2">' in multi
+    True
+    >>> 'body1' in multi and 'body2' in multi
+    True
+    """
+    if not article_bodies:
+        raise ValueError("article_bodies must be a non-empty list")
+
+    if len(article_bodies) == 1:
+        source_articles_block = article_bodies[0]
+    else:
+        source_articles_block = "\n\n".join(
+            f'<article index="{index}">\n{body}\n</article>'
+            for index, body in enumerate(article_bodies, start=1)
+        )
+
+    return (
+        "The user has read the given summary and has request to understand the selected text better.\n"
+        "Draw from the source articles to provide more depth, in a way which meshes organically with that part's role in the source.\n\n"
+        "Don't be lengthy in your response. Not verbose. Direct, succinct, concise, focused, rich, and just enough content to get the information across.\n\n"
+        f"<selected-text-to-elaborate-on>\n{selected_text}\n</selected-text-to-elaborate-on>\n\n"
+        f"<summary>\n{source_markdown}\n</summary>\n\n"
+        f"<source-articles>\n{source_articles_block}\n</source-articles>\n\n"
+        "---\n\n"
+        "You can think as long as you deem necessary but make sure your user-facing tokens are just the elaboration. "
+        "No pleasantries, introductions, and so on. "
+        "Richly use Markdown syntax to improve the reading experience."
+    )
+
+
+def elaborate(
+    selected_text: str,
+    source_markdown: str,
+    article_bodies: list[str],
+    *,
+    model: str,
+) -> str:
+    """Ask the LLM to elaborate on `selected_text` given the user-facing `source_markdown` and the underlying `article_bodies`.
+
+    The caller is responsible for fetching each article body; this layer only concatenates them
+    into the prompt and runs the model.
+    """
+    prompt = _build_elaborate_prompt(selected_text, source_markdown, article_bodies)
+    return _call_llm(prompt, thinking_effort="high", model=model)
 
 
 def _fetch_prompt(

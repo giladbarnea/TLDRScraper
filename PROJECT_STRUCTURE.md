@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-23 11:53
+last_updated: 2026-04-27 21:11
 ---
 
 .
@@ -8,10 +8,7 @@ last_updated: 2026-04-23 11:53
 │     ├── architecture-create
 │     │  └── SKILL.md
 │     ├── architecture-sync-since-last-updated
-│     │  └── SKILL.md
 │     ├── catchup
-│     │  └── SKILL.md
-│     ├── co-develop
 │     │  └── SKILL.md
 │     ├── consensus
 │     │  ├── scripts
@@ -19,6 +16,11 @@ last_updated: 2026-04-23 11:53
 │     │  └── SKILL.md
 │     ├── impeccable-design
 │     │  ├── references
+│     │  └── SKILL.md
+│     ├── peer-review
+│     │  ├── references
+│     │  │  ├── direct-peer-review-instructions.md
+│     │  │  └── self-peer-review.md
 │     │  └── SKILL.md
 │     ├── plan
 │     │  └── SKILL.md
@@ -34,10 +36,12 @@ last_updated: 2026-04-23 11:53
 │     ├── research-codebase
 │     │  └── SKILL.md
 │     ├── review-plan
-│     │  └── SKILL.md
 │     ├── simplify-code
 │     │  └── SKILL.md
 │     ├── supabase-postgres-best-practices
+│     ├── terse-output
+│     │  ├── metadata.yaml
+│     │  └── SKILL.md
 │     ├── to-done
 │     │  └── SKILL.md
 │     ├── vercel
@@ -61,7 +65,6 @@ last_updated: 2026-04-23 11:53
 │  ├── aiwithmike_adapter.py
 │  ├── anthropic_adapter.py
 │  ├── anthropic_news_adapter.py
-│  ├── bytebytego_adapter.py
 │  ├── claude_blog_adapter.py
 │  ├── danluu_adapter.py
 │  ├── deepmind_adapter.py
@@ -97,6 +100,7 @@ last_updated: 2026-04-23 11:53
 │  │  │  ├── CalendarDay.jsx
 │  │  │  ├── DigestButton.jsx
 │  │  │  ├── DigestOverlay.jsx
+│  │  │  ├── ElaborationPreview.jsx
 │  │  │  ├── Feed.jsx
 │  │  │  ├── FoldableContainer.jsx
 │  │  │  ├── NewsletterDay.jsx
@@ -115,6 +119,7 @@ last_updated: 2026-04-23 11:53
 │  │  ├── hooks
 │  │  │  ├── useArticleState.js
 │  │  │  ├── useDigest.js
+│  │  │  ├── useElaboration.js
 │  │  │  ├── useFeedLoader.js
 │  │  │  ├── useLocalStorage.js
 │  │  │  ├── useLongPress.js
@@ -140,17 +145,17 @@ last_updated: 2026-04-23 11:53
 │  │  │  ├── storageKeys.js
 │  │  │  ├── toastBus.js
 │  │  │  └── zenLock.js
-│  │  ├── portfolio
-│  │  │  └── PortfolioApp.jsx
 │  │  ├── reducers
 │  │  │  ├── articleLifecycleReducer.js
 │  │  │  ├── gestureReducer.js
 │  │  │  ├── interactionReducer.js
+│  │  │  ├── mobileSelectionMenuReducer.js
 │  │  │  └── summaryDataReducer.js
 │  │  ├── App.jsx
 │  │  ├── index.css
 │  │  └── main.jsx
 │  ├── .gitignore
+│  ├── .nvmrc
 │  ├── ARCHITECTURE.md
 │  ├── biome.json
 │  ├── index.html
@@ -165,6 +170,9 @@ last_updated: 2026-04-23 11:53
 ├── db
 │  ├── create_digests_table.sql
 │  └── create_shopping_cart_entries_table.sql
+├── hidden_apps
+│  ├── portfolio
+│  └── __init__.py
 ├── scripts
 │  ├── dev
 │  │  ├── auto-pr-merge.sh
@@ -181,28 +189,25 @@ last_updated: 2026-04-23 11:53
 │     ├── synced_external_subdirs.txt
 │     └── update_frontmatter.py
 ├── vendor
-│  ├── consensus
-│  │  ├── consensus
-│  │  │  ├── __init__.py
-│  │  │  ├── core.py
-│  │  │  └── web.py
-│  │  ├── web
-│  │  │  ├── src
-│  │  │  │  ├── consensus.css
-│  │  │  │  ├── ConsensusApp.jsx
-│  │  │  │  └── main.jsx
-│  │  │  ├── index.html
-│  │  │  ├── package-lock.json
-│  │  │  ├── package.json
-│  │  │  └── vite.config.js
-│  │  ├── .gitignore
-│  │  ├── pyproject.toml
-│  │  ├── README.md
-│  │  ├── serve.py
-│  │  └── uv.lock
-│  └── portfolio
-│     ├── portfolio.js
-│     └── portfolio.jsx
+│  └── consensus
+│     ├── consensus
+│     │  ├── __init__.py
+│     │  ├── core.py
+│     │  └── web.py
+│     ├── web
+│     │  ├── src
+│     │  │  ├── consensus.css
+│     │  │  ├── ConsensusApp.jsx
+│     │  │  └── main.jsx
+│     │  ├── index.html
+│     │  ├── package-lock.json
+│     │  ├── package.json
+│     │  └── vite.config.js
+│     ├── .gitignore
+│     ├── pyproject.toml
+│     ├── README.md
+│     ├── serve.py
+│     └── uv.lock
 ├── .gitattributes
 ├── .gitignore
 ├── .gitmodules
@@ -212,15 +217,16 @@ last_updated: 2026-04-23 11:53
 ├── BUGS.md
 ├── CLAUDE.md
 ├── GOTCHAS.md
+├── Justfile
 ├── litellm_config.yaml
 ├── newsletter_config.py
 ├── newsletter_merger.py
 ├── newsletter_scraper.py
-├── portfolio_service.py
 ├── pyproject.toml
 ├── README.md
 ├── requirements.txt
 ├── serve.py
+├── sessions.yaml
 ├── setup.sh
 ├── shopping_cart_service.py
 ├── source_routes.py
