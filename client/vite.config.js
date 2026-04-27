@@ -32,7 +32,8 @@ export default defineConfig({
       '/consensus': {
         target: 'http://localhost:5001',
         changeOrigin: true
-      }
+      },
+
     }
   },
 
