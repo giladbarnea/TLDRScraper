@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-23 12:49, e3a7a74
+last_updated: 2026-04-27 20:50
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -148,16 +148,32 @@ Load the `prompt-subagent` skill before launching one.
 
 ## Development Rules
 
+<tenets>
+
+### Be Bold, Precise and Minimalistic
+
+1. Fail loud and early.
+2. Complexity is the enemy.
+3. Simplicity is the way to go.
+4. Adding a logical branch is unjustified unless proven otherwise.
+5. No nested `if` statements.
+6. Write declarative, upfront code. The more the source code feels like a high-level configuration rather than an implementation, the better. Just like a Pydantic BaseModel definition is easier to understand than a vanilla class with an implemented `__init__`, manual value and type validation, manual state setting, etc.
+7. No squirmy code. Don’t carry over cascading uncertainty via defensive programming. Be straightforward and explicit.
+
+</tenets>
+
+<principles>
+
 1. Do not abbreviate variable, function or class names. Use complete words. Write clean code.
-2. Write code that fails early and clearly rather than writing fallbacks to "maybe broken" inputs. Zero "Just in case my inputs are corrupted" code. Fallback-rich code is to be avoided because it explodes complexity and often just silently propagates bugs downstream. Good code assumes that its inputs are valid and complete. It trusts upstream code to have completed its job. This ties closely to separation of concerns. And if something important fails, or an assumption is broken, fail early and clearly. Broken code should be discovered early and loudly and fixed quickly; It should not be tolerated nor worked around.
+2. Write code that fails early and clearly rather than writing fallbacks to “maybe broken” inputs. Zero “Just in case my inputs are corrupted” code. Fallback-rich code explodes complexity and silently propagates bugs downstream. Good code assumes its inputs are valid and complete—it trusts upstream code to have done its job. This ties closely to separation of concerns. And if something important fails, or an assumption is broken, fail early and clearly. Broken code should be discovered early and loudly and fixed quickly; It should not be tolerated nor worked around.
 3. Write highly cohesive, decoupled logic.
-4. Early return from functions when possible.
-5. Utilize existing logic when possible. Do not re-implement anything.
-6. Write flat, optimized logical branches. Avoid nested, duplicate-y code. Write DRY and elegant logic.
-7. Prefer `import modulename` and call `modulename.function()` rather than `from modulename import function`. Namespacing is an easy clarity win. `import os.path; os.path.join(...)` is better than `from os.path import join(...)`.
-8. Always use `util.resolve_env_var` to get environment variables.
-9. Add a doctest example to pure-ish functions (data in, data out).
-10. `util.log` when something is going wrong, even if it is recoverable. Be consistent with the existing logging style.
+4. Utilize existing logic when possible. Do not re-implement anything.
+5. Write flat, optimized logical branches. Avoid nested, duplicate-y code. Write DRY and elegant logic.
+6. Prefer `import modulename` and call `modulename.function()` rather than `from modulename import function`.
+7. Add a doctest example to pure-ish functions (data in, data out).
+8. `util.log` when something is going wrong, even if it is recoverable. Be consistent with the existing logging style.
+
+</principles>
 
 <Bad: fallback-rich, squirmy code>
 ```py
@@ -208,47 +224,51 @@ for word in response.words or []:
 ```
 </Good: straightforward, confident, flatter code with fewer logical branches>
 
-<core-engineering-tenets>
-
-### Core Engineering Tenets
-
-1. Avoid increasing complexity without a truly justified reason. Each new line of code or logical branch increases complexity. Complexity is the enemy of the project. In your decision-making, ask yourself how might you **REDUCE complexity** in your solution, rather than just solve the immediate problem ad-hoc. Oftentimes, reducing complexity means **removing code**, which is OK. If done right, removing code is beneficial similarly to how clearing Tetris blocks is beneficial — it simplifies and creates more space.
-2. Prefer declarative code design over imperative approaches. From a variable to an entire system, if it can be declaratively expressed upfront, do so. People understand things better when they can see the full picture instead of having to dive in. Difficulty arises when flow and logic are embedded implicitly in a sprawling implementation.
-3. Avoid over-engineering and excessive abstraction. Abstractions have to be clearly justified. Simplicity and clarity are key.
-4. If you're unsure whether your response is correct, that's completely fine—just let me know of your uncertainty and continue responding. We're a team.
-5. Do not write comments in code, unless they are critical for understanding. Especially, do not write "journaling" comments saying "modified: foo", "added: bar" or "new implementation", as if to leave a modification trail behind.
-6. For simple tasks that could be performed straight away, do not think much. Just do it. For more complex tasks that would benefit from thinking, think deeper, proportionally to the task's complexity. Regardless, always present your final response in a direct and concise manner. No fluff.
-7. Do NOT fix linter errors unless instructed by the user to do so.
-8. Docstrings should be succinct and direct. Should start with 1-2 sentences max of what the function does and its role in its larger calling scope. No need to document arguments and return type: use type annotations for that. Do document if it intentionally raises exceptions.
-
-</core-engineering-tenets>
 </development-rules>
 
 ---
 
-<crucial-important-rules-how-to-approach-a-task>
+<core-engineering-philosophy>
 
-## Crucial Important Rules: How To Approach a Task.
+## Core Engineering Philosophy
+
+1. Avoid increasing complexity without a truly justified reason. Each new line of code or logical branch increases complexity. Complexity is the enemy. In your decision-making, ask yourself how you might **REDUCE complexity**, rather than just solve the immediate problem ad-hoc. Oftentimes, reducing complexity means **REMOVING code**. If done right, removing code is better than writing a solution because it removes the circumstances that give rise to the problem in the first place. It’s like clearing Tetris blocks — it simplifies and creates more space.
+2. Prefer declarative code design over imperative approaches. From a variable to an entire system, if it can be declaratively expressed upfront, do so. Make the full picture visible straight up and avoid requiring readers to dive in. Embedding flow and logic in sprawling implementations creates difficulty.
+3. Avoid overengineering and excessive abstraction. Abstractions have to be clearly justified. Simplicity and clarity are key.
+4. Do not write comments in code unless they are critical for understanding the “why”. Especially, do not write “journaling” comments saying “modified: foo”, “added: bar” or “new implementation”, as if to leave a modification trail.
+5. Do NOT fix linter errors unless instructed to do so.
+6. Docstrings should be succinct and direct. 1–2 sentences max of what the function does and its role in its larger calling scope. No need to document arguments and return type: use type annotations for that. Do document if it intentionally raises exceptions.
+
+</core-engineering-philosophy>
+
+---
+
+## How To Approach a Task
+
+<how-to-approach-a-task>
 
 The following points are close to my heart:
-1. Before starting your task, you must understand how big the affected scope is. Will the change affect the entire stack & flow, from the db architecture to the client logic? Map out the moving parts and coupling instances before thinking and planning. Utilize the appropriate agents for that.
-2. If you are fixing a bug, hypothesize of the root cause before planning your changes.
-3. Plan step-by-step. Account for the moving parts and coupling you found in step (1).
-4. When making changes, be absolutely SURGICAL. Every line of code you add incurs a small debt; this debt compounds over time through maintenance costs, potential bugs, and cognitive load for everyone who must understand it later. Therefore, make only laser-focused changes.
-5. No band-aid fixes. When encountering a problem, first brainstorm what possible root causes may explain it. band-aid fixes are bad because they increase complexity significantly. Root-cause solutions are good because they reduce complexity.
+1. Before starting your task, you must understand all the affected code downstream and all the affecting code upstream. Not only the blast radius, but also whether we’re going to transfer a power plant that a town nearby relies on. Are we going to redirect a water pipe that an adjacent city consumes? How far along the stack does this go? Map out the moving parts and coupling instances before thinking and planning. Use the appropriate agents for that.
+2. If you are fixing a bug, nail down the root cause before thinking of a solution.
+3. When making changes, be absolutely SURGICAL. Every line of code you add incurs a small debt; this debt compounds over time through increased complexity, maintenance, bugs, and cognitive load. Therefore, make only laser-focused changes.
+4. No band-aid fixes. When encountering a problem, first brainstorm what possible root causes may explain it. Band-aid fixes are bad because they increase complexity significantly. Root-cause solutions are good because they reduce complexity.
 
-</crucial-important-rules-how-to-approach-a-task>
+</how-to-approach-a-task>
 
 ---
 
 ## Being an Effective AI Agent
+
 <being-an-effective-ai-agent>
-1. Know your weaknesses: your eagerness to solve a problem can cause tunnel vision. You may fix the issue but unintentionally create code duplication, deviate from the existing design, or introduce a regression in other coupled parts of the project you didn't consider. The solution is to literally look around beyond the immediate fix, be aware of (and account for) coupling around the codebase, integrate with the existing design, and periodically refactor.
+
+1. Know your weaknesses: your eagerness to solve a problem can cause tunnel vision. Avoid tunnel-vision-stemming patterns: Don't fix a problem at the cost of unintentionally breaking something else that was out of your field of view; Don’t deviate from the existing design or from established patterns. The solution is to look around beyond the immediate fix, be aware of (and account for) coupling around the codebase, integrate with the existing design, and periodically refactor.
 2. You do your best work when you can verify yourself. With self-verification, you can and should practice continuous trial and error instead of a single shot in the dark.
+
 </being-an-effective-ai-agent>
 
+---
+
 ## Documentation
-<documentation>
+
 1. YAML frontmatter is automatically updated in CI. Do not manually update it.
-2. CLAUDE.md and PROJECT_STRUCTURE.md are either symlinks or automatically generated.
-</documentation>
+2. CLAUDE.md is a read-only exact copies of AGENTS.md. They are generated automatically in CI. They are read-only for you. Any updates should be made in AGENTS.md and not in these files.
