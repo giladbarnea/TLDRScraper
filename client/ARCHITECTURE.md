@@ -1,7 +1,7 @@
 ---
 name: architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-04-27 21:21, b387f55
+last_updated: 2026-04-27 21:53
 scope: exhaustively-wide, equally high level view of the entire client architecture.
 ---
 # Client Architecture
@@ -196,7 +196,7 @@ Outside `pointerdown`, Escape key (arbitrated — see above), overlay close/unmo
 
 ### Current actions
 
-Both `ZenModeOverlay` and `DigestOverlay` wire a single `Elaborate` action with the same key, label, icon, and trampoline (`onSelect: runElaboration`). The action opens `ElaborationPreview` for the selected text. The only difference between the two consumers is the URL list passed to `useElaboration`: Zen sends `[url]`; Digest sends `data.articleUrls`. The backend always scrapes all URLs in parallel and feeds the concatenated bodies to the LLM as `<source-articles>`. Desktop positioning anchors top-left at the cursor; mobile positioning anchors top-center under the selection rect (see `clampMenuPosition` in `OverlayContextMenu.jsx`).
+Both `ZenModeOverlay` and `DigestOverlay` wire a single `Elaborate` action with the same key, label, icon, and trampoline (`onSelect: runElaboration`). The action opens `ElaborationPreview` for the selected text. The only difference between the two consumers is the URL list passed to `useElaboration`: Zen sends `[url]`; Digest sends `data.articleUrls`. The backend always scrapes all URLs in parallel and feeds the concatenated bodies to the LLM as `<source-articles>`. Positioning now uses Floating UI in `OverlayContextMenu.jsx`: desktop opens from a point virtual reference at the cursor, while mobile selection opens from a range virtual reference copied from the native selection geometry. `inline()`, `offset()`, `flip()`, and `shift()` handle centering and viewport collision.
 
 ### Status / WIP notes
 

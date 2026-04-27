@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-27 21:21, b387f55
+last_updated: 2026-04-27 21:53
 scope: a well defined yet deep view of all the client state machines
 ---
 # Client State Machines
@@ -862,8 +862,16 @@ The split replaces the previous monolithic hook. Desktop right-click and mobile 
 #### State Shape
 
 ```js
-{ isOpen: false, anchorX: 0, anchorY: 0, selectedText: '', source: 'none' }
+{ isOpen: false, positionReference: null, selectedText: '', source: 'none' }
 // source ∈ { 'none', 'desktop', 'mobile-selection' }   (MenuOpenSource)
+// positionReference is null when closed, else:
+// {
+//   kind: 'point' | 'range',
+//   boundingRect,
+//   clientRects,
+//   placement,
+//   offsetPx,
+// }
 // plus two refs:
 menuRef                  // attached to the portal's root div; used for "click inside menu" test
 menuStateRef             // mirrors menuState so capture-phase document listeners can read the
@@ -892,7 +900,7 @@ Because `source` lives inside `menuState` (not a standalone ref), the right-clic
 
 | Event | Source | Effect |
 |---|---|---|
-| `onContextMenu` on scroll surface | `useDesktopContextMenu` (via `BaseOverlay`'s `overlayMenu` contract, desktop right-click) | `preventDefault`; `openMenu({ source: 'desktop', anchorX: clientX, anchorY: clientY })` |
+| `onContextMenu` on scroll surface | `useDesktopContextMenu` (via `BaseOverlay`'s `overlayMenu` contract, desktop right-click) | `preventDefault`; `openMenu({ source: 'desktop', positionReference: createPointPositionReference(clientX, clientY) })` |
 | `touchstart` (capture, document) | `useMobileSelectionMenu` | Dispatches `TOUCH_STARTED` into `reduceMobileSelectionMenu`; reducer flips `isTouching=true`. Menu will not open or close mid-touch. |
 | `touchend` (capture, document) | `useMobileSelectionMenu` (mobile finger lift) | Reads current `[data-overlay-content]` selection; dispatches `TOUCH_ENDED { selection }`. Reducer returns `OPEN_MENU` when a selection is present, `NONE` otherwise (preserving the ghost-click guard when the selection collapsed mid-tap). |
 | `selectionchange` (document) | `useMobileSelectionMenu` (mobile selection handles) | Dispatches `SELECTION_OBSERVED` when a non-empty overlay selection exists, else `SELECTION_CLEARED`. Reducer decides: mid-touch → store or hold; idle and open → `CLOSE_MENU`; idle and closed → reposition/open via `OPEN_MENU`. |
@@ -910,10 +918,19 @@ Both contracts are commented at the use site (`useOverlayContextMenu.js` top-of-
 
 #### Positioning
 
-`clampMenuPosition(anchorX, anchorY, actionCount)` in `OverlayContextMenu.jsx`:
-- `left = max(gap, min(anchorX, maxLeft))` — anchor is **top-left** of the menu (cursor-anchored).
-- `top = max(gap, min(anchorY, maxTop))`.
-- Mobile selection path compensates by pre-centering `anchorX = rect.left + rect.width/2` in the hook. This means the menu is *left-aligned at the selection's horizontal center* — a nuance that is worth revisiting when picking between codex and worktree-clean positioning philosophies (worktree-clean subtracts `MENU_WIDTH_PX/2` from `anchorX` inside `clampMenuPosition` to center the menu under the cursor/selection).
+`OverlayContextMenu.jsx` now uses Floating UI for positioning only.
+
+- Desktop right-click opens from a **point virtual reference** created at the cursor.
+- Mobile native text selection opens from a **range virtual reference** copied from `Range.getBoundingClientRect()` and `Range.getClientRects()` while the selection is still valid.
+- `strategy: 'fixed'` matches the portaled fixed menu.
+- `transform: false` avoids conflicting with the menu entrance animation, which already uses CSS transforms.
+- Middleware order is:
+  - `inline()` for range references only, so multi-line selections position against the actual inline range geometry.
+  - `offset(positionReference.offsetPx)`.
+  - `flip()`.
+  - `shift({ padding: MENU_EDGE_GAP_PX })`.
+
+This removes the old project-owned viewport clamp math. Desktop remains cursor-anchored; mobile selection is now genuinely centered under the selected range instead of left-aligned at a pre-centered X coordinate.
 
 #### Actions (current set)
 
@@ -930,7 +947,7 @@ State shape:
 
 ```js
 { isTouching: false, isOpen: false, selection: null }
-// selection, when non-null, is { anchorX, anchorY, selectedText } produced by readOverlaySelection()
+// selection, when non-null, is { selectedText, positionReference } produced by readOverlaySelection()
 ```
 
 Events:
@@ -975,7 +992,7 @@ All tied to iOS / Android native selection UI; handled with care because the hoo
 - Long-hold still vs. long-hold + drag vs. dragging selection handles to extend.
 - Tapping the already-selected range (usually collapses and may collide with `handlePointerDown`'s `getSelection().removeAllRanges()`).
 - Tapping a menu button while prose is still selected — `touchend` fires before `click`. The reducer's `TOUCH_ENDED` transition returns `NONE` when the selection has collapsed mid-tap, so the menu does not re-open in the gap before the action's `handleActionClick` runs. The captured `selectedText` on menu state is what the action uses anyway, so this is robust even if the live selection is empty by click time.
-- Selections that start or end outside the viewport (`range.getBoundingClientRect()` may report off-screen coordinates; `clampMenuPosition` clamps but the anchor can feel disconnected).
+- Selections that start or end outside the viewport (`range.getBoundingClientRect()` / `getClientRects()` may report partially off-screen geometry; Floating UI keeps the menu visible via `flip()` / `shift()`, but the visual attachment can still feel imperfect near viewport edges).
 
 These are instrumented (the `[ctxmenu]` logs in every branch) pending a concrete bug report.
 
