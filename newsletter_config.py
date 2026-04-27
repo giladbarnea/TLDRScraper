@@ -243,17 +243,6 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"blog": "Hillel Wayne"},
         sort_order=3,  # 0.5/week - rare, bursty
     ),
-    "bytebytego": NewsletterSourceConfig(
-        source_id="bytebytego",
-        display_name="ByteByteGo",
-        base_url="https://blog.bytebytego.com",
-        url_pattern="",
-        types=["newsletter"],
-        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
-        article_pattern="",
-        category_display_names={"newsletter": "ByteByteGo"},
-        sort_order=13,  # 4.8/week - consistent
-    ),
     "martin_fowler": NewsletterSourceConfig(
         source_id="martin_fowler",
         display_name="Martin Fowler",
