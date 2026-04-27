@@ -1,11 +1,10 @@
 ---
-last_updated: 2026-04-27 12:43
+last_updated: 2026-04-27 20:51
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
 
 ## Project overview
-
 <project-overview>
 
 Newsletter aggregator that scrapes tech newsletters from multiple sources, displays them in a unified interface, and provides AI-powered summaries.
@@ -23,7 +22,6 @@ Study [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions 
 </project-overview>
 
 ## Environment
-
 <environment>
 
 *Note*: The `./setup.sh` command is mentioned multiple times in this document with different described effects. This is intentional: sourcing it triggers a chain of idempotent setup operations.
@@ -54,42 +52,19 @@ This is true both for local and production environments.
 
 </environment>
 
-## Agentic Ecosystem
-
-<agentic-ecosystem>
-
-Powerful tools are available to you out of the box.
-- `.claude/skills/` contains pre-packaged abilities.
-- `.claude/agents/` contains ready-to-fire specialized agents for various use cases.
-Be aware of what each of these directories have to offer.
-Note: if you are Codex, then you might have your own `.codex/{skills/agents}` (same content) for more organic invocation.
-
-</agentic-ecosystem>
-
 ## Context Gathering
-
 <context-gathering>
 
-This is a crucial step: run the `/catchup` skill (`.claude/skills/catchup/SKILL.md`) right after `./setup.sh` is finished.
+Run the `/catchup` skill right after `./setup.sh` is finished.
 
 </context-gathering>
 
 ## Development & Setup
-
 <development-and-setup>
 
-### Running the server in a background process
-
 ```bash
-# Install dependencies, build client, generate docs and and verify the environment.
+# Install dependencies and tooling, build client, generate docs and verify the environment.
 ./setup.sh
-
-BackgroundShell("uv run serve.py")  # Or improvise equivalent async shell functionality if you don't have the built in tool
-
-# Exercise the API with curl requests.
-curl http://localhost:5001/api/scrape
-curl http://localhost:5001/api/summarize-url
-curl ...additional endpoints that may be relevant...
 ```
 
 ### Frontend development
@@ -102,29 +77,18 @@ builtin cd client && CI=1 npm run dev
 
 This runs Vite dev server on port 3000 with API proxy to localhost:5001.
 
-### `uv` installation and usage
-
-- Install `uv`:
-```bash
-./setup.sh
-```
+### `uv` usage
 
 Never run Python directly. Always use `uv` to run Python.
 Do: `uv run python3 ...`. Do not: `python3 ...`.
 Do: `uv run --with=dep1 python3 ...`. Do not: `pip install ...`.
 
 - Use Python via `uv` for quick testing:
+
 ```bash
-uv run python3 - <<'PY'
+uv run [--with=foo,bar] python3 - <<'PY'
 import json, sys
 print("hello from uv python")
-PY
-```
-- `uv` can transiently install dependencies if you need or consider integrating any:
-```bash
-uv run --with=dep1,dep2,dep3 python3 - <<'PY'
-import dep1, dep2, dep3, os
-dep1.do(os.environ["MY_API_KEY"])
 PY
 ```
 
@@ -145,21 +109,19 @@ Run `./setup.sh` to verify the environment and dependencies are set up correctly
 </practical-guidance>
 
 ## Using (Sub-)Agents
-
 <using-sub-agents>
-
-Make note of the multiple available agents (`.claude/agents/**/*.md`) and use them as they describe in their frontmatter.
+Make note of the multiple agents available to you and use them as they advertise in their frontmatter.
 
 Dispatch an agent whenever you need to either:
-a) explore a particular system or a major domain within the codebase (`codebase-analyzer:single-subsystem`); or
+a) explore a particular system or a major domain within the codebase that is NOT the main focus of the session (`codebase-analyzer:single-subsystem`); or
 b) explore multiple systems or domains up to and including the entire codebase (`codebase-analyzer:multiple-subsystems`); or
-c) find where a feature or functionality is used or implemented (`codebase-locator`).
+c) find where all the code related to a feature or a domain (`codebase-locator`).
 
 Delegating exploration and research tasks to agents leads to improved results and is context-efficient. It keeps the main conversation's context window from ballooning and your mind clear of noise.
 
-**A few goto agents:**
-- `codebase-locator` to find *where* something is in the codebase.
-- `codebase-analyzer:single-subsystem` to get a deep report on *how* a particular system or domain works.
+**A few go-to agents:**
+- `codebase-locator` to find *where* is all the code about X in the codebase.
+- `codebase-analyzer:single-subsystem` to get a deep report on *how* a particular system or domain works. Useful when you need to _understand_ a domain with no intent to modify it.
 - `codebase-analyzer:multiple-subsystems` when you need in-depth research across *multiple systems* and domains, plus an excellent *synthesis* of their connected flows, how they're coupled, and so on.
 
 #### Common agent-driven workflows
@@ -169,15 +131,14 @@ Delegating exploration and research tasks to agents leads to improved results an
   → codebase-analyzer:multiple-subsystems("Investigate {list of contexts}")
 
 2) **Wide understanding of an entire codebase or any arbitrarily large scope:**
-  codebase-analyzer:multiple-subsystems("Investigate the {large scope}")    // Handles any compound set of domains, no matter how large or complex, by automatically creating as many `single-subsystem` agents as the scope requires.
+  codebase-analyzer:multiple-subsystems("Investigate the {large, complex scope}")    // Handles any compound set of domains, no matter how large or complex, by automatically creating as many `single-subsystem` agents as the scope requires.
 
 3) **Deep understanding of a particular system or domain:**
-  codebase-analyzer:single-subsystem("Investigate the {system or domain}")    // Deep, narrow and thorough exploration of a system or domain.
+  codebase-analyzer:single-subsystem("I need to understand {system or domain}")    // Deep, narrow and thorough exploration of a system or domain.
 
 #### How to prompt an agent
 
-Be generous in giving the agent wider context—understanding *why* it's performing the task will boost its performance. Don't micromanage nor over-instruct it. The agent already has a highly detailed system prompt. It is also highly intelligent, just like you, and is able to navigate around uncertainties well. Avoid prescribing instructions or giving it "how-to" examples; Avoid prescribing it which files or symbols to look at; just declare what kind of *understanding* you're seeking.
-Sharing only why it's been dispatched, and what you hope to achieve by the time the agent completes its task directly frees it up to find the best way to achieve *your* goal.
+Load the `prompt-subagent` skill before launching one.
 
 </using-sub-agents>
 
@@ -210,6 +171,7 @@ Sharing only why it's been dispatched, and what you hope to achieve by the time 
 5. Write flat, optimized logical branches. Avoid nested, duplicate-y code. Write DRY and elegant logic.
 6. Prefer `import modulename` and call `modulename.function()` rather than `from modulename import function`.
 7. Add a doctest example to pure-ish functions (data in, data out).
+8. `util.log` when something is going wrong, even if it is recoverable. Be consistent with the existing logging style.
 
 </principles>
 
@@ -308,9 +270,5 @@ The following points are close to my heart:
 
 ## Documentation
 
-<documentation>
-
 1. YAML frontmatter is automatically updated in CI. Do not manually update it.
 2. CLAUDE.md is a read-only exact copies of AGENTS.md. They are generated automatically in CI. They are read-only for you. Any updates should be made in AGENTS.md and not in these files.
-
-</documentation>
