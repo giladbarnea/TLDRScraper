@@ -1,24 +1,50 @@
-import { useEffect, useRef } from 'react'
+import { autoUpdate, flip, inline, offset, shift, useFloating } from '@floating-ui/react-dom'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
-const MENU_WIDTH_PX = 184
 const MENU_EDGE_GAP_PX = 8
-const MENU_VERTICAL_PADDING_PX = 12
-const MENU_ITEM_HEIGHT_PX = 44
 
-function clampMenuPosition(anchorX, anchorY, actionCount) {
-  const menuHeight = actionCount * MENU_ITEM_HEIGHT_PX + MENU_VERTICAL_PADDING_PX
-  const maxLeft = window.innerWidth - MENU_WIDTH_PX - MENU_EDGE_GAP_PX
-  const maxTop = window.innerHeight - menuHeight - MENU_EDGE_GAP_PX
-
+function createVirtualReference(positionReference) {
   return {
-    left: Math.max(MENU_EDGE_GAP_PX, Math.min(anchorX, maxLeft)),
-    top: Math.max(MENU_EDGE_GAP_PX, Math.min(anchorY, maxTop)),
+    getBoundingClientRect: () => positionReference.boundingRect,
+    getClientRects: () => positionReference.clientRects,
   }
 }
 
-function OverlayContextMenu({ isOpen, anchorX, anchorY, actions, onClose, menuRef, selectedText }) {
+function OverlayContextMenu({ isOpen, positionReference, actions, onClose, menuRef, selectedText }) {
   const firstActionRef = useRef(null)
+
+  const middleware = useMemo(() => {
+    const list = []
+    if (positionReference?.kind === 'range') list.push(inline())
+    list.push(offset(positionReference?.offsetPx ?? 0))
+    list.push(flip())
+    list.push(shift({ padding: MENU_EDGE_GAP_PX }))
+    return list
+  }, [positionReference?.kind, positionReference?.offsetPx])
+
+  const { refs: floatingRefs, floatingStyles, isPositioned } = useFloating({
+    open: isOpen,
+    placement: positionReference?.placement ?? 'bottom-start',
+    strategy: 'fixed',
+    transform: false,
+    whileElementsMounted: autoUpdate,
+    middleware,
+  })
+
+  const virtualReference = useMemo(
+    () => positionReference ? createVirtualReference(positionReference) : null,
+    [positionReference]
+  )
+
+  useEffect(() => {
+    floatingRefs.setReference(virtualReference)
+  }, [floatingRefs, virtualReference])
+
+  const setMenuNode = useCallback((node) => {
+    menuRef.current = node
+    floatingRefs.setFloating(node)
+  }, [menuRef, floatingRefs])
 
   useEffect(() => {
     if (!isOpen) return
@@ -28,14 +54,9 @@ function OverlayContextMenu({ isOpen, anchorX, anchorY, actions, onClose, menuRe
 
   if (!isOpen) return null
 
-  const position = clampMenuPosition(anchorX, anchorY, actions.length)
-
   function handleActionClick(action) {
     if (action.disabled) return
 
-    // Prefer the text captured at menu-open time; fall back to live selection.
-    // On mobile, touchstart may collapse the selection before click fires,
-    // so live getSelection() can return '' by the time this runs.
     const text = selectedText || window.getSelection()?.toString() || ''
     console.log('[ctxmenu] action click — key:', action.key, '| text:', text.slice(0, 40), '| live:', window.getSelection()?.toString()?.slice(0, 40))
     window.getSelection()?.removeAllRanges()
@@ -45,13 +66,13 @@ function OverlayContextMenu({ isOpen, anchorX, anchorY, actions, onClose, menuRe
 
   return createPortal(
     <div
-      ref={menuRef}
+      ref={setMenuNode}
       role="menu"
       aria-label="Reading actions"
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(event) => event.preventDefault()}
       className="fixed z-[150] w-[184px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-1.5 text-slate-700 shadow-elevated backdrop-blur-xl motion-safe:animate-overlay-menu-enter"
-      style={{ left: position.left, top: position.top }}
+      style={{ ...floatingStyles, visibility: isPositioned ? 'visible' : 'hidden' }}
     >
       {actions.map((action, index) => (
         <button

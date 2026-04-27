@@ -22,8 +22,7 @@ function DigestOverlay({ html, markdown, articleUrls, articleCount, errorMessage
 
   const overlayMenu = {
     isOpen: contextMenu.isOpen,
-    anchorX: contextMenu.anchorX,
-    anchorY: contextMenu.anchorY,
+    positionReference: contextMenu.positionReference,
     selectedText: contextMenu.selectedText,
     menuRef: contextMenu.menuRef,
     handleContextMenu: contextMenu.handleContextMenu,

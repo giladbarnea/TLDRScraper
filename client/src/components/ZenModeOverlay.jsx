@@ -26,8 +26,7 @@ function ZenModeOverlay({ url, html, summaryMarkdown, hostname, displayDomain, a
 
   const overlayMenu = {
     isOpen: contextMenu.isOpen,
-    anchorX: contextMenu.anchorX,
-    anchorY: contextMenu.anchorY,
+    positionReference: contextMenu.positionReference,
     selectedText: contextMenu.selectedText,
     menuRef: contextMenu.menuRef,
     handleContextMenu: contextMenu.handleContextMenu,

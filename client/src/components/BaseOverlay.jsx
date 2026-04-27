@@ -147,8 +147,7 @@ function BaseOverlay({
       {overlayMenu && (
         <OverlayContextMenu
           isOpen={overlayMenu.isOpen}
-          anchorX={overlayMenu.anchorX}
-          anchorY={overlayMenu.anchorY}
+          positionReference={overlayMenu.positionReference}
           actions={overlayMenu.actions}
           onClose={overlayMenu.closeMenu}
           menuRef={overlayMenu.menuRef}

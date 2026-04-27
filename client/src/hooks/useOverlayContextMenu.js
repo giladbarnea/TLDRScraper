@@ -14,11 +14,24 @@ const MenuOpenSource = Object.freeze({
 
 const CLOSED_MENU_STATE = Object.freeze({
   isOpen: false,
-  anchorX: 0,
-  anchorY: 0,
+  positionReference: null,
   selectedText: '',
   source: MenuOpenSource.NONE,
 })
+
+function copyDomRect(rect) {
+  return { x: rect.x, y: rect.y, top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height }
+}
+
+function createPointPositionReference(x, y) {
+  return {
+    kind: 'point',
+    boundingRect: { x, y, top: y, left: x, right: x, bottom: y, width: 0, height: 0 },
+    clientRects: [],
+    placement: 'bottom-start',
+    offsetPx: 0,
+  }
+}
 
 // CONTRACT — this hook pairs with two things that must cooperate:
 //  1. The overlay shell must mark its selectable content surface with
@@ -42,11 +55,10 @@ export function useOverlayContextMenu(enabled = true) {
 
   console.log('[ctxmenu] render — enabled:', enabled, '| isOpen:', menuState.isOpen)
 
-  const openMenu = useCallback(({ source, anchorX, anchorY, selectedText = '' }) => {
+  const openMenu = useCallback(({ source, positionReference, selectedText = '' }) => {
     const nextState = {
       isOpen: true,
-      anchorX,
-      anchorY,
+      positionReference,
       selectedText,
       source,
     }
@@ -81,8 +93,7 @@ export function useOverlayContextMenu(enabled = true) {
 
   return {
     isOpen: menuState.isOpen,
-    anchorX: menuState.anchorX,
-    anchorY: menuState.anchorY,
+    positionReference: menuState.positionReference,
     selectedText: menuState.selectedText,
     menuRef,
     handleContextMenu,
@@ -98,8 +109,7 @@ function useDesktopContextMenu({ enabled, openMenu }) {
     event.preventDefault()
     openMenu({
       source: MenuOpenSource.DESKTOP,
-      anchorX: event.clientX,
-      anchorY: event.clientY,
+      positionReference: createPointPositionReference(event.clientX, event.clientY),
       selectedText: '',
     })
     console.log('[ctxmenu] opened via right-click at', event.clientX, event.clientY)
@@ -128,11 +138,19 @@ function useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelec
         return null
       }
 
-      const rect = selection.getRangeAt(0).getBoundingClientRect()
+      const range = selection.getRangeAt(0)
+      const boundingRect = copyDomRect(range.getBoundingClientRect())
+      const clientRects = Array.from(range.getClientRects()).map(copyDomRect)
+      if (clientRects.length === 0) return null
       return {
-        anchorX: rect.left + rect.width / 2,
-        anchorY: rect.bottom + 12,
         selectedText,
+        positionReference: {
+          kind: 'range',
+          boundingRect,
+          clientRects,
+          placement: 'bottom',
+          offsetPx: 12,
+        },
       }
     }
 
@@ -140,9 +158,10 @@ function useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelec
       if (decision.type === MobileSelectionMenuDecisionType.OPEN_MENU) {
         openMenu({
           source: MenuOpenSource.MOBILE_SELECTION,
-          ...decision.selection,
+          positionReference: decision.selection.positionReference,
+          selectedText: decision.selection.selectedText,
         })
-        console.log('[ctxmenu] opened via selection at', decision.selection.anchorX, decision.selection.anchorY, '| text:', decision.selection.selectedText.slice(0, 40))
+        console.log('[ctxmenu] opened via selection | text:', decision.selection.selectedText.slice(0, 40))
         return
       }
 
