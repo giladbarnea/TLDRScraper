@@ -2,9 +2,9 @@
 litellm_settings:
   drop_params: true
 model_list:
-  - model_name: gpt-5.5
+  - model_name: gpt-5.4
     litellm_params:
-      model: openai/gpt-5.5
+      model: openai/gpt-5.4
       api_key: os.environ/OPENAI_API_KEY
       reasoning_effort: xhigh
   - model_name: gpt-5.4-mini
