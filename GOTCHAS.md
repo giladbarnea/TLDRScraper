@@ -1,9 +1,17 @@
 ---
-last_updated: 2026-04-27 21:21, b387f55
+last_updated: 2026-04-28 08:59
 ---
 # Gotchas
 
 This document catalogs recurring pitfalls in various topics, including managing client-side state persistence and reactivity, surprising design decisions, and so on.
+
+---
+
+#### 2026-04-28: `visibility: hidden` on a portal lets the iOS native callout render alongside it
+
+**Cause & Fix**: Floating UI's `isPositioned` guard (`visibility: hidden` until coordinates settle) was used to prevent a (0,0) flash. On iOS/Chromium, handling `contextmenu` but presenting no *visible* element lets the OS callout commit before the menu becomes visible — both then stay on screen. Removing the guard keeps the menu visible from first paint, suppressing the callout. The (0,0) flash is a non-issue: Floating UI settles position in a layout effect before the browser paints.
+
+**Generalized principle**: on iOS (including Chromium-based browsers), suppressing the native callout requires a visible DOM element at event time. Mounted-but-invisible (`visibility: hidden`, `opacity: 0`) does not count.
 
 ---
 

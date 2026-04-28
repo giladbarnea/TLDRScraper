@@ -23,7 +23,7 @@ function OverlayContextMenu({ isOpen, positionReference, actions, onClose, menuR
     return list
   }, [positionReference?.kind, positionReference?.offsetPx])
 
-  const { refs: floatingRefs, floatingStyles, isPositioned } = useFloating({
+  const { refs: floatingRefs, floatingStyles } = useFloating({
     open: isOpen,
     placement: positionReference?.placement ?? 'bottom-start',
     strategy: 'fixed',
@@ -72,7 +72,7 @@ function OverlayContextMenu({ isOpen, positionReference, actions, onClose, menuR
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(event) => event.preventDefault()}
       className="fixed z-[150] w-[184px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-1.5 text-slate-700 shadow-elevated backdrop-blur-xl motion-safe:animate-overlay-menu-enter"
-      style={{ ...floatingStyles, visibility: isPositioned ? 'visible' : 'hidden' }}
+      style={floatingStyles} // must stay visible on first paint — visibility:hidden lets iOS native callout commit. See GOTCHAS.md
     >
       {actions.map((action, index) => (
         <button
