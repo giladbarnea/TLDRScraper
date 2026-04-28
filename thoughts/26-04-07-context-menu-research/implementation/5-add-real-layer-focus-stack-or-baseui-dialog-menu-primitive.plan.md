@@ -1,6 +1,6 @@
 ---
 originates_from: impl-review/0-g-review-1.md
-last_updated: 2026-04-28 15:22
+last_updated: 2026-04-28 15:23, 7bf2b9f
 ---
 
 # Adopt Floating UI Interaction Primitives For The Layer/Focus Stack

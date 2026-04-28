@@ -1,6 +1,6 @@
 ---
 name: Abstract: Hoist Overlay Menu Surface Contract Into BaseOverlay
-last_updated: 2026-04-28 15:22
+last_updated: 2026-04-28 15:23, 7bf2b9f
 ---
 
 # Abstract: Hoist Overlay Menu Surface Contract Into BaseOverlay
