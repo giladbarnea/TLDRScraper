@@ -1,6 +1,7 @@
 ---
 originates_from: impl-review/0-g-review-1.md
-last_updated: 2026-04-27 21:21, b387f55
+implemented_by: implementation/in-detail/5-add-real-layer-focus-stack-or-baseui-dialog-menu-primitive.md
+last_updated: 2026-04-29 14:59
 ---
 
 # Adopt Floating UI Interaction Primitives For The Layer/Focus Stack
