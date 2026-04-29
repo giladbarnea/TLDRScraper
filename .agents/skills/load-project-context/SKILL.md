@@ -1,5 +1,5 @@
 ---
-name: catchup
+name: load-project-context
 description: Gather rudimentary project context and current project state first thing upon session start. Optionally establish continuity with specific recent work.
 argument-hint: [optional-specific-effort]
 last_updated: 2026-04-23 20:30

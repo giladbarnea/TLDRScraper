@@ -5,7 +5,7 @@ arguments: review_task [research_targets]
 ---
 
 { if research_targets }
-/skill:catchup {research_targets}. Read all the files there fully. Then read all the source code files referenced, climb up and down the call graph to exhaust to roots and leaves in order to get the full picture.
+/skill:load-project-context {research_targets}. Read all the files there fully. Then read all the source code files referenced, climb up and down the call graph to exhaust to roots and leaves in order to get the full picture.
 { end if }
 
 Finally, {review_task}.

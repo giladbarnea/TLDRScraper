@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-27 21:21, b387f55
+last_updated: 2026-04-29 11:02
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -55,7 +55,7 @@ This is true both for local and production environments.
 ## Context Gathering
 <context-gathering>
 
-Run the `/catchup` skill right after `./setup.sh` is finished.
+Run the `/load-project-context` skill right after `./setup.sh` is finished.
 
 </context-gathering>
 
