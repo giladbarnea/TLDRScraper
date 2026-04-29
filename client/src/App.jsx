@@ -1,3 +1,4 @@
+import { FloatingTree } from '@floating-ui/react'
 import { Calendar } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import DigestOverlay from './components/DigestOverlay'
@@ -291,12 +292,14 @@ function App() {
   return (
     <InteractionProvider>
       <ToastContainer />
-      <AppContent
-        results={results}
-        loadFeed={loadFeed}
-        showSettings={showSettings}
-        setShowSettings={setShowSettings}
-      />
+      <FloatingTree>
+        <AppContent
+          results={results}
+          loadFeed={loadFeed}
+          showSettings={showSettings}
+          setShowSettings={setShowSettings}
+        />
+      </FloatingTree>
     </InteractionProvider>
   )
 }

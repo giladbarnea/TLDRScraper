@@ -33,19 +33,8 @@ function createPointPositionReference(x, y) {
   }
 }
 
-// CONTRACT — this hook pairs with two things that must cooperate:
-//  1. The overlay shell must mark its selectable content surface with
-//     `data-overlay-content` (see `BaseOverlay.jsx`). The mobile
-//     selection→menu path bails out if the selection's anchor is not inside
-//     a `[data-overlay-content]` subtree.
-//  2. The overlay's own Escape handler (see `BaseOverlay.jsx`) must guard
-//     with `if (event.defaultPrevented) return`. When the menu is open, this
-//     hook's Escape listener calls `preventDefault() + stopImmediatePropagation()`
-//     in the capture phase so the overlay-close handler is suppressed for that
-//     single keypress. Remove that guard and Escape will close menu AND overlay.
 export function useOverlayContextMenu(enabled = true) {
   const [menuState, setMenuState] = useState(CLOSED_MENU_STATE)
-  const menuRef = useRef(null)
   const menuStateRef = useRef(menuState)
   const resetMobileSelectionStateRef = useRef(() => {})
 
@@ -62,9 +51,6 @@ export function useOverlayContextMenu(enabled = true) {
       selectedText,
       source,
     }
-    // Mutate the ref synchronously so document listeners that fire between
-    // setState and React's commit still see the authoritative `source`.
-    // The useEffect mirror above is a backstop for any non-command path.
     menuStateRef.current = nextState
     setMenuState(nextState)
   }, [])
@@ -77,14 +63,18 @@ export function useOverlayContextMenu(enabled = true) {
     setMenuState(CLOSED_MENU_STATE)
   }, [])
 
+  const onOpenChange = useCallback((open, _event, reason) => {
+    if (open) return
+
+    closeMenu({
+      clearSelection:
+        reason === 'outside-press'
+        && menuStateRef.current.source === MenuOpenSource.MOBILE_SELECTION,
+    })
+  }, [closeMenu])
+
   const handleContextMenu = useDesktopContextMenu({ enabled, openMenu })
   useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelectionStateRef })
-  useOverlayMenuDismissal({
-    isOpen: menuState.isOpen,
-    menuRef,
-    closeMenu,
-    menuStateRef,
-  })
 
   useEffect(() => {
     if (enabled) return
@@ -95,9 +85,8 @@ export function useOverlayContextMenu(enabled = true) {
     isOpen: menuState.isOpen,
     positionReference: menuState.positionReference,
     selectedText: menuState.selectedText,
-    menuRef,
     handleContextMenu,
-    closeMenu,
+    onOpenChange,
   }
 }
 
@@ -214,40 +203,4 @@ function useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelec
       resetMobileSelectionStateRef.current = () => {}
     }
   }, [enabled, openMenu, closeMenu, resetMobileSelectionStateRef])
-}
-
-function useOverlayMenuDismissal({ isOpen, menuRef, closeMenu, menuStateRef }) {
-  useEffect(() => {
-    if (!isOpen) return
-    console.log('[ctxmenu] attaching close listeners (menu open)')
-
-    function handlePointerDown(event) {
-      const isInsideMenu = menuRef.current?.contains(event.target)
-      console.log('[ctxmenu] pointerdown — insideMenu:', isInsideMenu)
-      if (isInsideMenu) return
-
-      closeMenu({
-        clearSelection:
-          menuStateRef.current.source === MenuOpenSource.MOBILE_SELECTION,
-      })
-    }
-
-    function handleKeyDown(event) {
-      if (event.key !== 'Escape') return
-
-      console.log('[ctxmenu] Escape — closing menu (arbitrating over BaseOverlay)')
-      event.preventDefault()
-      event.stopPropagation()
-      event.stopImmediatePropagation()
-      closeMenu()
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown, true)
-    document.addEventListener('keydown', handleKeyDown, true)
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown, true)
-      document.removeEventListener('keydown', handleKeyDown, true)
-    }
-  }, [closeMenu, isOpen, menuRef, menuStateRef])
 }

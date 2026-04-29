@@ -1,5 +1,6 @@
+import { FloatingNode, useDismiss, useFloating, useFloatingNodeId, useInteractions } from '@floating-ui/react'
 import { Check, CheckCircle, ChevronDown } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useOverscrollUp } from '../hooks/useOverscrollUp'
 import { usePullToClose } from '../hooks/usePullToClose'
@@ -16,10 +17,12 @@ function BaseOverlay({
   onClose,
   onMarkRemoved,
   overlayMenu,
+  overlayLayers,
   children,
 }) {
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
+  const nodeId = useFloatingNodeId()
 
   const { progress, hasScrolled } = useScrollProgress(scrollRef)
   // usePullToClose attaches a non-passive touchmove listener that calls preventDefault() on every
@@ -37,37 +40,40 @@ function BaseOverlay({
     threshold: OVERLAY_OVERSCROLL_THRESHOLD,
   })
 
+  const { refs, context } = useFloating({
+    nodeId,
+    open: true,
+    onOpenChange: (open) => {
+      if (!open) onClose()
+    },
+  })
+  const dismiss = useDismiss(context, {
+    escapeKey: true,
+    outsidePress: false,
+  })
+  const { getFloatingProps } = useInteractions([dismiss])
+
+  const portalRootProps = useMemo(() => getFloatingProps({
+    ref: refs.setFloating,
+    onClick: (event) => event.stopPropagation(),
+    className: 'fixed inset-0 z-[100]',
+    style: {
+      transform: `translateY(${pullOffset}px)`,
+      transition: pullOffset === 0 ? 'transform 0.3s ease-out' : 'none',
+    },
+  }), [getFloatingProps, pullOffset, refs.setFloating])
+
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-
-    function handleEscape(event) {
-      if (event.key !== 'Escape') return
-      // CONTRACT with overlayMenu: the menu claims Escape in capture phase,
-      // and this guard lets that first Escape close only the menu.
-      if (event.defaultPrevented) return
-
-      onClose()
-    }
-
-    document.addEventListener('keydown', handleEscape)
-
     return () => {
       document.body.style.overflow = ''
-      document.removeEventListener('keydown', handleEscape)
     }
-  }, [onClose])
+  }, [])
 
   return (
-    <>
+    <FloatingNode id={nodeId}>
       {createPortal(
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="fixed inset-0 z-[100]"
-          style={{
-            transform: `translateY(${pullOffset}px)`,
-            transition: pullOffset === 0 ? 'transform 0.3s ease-out' : 'none',
-          }}
-        >
+        <div {...portalRootProps}>
           <div ref={containerRef} className="w-full h-full bg-white flex flex-col animate-zen-enter">
             <div
               className={`
@@ -99,7 +105,6 @@ function BaseOverlay({
               />
             </div>
 
-            {/* overlayMenu fully opts this scroll surface into menu selection handling. */}
             <div
               ref={scrollRef}
               onContextMenu={overlayMenu?.handleContextMenu}
@@ -149,12 +154,13 @@ function BaseOverlay({
           isOpen={overlayMenu.isOpen}
           positionReference={overlayMenu.positionReference}
           actions={overlayMenu.actions}
-          onClose={overlayMenu.closeMenu}
-          menuRef={overlayMenu.menuRef}
+          onOpenChange={overlayMenu.onOpenChange}
           selectedText={overlayMenu.selectedText}
         />
       )}
-    </>
+
+      {overlayLayers}
+    </FloatingNode>
   )
 }
 
