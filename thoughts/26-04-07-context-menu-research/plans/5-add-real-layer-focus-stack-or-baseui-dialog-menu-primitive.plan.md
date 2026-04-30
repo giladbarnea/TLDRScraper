@@ -1,6 +1,6 @@
 ---
 name: Abstract: Adopt Floating UI Interaction Primitives For The Layer/Focus Stack
-last_updated: 2026-04-30 14:25
+last_updated: 2026-04-30 17:19, 4e222f3
 ---
 
 # Abstract: Adopt Floating UI Interaction Primitives For The Layer/Focus Stack

@@ -1,7 +1,7 @@
 ---
 name: post-implementation
 description: Load this skill upon finishing an implementation that was approved by the user to document it.
-last_updated: 2026-04-29 14:59
+last_updated: 2026-04-30 17:19, 4e222f3
 ---
 Write a short document — ~40 lines — about how the implementations went, the decisions made (the "why"s), any challenges encountered, and — if it exists at all — any drift from the plan. Include no code snippets or line numbers, only references to files and symbols. 
 

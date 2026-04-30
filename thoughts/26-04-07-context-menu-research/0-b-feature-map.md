@@ -1,7 +1,7 @@
 ---
 name: Context Menu Feature Map
 originates_from: research/0-a-description.md
-last_updated: 2026-04-29 11:40
+last_updated: 2026-04-30 17:19, 4e222f3
 ---
 
 # Context Menu Feature Map

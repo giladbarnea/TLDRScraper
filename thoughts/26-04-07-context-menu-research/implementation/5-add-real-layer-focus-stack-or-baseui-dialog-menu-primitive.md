@@ -3,7 +3,7 @@ name: Abstract: Adopt Floating UI Interaction Primitives For The Layer/Focus Sta
 done: 2026-04-29, working-tree
 follows: implementation/4-introduce-floating-ui-for-positioning-only.md
 implements: plans/in-detail/5-add-real-layer-focus-stack-or-baseui-dialog-menu-primitive.plan.md
-last_updated: 2026-04-30 14:25
+last_updated: 2026-04-30 17:19, 4e222f3
 ---
 
 # Abstract: Layer / Focus Stack Implementation Log
