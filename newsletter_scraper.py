@@ -26,9 +26,6 @@ def _get_adapter_for_source(config):
     """
     if config.source_id.startswith("tldr_"):
         return TLDRAdapter(config)
-    elif config.source_id == "hackernews":
-        from adapters.hackernews_adapter import HackerNewsAdapter
-        return HackerNewsAdapter(config)
     elif config.source_id == "xeiaso":
         from adapters.xeiaso_adapter import XeIasoAdapter
         return XeIasoAdapter(config)
