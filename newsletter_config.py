@@ -12,8 +12,8 @@ from dataclasses import dataclass
 class NewsletterSourceConfig:
     """Configuration for a newsletter source."""
 
-    source_id: str  # Unique identifier: "tldr_tech", "tldr_ai", "hackernews"
-    display_name: str  # Human-readable name: "TLDR Tech", "Hacker News Daily"
+    source_id: str  # Unique identifier: "tldr_tech", "tldr_ai"
+    display_name: str  # Human-readable name: "TLDR Tech"
     base_url: str  # Base URL: "https://tldr.tech"
     url_pattern: str  # URL template: "{base_url}/{type}/{date}"
     types: list[str]  # Subtypes within source: ["tech", "ai"] or ["daily"]
@@ -39,7 +39,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern=r"\((\d+)\s+minute\s+read\)|\(GitHub\s+Repo\)",
         category_display_names={"tech": "TLDR Tech"},
-        sort_order=11,  # Higher priority over HN for better signal-to-noise (67.2/week)
+        sort_order=11,
     ),
     "tldr_ai": NewsletterSourceConfig(
         source_id="tldr_ai",
@@ -50,22 +50,7 @@ NEWSLETTER_CONFIGS = {
         user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
         article_pattern=r"\((\d+)\s+minute\s+read\)|\(GitHub\s+Repo\)",
         category_display_names={"ai": "TLDR AI"},
-        sort_order=10,  # Higher priority over HN for better signal-to-noise (63.5/week)
-    ),
-    "hackernews": NewsletterSourceConfig(
-        source_id="hackernews",
-        display_name="Hacker News",
-        base_url="http://hn.algolia.com/api/v1",  # Using Algolia HN Search API
-        url_pattern="",  # Not used (Algolia API-based)
-        types=["top", "ask", "show"],  # Combined in single query via Algolia
-        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
-        article_pattern="",  # Not used for API-based sources
-        category_display_names={
-            "top": "HN Top",
-            "ask": "HN Ask",
-            "show": "HN Show",
-        },
-        sort_order=23,  # ~75/week - most frequent, lowest priority
+        sort_order=10,
     ),
     "xeiaso": NewsletterSourceConfig(
         source_id="xeiaso",
