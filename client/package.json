@@ -10,6 +10,7 @@
     "lint": "./scripts/lint.sh"
   },
   "dependencies": {
+    "@base-ui/react": "^1.4.1",
     "@floating-ui/react": "^0.27.19",
     "dompurify": "^3.3.0",
     "framer-motion": "^11.15.0",

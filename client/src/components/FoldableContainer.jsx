@@ -1,3 +1,4 @@
+import { Collapsible } from '@base-ui/react/collapsible'
 import { ChevronRight } from 'lucide-react'
 import { useEffect } from 'react'
 import { useInteraction } from '../contexts/InteractionContext'
@@ -14,14 +15,15 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
   }, [defaultFolded, id, setExpanded])
 
   return (
-    <div
+    <Collapsible.Root
+      open={expanded}
+      onOpenChange={() => containerShortPress(id)}
       data-is-folded={isFolded}
       {...dataAttributes}
       className={`transition-all duration-300 ${className}`}
     >
       <div className={`flex items-center ${headerClassName}`}>
-        <div
-          onClick={() => containerShortPress(id)}
+        <Collapsible.Trigger
           data-fold-toggle
           className="cursor-pointer group select-none flex items-center flex-1"
         >
@@ -35,18 +37,20 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
           `}>
             <ChevronRight size={18} />
           </div>
-        </div>
+        </Collapsible.Trigger>
       </div>
 
-      <div className={`
-        grid transition-all duration-500 ease-in-out
-        ${isFolded ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'}
-      `}>
+      <Collapsible.Panel
+        className={`
+          grid transition-all duration-500 ease-in-out
+          ${isFolded ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'}
+        `}
+      >
         <div className={`overflow-hidden ${contentClassName}`}>
-           {children}
+          {children}
         </div>
-      </div>
-    </div>
+      </Collapsible.Panel>
+    </Collapsible.Root>
   )
 }
 
