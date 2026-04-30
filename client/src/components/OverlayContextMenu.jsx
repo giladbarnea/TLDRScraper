@@ -1,6 +1,6 @@
 import { ContextMenu } from '@base-ui-components/react/context-menu'
 import { autoUpdate, flip, inline, offset, shift, useFloating } from '@floating-ui/react'
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 
 const MENU_EDGE_GAP_PX = 8
 
@@ -41,6 +41,11 @@ function OverlayContextMenu({ isOpen, positionReference, actions, onOpenChange, 
     refs.setPositionReference(virtualReference)
   }, [refs, virtualReference])
 
+  const handleMenuOpenChange = useCallback((open, eventDetails) => {
+    const reason = eventDetails?.reason === 'outside-press' ? 'outside-press' : undefined
+    onOpenChange(open, eventDetails?.event, reason)
+  }, [onOpenChange])
+
   if (!isOpen) return null
 
   function handleActionClick(action) {
@@ -53,7 +58,7 @@ function OverlayContextMenu({ isOpen, positionReference, actions, onOpenChange, 
   }
 
   return (
-    <ContextMenu.Root open={isOpen} onOpenChange={onOpenChange} modal={false}>
+    <ContextMenu.Root open={isOpen} onOpenChange={handleMenuOpenChange} modal={false}>
       <ContextMenu.Portal>
         <ContextMenu.Positioner
           sideOffset={0}

@@ -83,7 +83,6 @@ function ElaborationPreview({ isOpen, status, selectedText, markdown, errorMessa
               <Dialog.Backdrop className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" />
               <Dialog.Popup
                 initialFocus={closeButtonRef}
-                finalFocus={closeButtonRef}
                 render={<motion.div />}
                 role="dialog"
                 aria-modal={true}
