@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-27 21:54, 3c37bc3
+last_updated: 2026-04-29 11:40
 scope: a well defined yet deep view of all the client state machines
 ---
 # Client State Machines
@@ -548,7 +548,7 @@ ZenModeOverlay is now a minimal component that composes `BaseOverlay`, providing
 - `children`: Prose-styled HTML via `overlayProseClassName`
 - `overlayMenu`: menu surface contract built from `useOverlayContextMenu` plus Zen's action list (single `Elaborate` action whose handler is `runElaboration` from the shared `useElaboration` hook)
 
-It also renders `<ElaborationPreview>` against the shared hook's state (`elaboration.status`, `markdown`, `errorMessage`). All gesture handling, scroll progress, body scroll lock, escape key logic, and menu surface rendering are delegated to `BaseOverlay`. All elaboration state, abort lifecycle, and `/api/elaborate` POST live in `useElaboration`.
+It passes `overlayLayers={<ElaborationPreview … />}` into `BaseOverlay`, keeping the preview in the same Floating UI tree as the reader and menu. All gesture handling, scroll progress, body scroll lock, reader-level Escape handling, and menu surface rendering are delegated to `BaseOverlay`. All elaboration state, abort lifecycle, and `/api/elaborate` POST live in `useElaboration`.
 
 #### Close Triggers
 
@@ -581,7 +581,7 @@ DigestOverlay composes `BaseOverlay`, providing:
 - `children`: Prose-styled HTML (or error message if `errorMessage && !html`)
 - `overlayMenu`: menu surface contract built from `useOverlayContextMenu` plus a single `Elaborate` action whose handler is `runElaboration` from the shared `useElaboration` hook
 
-It also renders `<ElaborationPreview>` against the shared hook's state. All gesture handling, scroll progress, body scroll lock, and escape key logic are delegated to `BaseOverlay`. All elaboration state and `/api/elaborate` POST live in `useElaboration`.
+It passes `overlayLayers={<ElaborationPreview … />}` into `BaseOverlay`, keeping the preview in the same Floating UI tree as the reader and menu. All gesture handling, scroll progress, body scroll lock, and reader-level Escape handling are delegated to `BaseOverlay`. All elaboration state and `/api/elaborate` POST live in `useElaboration`.
 `App.jsx` mounts `DigestOverlay` only while `digest.expanded` is true, matching the conditional mount lifecycle of `ZenModeOverlay`.
 
 #### Differences from Zen Mode
@@ -730,10 +730,10 @@ Content slides up at 0.4× the offset rate during the gesture.
 
 #### Architecture
 
-BaseOverlay is the shared foundation that eliminates duplication between ZenModeOverlay and DigestOverlay. If it is mounted, the overlay is open; callers control visibility by mounting/unmounting it. It handles all common overlay behavior:
+BaseOverlay is the shared foundation that eliminates duplication between ZenModeOverlay and DigestOverlay. If it is mounted, the overlay is open; callers control visibility by mounting/unmounting it. It registers as a `FloatingNode`, so Floating UI treats it as the reader layer underneath the context menu and elaboration preview. It handles all common overlay behavior:
 
 - **Body scroll lock**: `document.body.style.overflow = 'hidden'` while mounted
-- **Escape key**: Calls `onClose()` on Escape keydown **unless `event.defaultPrevented`** — which is the hook-side contract with `useOverlayContextMenu` so the context menu can claim Escape first (§19)
+- **Escape key**: `useDismiss({ escapeKey: true, outsidePress: false })` closes the reader only when no child floating layer is open (§19)
 - **Scroll progress**: Renders progress bar via `useScrollProgress`
 - **Pull-to-close**: Handles pull-down gesture via `usePullToClose` (currently passed `enabled: false` — see `usePullToClose` inline comment and GOTCHAS: the non-passive `touchmove` listener hijacks mobile long-press-to-select)
 - **Overscroll-up**: Handles pull-up-at-bottom gesture via `useOverscrollUp`
@@ -741,6 +741,7 @@ BaseOverlay is the shared foundation that eliminates duplication between ZenMode
 - **Progress bar**: 2px bar at header bottom, scaled by scroll progress
 - **Overscroll zone**: CheckCircle icon that animates as overscroll progresses
 - **Context-menu surface**: When `overlayMenu` is present, the scroll surface is tagged `data-overlay-content`, receives `overlayMenu.handleContextMenu`, and `BaseOverlay` renders `OverlayContextMenu` with the provided state/actions. Without `overlayMenu`, the shell has no context-menu participation.
+- **Nested overlay layers**: Renders `overlayLayers` (currently `ElaborationPreview`) inside the same Floating UI subtree so the preview sits above the reader without custom Escape arbitration.
 
 #### Props
 
@@ -749,7 +750,8 @@ BaseOverlay is the shared foundation that eliminates duplication between ZenMode
 | `headerContent` | ReactNode | Slot for header middle content (domain info or article count) |
 | `onClose` | () => void | Called on ChevronDown, Escape, or pull-to-close threshold |
 | `onMarkRemoved` | () => void | Called on Check button or overscroll-up threshold |
-| `overlayMenu` | object \| undefined | Optional menu surface contract: menu state, `handleContextMenu`, `closeMenu`, `menuRef`, and wrapper-owned actions |
+| `overlayMenu` | object \| undefined | Optional menu surface contract: menu state, `handleContextMenu`, `onOpenChange`, and wrapper-owned actions |
+| `overlayLayers` | ReactNode | Additional floating layers rendered in the same Floating UI subtree (currently `ElaborationPreview`) |
 | `children` | ReactNode | Content to render in scrollable area |
 
 #### Exports
@@ -765,7 +767,7 @@ BaseOverlay is the shared foundation that eliminates duplication between ZenMode
 | `usePullToClose` | `({ containerRef, scrollRef, onClose, enabled: false })` — currently hard-disabled for native text selection |
 | `useOverscrollUp` | `({ scrollRef, onComplete: onMarkRemoved, threshold: 60 })` |
 
-The `useOverlayContextMenu` hook is **not** composed by `BaseOverlay` itself. Wrappers instantiate it and pass an `overlayMenu` contract when they want menu behavior. `BaseOverlay` owns the opted-in DOM surface, the `OverlayContextMenu` render site, and the Escape `defaultPrevented` guard.
+The `useOverlayContextMenu` hook is **not** composed by `BaseOverlay` itself. Wrappers instantiate it and pass an `overlayMenu` contract when they want menu behavior. `BaseOverlay` owns the opted-in DOM surface, the `OverlayContextMenu` render site, the `overlayLayers` render site, and the reader-level `FloatingNode`.
 
 ---
 
@@ -851,13 +853,12 @@ Clicking a toast calls `onOpen()` (expands the summary overlay) then dismisses i
 
 #### Internal Composition
 
-The exported `useOverlayContextMenu` is a thin coordinator that composes three private hooks in the same file:
+The exported `useOverlayContextMenu` is a thin coordinator that composes two private hooks in the same file:
 
 - `useDesktopContextMenu({ enabled, openMenu })` — owns `onContextMenu` (desktop right-click) only.
 - `useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelectionStateRef })` — owns `selectionchange` / `touchstart` / `touchend` (mobile native text selection) only. Transition decisions are delegated to `reduceMobileSelectionMenu` in `reducers/mobileSelectionMenuReducer.js`; the hook only does DOM reads, listener setup/teardown, and decision execution.
-- `useOverlayMenuDismissal({ isOpen, menuRef, closeMenu, menuStateRef })` — owns outside `pointerdown` and capture-phase Escape only.
 
-The split replaces the previous monolithic hook. Desktop right-click and mobile selection are now independent paths that do not share close semantics except via the shared `closeMenu` command. `closeMenu` also calls `resetMobileSelectionStateRef.current()` so any external close path (outside pointerdown, Escape, action click, `enabled → false`) puts the mobile reducer back in its initial state.
+Dismissal is no longer project-owned. `OverlayContextMenu.jsx` wires `useDismiss()` from Floating UI for Escape and outside-press, and forwards those dismiss reasons into the hook's `onOpenChange(open, event, reason)` callback. The coordinator still owns `closeMenu()`, because only it knows whether a close should also clear the native selection.
 
 #### State Shape
 
@@ -872,12 +873,10 @@ The split replaces the previous monolithic hook. Desktop right-click and mobile 
 //   placement,
 //   offsetPx,
 // }
-// plus two refs:
-menuRef                  // attached to the portal's root div; used for "click inside menu" test
-menuStateRef             // mirrors menuState so capture-phase document listeners can read the
-                         // current `source` without reattaching. Mutated synchronously inside
-                         // openMenu()/closeMenu() so it is authoritative even before React commits;
-                         // a useEffect also mirrors post-commit as a backstop.
+// plus one ref:
+menuStateRef             // mirrors menuState so `onOpenChange(..., reason)` can read the
+                         // authoritative open source before React commits. Mutated synchronously
+                         // inside openMenu()/closeMenu(); a useEffect mirrors post-commit.
 ```
 
 `source` is internal coordination state — it is **not** exposed from the hook's return value.
@@ -887,11 +886,11 @@ menuStateRef             // mirrors menuState so capture-phase document listener
 ```
 CLOSED  ──(right-click in overlay content)──►  OPEN (source=desktop)
 CLOSED  ──(mobile: selection settled in [data-overlay-content] after touchend)──►  OPEN (source=mobile-selection)
-OPEN    ──(outside pointerdown / Escape / selection cleared / enabled→false)──►  CLOSED
+OPEN    ──(outside press / Escape / selection cleared / enabled→false)──►  CLOSED
 ```
 
 `menuStateRef.current.source` is the discriminator. On close:
-- If `source === 'mobile-selection'` (via `closeMenu({ clearSelection: true })` from outside-pointerdown): call `window.getSelection()?.removeAllRanges()` before closing.
+- If `source === 'mobile-selection'` **and** the dismiss reason is `'outside-press'`: call `window.getSelection()?.removeAllRanges()` before closing.
 - Otherwise: do not touch the selection.
 
 Because `source` lives inside `menuState` (not a standalone ref), the right-click and mobile-selection paths can't leak their flag into each other — every `openMenu` call declares `source` authoritatively.
@@ -904,21 +903,19 @@ Because `source` lives inside `menuState` (not a standalone ref), the right-clic
 | `touchstart` (capture, document) | `useMobileSelectionMenu` | Dispatches `TOUCH_STARTED` into `reduceMobileSelectionMenu`; reducer flips `isTouching=true`. Menu will not open or close mid-touch. |
 | `touchend` (capture, document) | `useMobileSelectionMenu` (mobile finger lift) | Reads current `[data-overlay-content]` selection; dispatches `TOUCH_ENDED { selection }`. Reducer returns `OPEN_MENU` when a selection is present, `NONE` otherwise (preserving the ghost-click guard when the selection collapsed mid-tap). |
 | `selectionchange` (document) | `useMobileSelectionMenu` (mobile selection handles) | Dispatches `SELECTION_OBSERVED` when a non-empty overlay selection exists, else `SELECTION_CLEARED`. Reducer decides: mid-touch → store or hold; idle and open → `CLOSE_MENU`; idle and closed → reposition/open via `OPEN_MENU`. |
-| `pointerdown` (capture, document, only while open) | `useOverlayMenuDismissal` (outside click) | If outside `menuRef`: `closeMenu({ clearSelection: menuStateRef.current.source === 'mobile-selection' })`. `closeMenu` resets the mobile reducer to initial state. |
-| `keydown: Escape` (capture, document, only while open) | `useOverlayMenuDismissal` (keyboard) | `preventDefault + stopPropagation + stopImmediatePropagation`; `closeMenu()`. The `defaultPrevented` flag is the backstop `BaseOverlay` checks to avoid also closing the overlay |
+| `outside-press` | `OverlayContextMenu` via `useDismiss()` | Calls `onOpenChange(false, event, 'outside-press')`. The coordinator clears the native selection only when the menu source was `mobile-selection`, then resets the mobile reducer. On coarse pointers, outside-press is wired to `'click'` instead of `'pointerdown'` so scroll starts do not dismiss the menu. |
+| `Escape` | `OverlayContextMenu` via `useDismiss()` | Calls `onOpenChange(false, event, 'escape-key')`. Floating UI keeps the reader open because the menu is the topmost child `FloatingNode`. |
 | `enabled → false` | coordinator effect | `closeMenu()` (also resets mobile reducer) |
-| action button click | `OverlayContextMenu.handleActionClick` | Clear selection; `onClose()` (resets mobile reducer via `closeMenu`); invoke `action.onSelect()` |
+| action button click | `OverlayContextMenu.handleActionClick` | Clear selection; `onOpenChange(false)`; invoke `action.onSelect()` |
 
-#### DOM / Event Contracts (cooperating with BaseOverlay)
+#### DOM / Layer Contracts (cooperating with BaseOverlay)
 
 1. **`data-overlay-content` marker** — `BaseOverlay` tags its scroll surface only when `overlayMenu` is present. `useMobileSelectionMenu`'s selection reader bails unless the selection's `anchorNode.parentElement.closest('[data-overlay-content]')` matches. Removing the attribute from an opted-in menu surface disables mobile selection-triggered menus; applying it too broadly turns unrelated selections into menu triggers.
-2. **Escape arbitration via `event.defaultPrevented`** — the hook's Escape handler calls `stopImmediatePropagation()` + `preventDefault()` on the capture phase; `BaseOverlay` returns early if `event.defaultPrevented`. Removing either side causes Escape to close both menu and overlay at once.
+2. **Floating UI tree registration** — `App.jsx` mounts one `FloatingTree`, `BaseOverlay` registers the reader as a `FloatingNode`, and `OverlayContextMenu` / `ElaborationPreview` register child `FloatingNode`s beneath it. This is what makes only the topmost open layer respond to Escape / outside-press. Remove the shared tree or move the preview outside the reader's subtree and dismissal ownership regresses back into manual arbitration.
 
-Both contracts are commented at the use site (`useOverlayContextMenu.js` top-of-file block comment + `BaseOverlay.jsx` inline comments on Escape and the opted-in menu surface).
+#### Positioning + Layer Interactions
 
-#### Positioning
-
-`OverlayContextMenu.jsx` now uses Floating UI for positioning only.
+`OverlayContextMenu.jsx` now uses Floating UI for both positioning and dismissal/focus management.
 
 - Desktop right-click opens from a **point virtual reference** created at the cursor.
 - Mobile native text selection opens from a **range virtual reference** copied from `Range.getBoundingClientRect()` and `Range.getClientRects()` while the selection is still valid.
@@ -982,7 +979,7 @@ Transition summary:
 | `SELECTION_CLEARED` while idle, menu closed | reset to initial | NONE |
 | `MENU_CLOSED` | reset to initial | NONE |
 
-`closeMenu` in the coordinator calls `resetMobileSelectionStateRef.current()` before it clears selection or updates menu state. This keeps the mobile reducer in sync whenever an external path (Escape, outside pointerdown, action click, `enabled → false`) closes the menu. The `MENU_CLOSED` event is implicit through this reset; it is exported on the event enum for completeness and for any future caller that wants to dispatch it explicitly.
+`closeMenu` in the coordinator calls `resetMobileSelectionStateRef.current()` before it clears selection or updates menu state. This keeps the mobile reducer in sync whenever an external path (`useDismiss()` outside-press, `useDismiss()` Escape, action click, `enabled → false`) closes the menu. The `MENU_CLOSED` event is implicit through this reset; it is exported on the event enum for completeness and for any future caller that wants to dispatch it explicitly.
 
 `resetMobileSelectionStateRef` is a `useRef(() => {})` owned by the coordinator and populated by `useMobileSelectionMenu` once listeners are attached. On effect cleanup it is restored to a no-op so stale resets do not fire against a non-attached reducer.
 
@@ -1023,8 +1020,8 @@ The 16 machines form a layered architecture. Understanding the layers explains w
 │           │  ├ PullToClose (disabled for select)│                        │
 │           │  ├ OverscrollUp                     │                        │
 │           │  ├ body scroll lock                 │                        │
-│           │  ├ escape (arbitrated via           │                        │
-│           │  │   event.defaultPrevented)        │                        │
+│           │  ├ reader FloatingNode             │                        │
+│           │  ├ useDismiss (Escape only)        │                        │
 │           │  └ [data-overlay-content] marker   │                        │
 │           └──────────────────────────────────────┘                        │
 │                      ▲                                                    │
@@ -1211,11 +1208,11 @@ The context menu isn't a good fit for the matrix because its couplings are **DOM
 | Depends on | Direction | How |
 |---|---|---|
 | BaseOverlay | DOM contract | owns `[data-overlay-content]` only when `overlayMenu` is present |
-| BaseOverlay | Event-phase contract | capture-phase Escape handler + `defaultPrevented` guard on BaseOverlay's bubble-phase Escape |
-| Zen Mode Overlay | Composition | instantiates hook and passes action-bearing `overlayMenu` into BaseOverlay |
-| Digest Overlay | Composition | instantiates hook and passes action-bearing `overlayMenu` into BaseOverlay (identical wiring to Zen) |
+| BaseOverlay | Layer contract | owns the reader `FloatingNode`, the menu render site, and the `overlayLayers` render site |
+| Zen Mode Overlay | Composition | instantiates hook, passes action-bearing `overlayMenu` into BaseOverlay, and supplies `overlayLayers={<ElaborationPreview />}` |
+| Digest Overlay | Composition | instantiates hook, passes action-bearing `overlayMenu` into BaseOverlay, and supplies `overlayLayers={<ElaborationPreview />}` |
 | useElaboration | Indirect via action callbacks | `Elaborate` action → `runElaboration(selectedText)` (shared hook, used by both wrappers) |
-| Elaboration Preview | Composition | second portal layer rendered by each wrapper against `useElaboration`'s state |
+| Elaboration Preview | Composition | child `FloatingNode` rendered in `overlayLayers`, above the reader and alongside the menu in the same tree |
 
 ---
 

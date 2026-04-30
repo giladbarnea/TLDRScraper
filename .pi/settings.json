@@ -51,10 +51,10 @@
     {
       "source": "npm:pi-subagents",
       "extensions": [
-        "-index.ts"
+        "+index.ts"
       ],
       "skills": [
-        "-skills/pi-subagents/SKILL.md"
+        "+skills/pi-subagents/SKILL.md"
       ]
     }
   ],
@@ -62,7 +62,6 @@
     "-skills/architecture-create/SKILL.md",
     "-skills/consensus/SKILL.md",
     "-skills/frontend-design-openai/SKILL.md",
-    "-skills/peer-review/SKILL.md",
     "-skills/plan/SKILL.md",
     "-skills/reconcile/SKILL.md",
     "-skills/research-codebase/SKILL.md",
@@ -70,6 +69,9 @@
     "-skills/supabase-postgres-best-practices/SKILL.md",
     "-skills/to-done/SKILL.md",
     "-skills/vercel/SKILL.md",
-    "-skills/web-a11y-guidelines/SKILL.md"
+    "-skills/web-a11y-guidelines/SKILL.md",
+    "-skills/impeccable-design/SKILL.md",
+    "+skills/peer-review/SKILL.md",
+    "-skills/react-best-practices/SKILL.md"
   ]
 }

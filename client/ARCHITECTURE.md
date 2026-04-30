@@ -1,7 +1,7 @@
 ---
 name: architecture
 description: Client-side architecture for the Newsletter Aggregator
-last_updated: 2026-04-27 21:54, 3c37bc3
+last_updated: 2026-04-29 11:40
 scope: exhaustively-wide, equally high level view of the entire client architecture.
 ---
 # Client Architecture
@@ -180,10 +180,11 @@ An overlay-level right-click / selection-triggered action menu shared by overlay
 
 ### Cooperating contracts (important)
 
-The menu contract is explicit: a wrapper owns a `useOverlayContextMenu` instance plus action definitions, then passes an `overlayMenu` object into `BaseOverlay`. When that contract is present, `BaseOverlay` owns the menu surface wiring and render site.
+The menu contract is explicit: a wrapper owns a `useOverlayContextMenu` instance plus action definitions, then passes an `overlayMenu` object into `BaseOverlay`. When that contract is present, `BaseOverlay` owns the menu surface wiring, the `OverlayContextMenu` render site, and the `overlayLayers` render site used by `ElaborationPreview`.
 
-1. **`data-overlay-content` DOM marker.** `BaseOverlay` tags its scroll/content surface with `data-overlay-content` only when `overlayMenu` is present. The mobile selection→menu path in `useOverlayContextMenu` bails out unless `window.getSelection().anchorNode` is inside a `[data-overlay-content]` subtree. This scopes the otherwise-global `selectionchange`/`touchstart`/`touchend` listeners to the opted-in overlay reading surface.
-2. **Escape arbitration via `event.defaultPrevented`.** When the menu is open, the hook's Escape handler runs in the capture phase and calls `preventDefault() + stopPropagation() + stopImmediatePropagation()`. `BaseOverlay`'s own Escape handler guards with `if (event.defaultPrevented) return`. This two-sided contract is what makes the first Escape close the menu only and the second close the overlay. Remove either side and Escape closes both layers simultaneously.
+1. **`data-overlay-content` DOM marker.** `BaseOverlay` tags its scroll/content surface with `data-overlay-content` only when `overlayMenu` is present. The mobile selection→menu path in `useOverlayContextMenu` bails out unless `window.getSelection().anchorNode` is inside a `[data-overlay-content]` subtree. This scopes the otherwise-global `selectionchange` / `touchstart` / `touchend` listeners to the opted-in overlay reading surface.
+2. **Floating UI layer stack.** `App.jsx` mounts one `<FloatingTree>`. `BaseOverlay`, `OverlayContextMenu`, and `ElaborationPreview` each register as `FloatingNode`s, so `useDismiss()` gives Escape and outside-press ownership to the topmost open layer without project-owned arbitration.
+3. **Focus ownership by layer.** `BaseOverlay` does not trap focus. `OverlayContextMenu` uses a non-modal `FloatingFocusManager` and intentionally skips initial focus on coarse pointers so native selection survives. `ElaborationPreview` is the only trapping layer (`modal={true}`) and returns focus on close.
 
 ### Triggers
 
@@ -192,7 +193,7 @@ The menu contract is explicit: a wrapper owns a `useOverlayContextMenu` instance
 
 ### Close paths
 
-Outside `pointerdown`, Escape key (arbitrated — see above), overlay close/unmount.
+Menu: Floating UI outside-press + Escape via `useDismiss()`, plus overlay close/unmount. Preview: Floating UI outside-press + Escape via `useDismiss()`. Reader: Escape via `useDismiss()` on `BaseOverlay` only when no child layer is open.
 
 ### Current actions
 
@@ -200,7 +201,7 @@ Both `ZenModeOverlay` and `DigestOverlay` wire a single `Elaborate` action with 
 
 ### Status / WIP notes
 
-The implementation is the codex-branch base (`useOverlayContextMenu` with `data-overlay-content` scoping + Escape arbitration) augmented with worktree-branch debug instrumentation for an ongoing mobile-selection bug hunt:
+The implementation is the codex-branch base (`useOverlayContextMenu` with `data-overlay-content` scoping) augmented with Floating UI's `FloatingTree` / `FloatingNode` / `useDismiss` / `FloatingFocusManager` layer stack plus worktree-branch debug instrumentation for an ongoing mobile-selection bug hunt:
 - Every branch of `useOverlayContextMenu` and `OverlayContextMenu.handleActionClick` emits `[ctxmenu] …` console.log lines.
 - `lib/quakeConsole.js` has a `setInterval(() => console.log(''), 10_000)` heartbeat so the quake console stays visibly alive between events.
 
@@ -265,7 +266,7 @@ App
         └── OverlayContextMenu (via overlayMenu contract)
 ```
 
-**Note:** `BaseOverlay` is the shared foundation for both `ZenModeOverlay` and `DigestOverlay`. It handles body scroll lock, escape key (with `defaultPrevented` guard for context-menu arbitration), scroll progress, pull-to-close, and overscroll-up gestures. Overlay wrappers provide header content, prose-styled children, lifecycle callbacks, and optionally an `overlayMenu` contract. Both wrappers also instantiate `useElaboration` and render `ElaborationPreview` against its state. See the "Overlay Context Menu" section above for the DOM/event contracts between the hook and `BaseOverlay`.
+**Note:** `BaseOverlay` is the shared foundation for both `ZenModeOverlay` and `DigestOverlay`. It handles body scroll lock, reader-level Escape dismissal via Floating UI, scroll progress, pull-to-close, and overscroll-up gestures. Overlay wrappers provide header content, prose-styled children, an optional `overlayMenu` contract, and `overlayLayers` (currently `ElaborationPreview`). Both wrappers also instantiate `useElaboration`. See the "Overlay Context Menu" section above for the DOM/event and layer-stack contracts between the hook and `BaseOverlay`.
 
 ---
 
