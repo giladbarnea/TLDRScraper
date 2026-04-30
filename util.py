@@ -2,7 +2,7 @@ import functools
 import logging
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import requests
@@ -74,6 +74,26 @@ def next_day_midnight_pacific_epoch_seconds(date_str: str) -> float:
     return next_day_midnight_pacific.timestamp()
 
 
+def utc_day_epoch_seconds_bounds(date_str: str) -> tuple[int, int]:
+    """Return [start, end) epoch seconds bounds for a UTC calendar day.
+
+    >>> utc_day_epoch_seconds_bounds("2025-01-23")
+    (1737590400, 1737676800)
+    """
+    target_date = datetime.fromisoformat(date_str)
+    start_of_day_utc = datetime(
+        target_date.year,
+        target_date.month,
+        target_date.day,
+        0,
+        0,
+        0,
+        tzinfo=timezone.utc,
+    )
+    end_of_day_utc_exclusive = start_of_day_utc + timedelta(days=1)
+    return int(start_of_day_utc.timestamp()), int(end_of_day_utc_exclusive.timestamp())
+
+
 def should_rescrape(date_str: str, cached_at_epoch_seconds: float | None) -> bool:
     """
     Determine if a date needs rescraping based on when it was last scraped.
@@ -84,7 +104,7 @@ def should_rescrape(date_str: str, cached_at_epoch_seconds: float | None) -> boo
     if cached_at_epoch_seconds is None:
         return True
 
-    next_day_midnight_epoch = next_day_midnight_pacific_epoch_seconds(date_str)
+    _, next_day_midnight_epoch = utc_day_epoch_seconds_bounds(date_str)
     return cached_at_epoch_seconds < next_day_midnight_epoch
 
 
