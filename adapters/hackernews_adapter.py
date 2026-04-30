@@ -1,7 +1,6 @@
 """Hacker News adapter that fetches Show HN stories for a specific date."""
 
 import logging
-from datetime import datetime
 
 from adapters.newsletter_adapter import NewsletterAdapter
 import util
@@ -22,13 +21,12 @@ class HackerNewsAdapter(NewsletterAdapter):
 
     def scrape_date(self, date: str, excluded_urls: list[str]) -> dict:
         """Fetch and normalize Show HN stories for a date."""
-        target_date = datetime.fromisoformat(util.format_date_for_url(date))
-        start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_of_day = target_date.replace(hour=23, minute=59, second=59, microsecond=0)
+        date_str = util.format_date_for_url(date)
+        start_timestamp, end_timestamp_exclusive = util.utc_day_epoch_seconds_bounds(date_str)
 
         stories = self._fetch_stories_algolia(
-            start_timestamp=int(start_of_day.timestamp()),
-            end_timestamp=int(end_of_day.timestamp()),
+            start_timestamp=start_timestamp,
+            end_timestamp=end_timestamp_exclusive,
             min_points=self.min_points,
             min_comments=self.min_comments,
             limit=self.max_stories,
@@ -43,7 +41,7 @@ class HackerNewsAdapter(NewsletterAdapter):
             canonical_url = util.canonicalize_url(url)
             if canonical_url in excluded_set:
                 continue
-            article = self._algolia_story_to_article(story, date)
+            article = self._algolia_story_to_article(story, date_str)
             if article:
                 articles.append(article)
 
