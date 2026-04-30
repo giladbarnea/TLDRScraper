@@ -52,6 +52,17 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"ai": "TLDR AI"},
         sort_order=10,
     ),
+    "hackernews": NewsletterSourceConfig(
+        source_id="hackernews",
+        display_name="Hacker News",
+        base_url="http://hn.algolia.com/api/v1",
+        url_pattern="",
+        types=["show"],
+        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
+        article_pattern="",
+        category_display_names={"show": "HN Show"},
+        sort_order=23,
+    ),
     "xeiaso": NewsletterSourceConfig(
         source_id="xeiaso",
         display_name="Xe Iaso",
