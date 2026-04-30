@@ -1,12 +1,4 @@
-import {
-  FloatingFocusManager,
-  FloatingNode,
-  FloatingPortal,
-  useDismiss,
-  useFloating,
-  useFloatingNodeId,
-  useInteractions,
-} from '@floating-ui/react'
+import { Dialog } from '@base-ui-components/react/dialog'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Sparkles, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -68,30 +60,16 @@ function AvailableBody({ markdown, selectedText }) {
 function ElaborationPreview({ isOpen, status, selectedText, markdown, errorMessage, onClose }) {
   const [isMounted, setIsMounted] = useState(isOpen)
   const closeButtonRef = useRef(null)
-  const nodeId = useFloatingNodeId()
 
   useEffect(() => {
     if (isOpen) setIsMounted(true)
   }, [isOpen])
 
-  const { refs, context } = useFloating({
-    nodeId,
-    open: isMounted,
-    onOpenChange: (open) => {
-      if (!open) onClose()
-    },
-  })
-  const dismiss = useDismiss(context, {
-    escapeKey: true,
-    outsidePress: true,
-  })
-  const { getFloatingProps } = useInteractions([dismiss])
-
   if (!isMounted) return null
 
   return (
-    <FloatingNode id={nodeId}>
-      <FloatingPortal>
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
         <AnimatePresence onExitComplete={() => setIsMounted(false)}>
           {isOpen && (
             <motion.div
@@ -102,50 +80,43 @@ function ElaborationPreview({ isOpen, status, selectedText, markdown, errorMessa
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
             >
-              <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" />
-              <FloatingFocusManager
-                context={context}
-                modal={true}
-                returnFocus={true}
+              <Dialog.Backdrop className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" />
+              <Dialog.Popup
                 initialFocus={closeButtonRef}
+                finalFocus={closeButtonRef}
+                render={<motion.div />}
+                role="dialog"
+                aria-modal={true}
+                aria-label="Elaboration"
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+                className="relative flex h-[60vh] w-[85vw] max-w-xl flex-col overflow-hidden rounded-3xl border border-white/60 bg-white/80 shadow-elevated backdrop-blur-2xl"
               >
-                <motion.div
-                  {...getFloatingProps({
-                    ref: refs.setFloating,
-                    role: 'dialog',
-                    'aria-modal': true,
-                    'aria-label': 'Elaboration',
-                    initial: { opacity: 0, scale: 0.92 },
-                    animate: { opacity: 1, scale: 1 },
-                    exit: { opacity: 0, scale: 0.96 },
-                    transition: { type: 'spring', stiffness: 320, damping: 28 },
-                    className: 'relative flex h-[60vh] w-[85vw] max-w-xl flex-col overflow-hidden rounded-3xl border border-white/60 bg-white/80 shadow-elevated backdrop-blur-2xl',
-                  })}
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
+
+                <button
+                  ref={closeButtonRef}
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/70 text-slate-500 shadow-card backdrop-blur transition-colors hover:bg-white hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-400/60"
                 >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
+                  <X size={15} />
+                </button>
 
-                  <button
-                    ref={closeButtonRef}
-                    type="button"
-                    onClick={onClose}
-                    aria-label="Close"
-                    className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/70 text-slate-500 shadow-card backdrop-blur transition-colors hover:bg-white hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-400/60"
-                  >
-                    <X size={15} />
-                  </button>
-
-                  {status === 'loading' && <LoadingBody selectedText={selectedText} />}
-                  {status === 'error' && <ErrorBody message={errorMessage} />}
-                  {status === 'available' && (
-                    <AvailableBody markdown={markdown} selectedText={selectedText} />
-                  )}
-                </motion.div>
-              </FloatingFocusManager>
+                {status === 'loading' && <LoadingBody selectedText={selectedText} />}
+                {status === 'error' && <ErrorBody message={errorMessage} />}
+                {status === 'available' && (
+                  <AvailableBody markdown={markdown} selectedText={selectedText} />
+                )}
+              </Dialog.Popup>
             </motion.div>
           )}
         </AnimatePresence>
-      </FloatingPortal>
-    </FloatingNode>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 
