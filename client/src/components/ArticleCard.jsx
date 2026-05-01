@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { AlertCircle, CheckCircle, Trash2 } from 'lucide-react'
+import { AlertCircle, CheckCircle, Trash2, Undo2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useInteraction } from '../contexts/InteractionContext'
@@ -124,7 +124,6 @@ function ArticleCard({ article }) {
 
     if (isRemoved) {
       e.preventDefault()
-      toggleRemove()
       return
     }
 
@@ -201,8 +200,9 @@ function ArticleCard({ article }) {
             relative z-10
             rounded-xl border border-slate-200/60
             shadow-card
-            cursor-pointer select-none
+            select-none
             ${isRemoved ? 'bg-slate-100/90 border-slate-200' : 'bg-white'}
+            ${isRemoved ? 'cursor-default' : 'cursor-pointer'}
             ${stateLoading ? 'pointer-events-none' : ''}
             ${summary.expanded && !stateLoading ? 'ring-1 ring-brand-200/60 shadow-elevated' : ''}
           `}
@@ -243,7 +243,22 @@ function ArticleCard({ article }) {
             )}
             </div>
 
-            {!isRemoved && (
+            {isRemoved ? (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  toggleRemove()
+                }}
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-slate-400 hover:text-slate-900"
+                title="Restore article"
+                aria-label={`Restore ${article.title}`}
+              >
+                <Undo2 size={14} />
+                <span>Restore</span>
+              </button>
+            ) : (
               isRead ? (
                 <CheckCircle size={14} className="text-slate-300 shrink-0" />
               ) : isAvailable ? (

@@ -52,9 +52,19 @@ def _stub_storage(monkeypatch):
     from datetime import datetime, timezone
     store = {}
     cached_at_store = {}
+    patch_counter = {"value": 0}
 
     def get_daily_payload(date_text):
         return store.get(date_text)
+
+    def get_daily_payload_row(date_text):
+        payload = store.get(date_text)
+        if payload is None:
+            return None
+        return {
+            "payload": payload,
+            "updated_at": payload.get("storage_updated_at") or cached_at_store.get(date_text),
+        }
 
     def set_daily_payload(date_text, payload):
         store[date_text] = payload
@@ -76,11 +86,52 @@ def _stub_storage(monkeypatch):
     def is_date_cached(date_text):
         return date_text in store
 
+    def patch_daily_article(date_text, url, patch, expected_updated_at):
+        payload = store.get(date_text)
+        if payload is None:
+            raise RuntimeError(f"daily_cache row not found for date {date_text}")
+
+        current_updated_at = payload.get("storage_updated_at") or cached_at_store.get(date_text)
+        if current_updated_at != expected_updated_at:
+            return {
+                "conflict": True,
+                "payload": payload,
+                "updated_at": current_updated_at,
+            }
+
+        article_index = next(
+            (index for index, article in enumerate(payload["articles"]) if article["url"] == url),
+            None,
+        )
+        if article_index is None:
+            raise RuntimeError(f"article not found for url {url}")
+
+        next_payload = {
+            **payload,
+            "articles": list(payload["articles"]),
+        }
+        next_payload["articles"][article_index] = {
+            **next_payload["articles"][article_index],
+            **patch,
+        }
+        patch_counter["value"] += 1
+        next_updated_at = f"2026-05-01T00:00:00.{patch_counter['value']:06d}+00:00"
+        next_payload["storage_updated_at"] = next_updated_at
+        store[date_text] = next_payload
+
+        return {
+            "conflict": False,
+            "payload": next_payload,
+            "updated_at": next_updated_at,
+        }
+
     monkeypatch.setattr(storage_service, "get_daily_payload", get_daily_payload)
+    monkeypatch.setattr(storage_service, "get_daily_payload_row", get_daily_payload_row)
     monkeypatch.setattr(storage_service, "set_daily_payload", set_daily_payload)
     monkeypatch.setattr(storage_service, "set_daily_payload_from_scrape", set_daily_payload_from_scrape)
     monkeypatch.setattr(storage_service, "get_daily_payloads_range", get_daily_payloads_range)
     monkeypatch.setattr(storage_service, "is_date_cached", is_date_cached)
+    monkeypatch.setattr(storage_service, "patch_daily_article", patch_daily_article)
     return store, cached_at_store
 
 
@@ -233,3 +284,159 @@ def test_scrape_unions_stale_cache_with_new_articles(monkeypatch):
     assert existing["tldr"]["status"] == "available"
     new_article = next(item for item in merged_payload["articles"] if item["url"] == "https://example.com/new")
     assert new_article["tldr"]["status"] == "unknown"
+
+
+def test_get_storage_daily_returns_updated_at(monkeypatch):
+    from datetime import datetime, timezone
+    store, cached_at_store = _stub_storage(monkeypatch)
+    test_date = (date_type.today() - timedelta(days=5)).isoformat()
+    store[test_date] = _build_payload(test_date, url="https://example.com/metadata", title="Metadata Article")
+    cached_at_store[test_date] = datetime.now(timezone.utc).isoformat()
+
+    server, thread = _start_server()
+    try:
+        response = requests.get(
+            f"http://127.0.0.1:{server.server_port}/api/storage/daily/{test_date}",
+            timeout=5,
+        )
+        payload = response.json()
+    finally:
+        server.shutdown()
+        thread.join()
+
+    assert payload["success"] is True
+    assert payload["payload"]["date"] == test_date
+    assert payload["updated_at"] == cached_at_store[test_date]
+
+
+def test_patch_storage_daily_article_updates_single_article(monkeypatch):
+    from datetime import datetime, timezone
+    store, cached_at_store = _stub_storage(monkeypatch)
+    test_date = (date_type.today() - timedelta(days=6)).isoformat()
+    store[test_date] = {
+        "date": test_date,
+        "articles": [
+            {
+                "url": "https://example.com/first",
+                "title": "First",
+                "articleMeta": "",
+                "issueDate": test_date,
+                "category": "Newsletter",
+                "sourceId": None,
+                "section": None,
+                "sectionEmoji": None,
+                "sectionOrder": None,
+                "newsletterType": None,
+                "removed": False,
+                "summary": {"status": "unknown", "markdown": "", "effort": "low", "checkedAt": None, "errorMessage": None},
+                "read": {"isRead": False, "markedAt": None},
+            },
+            {
+                "url": "https://example.com/second",
+                "title": "Second",
+                "articleMeta": "",
+                "issueDate": test_date,
+                "category": "Newsletter",
+                "sourceId": None,
+                "section": None,
+                "sectionEmoji": None,
+                "sectionOrder": None,
+                "newsletterType": None,
+                "removed": False,
+                "summary": {"status": "unknown", "markdown": "", "effort": "low", "checkedAt": None, "errorMessage": None},
+                "read": {"isRead": False, "markedAt": None},
+            },
+        ],
+        "issues": [],
+    }
+    cached_at_store[test_date] = datetime.now(timezone.utc).isoformat()
+
+    server, thread = _start_server()
+    try:
+        initial_response = requests.get(
+            f"http://127.0.0.1:{server.server_port}/api/storage/daily/{test_date}",
+            timeout=5,
+        ).json()
+        patch_response = requests.patch(
+            f"http://127.0.0.1:{server.server_port}/api/storage/daily/{test_date}/article",
+            json={
+                "url": "https://example.com/second",
+                "patch": {"read": {"isRead": True, "markedAt": "2026-05-01T00:00:00Z"}},
+                "expected_updated_at": initial_response["updated_at"],
+            },
+            timeout=5,
+        )
+        payload = patch_response.json()
+    finally:
+        server.shutdown()
+        thread.join()
+
+    assert patch_response.status_code == 200
+    assert payload["success"] is True
+    assert payload["payload"]["articles"][1]["read"]["isRead"] is True
+    assert payload["payload"]["articles"][0]["read"]["isRead"] is False
+    assert payload["updated_at"] != initial_response["updated_at"]
+
+
+def test_patch_storage_daily_article_conflict_returns_latest_payload(monkeypatch):
+    from datetime import datetime, timezone
+    store, cached_at_store = _stub_storage(monkeypatch)
+    test_date = (date_type.today() - timedelta(days=7)).isoformat()
+    store[test_date] = {
+        "date": test_date,
+        "articles": [
+            {
+                "url": "https://example.com/conflict",
+                "title": "Conflict",
+                "articleMeta": "",
+                "issueDate": test_date,
+                "category": "Newsletter",
+                "sourceId": None,
+                "section": None,
+                "sectionEmoji": None,
+                "sectionOrder": None,
+                "newsletterType": None,
+                "removed": False,
+                "summary": {"status": "unknown", "markdown": "", "effort": "low", "checkedAt": None, "errorMessage": None},
+                "read": {"isRead": False, "markedAt": None},
+            }
+        ],
+        "issues": [],
+    }
+    cached_at_store[test_date] = datetime.now(timezone.utc).isoformat()
+
+    server, thread = _start_server()
+    try:
+        initial_response = requests.get(
+            f"http://127.0.0.1:{server.server_port}/api/storage/daily/{test_date}",
+            timeout=5,
+        ).json()
+        success_response = requests.patch(
+            f"http://127.0.0.1:{server.server_port}/api/storage/daily/{test_date}/article",
+            json={
+                "url": "https://example.com/conflict",
+                "patch": {"read": {"isRead": True, "markedAt": "2026-05-01T00:00:00Z"}},
+                "expected_updated_at": initial_response["updated_at"],
+            },
+            timeout=5,
+        ).json()
+        conflict_response = requests.patch(
+            f"http://127.0.0.1:{server.server_port}/api/storage/daily/{test_date}/article",
+            json={
+                "url": "https://example.com/conflict",
+                "patch": {"removed": True},
+                "expected_updated_at": initial_response["updated_at"],
+            },
+            timeout=5,
+        )
+        payload = conflict_response.json()
+    finally:
+        server.shutdown()
+        thread.join()
+
+    assert success_response["success"] is True
+    assert conflict_response.status_code == 409
+    assert payload["success"] is False
+    assert payload["conflict"] is True
+    assert payload["updated_at"] == success_response["updated_at"]
+    assert payload["payload"]["articles"][0]["read"]["isRead"] is True

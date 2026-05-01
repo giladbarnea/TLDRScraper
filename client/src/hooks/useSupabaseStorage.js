@@ -157,6 +157,14 @@ export async function setStorageValueAsync(key, nextValue, defaultValue = null) 
   }
 }
 
+export function setStorageValueInMemory(key, nextValue) {
+  const previous = readCache.get(key)
+  const resolved = typeof nextValue === 'function' ? nextValue(previous) : nextValue
+  if (resolved === previous) return
+  readCache.set(key, resolved)
+  emitChange(key)
+}
+
 export function useSupabaseStorage(key, defaultValue) {
   // ─────────────────────────────────────────────────────────────────────────────
   // Cache Seeding for Scrape-First Hydration
