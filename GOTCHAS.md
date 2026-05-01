@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-03 13:19
+last_updated: 2026-05-01 19:06
 ---
 # Gotchas
 
@@ -98,3 +98,16 @@ Current implementation (`useSupabaseStorage`): module-level `readCache` and `cha
 
 Goodness: the merge contract stays tiny and static. Local UI state evolves independently under its own storage keys and is reconciled via `useSupabaseStorage` subscriptions rather than merge logic.
 
+---
+
+#### 2026-05-01: Queued article mutations computed from render-time state instead of apply-time state
+
+**Desired behavior that didn't work**: Multiple queued mutations for the same article should resolve in order against the latest queued article state, so non-idempotent transitions like toggles behave correctly.
+
+**What actually happened and falsified original thesis**: After moving article writes to the queued patch path, it looked safe to compute `const optimisticPatch = updater(article)` in `useArticleState` before enqueueing. That assumption was incomplete. If two mutations were queued before re-render, both could derive from the same stale render snapshot. For example, two fast toggles could both compute the same patch from the same initial state, producing the wrong final result.
+
+**Cause & Fix**: The queue serialized persistence, but patch derivation was still happening too early. The fix was to pass the updater function into the queue and evaluate it against the latest article state when the queued task actually begins. Crucially, once that patch is resolved, it must then be frozen and reused across optimistic-concurrency retries. Recomputing on retry would reintroduce the older toggle-intent drift bug.
+
+**Generalized principle**: for queued state mutations, there are two distinct moments that must not be conflated:
+1. derive the mutation from the latest local state at apply time, not render time;
+2. once derived, preserve that exact mutation intent across retries and conflicts.

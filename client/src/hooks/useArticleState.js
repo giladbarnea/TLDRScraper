@@ -21,13 +21,11 @@ export function useArticleState(date, url) {
   const updateArticle = (updater) => {
     if (!article) return
     const previousPayload = payload
-    const optimisticPatch = updater(article)
-    if (!optimisticPatch || Object.keys(optimisticPatch).length === 0) return
 
     queueDailyArticlePatch({
       date,
       url,
-      patch: optimisticPatch,
+      buildPatch: updater,
       previousPayload,
       storageKey
     }).catch((persistError) => {

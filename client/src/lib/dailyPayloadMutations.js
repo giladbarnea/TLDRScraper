@@ -66,7 +66,8 @@ async function runQueuedOptimisticPatch({
     let { latestPayload, expectedUpdatedAt } = await loadPayloadMutationState(date, storageKey, fallbackPayload)
 
     for (let attemptIndex = 0; attemptIndex < 2; attemptIndex += 1) {
-      const optimisticPayload = applyOptimisticPayload(latestPayload)
+      const { optimisticPayload, shouldSkip } = applyOptimisticPayload(latestPayload)
+      if (shouldSkip) return optimisticPayload
       setStorageValueInMemory(storageKey, optimisticPayload)
 
       const patchResult = await sendPatch(expectedUpdatedAt)
@@ -90,9 +91,14 @@ async function runQueuedOptimisticPatch({
   })
 }
 
-export function queueDailyArticlePatch({ date, url, patch, previousPayload = null, storageKey = getNewsletterScrapeKey(date) }) {
-  if (!patch || Object.keys(patch).length === 0) return Promise.resolve(null)
-
+export function queueDailyArticlePatch({
+  date,
+  url,
+  patch,
+  buildPatch,
+  previousPayload = null,
+  storageKey = getNewsletterScrapeKey(date)
+}) {
   return runQueuedOptimisticPatch({
     date,
     storageKey,
@@ -100,7 +106,21 @@ export function queueDailyArticlePatch({ date, url, patch, previousPayload = nul
     applyOptimisticPayload(latestPayload) {
       const latestArticle = latestPayload?.articles?.find((article) => article.url === url)
       if (!latestArticle) throw new Error(`Article not found for url: ${url}`)
-      return applyArticlePatchToPayload(latestPayload, url, patch)
+
+      const resolvedPatch = typeof buildPatch === 'function' ? buildPatch(latestArticle) : patch
+      if (!resolvedPatch || Object.keys(resolvedPatch).length === 0) {
+        return {
+          optimisticPayload: latestPayload,
+          shouldSkip: true
+        }
+      }
+
+      patch = resolvedPatch
+      buildPatch = null
+      return {
+        optimisticPayload: applyArticlePatchToPayload(latestPayload, url, resolvedPatch),
+        shouldSkip: false
+      }
     },
     sendPatch(expectedUpdatedAt) {
       return patchDailyArticle(date, {
@@ -120,7 +140,17 @@ export function queueDailyPayloadPatch({ date, payloadPatch, previousPayload = n
     storageKey,
     fallbackPayload: previousPayload,
     applyOptimisticPayload(latestPayload) {
-      return applyPayloadPatchToPayload(latestPayload, payloadPatch)
+      if (!payloadPatch || Object.keys(payloadPatch).length === 0) {
+        return {
+          optimisticPayload: latestPayload,
+          shouldSkip: true
+        }
+      }
+
+      return {
+        optimisticPayload: applyPayloadPatchToPayload(latestPayload, payloadPatch),
+        shouldSkip: false
+      }
     },
     sendPatch(expectedUpdatedAt) {
       return patchDailyPayload(date, {
