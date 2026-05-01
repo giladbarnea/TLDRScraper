@@ -125,6 +125,34 @@ def _stub_storage(monkeypatch):
             "updated_at": next_updated_at,
         }
 
+    def patch_daily_payload(date_text, patch, expected_updated_at):
+        payload = store.get(date_text)
+        if payload is None:
+            raise RuntimeError(f"daily_cache row not found for date {date_text}")
+
+        current_updated_at = payload.get("storage_updated_at") or cached_at_store.get(date_text)
+        if current_updated_at != expected_updated_at:
+            return {
+                "conflict": True,
+                "payload": payload,
+                "updated_at": current_updated_at,
+            }
+
+        next_payload = {
+            **payload,
+            **patch,
+        }
+        patch_counter["value"] += 1
+        next_updated_at = f"2026-05-01T00:00:00.{patch_counter['value']:06d}+00:00"
+        next_payload["storage_updated_at"] = next_updated_at
+        store[date_text] = next_payload
+
+        return {
+            "conflict": False,
+            "payload": next_payload,
+            "updated_at": next_updated_at,
+        }
+
     monkeypatch.setattr(storage_service, "get_daily_payload", get_daily_payload)
     monkeypatch.setattr(storage_service, "get_daily_payload_row", get_daily_payload_row)
     monkeypatch.setattr(storage_service, "set_daily_payload", set_daily_payload)
@@ -132,6 +160,7 @@ def _stub_storage(monkeypatch):
     monkeypatch.setattr(storage_service, "get_daily_payloads_range", get_daily_payloads_range)
     monkeypatch.setattr(storage_service, "is_date_cached", is_date_cached)
     monkeypatch.setattr(storage_service, "patch_daily_article", patch_daily_article)
+    monkeypatch.setattr(storage_service, "patch_daily_payload", patch_daily_payload)
     return store, cached_at_store
 
 
@@ -440,3 +469,42 @@ def test_patch_storage_daily_article_conflict_returns_latest_payload(monkeypatch
     assert payload["conflict"] is True
     assert payload["updated_at"] == success_response["updated_at"]
     assert payload["payload"]["articles"][0]["read"]["isRead"] is True
+
+
+def test_patch_storage_daily_updates_digest(monkeypatch):
+    from datetime import datetime, timezone
+    store, cached_at_store = _stub_storage(monkeypatch)
+    test_date = (date_type.today() - timedelta(days=8)).isoformat()
+    store[test_date] = _build_payload(test_date, url="https://example.com/digest", title="Digest Article")
+    cached_at_store[test_date] = datetime.now(timezone.utc).isoformat()
+
+    server, thread = _start_server()
+    try:
+        initial_response = requests.get(
+            f"http://127.0.0.1:{server.server_port}/api/storage/daily/{test_date}",
+            timeout=5,
+        ).json()
+        patch_response = requests.patch(
+            f"http://127.0.0.1:{server.server_port}/api/storage/daily/{test_date}",
+            json={
+                "patch": {
+                    "digest": {
+                        "status": "available",
+                        "markdown": "# Digest",
+                        "articleUrls": ["https://example.com/digest"],
+                    }
+                },
+                "expected_updated_at": initial_response["updated_at"],
+            },
+            timeout=5,
+        )
+        payload = patch_response.json()
+    finally:
+        server.shutdown()
+        thread.join()
+
+    assert patch_response.status_code == 200
+    assert payload["success"] is True
+    assert payload["payload"]["digest"]["status"] == "available"
+    assert payload["payload"]["digest"]["articleUrls"] == ["https://example.com/digest"]
+    assert payload["updated_at"] != initial_response["updated_at"]

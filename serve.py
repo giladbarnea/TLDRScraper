@@ -63,6 +63,21 @@ def summarize_article_patch(patch: dict) -> str:
     return " ".join(parts)
 
 
+def summarize_daily_payload_patch(patch: dict) -> str:
+    """Return a compact, log-friendly summary of a daily payload patch."""
+    patch_keys = ",".join(sorted(patch))
+    parts = [f"keys={patch_keys}"]
+
+    digest_patch = patch.get("digest")
+    if isinstance(digest_patch, dict):
+        if "status" in digest_patch:
+            parts.append(f"digest_status={digest_patch['status']}")
+        if isinstance(digest_patch.get("articleUrls"), list):
+            parts.append(f"digest_article_count={len(digest_patch['articleUrls'])}")
+
+    return " ".join(parts)
+
+
 def register_consensus_submodule() -> None:
     """Mount the standalone consensus app when the submodule is present."""
     if not CONSENSUS_SUBMODULE_DIRECTORY.exists():
@@ -298,6 +313,73 @@ def get_storage_daily(date):
             "success": True,
             "payload": row["payload"],
             "updated_at": row["updated_at"],
+        })
+
+    except Exception as e:
+        logger.error(
+            "error date=%s error=%s",
+            date, repr(e),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
+@app.route("/api/storage/daily/<date>", methods=["PATCH"])
+def patch_storage_daily(date):
+    """Patch top-level fields within a daily payload with optimistic concurrency."""
+    try:
+        data = request.get_json()
+        if not isinstance(data, dict):
+            return jsonify({"success": False, "error": "Invalid JSON body"}), 400
+
+        for key in ['patch', 'expected_updated_at']:
+            if key not in data:
+                return jsonify({"success": False, "error": f"Missing required field: {key}"}), 400
+
+        if not isinstance(data['patch'], dict):
+            return jsonify({"success": False, "error": "Field 'patch' must be an object"}), 400
+
+        if not data['patch']:
+            return jsonify({"success": False, "error": "Field 'patch' must not be empty"}), 400
+
+        patch_summary = summarize_daily_payload_patch(data['patch'])
+        logger.info(
+            "patch_daily_payload start date=%s %s expected_updated_at=%s",
+            date,
+            patch_summary,
+            data['expected_updated_at'],
+        )
+
+        rpc_result = storage_service.patch_daily_payload(
+            date,
+            data['patch'],
+            data['expected_updated_at'],
+        )
+
+        if rpc_result.get('conflict'):
+            logger.info(
+                "patch_daily_payload conflict date=%s %s updated_at=%s",
+                date,
+                patch_summary,
+                rpc_result.get('updated_at'),
+            )
+            return jsonify({
+                "success": False,
+                "conflict": True,
+                "payload": rpc_result.get('payload'),
+                "updated_at": rpc_result.get('updated_at'),
+            }), 409
+
+        logger.info(
+            "patch_daily_payload done date=%s %s updated_at=%s",
+            date,
+            patch_summary,
+            rpc_result.get('updated_at'),
+        )
+        return jsonify({
+            "success": True,
+            "payload": rpc_result.get('payload'),
+            "updated_at": rpc_result.get('updated_at'),
         })
 
     except Exception as e:

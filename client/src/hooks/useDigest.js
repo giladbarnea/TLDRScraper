@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useInteraction } from '../contexts/InteractionContext'
+import { queueDailyArticlePatch, queueDailyPayloadPatch } from '../lib/dailyPayloadMutations'
 import { markdownToHtml } from '../lib/markdownUtils'
 import { createRequestToken } from '../lib/requestUtils'
 import { logTransition } from '../lib/stateTransitionLogger'
@@ -7,7 +8,7 @@ import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import { acquireZenLock, releaseZenLock } from '../lib/zenLock'
 import { ArticleLifecycleEventType, reduceArticleLifecycle } from '../reducers/articleLifecycleReducer'
 import * as summaryDataReducer from '../reducers/summaryDataReducer'
-import { getCachedStorageValue, setStorageValueAsync, useSupabaseStorage } from './useSupabaseStorage'
+import { getCachedStorageValue, useSupabaseStorage } from './useSupabaseStorage'
 
 const DIGEST_LOCK_OWNER = 'digest'
 
@@ -32,9 +33,7 @@ export function useDigest(results) {
     ? [...results.payloads].sort((a, b) => b.date.localeCompare(a.date))[0]?.date
     : null
   const storageKey = getNewsletterScrapeKey(targetDate ?? latestPayloadDate ?? '0000-00-00')
-  const [payload, setPayload] = useSupabaseStorage(storageKey, null)
-  const setPayloadRef = useRef(null)
-  setPayloadRef.current = setPayload
+  const [payload] = useSupabaseStorage(storageKey, null)
 
   const activePayload = payload
 
@@ -71,39 +70,45 @@ export function useDigest(results) {
     return grouped
   }, [results?.payloads])
 
-  const updateArticlesAcrossDates = useCallback(async (urlsByDate, updater) => {
-    for (const [date, urls] of urlsByDate.entries()) {
-      const urlSet = new Set(urls)
-      const storageKey = getNewsletterScrapeKey(date)
-      await setStorageValueAsync(storageKey, (current) => {
-        const liveCurrent = current || getCachedStorageValue(storageKey)
-        if (!liveCurrent) return liveCurrent
+  const getLivePayloadForDate = useCallback((date) => {
+    const fallbackPayload = results?.payloads?.find((payloadDescriptor) => payloadDescriptor.date === date) || null
+    return getCachedStorageValue(getNewsletterScrapeKey(date)) || fallbackPayload
+  }, [results?.payloads])
 
-        let didChange = false
-        const nextArticles = liveCurrent.articles.map((article) => {
-          if (!urlSet.has(article.url)) return article
-          didChange = true
-          return updater(article)
+  const updateArticlesAcrossDates = useCallback(async (urlsByDate, buildPatch) => {
+    await Promise.all([...urlsByDate.entries()].map(async ([date, urls]) => {
+      const storageKey = getNewsletterScrapeKey(date)
+      for (const url of urls) {
+        const livePayload = getLivePayloadForDate(date)
+        const liveArticle = livePayload?.articles?.find((article) => article.url === url)
+        if (!liveArticle) continue
+
+        const patch = buildPatch(liveArticle)
+        if (!patch || Object.keys(patch).length === 0) continue
+
+        await queueDailyArticlePatch({
+          date,
+          url,
+          patch,
+          previousPayload: livePayload,
+          storageKey
         })
-        if (!didChange) return liveCurrent
-        return { ...liveCurrent, articles: nextArticles }
-      })
-    }
-  }, [])
+      }
+    }))
+  }, [getLivePayloadForDate])
 
   const markDigestArticlesLoading = useCallback(async (urlsByDate) => {
     const previousSummaryByUrl = new Map()
     await updateArticlesAcrossDates(urlsByDate, (article) => {
-      previousSummaryByUrl.set(article.url, article.summary)
+      previousSummaryByUrl.set(article.url, article.summary ?? null)
       return {
-        ...article,
         summary: {
           ...(article.summary || {}),
           ...summaryDataReducer.reduceSummaryData(article.summary, {
             type: summaryDataReducer.SummaryDataEventType.SUMMARY_REQUESTED,
             effort: 'low',
           }).patch,
-        },
+        }
       }
     })
     return previousSummaryByUrl
@@ -112,39 +117,51 @@ export function useDigest(results) {
   const restoreDigestArticlesSummary = useCallback(async (urlsByDate, previousSummaryByUrl) => {
     if (!previousSummaryByUrl) return
     await updateArticlesAcrossDates(urlsByDate, (article) => {
-      const previousSummary = previousSummaryByUrl.get(article.url)
-      if (previousSummary == null) {
-        const { summary, ...rest } = article
-        return rest
+      return {
+        summary: previousSummaryByUrl.get(article.url) ?? null
       }
-      return { ...article, summary: previousSummary }
     })
   }, [updateArticlesAcrossDates])
 
   const markDigestArticlesConsumed = useCallback(async (urlsByDate, shouldRemove) => {
     const markedAt = new Date().toISOString()
-    await updateArticlesAcrossDates(urlsByDate, (article) => ({
-      ...article,
-      ...(shouldRemove
+    await updateArticlesAcrossDates(urlsByDate, (article) => (
+      shouldRemove
         ? reduceArticleLifecycle(article, { type: ArticleLifecycleEventType.MARK_REMOVED }).patch
         : reduceArticleLifecycle(article, {
             type: ArticleLifecycleEventType.MARK_READ,
             markedAt,
-          }).patch),
-    }))
+          }).patch
+    ))
   }, [updateArticlesAcrossDates])
 
   const writeDigest = useCallback((digestPatch) => {
-    setPayloadRef.current(current => {
-      if (!current) return current
-      const fromStatus = summaryDataReducer.getSummaryDataStatus(current.digest)
-      const toStatus = digestPatch.status
-      if (fromStatus !== toStatus) {
-        logTransition('digest', DIGEST_LOCK_OWNER, fromStatus, toStatus)
-      }
-      return { ...current, digest: { ...(current.digest || {}), ...digestPatch } }
+    const date = targetDate ?? latestPayloadDate
+    if (!date) return Promise.resolve(null)
+
+    const livePayload = getLivePayloadForDate(date)
+    if (!livePayload) return Promise.resolve(null)
+
+    const nextDigest = {
+      ...(livePayload.digest || {}),
+      ...digestPatch
+    }
+    const fromStatus = summaryDataReducer.getSummaryDataStatus(livePayload.digest)
+    const toStatus = summaryDataReducer.getSummaryDataStatus(nextDigest)
+    if (fromStatus !== toStatus) {
+      logTransition('digest', DIGEST_LOCK_OWNER, fromStatus, toStatus)
+    }
+
+    return queueDailyPayloadPatch({
+      date,
+      payloadPatch: { digest: nextDigest },
+      previousPayload: livePayload,
+      storageKey: getNewsletterScrapeKey(date)
+    }).catch((error) => {
+      console.error(`Failed to update digest for ${date}:`, error)
+      throw error
     })
-  }, [])
+  }, [getLivePayloadForDate, latestPayloadDate, targetDate])
 
   const trigger = (articleDescriptors) => {
     const payloads = results?.payloads
@@ -198,7 +215,7 @@ export function useDigest(results) {
       try {
         previousSummaryByUrl = await markDigestArticlesLoading(urlsByDate)
 
-        writeDigest({ errorMessage: null })
+        void writeDigest({ errorMessage: null })
 
         const response = await window.fetch('/api/digest', {
           method: 'POST',
@@ -213,7 +230,7 @@ export function useDigest(results) {
 
         if (result.success) {
           await restoreDigestArticlesSummary(urlsByDate, previousSummaryByUrl)
-          writeDigest({
+          await writeDigest({
             status: summaryDataReducer.SummaryDataStatus.AVAILABLE,
             markdown: result.digest_markdown,
             articleUrls: result.included_urls ?? articleUrls,
@@ -226,7 +243,7 @@ export function useDigest(results) {
           return
         }
 
-        writeDigest({
+        await writeDigest({
           status: summaryDataReducer.SummaryDataStatus.ERROR,
           errorMessage: result.error,
         })
@@ -236,7 +253,7 @@ export function useDigest(results) {
           return
         }
         await restoreDigestArticlesSummary(urlsByDate, previousSummaryByUrl)
-        writeDigest({
+        await writeDigest({
           status: summaryDataReducer.SummaryDataStatus.ERROR,
           errorMessage: error.message,
         })
@@ -253,7 +270,7 @@ export function useDigest(results) {
 
   useEffect(() => {
     if (status !== summaryDataReducer.SummaryDataStatus.LOADING) return
-    writeDigest({
+    void writeDigest({
       status: summaryDataReducer.SummaryDataStatus.UNKNOWN,
       errorMessage: null,
     })

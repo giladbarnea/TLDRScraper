@@ -54,6 +54,38 @@ export async function getDailyPayloadWithMetadata(date) {
   }
 }
 
+export async function patchDailyPayload(date, { patch, expectedUpdatedAt }) {
+  const response = await window.fetch(`/api/storage/daily/${date}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      patch,
+      expected_updated_at: expectedUpdatedAt
+    })
+  })
+
+  const data = await response.json()
+
+  if (response.status === 409) {
+    return {
+      success: false,
+      conflict: true,
+      payload: data.payload,
+      updatedAt: data.updated_at
+    }
+  }
+
+  if (!data.success) {
+    throw new Error(data.error || 'Failed to patch payload')
+  }
+
+  return {
+    success: true,
+    payload: data.payload,
+    updatedAt: data.updated_at
+  }
+}
+
 export async function getDailyPayloadsRange(startDate, endDate, signal) {
   const response = await window.fetch('/api/storage/daily-range', {
     method: 'POST',

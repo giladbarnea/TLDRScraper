@@ -161,6 +161,24 @@ def patch_daily_article(date, url, patch, expected_updated_at):
     return result.data[0]
 
 
+def patch_daily_payload(date, patch, expected_updated_at):
+    """Atomically patch top-level daily_cache payload fields using RPC."""
+    supabase = supabase_client.get_supabase_client()
+    result = supabase.rpc(
+        'patch_daily_payload',
+        {
+            'target_date': date,
+            'payload_patch': patch,
+            'expected_updated_at': expected_updated_at,
+        },
+    ).execute()
+
+    if not result.data:
+        raise RuntimeError("patch_daily_payload RPC returned no rows")
+
+    return result.data[0]
+
+
 def get_digest(digest_id: str) -> dict | None:
     """Return cached digest row for digest_id, or None on miss or error.
 

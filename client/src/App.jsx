@@ -9,7 +9,8 @@ import ToastContainer from './components/ToastContainer'
 import { InteractionProvider, useInteraction } from './contexts/InteractionContext'
 import { useDigest } from './hooks/useDigest'
 import { getDefaultFeedDateRange, useFeedLoader } from './hooks/useFeedLoader'
-import { getCachedStorageValue, setStorageValueAsync } from './hooks/useSupabaseStorage'
+import { getCachedStorageValue } from './hooks/useSupabaseStorage'
+import { queueDailyArticlePatch } from './lib/dailyPayloadMutations'
 import { publishArticleAction } from './lib/articleActionBus'
 import { extractSelectedArticleDescriptors, getSelectedArticles, groupSelectedByDate } from './lib/selectionUtils'
 import { getNewsletterScrapeKey } from './lib/storageKeys'
@@ -30,23 +31,20 @@ function toBrowserUrl(url) {
 async function applyBatchLifecyclePatch(selectedArticles, eventFactory) {
   const groupedArticlesByDate = groupSelectedByDate(selectedArticles)
 
-  for (const [date, articles] of groupedArticlesByDate.entries()) {
-    const selectedUrls = new Set(articles.map((article) => article.url))
+  await Promise.all([...groupedArticlesByDate.entries()].map(async ([date, articles]) => {
     const storageKey = getNewsletterScrapeKey(date)
 
-    await setStorageValueAsync(storageKey, (currentPayload) => {
-      if (!currentPayload) return currentPayload
-
-      return {
-        ...currentPayload,
-        articles: currentPayload.articles.map((article) => {
-          if (!selectedUrls.has(article.url)) return article
-          const event = eventFactory(article)
-          return { ...article, ...reduceArticleLifecycle(article, event).patch }
-        })
-      }
-    })
-  }
+    for (const article of articles) {
+      const patch = reduceArticleLifecycle(article, eventFactory(article)).patch
+      await queueDailyArticlePatch({
+        date,
+        url: article.url,
+        patch,
+        previousPayload: getCachedStorageValue(storageKey) || null,
+        storageKey
+      })
+    }
+  }))
 }
 
 function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
