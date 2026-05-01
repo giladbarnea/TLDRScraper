@@ -7,6 +7,7 @@ import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
 import { subscribeToArticleAction } from '../lib/articleActionBus'
+import { getSourceLogo } from '../lib/sourceLogoMap'
 import Selectable from './Selectable'
 import ZenModeOverlay from './ZenModeOverlay'
 
@@ -40,16 +41,20 @@ function ArticleTitle({ isRead, title }) {
   )
 }
 
-function ArticleMeta({ domain, hostname, articleMeta }) {
+function ArticleMeta({ sourceId, domain, articleMeta }) {
+  const sourceLogo = getSourceLogo(sourceId)
+
   return (
     <div className="flex items-center gap-2 min-w-0">
-      {hostname && (
+      {sourceLogo && (
         <div className="w-4 h-4 rounded-full bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
           <img
-            src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
+            src={sourceLogo}
             alt={domain}
-            className="w-full h-full object-cover"
-            onError={(e) => { e.target.style.display = 'none' }}
+            className="w-full h-full object-contain"
+            loading="lazy"
+            decoding="async"
+            onError={(event) => { event.currentTarget.style.visibility = 'hidden' }}
           />
         </div>
       )}
@@ -211,8 +216,8 @@ function ArticleCard({ article }) {
 
               {!isRemoved && (
                 <ArticleMeta
+                  sourceId={article.sourceId}
                   domain={displayDomain}
-                  hostname={hostname}
                   articleMeta={article.articleMeta}
                 />
               )}
