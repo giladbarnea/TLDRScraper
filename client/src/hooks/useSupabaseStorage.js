@@ -140,7 +140,7 @@ function subscribeToStorageKey(key, listener) {
   return subscribe(key, listener)
 }
 
-export async function setStorageValueAsync(key, nextValue, defaultValue = null) {
+async function setStorageValueAsync(key, nextValue, defaultValue = null) {
   const previous = await readValue(key, defaultValue)
   const resolved = typeof nextValue === 'function' ? nextValue(previous) : nextValue
   if (resolved === previous) return

@@ -1,5 +1,5 @@
-import { logTransition } from '../lib/stateTransitionLogger'
 import { queueDailyArticlePatch } from '../lib/dailyPayloadMutations'
+import { logTransition } from '../lib/stateTransitionLogger'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import {
   ArticleLifecycleEventType,
