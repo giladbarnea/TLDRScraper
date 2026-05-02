@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 11:11
+name: client/interaction-and-selection
+description: Client-side interaction architecture, selection modes, and foldable containers.
+last_updated: 2026-05-02 11:36
 ---
-
 # Client: Interaction and Selection
 
 [→ State Machines: Interaction & Gestures](../state-machines/interaction-and-gestures.md)

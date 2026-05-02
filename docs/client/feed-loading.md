@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: client/feed-loading
+description: Client-side two-phase feed loading and merge algorithm.
+last_updated: 2026-05-02 11:36
 ---
-
 # Client: Feed Loading
 
 [→ Server: Scraping Pipeline](../server/scraping-pipeline.md) | [→ State Machines: Feed & Storage](../state-machines/feed-and-storage.md)

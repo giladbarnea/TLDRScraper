@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: client/storage
+description: Client-side storage hook, optimistic updates, and persistence tiers.
+last_updated: 2026-05-02 11:36
 ---
-
 # Client: Storage
 
 [→ Server: Storage](../server/storage.md) | [→ State Machines: Feed & Storage](../state-machines/feed-and-storage.md)

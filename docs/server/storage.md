@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: server/storage
+description: Server-side database schema and storage flow.
+last_updated: 2026-05-02 11:36
 ---
-
 # Server: Storage
 
 [→ Client: Storage](../client/storage.md) | [→ State Machines: Feed & Storage](../state-machines/feed-and-storage.md)

@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: client/reading-overlays
+description: Client architecture for reading overlays including ZenMode and Digest.
+last_updated: 2026-05-02 11:36
 ---
-
 # Client: Reading Overlays
 
 [→ State Machines: Reading Overlays](../state-machines/reading-overlays.md)

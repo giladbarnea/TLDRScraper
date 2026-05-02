@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: state-machines/toast
+description: State machine for toast notifications and global pub/sub buses.
+last_updated: 2026-05-02 11:36
 ---
-
 # State Machines: Toast
 
 ### 18. Toast

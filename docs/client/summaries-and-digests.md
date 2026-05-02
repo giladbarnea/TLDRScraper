@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 11:11
+name: client/summaries-and-digests
+description: Client-side summary and digest data vs view state management.
+last_updated: 2026-05-02 11:36
 ---
-
 # Client: Summaries and Digests
 
 [→ Server: Summaries](../server/summaries.md) | [→ State Machines: Articles & Summaries](../state-machines/articles-and-summaries.md)

@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: server/scraping-pipeline
+description: Server-side scraping pipeline, cache policies, and merge steps.
+last_updated: 2026-05-02 11:36
 ---
-
 # Server: Scraping Pipeline
 
 [→ Client: Feed Loading](../client/feed-loading.md) | [→ State Machines: Feed & Storage](../state-machines/feed-and-storage.md)

@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: state-machines/interaction-and-gestures
+description: State machines for selection interaction, container expansion, and swipe gestures.
+last_updated: 2026-05-02 11:36
 ---
-
 # State Machines: Interaction and Gestures
 
 [→ Client: Interaction & Selection](../client/interaction-and-selection.md) | [→ Client: Gestures](../client/gestures.md)

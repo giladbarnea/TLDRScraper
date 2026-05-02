@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 11:11
+name: server/articles-and-data
+description: Data structures for Articles and Issues, and history deduplication algorithms.
+last_updated: 2026-05-02 11:36
 ---
-
 # Server: Articles and Data Structures
 
 [→ Client: Articles & Lifecycle](../client/articles-and-lifecycle.md) | [→ State Machines: Articles & Summaries](../state-machines/articles-and-summaries.md)

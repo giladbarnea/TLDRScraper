@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: state-machines/tracked-state
+description: Internal utility state machine for tracked values in gestures.
+last_updated: 2026-05-02 11:36
 ---
-
 # State Machines: Tracked State
 
 ### 17. Tracked State

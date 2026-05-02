@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: state-machines/feed-and-storage
+description: State machines for feed loading, scrape form, and Supabase storage.
+last_updated: 2026-05-02 11:36
 ---
-
 # State Machines: Feed and Storage
 
 [→ Server: Scraping Pipeline](../server/scraping-pipeline.md) | [→ Server: Storage](../server/storage.md) | [→ Client: Feed Loading](../client/feed-loading.md) | [→ Client: Storage](../client/storage.md)

@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: state-machines/articles-and-summaries
+description: State machines for article lifecycle, summary data, digest, and the Zen lock.
+last_updated: 2026-05-02 11:36
 ---
-
 # State Machines: Articles and Summaries
 
 [→ Server: Articles & Data](../server/articles-and-data.md) | [→ Server: Summaries](../server/summaries.md) | [→ Client: Articles & Lifecycle](../client/articles-and-lifecycle.md) | [→ Client: Summaries & Digests](../client/summaries-and-digests.md)

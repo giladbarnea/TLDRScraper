@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 11:11
+name: client/gestures
+description: Client-side gesture handling, specifically swipe-to-remove.
+last_updated: 2026-05-02 11:36
 ---
-
 # Client: Gestures
 
 [→ State Machines: Interaction & Gestures](../state-machines/interaction-and-gestures.md)

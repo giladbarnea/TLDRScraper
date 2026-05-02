@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: server/adapters
+description: Adapter factory and logic for individual newsletter sources.
+last_updated: 2026-05-02 11:36
 ---
-
 # Server: Adapters
 
 The `NewsletterScraper` uses adapter classes (e.g., `TLDRAdapter`, `HackerNewsAdapter`) via a factory. 

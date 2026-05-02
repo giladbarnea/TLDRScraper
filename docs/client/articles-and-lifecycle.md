@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 11:11
+name: client/articles-and-lifecycle
+description: Client article lifecycle domain and reducer pattern.
+last_updated: 2026-05-02 11:36
 ---
-
 # Client: Articles and Lifecycle
 
 [→ Server: Articles & Data](../server/articles-and-data.md) | [→ State Machines: Articles & Summaries](../state-machines/articles-and-summaries.md)

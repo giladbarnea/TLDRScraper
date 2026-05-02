@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: state-machines/architecture-and-flows
+description: Cross-cutting topology, coupling matrices, and cross-machine user flows.
+last_updated: 2026-05-02 11:36
 ---
-
 # State Machines: Architecture and Flows
 
 ### Topology: How They're Wired

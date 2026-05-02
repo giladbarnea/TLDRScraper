@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-02 10:48
+name: server/summaries
+description: Backend summary generation pipeline and LLM prompt templates.
+last_updated: 2026-05-02 11:36
 ---
-
 # Server: Summaries
 
 [→ Client: Summaries & Digests](../client/summaries-and-digests.md) | [→ State Machines: Articles & Summaries](../state-machines/articles-and-summaries.md)
