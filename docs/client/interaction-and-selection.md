@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-02 10:48
+last_updated: 2026-05-02 11:11
 ---
 
 # Client: Interaction and Selection
@@ -43,7 +43,7 @@ Selection behavior is implemented as a **declarative state machine** with a smal
 
 ---
 
-See [STATE_MACHINES.md](STATE_MACHINES.md#3-interaction) for the Interaction state machine specification (states, events, transitions, suppress latch behavior).
+See [State Machines: Interaction and Gestures](../state-machines/interaction-and-gestures.md#3-interaction) for the Interaction state machine specification (states, events, transitions, suppress latch behavior).
 
 ---
 

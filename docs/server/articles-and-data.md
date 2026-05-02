@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-02 10:48
+last_updated: 2026-05-02 11:11
 ---
 
 # Server: Articles and Data Structures
@@ -8,7 +8,7 @@ last_updated: 2026-05-02 10:48
 
 ## Data Structures
 
-Client payload shape, embedded article state, and client-side persistence tiers are documented in `client/STATE_MACHINES.md`.
+Client payload shape, embedded article state, and client-side persistence tiers are documented in the [State Machines docs](../state-machines/).
 
 ### Issue
 
@@ -38,7 +38,7 @@ Client payload shape, embedded article state, and client-side persistence tiers 
 ```typescript
 {
   success: boolean,
-  articles: Article[],       // All articles (flattened); see client/STATE_MACHINES.md for shape
+  articles: Article[],       // All articles (flattened); see State Machines docs for shape
   issues: Issue[],           // All issues
   stats: {
     total_articles: number,

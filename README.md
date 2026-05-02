@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-08 19:40, 4005201
+last_updated: 2026-05-02 11:11
 description: light overview over the project
 ---
 # TLDRScraper
@@ -12,7 +12,7 @@ Mobile Web Newsletter Aggregator that scrapes tech newsletters from multiple sou
 - **Backend**: Flask + Python (serverless on Vercel)
 - **AI**: Google Gemini 3.1 Pro Preview for summaries
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
+See the docs in [docs/server/](docs/server/) and [docs/client/](docs/client/) for detailed architectural flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
 
 ## Development
 
@@ -162,7 +162,7 @@ Flask is configured to:
 
 ## Documentation
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed flows & user interactions documentation
+- [docs/](docs/) - Detailed architectural flows & user interactions documentation broken down by domain
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Map of the project structure
 - [GOTCHAS.md](GOTCHAS.md) - Documented solved tricky past bugs
 - [BUGS.md](BUGS.md) - Known issues

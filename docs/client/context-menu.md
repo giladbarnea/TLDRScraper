@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-02 10:48
+last_updated: 2026-05-02 11:11
 ---
 
 # Client: Context Menu
@@ -8,7 +8,7 @@ last_updated: 2026-05-02 10:48
 
 ## Overlay Context Menu
 
-An overlay-level right-click / selection-triggered action menu shared by overlay readers. Both `ZenModeOverlay` and `DigestOverlay` compose `useOverlayContextMenu`, instantiate `useElaboration`, and pass an `overlayMenu` contract into `BaseOverlay`. The two consumers wire structurally-identical `Elaborate` actions; the only difference is the URL-list shape they pass to the hook (Zen: one URL; Digest: the digest's source URL list). See [STATE_MACHINES.md](STATE_MACHINES.md#19-overlay-context-menu) for the state machine and event model.
+An overlay-level right-click / selection-triggered action menu shared by overlay readers. Both `ZenModeOverlay` and `DigestOverlay` compose `useOverlayContextMenu`, instantiate `useElaboration`, and pass an `overlayMenu` contract into `BaseOverlay`. The two consumers wire structurally-identical `Elaborate` actions; the only difference is the URL-list shape they pass to the hook (Zen: one URL; Digest: the digest's source URL list). See [State Machines: Context Menu](../state-machines/context-menu.md#19-overlay-context-menu) for the state machine and event model.
 
 **Key modules:** `hooks/useOverlayContextMenu.js`, `hooks/useElaboration.js` (shared elaboration state + `AbortController` + POST `/api/elaborate`), `components/OverlayContextMenu.jsx`, `components/BaseOverlay.jsx` (explicit `overlayMenu` surface contract and render site), `components/ElaborationPreview.jsx` (presentational; rendered against the hook's state by each wrapper), `reducers/mobileSelectionMenuReducer.js` (mobile selection lifecycle as a pure reducer consumed by `useMobileSelectionMenu`)
 

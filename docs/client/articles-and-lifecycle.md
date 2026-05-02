@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-02 10:48
+last_updated: 2026-05-02 11:11
 ---
 
 # Client: Articles and Lifecycle
@@ -8,7 +8,7 @@ last_updated: 2026-05-02 10:48
 
 ## Article Lifecycle (Domain A)
 
-Article lifecycle (`unread` → `read` → `removed`) is managed via a closed reducer pattern. Components dispatch events declaratively; the reducer returns a storage patch applied via `useSupabaseStorage`. See [STATE_MACHINES.md](STATE_MACHINES.md#1-article-lifecycle) for states, events, and transitions.
+Article lifecycle (`unread` → `read` → `removed`) is managed via a closed reducer pattern. Components dispatch events declaratively; the reducer returns a storage patch applied via `useSupabaseStorage`. See [State Machines: Articles and Summaries](../state-machines/articles-and-summaries.md#1-article-lifecycle) for states, events, and transitions.
 
 **Key modules:** `reducers/articleLifecycleReducer.js`, `hooks/useArticleState.js`
 

@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-30 17:19, 4e222f3
+last_updated: 2026-05-02 11:11
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -17,7 +17,7 @@ Newsletter aggregator that scrapes tech newsletters from multiple sources, displ
 - Storage: Project uses Supabase Database (PostgreSQL) for all data persistence (newsletters, article states, settings, scrape results). Data is stored server-side with client hooks managing async operations.
 - Cache mechanism: Server-side storage with cache-first scraping for past dates (early return if cached). Today always scrapes and unions with cache to capture new articles published later in the day. Daily payloads stored as JSONB in PostgreSQL.
 
-Study [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
+Study the docs in [docs/server/](docs/server/) and [docs/client/](docs/client/) for detailed architectural flows & user interactions documentation and [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a map of the project structure.
 
 </project-overview>
 
