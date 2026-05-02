@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-28 08:59, bfd3ab2
+last_updated: 2026-05-03 13:19
 ---
 # Gotchas
 
@@ -84,21 +84,17 @@ session-id: 892fa714-0087-4c5a-9930-cffdfc5f5359
 
 ---
 
-#### 2025-11-06: useLocalStorage hook instances race to overwrite each other
+#### [principle] Shared mutable state behind a custom hook
 
-**Desired behavior that didn't work**: Removed articles should persist their removed state after page refresh.
+When shared mutable state lives behind a custom hook, each hook instance must be a pure subscriber to a single external source of truth. Authoritative mutations must go through that shared store; per-hook local copies become stale immediately. The same shape reappears in any new hook that does "useState + some side-effect around shared data."
 
-**What actually happened and falsified original thesis**: Article showed "Restore" button immediately after removal, but after refresh showed "Remove" button. We had wrongly assumed one useLocalStorage instance per key would prevent conflicts.
-
-**Cause & Fix**: Multiple useLocalStorage hook instances (one per ArticleCard) each owned their own copy of the payload. When one instance stored an update, other instances later wrote their stale copy back, erasing the change. Rewrote useLocalStorage to use useSyncExternalStore so every subscriber reads and writes through a single source of truth, dramatically simplifying the flow and eliminating the race.
+Current implementation (`useSupabaseStorage`): module-level `readCache` and `changeListenersByKey`, with `emitChange` driving all subscribers. Optimistic writes update both the caller’s state + the shared cache before network.
 
 ---
 
-#### 2025-10-31 `3bfceee`: State property lost during cache merge
+#### [principle] Merge algorithms must be protected from fields they do not own
 
-**Desired behavior that didn't work**: When hiding a TLDR, the article should move to bottom so users can deprioritize completed items.
+`mergePreservingLocalState` (feedMerge.js) separates concerns: the daily payload is a narrow source of truth for server-origin fields only (`SERVER_ORIGIN_FIELDS` whitelist); every UI-only field lives in an orthogonal hook (`useArticleState`, `useSummary`) keyed by (date, url) and derived from the shared payload cache. Because those fields never enter the payload, they cannot be lost during a merge.
 
-**What actually happened and falsified original thesis**: The article stayed in place. We had wrongly assumed that saving the state property to storage was sufficient.
-
-**Cause & Fix**: The merge function wasn't transferring the new property from cached data. The fix was to add the missing property to the merge operation.
+Goodness: the merge contract stays tiny and static. Local UI state evolves independently under its own storage keys and is reconciled via `useSupabaseStorage` subscriptions rather than merge logic.
 
