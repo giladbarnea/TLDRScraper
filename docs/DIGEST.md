@@ -1,11 +1,13 @@
 ---
-last_updated: 2026-04-03 18:12, 5ffa6d3
+last_updated: 2026-05-02 09:38
 ---
 # Digest Feature Architecture
 
 ## Overview
 
-The Digest feature lets a user select multiple feed articles and generate a single synthesized AI digest. It spans client selection state, client overlay/state persistence, backend orchestration, content extraction, Gemini generation, and server-side digest caching.
+The Digest feature lets a user select multiple feed articles and generate a single synthesized AI digest. Once open, the digest overlay supports **Elaboration**: selecting text inside the rendered digest and asking the LLM to expand on it, using all source articles as context. The elaboration feature is shared with single-article summaries (`ZenModeOverlay`) via the `useElaboration` hook and the overlay context menu contract.
+
+The digest domain spans client selection state, client overlay/state persistence, backend orchestration, content extraction, Gemini generation, server-side digest caching, and elaboration.
 
 ---
 
@@ -30,6 +32,13 @@ The Digest feature lets a user select multiple feed articles and generate a sing
 │  │                                            ▼                      │  │
 │  │                                       DigestOverlay               │  │
 │  │                             (portal + gestures + markdown html)   │  │
+│  │                                       │                           │  │
+│  │  ┌────────────────────────────────────┼────────────────────────┐  │  │
+│  │  │  Overlay Context Menu + Elaboration (shared with Zen)        │  │  │
+│  │  │   useOverlayContextMenu → BaseOverlay (overlayMenu contract) │  │  │
+│  │  │   useElaboration → ElaborationPreview (overlayLayers slot)   │  │  │
+│  │  │   POST /api/elaborate                                        │  │  │
+│  │  └──────────────────────────────────────────────────────────────┘  │  │
 │  └───────────────────────────────────────┬───────────────────────────┘  │
 └──────────────────────────────────────────│───────────────────────────────┘
                                            │ HTTP
@@ -208,6 +217,29 @@ serve.digest_endpoint()
 
 ---
 
+## Elaboration in Digest
+
+While reading a digest, the user can select text → right-click (desktop) or lift finger after native selection (mobile) → choose "Elaborate". The backend scrapes all source articles in parallel (max 5 workers) and feeds their concatenated bodies to the LLM alongside the selected text and the digest markdown.
+
+### Client-side wiring
+
+`DigestOverlay` composes two shared hooks and passes their output into `BaseOverlay`:
+
+- `useOverlayContextMenu(true)` — owns menu open/close state, position reference, selected text capture, and mobile selection lifecycle (via `mobileSelectionMenuReducer.js`).
+- `useElaboration({ sourceMarkdown, articleUrls })` — owns the `idle | loading | available | error` state machine, the `AbortController`, and the `POST /api/elaborate` fetch.
+
+The wrapper builds an `overlayMenu` contract and an `overlayLayers={<ElaborationPreview />}` tree, both passed to `BaseOverlay`. This wiring is identical to `ZenModeOverlay`; the only difference is `articleUrls` (N URLs from the digest's source set) vs `[url]` (one URL).
+
+### Backend
+
+`POST /api/elaborate` → `tldr_app.elaborate()` → `tldr_service.elaborate_content()` → parallel `_fetch_article_markdowns_parallel()` (max 5 workers) → `summarizer.elaborate()` → `_build_elaborate_prompt()`. Canonicalizes each URL, scrapes all in parallel, concatenates bodies into `<source-articles>` (per-article `<article index="N">...</article>` delimiters when N > 1), and returns `{ elaboration_markdown, canonical_urls }`.
+
+### Layer stack
+
+`App.jsx` mounts one `<FloatingTree>`. `BaseOverlay` (reader), `OverlayContextMenu`, and `ElaborationPreview` each register as `FloatingNode`s. `useDismiss()` gives Escape and outside-press ownership to the topmost open layer. `ElaborationPreview` is the only modal layer (traps focus, returns on close).
+
+---
+
 ## API Contract
 
 ### `POST /api/digest`
@@ -233,6 +265,28 @@ Successful response:
   "article_count": 3,
   "included_urls": ["..."],
   "skipped": [{"url": "...", "reason": "..."}]
+}
+```
+
+### `POST /api/elaborate`
+
+Request body:
+
+```json
+{
+  "selected_text": "...",
+  "source_markdown": "...",
+  "article_urls": ["https://...", "https://..."]
+}
+```
+
+Successful response:
+
+```json
+{
+  "success": true,
+  "elaboration_markdown": "...",
+  "canonical_urls": ["https://...", "https://..."]
 }
 ```
 
