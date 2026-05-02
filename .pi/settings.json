@@ -55,6 +55,14 @@
       ],
       "skills": [
         "+skills/pi-subagents/SKILL.md"
+      ],
+      "prompts": [
+        "-prompts/gather-context-and-clarify.md",
+        "-prompts/parallel-cleanup.md",
+        "-prompts/parallel-context-build.md",
+        "-prompts/parallel-handoff-plan.md",
+        "-prompts/parallel-research.md",
+        "-prompts/parallel-review.md"
       ]
     }
   ],
@@ -71,7 +79,7 @@
     "-skills/vercel/SKILL.md",
     "-skills/web-a11y-guidelines/SKILL.md",
     "-skills/impeccable-design/SKILL.md",
-    "+skills/peer-review/SKILL.md",
-    "-skills/react-best-practices/SKILL.md"
+    "-skills/peer-review/SKILL.md",
+    "+skills/react-best-practices/SKILL.md"
   ]
 }
