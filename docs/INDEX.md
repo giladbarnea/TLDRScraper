@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-02 11:36
+last_updated: 2026-05-02 11:55
 ---
 
 # Documentation Index
@@ -95,3 +95,9 @@ This index provides a directory tree of the `docs/` folder along with a brief de
 - **[architecture-and-flows.md](state-machines/architecture-and-flows.md)**
   - *Description*: Cross-cutting topology, coupling matrices, and cross-machine user flows.
   - *Keywords*: topology, coupling matrix, flow, cross-machine, persistence round-trip
+
+## Features
+
+- **[digest.md](features/digest.md)**
+  - *Description*: End-to-end architecture of the Digest feature including elaboration and caching.
+  - *Keywords*: digest, elaboration, useElaboration, API contract, caching, end-to-end
