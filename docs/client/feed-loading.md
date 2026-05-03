@@ -1,7 +1,7 @@
 ---
 name: client/feed-loading
 description: Client-side two-phase feed loading and merge algorithm.
-last_updated: 2026-05-02 11:36
+last_updated: 2026-05-03 15:10, bb6b54a
 ---
 # Client: Feed Loading
 

@@ -2,7 +2,7 @@
 name: load-project-context
 description: Gather rudimentary project context and current project state first thing upon session start. Optionally establish continuity with specific recent work.
 argument-hint: [optional-specific-effort]
-last_updated: 2026-05-02 11:36
+last_updated: 2026-05-03 15:10, bb6b54a
 ---
 1. **Run `setup.sh` Synchronously**. Wait for it to finish. It generates documentation.
 

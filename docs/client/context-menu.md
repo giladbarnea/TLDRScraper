@@ -1,7 +1,7 @@
 ---
 name: client/context-menu
 description: Client overlay context menu architecture and DOM/layer contracts.
-last_updated: 2026-05-02 11:36
+last_updated: 2026-05-03 15:10, bb6b54a
 ---
 # Client: Context Menu
 

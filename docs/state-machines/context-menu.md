@@ -1,7 +1,7 @@
 ---
 name: state-machines/context-menu
 description: State machine for the overlay context menu, including mobile selection reducers.
-last_updated: 2026-05-02 11:36
+last_updated: 2026-05-03 15:10, bb6b54a
 ---
 # State Machines: Context Menu
 

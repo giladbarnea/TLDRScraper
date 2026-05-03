@@ -1,7 +1,7 @@
 ---
 name: server/articles-and-data
 description: Data structures for Articles and Issues, and history deduplication algorithms.
-last_updated: 2026-05-02 11:36
+last_updated: 2026-05-03 15:10, bb6b54a
 ---
 # Server: Articles and Data Structures
 

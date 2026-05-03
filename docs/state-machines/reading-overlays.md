@@ -1,7 +1,7 @@
 ---
 name: state-machines/reading-overlays
 description: State machines for Zen mode, digest overlay, and base overlay gesture primitives.
-last_updated: 2026-05-02 11:36
+last_updated: 2026-05-03 15:10, bb6b54a
 ---
 # State Machines: Reading Overlays
 
