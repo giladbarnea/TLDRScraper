@@ -39,6 +39,45 @@ logger = logging.getLogger("serve")
 CONSENSUS_SUBMODULE_DIRECTORY = pathlib.Path(__file__).resolve().parent / "vendor" / "consensus"
 
 
+def summarize_article_patch(patch: dict) -> str:
+    """Return a compact, log-friendly summary of an article patch."""
+    patch_keys = ",".join(sorted(patch))
+    parts = [f"keys={patch_keys}"]
+
+    removed = patch.get("removed")
+    if isinstance(removed, bool):
+        parts.append(f"removed={removed}")
+
+    read_patch = patch.get("read")
+    if isinstance(read_patch, dict) and "isRead" in read_patch:
+        parts.append(f"read={read_patch['isRead']}")
+
+    for summary_field in ("summary", "tldr"):
+        summary_patch = patch.get(summary_field)
+        if isinstance(summary_patch, dict):
+            if "status" in summary_patch:
+                parts.append(f"{summary_field}_status={summary_patch['status']}")
+            if "effort" in summary_patch:
+                parts.append(f"{summary_field}_effort={summary_patch['effort']}")
+
+    return " ".join(parts)
+
+
+def summarize_daily_payload_patch(patch: dict) -> str:
+    """Return a compact, log-friendly summary of a daily payload patch."""
+    patch_keys = ",".join(sorted(patch))
+    parts = [f"keys={patch_keys}"]
+
+    digest_patch = patch.get("digest")
+    if isinstance(digest_patch, dict):
+        if "status" in digest_patch:
+            parts.append(f"digest_status={digest_patch['status']}")
+        if isinstance(digest_patch.get("articleUrls"), list):
+            parts.append(f"digest_article_count={len(digest_patch['articleUrls'])}")
+
+    return " ".join(parts)
+
+
 def register_consensus_submodule() -> None:
     """Mount the standalone consensus app when the submodule is present."""
     if not CONSENSUS_SUBMODULE_DIRECTORY.exists():
@@ -115,10 +154,23 @@ def summarize_url_endpoint(model: str = DEFAULT_MODEL):
     try:
         data = request.get_json() or {}
         model_param = request.args.get("model", DEFAULT_MODEL)
+        url = data.get("url", "")
+        summarize_effort = data.get("summarize_effort", DEFAULT_THINKING_EFFORT)
+        logger.info(
+            "summarize_url start url=%s summarize_effort=%s model=%s",
+            url,
+            summarize_effort,
+            model_param,
+        )
         result = tldr_app.summarize_url(
-            data.get("url", ""),
-            summarize_effort=data.get("summarize_effort", DEFAULT_THINKING_EFFORT),
+            url,
+            summarize_effort=summarize_effort,
             model=model_param,
+        )
+        logger.info(
+            "summarize_url done url=%s success=%s",
+            url,
+            result.get("success"),
         )
 
         return jsonify(result)
@@ -253,11 +305,15 @@ def set_storage_setting(key):
 def get_storage_daily(date):
     """Get cached payload for a specific date."""
     try:
-        payload = storage_service.get_daily_payload(date)
-        if payload is None:
+        row = storage_service.get_daily_payload_row(date)
+        if row is None:
             return jsonify({"success": False, "error": "Date not found"}), 404
 
-        return jsonify({"success": True, "payload": payload})
+        return jsonify({
+            "success": True,
+            "payload": row["payload"],
+            "updated_at": row["updated_at"],
+        })
 
     except Exception as e:
         logger.error(
@@ -266,6 +322,145 @@ def get_storage_daily(date):
             exc_info=True,
         )
         return jsonify({"success": False, "error": repr(e)}), 500
+
+
+@app.route("/api/storage/daily/<date>", methods=["PATCH"])
+def patch_storage_daily(date):
+    """Patch top-level fields within a daily payload with optimistic concurrency."""
+    try:
+        data = request.get_json()
+        if not isinstance(data, dict):
+            return jsonify({"success": False, "error": "Invalid JSON body"}), 400
+
+        for key in ['patch', 'expected_updated_at']:
+            if key not in data:
+                return jsonify({"success": False, "error": f"Missing required field: {key}"}), 400
+
+        if not isinstance(data['patch'], dict):
+            return jsonify({"success": False, "error": "Field 'patch' must be an object"}), 400
+
+        if not data['patch']:
+            return jsonify({"success": False, "error": "Field 'patch' must not be empty"}), 400
+
+        patch_summary = summarize_daily_payload_patch(data['patch'])
+        logger.info(
+            "patch_daily_payload start date=%s %s expected_updated_at=%s",
+            date,
+            patch_summary,
+            data['expected_updated_at'],
+        )
+
+        rpc_result = storage_service.patch_daily_payload(
+            date,
+            data['patch'],
+            data['expected_updated_at'],
+        )
+
+        if rpc_result.get('conflict'):
+            logger.info(
+                "patch_daily_payload conflict date=%s %s updated_at=%s",
+                date,
+                patch_summary,
+                rpc_result.get('updated_at'),
+            )
+            return jsonify({
+                "success": False,
+                "conflict": True,
+                "payload": rpc_result.get('payload'),
+                "updated_at": rpc_result.get('updated_at'),
+            }), 409
+
+        logger.info(
+            "patch_daily_payload done date=%s %s updated_at=%s",
+            date,
+            patch_summary,
+            rpc_result.get('updated_at'),
+        )
+        return jsonify({
+            "success": True,
+            "payload": rpc_result.get('payload'),
+            "updated_at": rpc_result.get('updated_at'),
+        })
+
+    except Exception as e:
+        logger.error(
+            "error date=%s error=%s",
+            date, repr(e),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
+
+@app.route("/api/storage/daily/<date>/article", methods=["PATCH"])
+def patch_storage_daily_article(date):
+    """Patch a single article within a daily payload with optimistic concurrency."""
+    try:
+        data = request.get_json()
+        if not isinstance(data, dict):
+            return jsonify({"success": False, "error": "Invalid JSON body"}), 400
+
+        for key in ['url', 'patch', 'expected_updated_at']:
+            if key not in data:
+                return jsonify({"success": False, "error": f"Missing required field: {key}"}), 400
+
+        if not isinstance(data['patch'], dict):
+            return jsonify({"success": False, "error": "Field 'patch' must be an object"}), 400
+
+        if not data['patch']:
+            return jsonify({"success": False, "error": "Field 'patch' must not be empty"}), 400
+
+        patch_summary = summarize_article_patch(data['patch'])
+        logger.info(
+            "patch_daily_article start date=%s url=%s %s expected_updated_at=%s",
+            date,
+            data['url'],
+            patch_summary,
+            data['expected_updated_at'],
+        )
+
+        rpc_result = storage_service.patch_daily_article(
+            date,
+            data['url'],
+            data['patch'],
+            data['expected_updated_at'],
+        )
+
+        if rpc_result.get('conflict'):
+            logger.info(
+                "patch_daily_article conflict date=%s url=%s %s updated_at=%s",
+                date,
+                data['url'],
+                patch_summary,
+                rpc_result.get('updated_at'),
+            )
+            return jsonify({
+                "success": False,
+                "conflict": True,
+                "payload": rpc_result.get('payload'),
+                "updated_at": rpc_result.get('updated_at'),
+            }), 409
+
+        logger.info(
+            "patch_daily_article done date=%s url=%s %s updated_at=%s",
+            date,
+            data['url'],
+            patch_summary,
+            rpc_result.get('updated_at'),
+        )
+        return jsonify({
+            "success": True,
+            "payload": rpc_result.get('payload'),
+            "updated_at": rpc_result.get('updated_at'),
+        })
+
+    except Exception as e:
+        logger.error(
+            "error date=%s error=%s",
+            date, repr(e),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": repr(e)}), 500
+
 
 @app.route("/api/storage/daily/<date>", methods=["POST"])
 def set_storage_daily(date):

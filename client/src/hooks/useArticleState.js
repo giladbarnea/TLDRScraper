@@ -1,3 +1,4 @@
+import { queueDailyArticlePatch } from '../lib/dailyPayloadMutations'
 import { logTransition } from '../lib/stateTransitionLogger'
 import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import {
@@ -9,7 +10,7 @@ import { useSupabaseStorage } from './useSupabaseStorage'
 
 export function useArticleState(date, url) {
   const storageKey = getNewsletterScrapeKey(date)
-  const [payload, setPayload, , { loading, error }] = useSupabaseStorage(storageKey, null)
+  const [payload, , , { loading, error }] = useSupabaseStorage(storageKey, null)
 
   const article = payload?.articles?.find(a => a.url === url) || null
 
@@ -19,16 +20,16 @@ export function useArticleState(date, url) {
 
   const updateArticle = (updater) => {
     if (!article) return
+    const previousPayload = payload
 
-    setPayload(current => {
-      if (!current) return current
-
-      return {
-        ...current,
-        articles: current.articles.map(a =>
-          a.url === url ? { ...a, ...updater(a) } : a
-        )
-      }
+    queueDailyArticlePatch({
+      date,
+      url,
+      buildPatch: updater,
+      previousPayload,
+      storageKey
+    }).catch((persistError) => {
+      console.error(`Failed to update article for ${url}:`, persistError)
     })
   }
 

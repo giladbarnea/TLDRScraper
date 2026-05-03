@@ -2,13 +2,12 @@
 name: load-project-context
 description: Gather rudimentary project context and current project state first thing upon session start. Optionally establish continuity with specific recent work.
 argument-hint: [optional-specific-effort]
-last_updated: 2026-04-23 20:30
+last_updated: 2026-05-02 11:36
 ---
 1. **Run `setup.sh` Synchronously**. Wait for it to finish. It generates documentation.
 
-2. **Read Root Markdown Files** - `README.md`, `AGENTS.md`, `PROJECT_STRUCTURE.md`, `GOTCHAS.md`. Read these files in full. Follow any context-gathering instructions in them.
-     If specified effort concerns the client side, also read `client/ARCHITECTURE.md` and `client/STATE_MACHINES.md` in full.
-     If specified effort concerns the server side, also read root  `ARCHITECTURE.md`.
+2. **Read Root Markdown Files** - `README.md`, `AGENTS.md`, `PROJECT_STRUCTURE.md`, `GOTCHAS.md`, and `docs/INDEX.md`. Read these files in full. Follow any context-gathering instructions in them.
+     `docs/INDEX.md` is an auto-generated index of the documentation; use it as a truthful signpost to find and read the actual domain-specific docs relevant to your task.
 
 3. **Git log** - run `git log --numstat --shortstat --all --graph -15`. If the user referenced a specific effort, read affected files in full and note commit messages and branch names.
 

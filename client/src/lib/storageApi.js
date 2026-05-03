@@ -36,6 +36,56 @@ async function setDailyPayload(date, payload) {
   return data.data
 }
 
+export async function getDailyPayloadWithMetadata(date) {
+  const response = await window.fetch(`/api/storage/daily/${date}`)
+  const data = await response.json()
+
+  if (response.status === 404) {
+    return null
+  }
+
+  if (!data.success) {
+    throw new Error(data.error || 'Failed to load payload metadata')
+  }
+
+  return {
+    payload: data.payload,
+    updatedAt: data.updated_at
+  }
+}
+
+export async function patchDailyPayload(date, { patch, expectedUpdatedAt }) {
+  const response = await window.fetch(`/api/storage/daily/${date}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      patch,
+      expected_updated_at: expectedUpdatedAt
+    })
+  })
+
+  const data = await response.json()
+
+  if (response.status === 409) {
+    return {
+      success: false,
+      conflict: true,
+      payload: data.payload,
+      updatedAt: data.updated_at
+    }
+  }
+
+  if (!data.success) {
+    throw new Error(data.error || 'Failed to patch payload')
+  }
+
+  return {
+    success: true,
+    payload: data.payload,
+    updatedAt: data.updated_at
+  }
+}
+
 export async function getDailyPayloadsRange(startDate, endDate, signal) {
   const response = await window.fetch('/api/storage/daily-range', {
     method: 'POST',
@@ -51,4 +101,37 @@ export async function getDailyPayloadsRange(startDate, endDate, signal) {
   }
 
   throw new Error(data.error || 'Failed to load payloads')
+}
+
+export async function patchDailyArticle(date, { url, patch, expectedUpdatedAt }) {
+  const response = await window.fetch(`/api/storage/daily/${date}/article`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      url,
+      patch,
+      expected_updated_at: expectedUpdatedAt
+    })
+  })
+
+  const data = await response.json()
+
+  if (response.status === 409) {
+    return {
+      success: false,
+      conflict: true,
+      payload: data.payload,
+      updatedAt: data.updated_at
+    }
+  }
+
+  if (!data.success) {
+    throw new Error(data.error || 'Failed to patch article')
+  }
+
+  return {
+    success: true,
+    payload: data.payload,
+    updatedAt: data.updated_at
+  }
 }

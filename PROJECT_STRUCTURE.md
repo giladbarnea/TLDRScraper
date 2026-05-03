@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-01 05:03
+last_updated: 2026-05-01 09:27
 ---
 
 .
@@ -20,6 +20,7 @@ last_updated: 2026-05-01 05:03
 │     ├── peer-review
 │     │  ├── references
 │     │  │  ├── direct-peer-review-instructions.md
+│     │  │  ├── peer-review-instructions.md
 │     │  │  └── self-peer-review.md
 │     │  └── SKILL.md
 │     ├── plan
@@ -171,6 +172,7 @@ last_updated: 2026-05-01 05:03
 │  └── vite.config.js
 ├── db
 │  ├── create_digests_table.sql
+│  ├── create_patch_daily_article_function.sql
 │  └── create_shopping_cart_entries_table.sql
 ├── hidden_apps
 ├── scripts
