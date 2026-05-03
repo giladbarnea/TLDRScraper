@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-01 09:27
+last_updated: 2026-05-03 16:56
 ---
 
 .
@@ -22,8 +22,6 @@ last_updated: 2026-05-01 09:27
 │     │  │  ├── direct-peer-review-instructions.md
 │     │  │  ├── peer-review-instructions.md
 │     │  │  └── self-peer-review.md
-│     │  └── SKILL.md
-│     ├── plan
 │     │  └── SKILL.md
 │     ├── post-implementation
 │     │  └── SKILL.md
@@ -136,6 +134,7 @@ last_updated: 2026-05-01 09:27
 │  │  │  └── useTrackedState.js
 │  │  ├── lib
 │  │  │  ├── articleActionBus.js
+│  │  │  ├── dailyPayloadMutations.js
 │  │  │  ├── feedMerge.js
 │  │  │  ├── interactionConstants.js
 │  │  │  ├── markdownUtils.js
@@ -143,6 +142,7 @@ last_updated: 2026-05-01 09:27
 │  │  │  ├── requestUtils.js
 │  │  │  ├── scraper.js
 │  │  │  ├── selectionUtils.js
+│  │  │  ├── sourceLogoMap.js
 │  │  │  ├── stateTransitionLogger.js
 │  │  │  ├── storageApi.js
 │  │  │  ├── storageKeys.js
@@ -159,20 +159,19 @@ last_updated: 2026-05-01 09:27
 │  │  └── main.jsx
 │  ├── .gitignore
 │  ├── .nvmrc
-│  ├── ARCHITECTURE.md
 │  ├── biome.json
 │  ├── index.html
 │  ├── main-screen.png
 │  ├── package-lock.json
 │  ├── package.json
 │  ├── postcss.config.js
-│  ├── STATE_MACHINES.md
 │  ├── summary-overlay.png
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
 ├── db
 │  ├── create_digests_table.sql
 │  ├── create_patch_daily_article_function.sql
+│  ├── create_patch_daily_payload_function.sql
 │  └── create_shopping_cart_entries_table.sql
 ├── hidden_apps
 ├── scripts
@@ -213,9 +212,9 @@ last_updated: 2026-05-01 09:27
 ├── .gitattributes
 ├── .gitignore
 ├── .gitmodules
+├── .synthesize-findings.md
 ├── .vercelignore
 ├── AGENTS.md
-├── ARCHITECTURE.md
 ├── BUGS.md
 ├── CLAUDE.md
 ├── GOTCHAS.md
