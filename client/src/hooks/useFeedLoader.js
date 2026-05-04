@@ -1,10 +1,9 @@
-import { useCallback, useState } from 'react'
-import { mergePreservingLocalState } from '../lib/feedMerge'
+import { useCallback, useRef, useState } from 'react'
+import { createRequestToken } from '../lib/requestUtils'
 import { scrapeNewsletters } from '../lib/scraper'
 import { logTransition } from '../lib/stateTransitionLogger'
 import { getDailyPayloadsRange } from '../lib/storageApi'
-import { getNewsletterScrapeKey } from '../lib/storageKeys'
-import { mergeIntoCache } from './useSupabaseStorage'
+import { hydrateDay, mergeDayFromServer } from '../store/articleStore'
 
 const SESSION_CACHE_TTL_MS = 30 * 60 * 1000  // 30 minutes
 
@@ -46,6 +45,12 @@ function writeSessionCachedResults(startDate, endDate, results) {
   } catch {}
 }
 
+function hydrateResultPayloads(results) {
+  for (const payload of results?.payloads ?? []) {
+    hydrateDay(payload.date, payload)
+  }
+}
+
 function mergeFreshPayloadsIntoRenderedCache(cachedPayloads, freshResults, setResults) {
   const cachedDates = new Set(cachedPayloads.map((payload) => payload.date))
   const cachedUrlsByDate = new Map(
@@ -60,15 +65,13 @@ function mergeFreshPayloadsIntoRenderedCache(cachedPayloads, freshResults, setRe
     const cachedUrls = cachedUrlsByDate.get(freshPayload.date)
     newArticleCount += freshPayload.articles.filter((article) => !cachedUrls.has(article.url)).length
 
-    mergeIntoCache(
-      getNewsletterScrapeKey(freshPayload.date),
-      (localPayload) => mergePreservingLocalState(freshPayload, localPayload)
-    )
+    mergeDayFromServer(freshPayload.date, freshPayload)
   }
 
   const newDayPayloads = freshResults.payloads.filter((payload) => !cachedDates.has(payload.date))
 
   if (newDayPayloads.length > 0) {
+    hydrateResultPayloads({ payloads: newDayPayloads })
     setResults((previousResults) => ({
       ...freshResults,
       payloads: [...(previousResults?.payloads || []), ...newDayPayloads]
@@ -91,14 +94,20 @@ export function getDefaultFeedDateRange() {
 
 export function useFeedLoader() {
   const [results, setResults] = useState(null)
+  const requestTokenRef = useRef(null)
 
   const loadFeed = useCallback(async ({ startDate, endDate, signal, useSessionCache = false }) => {
+    const requestToken = createRequestToken()
+    requestTokenRef.current = requestToken
+
     const range = `${startDate}..${endDate}`
 
     if (useSessionCache) {
       const sessionCachedResults = readSessionCachedResults(startDate, endDate)
       if (sessionCachedResults) {
+        if (requestTokenRef.current !== requestToken) return null
         logTransition('feed', range, 'idle', 'ready', 'sessionStorage')
+        hydrateResultPayloads(sessionCachedResults)
         setResults(sessionCachedResults)
         return sessionCachedResults
       }
@@ -110,16 +119,19 @@ export function useFeedLoader() {
 
     const cachedPayloads = await getDailyPayloadsRange(startDate, endDate, signal).catch(() => [])
     if (signal?.aborted) return null
+    if (requestTokenRef.current !== requestToken) return null
 
     if (cachedPayloads.length > 0) {
       phaseOneRendered = true
       const cachedArticleCount = cachedPayloads.reduce((sum, payload) => sum + payload.articles.length, 0)
       logTransition('feed', range, 'fetching', 'cached', `${cachedPayloads.length} days, ${cachedArticleCount} articles`)
+      hydrateResultPayloads({ payloads: cachedPayloads })
       setResults({ payloads: cachedPayloads, stats: null })
     }
 
     const freshResults = await scrapeNewsletters(startDate, endDate, signal)
     if (signal?.aborted) return null
+    if (requestTokenRef.current !== requestToken) return null
 
     if (phaseOneRendered) {
       const { newArticleCount, newDayCount } = mergeFreshPayloadsIntoRenderedCache(cachedPayloads, freshResults, setResults)
@@ -127,9 +139,11 @@ export function useFeedLoader() {
     } else {
       const freshArticleCount = freshResults.payloads.reduce((sum, payload) => sum + payload.articles.length, 0)
       logTransition('feed', range, 'fetching', 'ready', `${freshResults.payloads.length} days, ${freshArticleCount} articles`)
+      hydrateResultPayloads(freshResults)
       setResults(freshResults)
     }
 
+    if (requestTokenRef.current !== requestToken) return null
     writeSessionCachedResults(startDate, endDate, freshResults)
     return freshResults
   }, [])

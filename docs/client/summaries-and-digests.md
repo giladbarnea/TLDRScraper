@@ -1,7 +1,7 @@
 ---
 name: client/summaries-and-digests
 description: Client-side summary and digest data vs view state management.
-last_updated: 2026-05-03 15:10, bb6b54a
+last_updated: 2026-05-04 16:28
 ---
 # Client: Summaries and Digests
 
@@ -9,8 +9,12 @@ last_updated: 2026-05-03 15:10, bb6b54a
 
 ## Summary (Domain B + View State)
 
-Summary management separates **data state** (reducer: `unknown → loading → available/error`) from **view state** (simple `useState` for expanded/collapsed). The `useSummary` hook orchestrates both. See [State Machines: Articles and Summaries](../state-machines/articles-and-summaries.md#2-summary-data) for the data state machine.
+Summary management separates **data state** (`unknown → loading → available/error`) from **view state** (`expandedView`). Both now live on the article slice in `articleStore`; `useSummary` subscribes to that slice and returns stable command closures for fetch, expand, collapse, and toggle. See [State Machines: Articles and Summaries](../state-machines/articles-and-summaries.md#2-summary-data) for the data state machine.
 
-**Key modules:** `reducers/summaryDataReducer.js`, `hooks/useSummary.js`, `lib/markdownUtils.js` (markdown→HTML conversion with KaTeX support), `lib/zenLock.js` (mutual-exclusion lock), `lib/requestUtils.js` (request tokens)
+**Key modules:** `reducers/summaryDataReducer.js`, `hooks/useSummary.js`, `store/articleStore.js`, `lib/dailyPayloadMutations.js`, `lib/zenLock.js` (mutual-exclusion lock), `lib/requestUtils.js` (request tokens)
+
+Markdown conversion is intentionally kept out of the hot subscription hook. Overlay surfaces memoize rendered HTML with `lib/markdownUtils.js`: `ZenModeOverlay`, `DigestOverlay`, and `ElaborationPreview`.
+
+Digest uses the same store and mutation boundary. `useDigest` reads the target day slice, marks participating articles with grouped batch patches, writes digest status with `queueDailyPayloadPatch()`, and opens `DigestOverlay` through the shared zen lock.
 
 ---

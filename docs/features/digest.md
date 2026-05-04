@@ -1,6 +1,7 @@
 ---
 name: features/digest
 description: End-to-end architecture of the Digest feature including elaboration and caching.
+last_updated: 2026-05-04 16:28
 ---
 # Digest Feature Architecture
 
@@ -24,7 +25,7 @@ The digest domain spans client selection state, client overlay/state persistence
 │  │ React Client                                                      │  │
 │  │                                                                   │  │
 │  │  Selection System                                                 │  │
-│  │   InteractionContext / selectedIds                                │  │
+│  │   articleStore selected slices / descriptors                      │  │
 │  │            │                                                      │  │
 │  │            ▼                                                      │  │
 │  │   SelectionActionDock.digest ─────► useDigest hook               │  │
@@ -32,7 +33,7 @@ The digest domain spans client selection state, client overlay/state persistence
 │  │                                            │                      │  │
 │  │                                            ▼                      │  │
 │  │                                       DigestOverlay               │  │
-│  │                             (portal + gestures + markdown html)   │  │
+│  │                             (portal + gestures + rendered HTML)   │  │
 │  │                                       │                           │  │
 │  │  ┌────────────────────────────────────┼────────────────────────┐  │  │
 │  │  │  Overlay Context Menu + Elaboration (shared with Zen)        │  │  │
@@ -82,7 +83,7 @@ TIME   ACTOR                 ACTION                                  TARGET
 │
 ├───►  User                  Taps Digest                             SelectionActionDock
 │
-├───►  AppContent helper     Builds descriptors from payloads        useDigest.trigger()
+├───►  AppContent helper     Reads selected descriptors              useDigest.trigger()
 │
 ├───►  useDigest             Same URLs already available? expand()   (early return — no HTTP)
 │      │
@@ -108,7 +109,7 @@ TIME   ACTOR                 ACTION                                  TARGET
 │            ├──► call LLM                                          summarizer._call_llm()
 │            └──► persist                                            storage_service.set_digest()
 │
-├───►  useDigest             Writes AVAILABLE patch + clears select  daily payload + interaction
+├───►  useDigest             Writes AVAILABLE patch + clears select  articleStore + mutation queue
 │
 └───►  useDigest             Acquires zen lock + opens overlay       DigestOverlay
 ```
@@ -122,7 +123,7 @@ TIME   ACTOR                 ACTION                                  TARGET
 ```text
 [Selection IDs]      [Descriptor Build]      [Backend Synthesis]         [Persist + Render]
 
-selectedIds ──────►  [{url,title,category}] ──► canonical URLs
+selected descriptors ─►  [{url,title,category}] ─► canonical URLs
                                            └──► parallel markdown fetch
                                            └──► digest prompt assembly
                                            └──► Gemini digest markdown
@@ -132,8 +133,8 @@ selectedIds ──────►  [{url,title,category}] ──► canonical UR
                                         included_urls, article_count, skipped}
                                                   │
                                                   ▼
-                                client digest patch stored under
-                                daily payload.digest (selected target date)
+                                client digest patch applied to
+                                articleStore day slice + daily payload
                                                   │
                                                   ▼
                                   marked.parse + DOMPurify.sanitize
@@ -160,17 +161,17 @@ selectedIds ──────►  [{url,title,category}] ──► canonical UR
 
 ```text
 AppContent()
-├── useInteraction()
+├── useSelectedDescriptors()
 ├── useDigest(results)
 ├── SelectionActionDock.onTriggerDigest()
 │   └── useDigest.trigger(articleDescriptors)
 │       ├── fetch('/api/digest')
 │       ├── success path
-│       │   ├── writeDigest(status=available, markdown, urls, metadata)
-│       │   ├── clearSelection()
+│       │   ├── queueDailyPayloadPatch(status=available, markdown, urls, metadata)
+│       │   ├── interactionActions.clearSelection()
 │       │   └── expand() -> acquireZenLock('digest')
 │       └── error path
-│           └── writeDigest(status=error, errorMessage)
+│           └── queueDailyPayloadPatch(status=error, errorMessage)
 └── DigestOverlay(html, expanded, ...)
 
 Flask route stack
@@ -266,4 +267,5 @@ Digest data is persisted in two places with different roles:
 
 2. **Client daily payload (UI-local recall for selected date context)**
    - `payload.digest` stored under the most recent selected date key.
-   - Preserved in client merge flow (`mergePreservingLocalState`).
+   - Reflected in the `articleStore` day slice and persisted with `queueDailyPayloadPatch()`.
+   - Preserved in client merge flow (`mergeDayFromServer()`).

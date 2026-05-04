@@ -1,7 +1,7 @@
 ---
 name: client/articles-and-lifecycle
 description: Client article lifecycle domain and reducer pattern.
-last_updated: 2026-05-03 15:10, bb6b54a
+last_updated: 2026-05-04 16:28
 ---
 # Client: Articles and Lifecycle
 
@@ -9,9 +9,9 @@ last_updated: 2026-05-03 15:10, bb6b54a
 
 ## Article Lifecycle (Domain A)
 
-Article lifecycle (`unread` → `read` → `removed`) is managed via a closed reducer pattern. Components dispatch events declaratively; the reducer returns a storage patch applied via `useSupabaseStorage`. See [State Machines: Articles and Summaries](../state-machines/articles-and-summaries.md#1-article-lifecycle) for states, events, and transitions.
+Article lifecycle (`unread` → `read` → `removed`) is managed via a closed reducer pattern. Components dispatch events declaratively; the reducer returns an article patch that is applied optimistically to `articleStore` and persisted through the daily payload mutation queue. See [State Machines: Articles and Summaries](../state-machines/articles-and-summaries.md#1-article-lifecycle) for states, events, and transitions.
 
-**Key modules:** `reducers/articleLifecycleReducer.js`, `hooks/useArticleState.js`
+**Key modules:** `reducers/articleLifecycleReducer.js`, `hooks/useArticleState.js`, `store/articleStore.js`, `lib/dailyPayloadMutations.js`
 
 ---
 
@@ -24,7 +24,7 @@ TIME   ACTOR              ACTION                                TARGET
 │
 ├───►  User               Clicks Article Card               ──► ArticleCard
 │
-├───►  ArticleCard        Delegates click decision          ──► itemShortPress(articleId)
+├───►  ArticleCard        Delegates click decision          ──► interactionActions.itemShortPress(articleId)
 │                         (Normal: open / Select: toggle)
 │
 ├───►  ArticleCard        Checks TLDR availability          ──► useSummary
@@ -48,5 +48,9 @@ TIME   ACTOR              ACTION                                TARGET
 ├───►  useArticleState    Dispatches lifecycle event        ──► articleLifecycleReducer
 │                         (MARK_REMOVED)                        (Domain A)
 │
-└───►  useArticleState    Persists State Change             ──► API (/storage)
+├───►  useArticleState    Applies optimistic article patch   ──► articleStore
+│
+└───►  mutation queue     Persists state change              ──► API (/storage daily payload)
 ```
+
+`useArticleState` subscribes to a single article slice by date and URL. Batch lifecycle operations build the same reducer patches, then `queueBatchArticlePatches()` groups them by date so a selection action performs one daily payload write per affected date.

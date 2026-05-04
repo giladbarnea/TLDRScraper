@@ -1,7 +1,7 @@
 ---
 name: state-machines/toast
-description: State machine for toast notifications and global pub/sub buses.
-last_updated: 2026-05-03 15:10, bb6b54a
+description: State machine for toast notifications and global pub/sub.
+last_updated: 2026-05-04 16:28
 ---
 # State Machines: Toast
 
@@ -41,20 +41,14 @@ Clicking a toast calls `onOpen()` (expands the summary overlay) then dismisses i
 
 ---
 
-### The Two Pub/Sub Buses
+### Pub/Sub Boundary
 
-#### 1. `toastBus.js`
+#### `toastBus.js`
 
 Global `Set<callback>`. One publisher (`useSummary` on fetch success). One subscriber (`ToastContainer`).
 
 Direction: Summary Data success → Toast notification → (click) → Summary View expand.
 
-#### 2. `articleActionBus.js`
-
-Per-URL `Map<url, Set<callback>>`. Publishers: `App.jsx` selection actions (`publishArticleAction(urls, 'fetch-summary' | 'open-summary')`). Subscriber: `ArticleCard` (via `subscribeToArticleAction`).
-
-Direction: Selection dock action → bridge to per-card summary hooks without prop drilling.
-
-Both buses exist to cross component boundaries that would otherwise require prop drilling through the Feed → CalendarDay → NewsletterDay → ArticleList → ArticleCard hierarchy.
+Selection-dock article actions no longer use a separate pub/sub bridge. `App.jsx` resolves selected descriptors from `articleStore` and calls store-backed summary actions by article key. Toasts remain a dedicated bus because they are global, transient UI notifications rather than article state.
 
 ---

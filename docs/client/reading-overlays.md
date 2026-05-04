@@ -1,7 +1,7 @@
 ---
 name: client/reading-overlays
 description: Client architecture for reading overlays including ZenMode and Digest.
-last_updated: 2026-05-03 15:10, bb6b54a
+last_updated: 2026-05-04 16:28
 ---
 # Client: Reading Overlays
 
@@ -21,15 +21,15 @@ main()
 │   │   └── loadFeed({ startDate, endDate, useSessionCache: true })
 │   │
 │   ├── Header Area
-│   │   ├── SelectionCounterPill (visible iff selectedIds.size > 0)
+│   │   ├── SelectionCounterPill (visible iff useIsSelectMode())
 │   │   └── ScrapeForm (Settings)
 │   │       ├── useFeedLoader.getDefaultFeedDateRange()
 │   │       └── loadFeed({ startDate, endDate })
 │   │
 │   └── Feed (Main Content)
 │       └── CalendarDay (Iterated by Date)
-│           ├── useSupabaseStorage(scrapes:date)  ← seeds cache, no fetch
-│           └── Selectable (long press dispatch)
+│           ├── useDayArticlesSummary(date)  ← cached day-level derived state
+│           └── Selectable (long press via interactionActions)
 │               └── FoldableContainer (short press: expand/collapse via interaction layer)
 │                   └── NewsletterDay (Iterated by Issue)
 │                       └── Selectable

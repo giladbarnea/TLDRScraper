@@ -1,7 +1,7 @@
 ---
 name: client/interaction-and-selection
 description: Client-side interaction architecture, selection modes, and foldable containers.
-last_updated: 2026-05-03 15:10, bb6b54a
+last_updated: 2026-05-04 16:28
 ---
 # Client: Interaction and Selection
 
@@ -17,30 +17,31 @@ Selection behavior is implemented as a **declarative state machine** with a smal
 - Ensure long-press never accidentally triggers the short-press behavior ("double fire").
 
 ### Key modules
-- `contexts/InteractionContext.jsx`
-  - Provides `useInteraction()`: UI-facing functions (short press / long press) and selectors (isSelectMode, isSelected, isExpanded).
-  - Persists `expandedContainerIds` to `localStorage` (`expandedContainers:v1` key). `selectedIds` is ephemeral (resets on page reload).
-  - `itemShortPress(itemId)` uses a `dispatchWithDecision` pattern: runs the reducer synchronously to read `decision.shouldOpenItem`, then dispatches the resulting state via an internal `REPLACE_STATE` event. This lets `ArticleCard` act on the decision without waiting for a re-render.
+- `store/articleStore.js`
+  - Owns selected booleans on article slices, derived select mode, selected descriptor cache, expanded container IDs, and the suppress latch.
+  - Exposes `interactionActions` plus small selectors: `useIsSelected(id)`, `useIsExpanded(id)`, `useIsSelectMode()`, and `useSelectedDescriptors()`.
+  - Persists `expandedContainerIds` to `localStorage` (`expandedContainers:v1` key). Selection is ephemeral and resets on page reload.
 - `reducers/interactionReducer.js`
   - The single source of truth for transitions.
+  - Accepts an `isDisabled(id)` predicate so removed articles are blocked without maintaining a duplicated disabled-ID set.
   - Suppression latch is time-windowed (800ms): set after every long press, consumed (cleared) on the next short press for the same target within the window.
 - `hooks/useLongPress.js`
   - Pointer-event long press detection for mobile and desktop.
 
 ### Component responsibilities
 - **Selectable**
-  - Detects long press and dispatches LONG_PRESS events to the interaction layer.
+  - Detects long press and dispatches selection events through `interactionActions`.
   - `isParent = descendantIds.length > 0`. Only leaf items (`isParent = false`) render the checkmark ring overlay. Containers dispatch `CONTAINER_LONG_PRESS` to toggle all descendant articles but display no selected state themselves.
   - `onPointerDown` calls `e.stopPropagation()` before forwarding to `useLongPress`. This prevents nested Selectables from double-firing (e.g., an ArticleCard long press does not also trigger its enclosing CalendarDay Selectable).
 - **ArticleCard**
-  - On click, calls `itemShortPress(articleId)`:
+  - On click, calls `interactionActions.itemShortPress(articleId)`:
     - In Normal mode: returns "should open" → opens TLDR/Zen overlay.
     - In Select mode: toggles selection (no open).
-  - Calls `registerDisabled(articleId, isRemoved)` in a `useEffect`. This links article lifecycle (Domain A) to the interaction layer: when an article is removed, the reducer removes it from `selectedIds` and blocks future selection.
+  - Removed articles are disabled by the reducer's `isDisabled(id)` predicate, which resolves the article slice and prevents selection.
   - Derives `swipeEnabled = canDrag && !isSelectMode` — disables Framer Motion drag when in select mode.
 - **FoldableContainer**
-  - On click, calls `containerShortPress(containerId)` to expand/collapse, regardless of selection mode.
-  - On mount (when `defaultFolded` is true), calls `setExpanded(id, false)` to push initial collapsed state into the shared `expandedContainerIds` set.
+  - On click, calls `interactionActions.containerShortPress(containerId)` to expand/collapse, regardless of selection mode.
+  - On mount (when `defaultFolded` is true), calls `interactionActions.setExpanded(id, false)` to push initial collapsed state into the shared `expandedContainerIds` set.
 
 ---
 
@@ -52,7 +53,7 @@ See [State Machines: Interaction and Gestures](../state-machines/interaction-and
 
 Components that support selection behavior are wrapped in `Selectable`. This is a composition wrapper that encapsulates:
 - Long press gesture detection (`useLongPress`)
-- Dispatching selection events to the interaction reducer (`useInteraction`)
+- Dispatching selection events to the interaction reducer through `articleStore`
 - Rendering a checkmark overlay for selected items
 
 Important behavioral rule:
