@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-03 16:56
+last_updated: 2026-05-04 04:39
 ---
 
 .
@@ -116,7 +116,6 @@ last_updated: 2026-05-03 16:56
 │  │  ├── contexts
 │  │  │  └── InteractionContext.jsx
 │  │  ├── groupCart
-│  │  │  └── GroupCartApp.jsx
 │  │  ├── hooks
 │  │  │  ├── useArticleState.js
 │  │  │  ├── useDigest.js
@@ -171,8 +170,7 @@ last_updated: 2026-05-03 16:56
 ├── db
 │  ├── create_digests_table.sql
 │  ├── create_patch_daily_article_function.sql
-│  ├── create_patch_daily_payload_function.sql
-│  └── create_shopping_cart_entries_table.sql
+│  └── create_patch_daily_payload_function.sql
 ├── hidden_apps
 ├── scripts
 │  ├── dev
@@ -229,7 +227,6 @@ last_updated: 2026-05-03 16:56
 ├── serve.py
 ├── sessions.yaml
 ├── setup.sh
-├── shopping_cart_service.py
 ├── source_routes.py
 ├── storage_service.py
 ├── summarizer.py

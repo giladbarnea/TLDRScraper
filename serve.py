@@ -16,7 +16,6 @@ import util
 import tldr_app
 import storage_service
 
-import shopping_cart_service
 from summarizer import DEFAULT_MODEL, DEFAULT_THINKING_EFFORT, DEFAULT_ELABORATE_MODEL
 from source_routes import source_bp
 
@@ -100,14 +99,6 @@ def index():
     static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
     return send_from_directory(static_dist, 'index.html')
 
-
-
-@app.route("/group-cart")
-@app.route("/group-cart/")
-def group_cart_index():
-    """Serve group cart app shell."""
-    static_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
-    return send_from_directory(static_dist, 'index.html')
 
 
 @app.route("/api/scrape", methods=["POST"])
@@ -515,42 +506,6 @@ def check_storage_is_cached(date):
         )
         return jsonify({"success": False, "error": repr(e)}), 500
 
-
-
-@app.route("/api/shopping-cart/items", methods=["GET"])
-def list_shopping_cart_items():
-    """List shared shopping cart items."""
-    try:
-        shopping_cart_entries = shopping_cart_service.list_shopping_cart_entries()
-        return jsonify({"success": True, "items": shopping_cart_entries})
-    except Exception as error:
-        logger.error(
-            "shopping cart item list failed error=%s",
-            repr(error),
-            exc_info=True,
-        )
-        return jsonify({"success": False, "error": repr(error)}), 500
-
-
-@app.route("/api/shopping-cart/items", methods=["POST"])
-def append_shopping_cart_item():
-    """Append immutable shopping cart item entry."""
-    try:
-        data = request.get_json()
-        raw_price_in_dollars = data.get("price_in_dollars")
-        shopping_cart_entry = shopping_cart_service.append_shopping_cart_entry(
-            person_name=data["person_name"],
-            product_name=data["product_name"],
-            price_in_dollars=float(raw_price_in_dollars) if raw_price_in_dollars is not None else None,
-        )
-        return jsonify({"success": True, "item": shopping_cart_entry})
-    except Exception as error:
-        logger.error(
-            "shopping cart item append failed error=%s",
-            repr(error),
-            exc_info=True,
-        )
-        return jsonify({"success": False, "error": repr(error)}), 500
 
 if __name__ == "__main__":
     app.run(

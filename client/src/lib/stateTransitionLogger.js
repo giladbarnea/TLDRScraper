@@ -11,7 +11,7 @@ function truncateUrl(url) {
   try {
     const parsed = new URL(url)
     const path = parsed.pathname.split('/').filter(Boolean).pop() || parsed.hostname
-    return path.length > 30 ? path.slice(0, 30) + '...' : path
+    return path.length > 30 ? `${path.slice(0, 30)}...` : path
   } catch {
     return url.slice(0, 30)
   }

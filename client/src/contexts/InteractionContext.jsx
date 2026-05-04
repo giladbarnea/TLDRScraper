@@ -56,19 +56,19 @@ export function InteractionProvider({ children }) {
     const result = interactionReduce(state, event)
     rawDispatch({ type: INTERNAL.REPLACE_STATE, nextState: result.state })
     return result.decision
-  }, [state, rawDispatch])
+  }, [state])
 
   const registerDisabled = useCallback((id, isDisabled) => {
     rawDispatch({ type: InteractionEventType.REGISTER_DISABLED, id, isDisabled })
-  }, [rawDispatch])
+  }, [])
 
   const clearSelection = useCallback(() => {
     rawDispatch({ type: InteractionEventType.CLEAR_SELECTION })
-  }, [rawDispatch])
+  }, [])
 
   const setExpanded = useCallback((containerId, expanded) => {
     rawDispatch({ type: InteractionEventType.SET_EXPANDED, containerId, expanded })
-  }, [rawDispatch])
+  }, [])
 
   const isSelected = useCallback((id) => state.selectedIds.has(id), [state.selectedIds])
 
@@ -78,15 +78,15 @@ export function InteractionProvider({ children }) {
 
   const itemLongPress = useCallback((itemId) => {
     rawDispatch({ type: InteractionEventType.ITEM_LONG_PRESS, itemId })
-  }, [rawDispatch])
+  }, [])
 
   const containerLongPress = useCallback((containerId, childIds) => {
     rawDispatch({ type: InteractionEventType.CONTAINER_LONG_PRESS, containerId, childIds })
-  }, [rawDispatch])
+  }, [])
 
   const containerShortPress = useCallback((containerId) => {
     rawDispatch({ type: InteractionEventType.CONTAINER_SHORT_PRESS, containerId })
-  }, [rawDispatch])
+  }, [])
 
   const itemShortPress = useCallback((itemId) => {
     const decision = dispatchWithDecision({ type: InteractionEventType.ITEM_SHORT_PRESS, itemId })

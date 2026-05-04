@@ -7,3 +7,6 @@ dev:
   uv run serve.py &
   cd client
   npm run dev -- --host
+
+client-lint:
+  cd client && ./scripts/lint.sh
