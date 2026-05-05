@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-04 04:39
+last_updated: 2026-05-05 06:33
 ---
 
 .
@@ -49,6 +49,9 @@ last_updated: 2026-05-04 04:39
 │     │  └── SKILL.md
 │     └── web-a11y-guidelines
 │        └── SKILL.md
+├── .fallow
+│  ├── .gitignore
+│  └── churn.bin
 ├── .githooks
 │  ├── post-merge
 │  ├── pre-commit
@@ -91,6 +94,10 @@ last_updated: 2026-05-04 04:39
 ├── api
 │  └── index.py
 ├── client
+│  ├── .fallow
+│  │  ├── .gitignore
+│  │  ├── cache.bin
+│  │  └── churn.bin
 │  ├── scripts
 │  │  └── lint.sh
 │  ├── src
@@ -99,7 +106,6 @@ last_updated: 2026-05-04 04:39
 │  │  │  ├── ArticleList.jsx
 │  │  │  ├── BaseOverlay.jsx
 │  │  │  ├── CalendarDay.jsx
-│  │  │  ├── DigestButton.jsx
 │  │  │  ├── DigestOverlay.jsx
 │  │  │  ├── ElaborationPreview.jsx
 │  │  │  ├── Feed.jsx
@@ -110,29 +116,22 @@ last_updated: 2026-05-04 04:39
 │  │  │  ├── ScrapeForm.jsx
 │  │  │  ├── Selectable.jsx
 │  │  │  ├── SelectionActionDock.jsx
-│  │  │  ├── SelectionCounterPill.jsx
 │  │  │  ├── ToastContainer.jsx
 │  │  │  └── ZenModeOverlay.jsx
-│  │  ├── contexts
-│  │  │  └── InteractionContext.jsx
-│  │  ├── groupCart
 │  │  ├── hooks
 │  │  │  ├── useArticleState.js
 │  │  │  ├── useDigest.js
 │  │  │  ├── useElaboration.js
 │  │  │  ├── useFeedLoader.js
-│  │  │  ├── useLocalStorage.js
 │  │  │  ├── useLongPress.js
 │  │  │  ├── useOverlayContextMenu.js
 │  │  │  ├── useOverscrollUp.js
 │  │  │  ├── usePullToClose.js
 │  │  │  ├── useScrollProgress.js
 │  │  │  ├── useSummary.js
-│  │  │  ├── useSupabaseStorage.js
 │  │  │  ├── useSwipeToRemove.js
 │  │  │  └── useTrackedState.js
 │  │  ├── lib
-│  │  │  ├── articleActionBus.js
 │  │  │  ├── dailyPayloadMutations.js
 │  │  │  ├── feedMerge.js
 │  │  │  ├── interactionConstants.js
@@ -140,7 +139,6 @@ last_updated: 2026-05-04 04:39
 │  │  │  ├── quakeConsole.js
 │  │  │  ├── requestUtils.js
 │  │  │  ├── scraper.js
-│  │  │  ├── selectionUtils.js
 │  │  │  ├── sourceLogoMap.js
 │  │  │  ├── stateTransitionLogger.js
 │  │  │  ├── storageApi.js
@@ -153,6 +151,8 @@ last_updated: 2026-05-04 04:39
 │  │  │  ├── interactionReducer.js
 │  │  │  ├── mobileSelectionMenuReducer.js
 │  │  │  └── summaryDataReducer.js
+│  │  ├── store
+│  │  │  └── articleStore.js
 │  │  ├── App.jsx
 │  │  ├── index.css
 │  │  └── main.jsx
@@ -176,6 +176,7 @@ last_updated: 2026-05-04 04:39
 │  ├── dev
 │  │  ├── auto-pr-merge.sh
 │  │  ├── install-codex-cli.sh
+│  │  ├── pr-review-comments.py
 │  │  ├── run-agent-via-litellm.sh
 │  │  ├── run-agent.sh
 │  │  └── run-codex.sh
