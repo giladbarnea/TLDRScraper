@@ -100,7 +100,7 @@ function NewsletterDay({ date, title, issue, articles }) {
             <h3 className="font-display font-semibold text-[17px] text-slate-900">
               {title}
             </h3>
-            <ReadStatsBadge articles={articles} />
+            <ReadStatsBadge date={date} urls={articles.map((article) => article.url)} />
           </div>
         }
         defaultFolded={allRemoved}

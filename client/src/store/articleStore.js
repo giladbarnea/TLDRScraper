@@ -350,6 +350,16 @@ function subscribeArticle(key, listener) {
   }
 }
 
+function subscribeArticles(keys, listener) {
+  if (keys.length === 0) return () => {}
+  const unsubscribers = keys.map((key) => subscribeArticle(key, listener))
+  return () => {
+    unsubscribers.forEach((unsubscribe) => {
+      unsubscribe()
+    })
+  }
+}
+
 function subscribeDay(date, listener) {
   if (!dayListeners.has(date)) dayListeners.set(date, new Set())
   dayListeners.get(date).add(listener)
@@ -452,6 +462,17 @@ export function useDayArticlesSummary(date) {
   return useSyncExternalStore(
     listener => subscribeDayArticleSummary(date, listener),
     () => getSnapshotDayArticlesSummary(date)
+  )
+}
+
+export function useCompletedArticlesCount(date, urls) {
+  const keys = urls.map((url) => articleKey(date, url))
+  return useSyncExternalStore(
+    listener => subscribeArticles(keys, listener),
+    () => keys.reduce((count, key) => {
+      const article = articleSlices.get(key)
+      return count + (article?.read?.isRead || article?.removed ? 1 : 0)
+    }, 0)
   )
 }
 
