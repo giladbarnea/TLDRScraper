@@ -1,7 +1,7 @@
 ---
 name: client/feed-loading
 description: Client-side two-phase feed loading and merge algorithm.
-last_updated: 2026-05-03 15:10, bb6b54a
+last_updated: 2026-05-04 16:28
 ---
 # Client: Feed Loading
 
@@ -9,16 +9,16 @@ last_updated: 2026-05-03 15:10, bb6b54a
 
 ## Data Flow Diagram
 
-> Focus: Transformation of data from Raw API Payload to Persisted User State.
+> Focus: Transformation of API payloads into rendered structure plus live article state.
 
 ```
-[ PHASE 1: CACHE ]      [ CACHE SEED ]         [ PRESENTATION ]       [ PERSISTENCE ]
+[ PHASE 1: CACHE ]      [ STORE HYDRATION ]    [ PRESENTATION ]       [ PERSISTENCE ]
 (/api/storage/           (No extra fetch)       (UI Rendering)         (Syncing)
  daily-range)
 
 ┌──────────────┐     ┌──────────────────┐   ┌────────────────┐     ┌──────────────┐
 │ Cached       │────►│ CalendarDay      │──►│ Feed Grouping  │────►│ DOM Output   │
-│ Payloads     │     │ seeds readCache  │   │ (Date/Issue)   │     │ (HTML)       │
+│ Payloads     │     │ hydrateDay()     │   │ (Date/Issue)   │     │ (HTML)       │
 └──────────────┘     └──────────────────┘   └────────────────┘     └──────────────┘
 
 [ PHASE 2: SCRAPE ]
@@ -26,23 +26,23 @@ last_updated: 2026-05-03 15:10, bb6b54a
  background)
 
 ┌──────────────┐     ┌──────────────────┐   ┌────────────────┐
-│ Fresh        │────►│ mergeIntoCache() │──►│ emitChange()   │──► All subscribers re-render
-│ Payloads     │     │ overlay local    │   │ notifies subs  │    (new articles appear)
+│ Fresh        │────►│ mergeDayFrom     │──►│ articleStore   │──► Slice subscribers update
+│ Payloads     │     │ Server()         │   │ notifies subs  │    (new articles appear)
 └──────────────┘     │ user state       │   └────────────────┘
                      └──────────────────┘
-                     (lib/feedMerge.js)
+                     (store/articleStore.js)
 
 [ USER ACTIONS ]
 
                      ┌──────────────────┐   ┌────────────────┐
-                     │ setValueAsync()  │──►│ emitChange()   │
-                     │ updates cache    │   │ notifies subs  │
+                     │ queueDaily...    │──►│ articleStore   │
+                     │ optimistic patch │   │ notifies slice │
                      └────────┬─────────┘   └───────┬────────┘
                               │                     │
                               ▼                     ▼
                      ┌────────────────┐     ┌────────────────┐
-                     │ API /storage   │     │ All components │
-                     │ (persist)      │     │ re-render      │
+                     │ API /storage   │     │ Affected       │
+                     │ daily payload  │     │ components     │
                      └────────────────┘     └────────────────┘
 ```
 
@@ -62,7 +62,12 @@ ScrapeForm.jsx submit
               ▼
         useFeedLoader
               │
-              ├─► Session cache check (10min TTL)
-              ├─► Phase 1: getDailyPayloadsRange() → cached render
-              └─► Phase 2: scrapeNewsletters() + mergePreservingLocalState()
+              ├─► Request token ownership
+              ├─► Session cache check (30min TTL) → hydrate payloads → setResults()
+              ├─► Phase 1: getDailyPayloadsRange() → hydrate payloads → cached render
+              └─► Phase 2: scrapeNewsletters() → merge fresh payloads into articleStore
 ```
+
+`useFeedLoader` owns the app-level result shape and request cancellation. Before any cached, session, or fresh payload reaches `setResults()`, the payload is ingested by `store/articleStore.js`.
+
+Existing rendered dates are merged with `mergeDayFromServer(date, payload)`, which keeps local lifecycle, summary, digest, selection, and expansion state while accepting server-origin scrape fields. Newly rendered dates are initialized with `hydrateDay(date, payload)`. The rendered tree still receives structural props, but live article/day state is read from `articleStore` subscriptions.

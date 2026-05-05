@@ -1,21 +1,11 @@
-export const InteractionEventType = Object.freeze({
+const InteractionEventType = Object.freeze({
   ITEM_SHORT_PRESS: 'ITEM_SHORT_PRESS',
   ITEM_LONG_PRESS: 'ITEM_LONG_PRESS',
   CONTAINER_SHORT_PRESS: 'CONTAINER_SHORT_PRESS',
   CONTAINER_LONG_PRESS: 'CONTAINER_LONG_PRESS',
-  REGISTER_DISABLED: 'REGISTER_DISABLED',
   CLEAR_SELECTION: 'CLEAR_SELECTION',
   SET_EXPANDED: 'SET_EXPANDED',
 })
-
-export function createInitialInteractionState() {
-  return {
-    selectedIds: new Set(),
-    disabledIds: new Set(),
-    expandedContainerIds: new Set(),
-    suppressNextShortPress: { id: null, untilMs: 0 },
-  }
-}
 
 function cloneSet(set) {
   return new Set(set)
@@ -47,18 +37,22 @@ function clearSuppressLatch(state) {
   return { ...state, suppressNextShortPress: { id: null, untilMs: 0 } }
 }
 
-function toggleItemSelection(state, itemId) {
-  if (state.disabledIds.has(itemId)) return state
+function defaultIsDisabled() {
+  return false
+}
+
+function toggleItemSelection(state, itemId, isDisabled) {
+  if (isDisabled(itemId)) return state
   const nextSelected = cloneSet(state.selectedIds)
   if (nextSelected.has(itemId)) nextSelected.delete(itemId)
   else nextSelected.add(itemId)
   return { ...state, selectedIds: nextSelected }
 }
 
-function selectMany(state, itemIds) {
+function selectMany(state, itemIds, isDisabled) {
   const nextSelected = cloneSet(state.selectedIds)
   for (const id of itemIds) {
-    if (!state.disabledIds.has(id)) nextSelected.add(id)
+    if (!isDisabled(id)) nextSelected.add(id)
   }
   return { ...state, selectedIds: nextSelected }
 }
@@ -69,14 +63,14 @@ function deselectMany(state, itemIds) {
   return { ...state, selectedIds: nextSelected }
 }
 
-function toggleContainerChildren(state, childIds) {
-  const selectableChildIds = childIds.filter((id) => !state.disabledIds.has(id))
+function toggleContainerChildren(state, childIds, isDisabled) {
+  const selectableChildIds = childIds.filter((id) => !isDisabled(id))
   if (selectableChildIds.length === 0) return state
 
   const allSelected = selectableChildIds.every((id) => state.selectedIds.has(id))
   return allSelected
     ? deselectMany(state, selectableChildIds)
-    : selectMany(state, selectableChildIds)
+    : selectMany(state, selectableChildIds, isDisabled)
 }
 
 function toggleExpand(state, containerId) {
@@ -93,25 +87,10 @@ function setExpanded(state, containerId, expanded) {
   return { ...state, expandedContainerIds: nextExpanded }
 }
 
-export function interactionReduce(state, event) {
+export function interactionReduce(state, event, context = {}) {
+  const isDisabled = context.isDisabled ?? defaultIsDisabled
+
   switch (event.type) {
-    case InteractionEventType.REGISTER_DISABLED: {
-      const { id, isDisabled } = event
-      const nextDisabled = cloneSet(state.disabledIds)
-      if (isDisabled) nextDisabled.add(id)
-      else nextDisabled.delete(id)
-
-      let nextState = { ...state, disabledIds: nextDisabled }
-
-      if (isDisabled && nextState.selectedIds.has(id)) {
-        const nextSelected = cloneSet(nextState.selectedIds)
-        nextSelected.delete(id)
-        nextState = { ...nextState, selectedIds: nextSelected }
-      }
-
-      return { state: nextState, decision: null }
-    }
-
     case InteractionEventType.CLEAR_SELECTION: {
       const nextState = { ...state, selectedIds: new Set() }
       return { state: nextState, decision: null }
@@ -125,14 +104,14 @@ export function interactionReduce(state, event) {
 
     case InteractionEventType.ITEM_LONG_PRESS: {
       const { itemId } = event
-      let nextState = toggleItemSelection(state, itemId)
+      let nextState = toggleItemSelection(state, itemId, isDisabled)
       nextState = latchSuppress(nextState, itemId)
       return { state: nextState, decision: null }
     }
 
     case InteractionEventType.CONTAINER_LONG_PRESS: {
       const { containerId, childIds } = event
-      let nextState = toggleContainerChildren(state, childIds)
+      let nextState = toggleContainerChildren(state, childIds, isDisabled)
       nextState = latchSuppress(nextState, containerId)
       return { state: nextState, decision: null }
     }
@@ -158,7 +137,7 @@ export function interactionReduce(state, event) {
       const inSelectMode = state.selectedIds.size > 0
 
       if (inSelectMode) {
-        const nextState = toggleItemSelection(state, itemId)
+        const nextState = toggleItemSelection(state, itemId, isDisabled)
         return { state: nextState, decision: null }
       }
 

@@ -140,3 +140,5 @@ ngrok
 
 .claude/worktrees
 .playwright-mcp
+
+.pi/git

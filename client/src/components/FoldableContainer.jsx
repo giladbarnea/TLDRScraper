@@ -1,17 +1,16 @@
 import { ChevronRight } from 'lucide-react'
 import { useEffect } from 'react'
-import { useInteraction } from '../contexts/InteractionContext'
+import { interactionActions, useIsExpanded } from '../store/articleStore'
 
 function FoldableContainer({ id, title, children, defaultFolded = false, className = '', headerClassName = '', contentClassName = '', dataAttributes = {} }) {
-  const { isExpanded, containerShortPress, setExpanded } = useInteraction()
-  const expanded = isExpanded(id)
+  const expanded = useIsExpanded(id)
   const isFolded = !expanded
 
   useEffect(() => {
     if (defaultFolded) {
-      setExpanded(id, false)
+      interactionActions.setExpanded(id, false)
     }
-  }, [defaultFolded, id, setExpanded])
+  }, [defaultFolded, id])
 
   return (
     <div
@@ -21,7 +20,7 @@ function FoldableContainer({ id, title, children, defaultFolded = false, classNa
     >
       <div className={`flex items-center ${headerClassName}`}>
         <div
-          onClick={() => containerShortPress(id)}
+          onClick={() => interactionActions.containerShortPress(id)}
           data-fold-toggle
           className="cursor-pointer group select-none flex items-center flex-1"
         >

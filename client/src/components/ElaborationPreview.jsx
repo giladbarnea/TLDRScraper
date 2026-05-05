@@ -9,7 +9,7 @@ import {
 } from '@floating-ui/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Sparkles, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { markdownToHtml } from '../lib/markdownUtils'
 import { overlayProseClassName } from './BaseOverlay'
 
@@ -52,7 +52,7 @@ function ErrorBody({ message }) {
 }
 
 function AvailableBody({ markdown, selectedText }) {
-  const html = markdownToHtml(markdown)
+  const html = useMemo(() => markdownToHtml(markdown), [markdown])
   return (
     <>
       <div className="shrink-0 border-b border-slate-200/60 px-5 py-3">

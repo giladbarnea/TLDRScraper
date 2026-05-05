@@ -1,121 +1,75 @@
 ---
 name: state-machines/architecture-and-flows
 description: Cross-cutting topology, coupling matrices, and cross-machine user flows.
-last_updated: 2026-05-03 15:10, bb6b54a
+last_updated: 2026-05-04 16:28
 ---
 # State Machines: Architecture and Flows
 
 ### Topology: How They're Wired
 
-The 16 machines form a layered architecture. Understanding the layers explains why certain machines know about each other and others don't.
+The client machines form a layered architecture. Pure reducers define transitions; `articleStore` owns live client state; mutation queues persist changes back to Supabase daily payloads.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  LAYER 4: OVERLAYS (ephemeral view state — portals)                        │
+│  LAYER 4: OVERLAYS (ephemeral portals)                                      │
 │                                                                             │
-│  ┌──────────────────┐   ┌──────────────────┐   ┌────────────────────────┐  │
-│  │ Zen Mode Overlay │   │ Digest Overlay   │   │ Toast                  │  │
-│  │   + useOverlay   │   │   + useOverlay   │   └────────────────────────┘  │
-│  │   ContextMenu    │   │   ContextMenu    │                              │
-│  │   + useElabor.   │   │   + useElabor.   │                              │
-│  └────────┬─────────┘   └────────┬─────────┘                              │
-│           │                      │                                        │
-│           └──────────┬───────────┘                                        │
-│                      ▼                                                    │
-│           ┌──────────────────────────────────────┐                        │
-│           │ BaseOverlay                          │                        │
-│           │  ├ ScrollProgress                   │                        │
-│           │  ├ PullToClose (disabled for select)│                        │
-│           │  ├ OverscrollUp                     │                        │
-│           │  ├ body scroll lock                 │                        │
-│           │  ├ reader FloatingNode             │                        │
-│           │  ├ useDismiss (Escape only)        │                        │
-│           │  └ [data-overlay-content] marker   │                        │
-│           └──────────────────────────────────────┘                        │
-│                      ▲                                                    │
-│                      │ zen lock (mutual exclusion)                        │
-├──────────────────────┼────────────────────────────────────────────────────┤
-│  LAYER 3: DOMAIN HOOKS (per-article / per-digest orchestration)            │
+│  ZenModeOverlay       DigestOverlay       ToastContainer                    │
+│       │                    │                   │                            │
+│       └─────────┬──────────┘                   │                            │
+│                 ▼                              ▼                            │
+│            BaseOverlay                      toastBus                        │
+│      scroll lock, Escape, reader layers                                      │
+│                 ▲                                                           │
+│                 │ zen lock                                                   │
+├─────────────────┼───────────────────────────────────────────────────────────┤
+│  LAYER 3: DOMAIN HOOKS                                                       │
 │                                                                             │
-│  ┌──────────────────┐   ┌──────────────────┐   ┌────────────────────────┐  │
-│  │ Summary View     │   │ Digest           │   │ Gesture (Swipe)        │  │
-│  │ (useSummary)     │   │ (useDigest)      │   │ (useSwipeToRemove)     │  │
-│  └────────┬─────────┘   └────────┬─────────┘   └────────┬───────────────┘  │
-│           │                      │                       │                  │
-│           │  all three dispatch into ▼                    │                  │
-│  ┌────────┴──────────────────────┴───────────────────────┴───────────────┐  │
-│  │ useArticleState (per-article facade over reducers + storage)          │  │
-│  └────────┬───────────────────────────────────────────────┬──────────────┘  │
-│           │                                               │                  │
-├───────────┼───────────────────────────────────────────────┼──────────────────┤
-│  LAYER 2: PURE REDUCERS (stateless logic — no side effects)                │
-│                                                                             │
-│  ┌─────────────────────┐   ┌─────────────────────┐                         │
-│  │ articleLifecycle     │   │ summaryData         │                         │
-│  │ Reducer              │   │ Reducer             │                         │
-│  └─────────────────────┘   └─────────────────────┘                         │
-│  ┌─────────────────────┐   ┌─────────────────────┐                         │
-│  │ interaction          │   │ gesture             │                         │
-│  │ Reducer              │   │ Reducer             │                         │
-│  └─────────────────────┘   └─────────────────────┘                         │
-│                                                                             │
+│  useSummary        useDigest        useArticleState        useSwipeToRemove │
+│       │                │                  │                       │          │
+│       └────────┬───────┴──────────┬───────┘                       │          │
+│                ▼                  ▼                               ▼          │
+│        dailyPayloadMutations   articleStore                 gestureReducer   │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  LAYER 1: INFRASTRUCTURE (persistence, sync, buses)                        │
+│  LAYER 2: PURE REDUCERS                                                      │
 │                                                                             │
-│  ┌──────────────────────────────┐   ┌───────────────────────────────────┐  │
-│  │ Supabase Storage             │   │ Interaction Context               │  │
-│  │ (readCache, pub/sub,         │   │ (useReducer + localStorage)       │  │
-│  │  optimistic updates)         │   │                                   │  │
-│  └──────────────────────────────┘   └───────────────────────────────────┘  │
-│  ┌──────────────────────────────┐   ┌───────────────────────────────────┐  │
-│  │ articleActionBus             │   │ toastBus                          │  │
-│  │ (per-URL pub/sub)            │   │ (global pub/sub)                  │  │
-│  └──────────────────────────────┘   └───────────────────────────────────┘  │
-│                                                                             │
+│  articleLifecycleReducer   summaryDataReducer   interactionReducer          │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  LAYER 0: DATA LOADING (app-level orchestration)                           │
+│  LAYER 1: CLIENT STATE + PERSISTENCE                                         │
 │                                                                             │
-│  ┌──────────────────────────────┐   ┌───────────────────────────────────┐  │
-│  │ Feed Loading                 │   │ Scrape Form                       │  │
-│  │ (useFeedLoader hook)         │──▶│ (useActionState)                  │  │
-│  └──────────────────────────────┘   └───────────────────────────────────┘  │
+│  articleStore: article/day/container/selection subscriptions                 │
+│  dailyPayloadMutations: optimistic queue + conflict refresh + rollback       │
+│  storageApi: daily payload HTTP boundary                                     │
+│  localStorage: expanded container IDs                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  LAYER 0: DATA LOADING                                                       │
+│                                                                             │
+│  useFeedLoader: session cache, daily-range cache, scrape, store hydration    │
+│  ScrapeForm: date validation and React 19 action-state submit flow           │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Note:** Scrape Form calls `useFeedLoader.loadFeed()` directly, flowing through the same cache-first + merge logic as app mount.
+Scrape Form calls `useFeedLoader.loadFeed()` directly, so app mount and explicit user scrapes share the same cache-first, hydrate, and merge flow.
 
 ---
 
 ### Coupling Matrix
 
-Each cell shows the **direction** of the relationship. Read as "row affects/uses column".
+Each cell shows the direction of the relationship. Read as "row affects/uses column".
 
-| | Art. Lifecycle | Summary Data | Interaction | Gesture | Feed Loading | Digest | Summary View | Supabase Storage | BaseOverlay | Tracked State | Toast |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| **Art. Lifecycle** | — | — | Disables selection | — | — | Marks consumed | Marks read on close | Persists via | — | — | — |
-| **Summary Data** | — | — | — | — | — | Shared reducer | Drives overlay content | Persists via | — | — | Emits toast |
-| **Interaction** | Guards selection | Filters actionable | — | Blocks swipe in select mode | — | Clears after trigger | — | — | — | — | — |
-| **Gesture** | Calls toggleRemove | — | Blocked by select mode | — | — | — | — | — | — | — | — |
-| **Feed Loading** | — | — | — | — | — | Provides `results` | — | Reads + merges cache | — | — | — |
-| **Digest** | Marks articles read/removed | Marks articles loading, restores | Clears selection | — | Reads `results.payloads` | — | Shares zen lock | Reads + writes payload | Composes | — | — |
-| **Summary View** | Marks read on close | Dispatches all events | — | — | — | Shares zen lock | — | Persists via `useArticleState` | Composes | — | Emits toast |
-| **Supabase Storage** | — | — | — | — | Seeds from payloads | — | — | — | — | — | — |
-| **BaseOverlay** | `onMarkRemoved` | — | — | — | — | Composed by Digest | Composed by Zen | — | Composes PullToClose, OverscrollUp, ScrollProgress | Uses via hooks | — |
-| **Tracked State** | — | — | — | — | — | — | — | — | — | — | — |
-| **Toast** | — | — | — | — | — | — | Click → `expand()` | — | — | — | — |
+| | Article Lifecycle | Summary Data | Interaction | Gesture | Feed Loading | Digest | Summary View | Article Store / Mutations | BaseOverlay | Toast |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **Article Lifecycle** | — | — | Disables selection through `isDisabled` | — | — | Marks consumed | Marks read on close | Optimistic patch + persist | — | — |
+| **Summary Data** | — | — | — | — | — | Shared reducer | Drives overlay content | Optimistic patch + persist | — | Emits toast |
+| **Interaction** | Guards selection | Filters actionable | — | Blocks swipe in select mode | — | Clears after trigger | — | Stores selection/expansion | — | — |
+| **Gesture** | Calls toggle remove | — | Blocked by select mode | — | — | — | — | Persists lifecycle patch | — | — |
+| **Feed Loading** | Hydrates fields | Hydrates fields | Preserves selection | — | — | Hydrates digest | — | Hydrates/merges days | — | — |
+| **Digest** | Marks articles read/removed | Marks loading, restores | Clears selection | — | Reads selected descriptors | — | Shares zen lock | Writes article + day patches | Composes | — |
+| **Summary View** | Marks read via `ArticleCard` | Dispatches summary events | — | — | — | Shares zen lock | — | Writes article summary/view state | Composes | Emits toast |
+| **Article Store / Mutations** | Stores slice | Stores slice | Stores selection/expansion | — | Ingests payloads | Stores digest | Stores `expandedView` | — | — | — |
+| **BaseOverlay** | `onMarkRemoved` | — | — | — | — | Composed by Digest | Composed by Zen | — | — | — |
+| **Toast** | — | — | — | — | — | — | Click → `expand()` | — | — | — |
 
-**Overlay Context Menu (§19) — coupling notes**
-
-The context menu isn't a good fit for the matrix because its couplings are **DOM-level and event-capture-level**, not data/function level. The relationships worth remembering:
-
-| Depends on | Direction | How |
-|---|---|---|
-| BaseOverlay | DOM contract | owns `[data-overlay-content]` only when `overlayMenu` is present |
-| BaseOverlay | Layer contract | owns the reader `FloatingNode`, the menu render site, and the `overlayLayers` render site |
-| Zen Mode Overlay | Composition | instantiates hook, passes action-bearing `overlayMenu` into BaseOverlay, and supplies `overlayLayers={<ElaborationPreview />}` |
-| Digest Overlay | Composition | instantiates hook, passes action-bearing `overlayMenu` into BaseOverlay, and supplies `overlayLayers={<ElaborationPreview />}` |
-| useElaboration | Indirect via action callbacks | `Elaborate` action → `runElaboration(selectedText)` (shared hook, used by both wrappers) |
-| Elaboration Preview | Composition | child `FloatingNode` rendered in `overlayLayers`, above the reader and alongside the menu in the same tree |
+The overlay context menu sits outside the data matrix because its coupling is DOM and layer based: overlay wrappers instantiate the menu/elaboration hooks, `BaseOverlay` owns the reader `FloatingNode`, and `ElaborationPreview` renders in the overlay layer slot.
 
 ---
 
@@ -124,182 +78,108 @@ The context menu isn't a good fit for the matrix because its couplings are **DOM
 #### Flow 1: User taps an article
 
 ```
-                            ArticleCard click
-                                  │
-                    Interaction.ITEM_SHORT_PRESS
-                                  │
-                   ┌──── suppress latch? ────┐
-                   │ yes                     │ no
-                   ▼                         ▼
-              (consumed,              isSelectMode?
-               no-op)           ┌──── yes ────┐── no ──┐
-                                ▼              │        ▼
-                       toggle selection    decision: shouldOpenItem
-                                               │
-                                               ▼
-                                     summary.toggle(effort)
-                                               │
-                              ┌──── isAvailable? ────┐
-                              │ no                    │ yes
-                              ▼                       ▼
-                       fetchSummary()        acquireZenLock(url)
-                              │                       │
-                 Summary Data: REQUESTED        ZenModeOverlay renders
-                              │                   (body scroll locked)
-                    POST /api/summarize-url
-                              │
-                 ┌──── success? ────┐
-                 │ yes               │ no
-                 ▼                   ▼
-            LOAD_SUCCEEDED     LOAD_FAILED
-            emitToast()        show error
+ArticleCard click
+      │
+interactionActions.itemShortPress(articleId)
+      │
+      ├─ suppressed → consume latch, no-op
+      ├─ select mode → toggle selected article slice
+      └─ normal mode → summary.toggle(effort)
+                         │
+                         ├─ unavailable → fetchSummary()
+                         │                  │
+                         │                  ├─ summaryActions.request()
+                         │                  ├─ POST /api/summarize-url
+                         │                  ├─ summaryActions.succeed/fail()
+                         │                  └─ queueDailyArticlePatch()
+                         │
+                         └─ available → acquireZenLock(url)
+                                        summaryActions.expand(articleKey)
+                                        ZenModeOverlay renders
 ```
 
 #### Flow 2: User swipes an article left
 
 ```
-                         touch start on card
-                                │
-               canDrag = !isRemoved && !stateLoading
-               swipeEnabled = canDrag && !isSelectMode
-                                │
-                    ┌──── enabled? ────┐
-                    │ no               │ yes
-                    ▼                  ▼
-                 (no-op)      Gesture: DRAG_STARTED
-                              Framer Motion drag active
-                                │
-                         touch end / release
-                                │
-                    ┌─── past threshold? ───┐
-                    │ no                     │ yes
-                    ▼                        ▼
-              Gesture: DRAG_FINISHED    animate off-screen
-              snap back to x=0          Gesture: DRAG_FINISHED
-                                        onSwipeComplete()
-                                              │
-                                        Art. Lifecycle: TOGGLE_REMOVED
-                                              │
-                                        Supabase Storage: optimistic write
-                                              │
-                                        emitChange → all subscribers re-render
-                                              │
-                                        Interaction: registerDisabled(id, true)
-                                        auto-deselect if selected
-                                              │
-                                        CalendarDay/NewsletterDay:
-                                        if allRemoved → auto-fold
+touch start on card
+      │
+canDrag = !isRemoved && !stateLoading && !isSelectMode
+      │
+      ├─ disabled → no-op
+      └─ enabled → Gesture: DRAG_STARTED
+                    Framer Motion drag active
+                         │
+                         ├─ release before threshold → DRAG_FINISHED, snap back
+                         └─ release past threshold → animate off-screen
+                                                   toggleRemove()
+                                                   articleLifecycleReducer
+                                                   queueDailyArticlePatch()
+                                                   articleStore notifies article/day/select listeners
+                                                   all-removed summaries can auto-fold containers
 ```
 
 #### Flow 3: User triggers a digest
 
 ```
-                    Long-press to select 2+ articles
-                                │
-                    Interaction: ITEM_LONG_PRESS ×N
-                    isSelectMode = true
-                                │
-                    Click "Digest" in SelectionActionDock
-                                │
-                    useDigest.trigger(descriptors)
-                                │
-                    ┌── cache hit (same URLs)? ──┐
-                    │ yes                         │ no
-                    ▼                             ▼
-              expand() immediately          setPendingRequest
-              (skip network)               setTriggering(true)
-                                                  │
-                                           useEffect detects pending + payload ready
-                                                  │
-                                    markDigestArticlesLoading()
-                                    (sets each article.summary → LOADING
-                                     saves previous state for rollback)
-                                                  │
-                                           POST /api/digest
-                                                  │
-                              ┌──── success? ─────┴──── error/abort ────┐
-                              ▼                                         ▼
-                    restoreDigestArticlesSummary()         restoreDigestArticlesSummary()
-                    writeDigest(AVAILABLE, markdown)       writeDigest(ERROR, msg)
-                    clearSelection()
-                    acquireZenLock('digest')
-                    DigestOverlay renders
-                              │
-                    User reads digest, then:
-                              │
-                    ┌── ChevronDown ──┐── Check button/overscroll ──┐
-                    ▼                  ▼                              │
-              digest.collapse(false)  digest.collapse(true)          │
-              mark all READ           mark all REMOVED               │
-                    │                  │                              │
-                    └──────────┬───────┘                              │
-                               ▼                                      │
-                    releaseZenLock('digest')                          │
-                    setExpanded(false)                                │
+Long-press to select 2+ articles
+      │
+articleStore selected slices + selected descriptor cache
+      │
+SelectionActionDock "Digest"
+      │
+useDigest.trigger(selectedDescriptors)
+      │
+      ├─ same URL-set cache hit → acquireZenLock('digest'), expand
+      └─ new URL-set
+            │
+            ├─ queueBatchArticlePatches(summary → LOADING)
+            ├─ POST /api/digest
+            ├─ success: restore article summaries
+            ├─ success: queueDailyPayloadPatch(digest AVAILABLE)
+            ├─ success: interactionActions.clearSelection()
+            └─ success: acquireZenLock('digest'), expand
 ```
 
-#### Flow 4: The persistence round-trip
+On error or abort, `useDigest` restores each affected article summary from the pre-request snapshot and writes digest error state to the target day slice.
+
+#### Flow 4: Persistence round trip
 
 ```
-   User action (mark read, swipe, summary fetch, etc.)
-                        │
-            useArticleState.updateArticle(updater)
-                        │
-            useSupabaseStorage.setValueAsync(fn)
-                        │
-          ┌─────────────┼─────────────────────┐
-          │ OPTIMISTIC   │                     │ BACKGROUND
-          ▼              ▼                     ▼
-    valueRef.current   readCache.set()    writeValue()
-    setValue()         emitChange(key)    POST /api/storage/daily/{date}
-    (React re-render)  (subscribers         │
-                        re-render)      ┌─── success? ───┐
-                                        │ yes             │ no
-                                        ▼                 ▼
-                                      (done)         REVERT all:
-                                                     valueRef = previous
-                                                     setValue(previous)
-                                                     readCache.set(previous)
-                                                     emitChange(key)
-                                                     (re-render with old data)
+User/domain action
+      │
+Build article or day patch
+      │
+Apply optimistic patch to articleStore
+      │
+Notify affected slice listeners
+      │
+PATCH /api/storage/daily/{date}/article
+or PATCH /api/storage/daily/{date}
+      │
+      ├─ success → replaceDayFromServer(server payload)
+      ├─ conflict → fetch server payload + retry once
+      └─ failure → restorePayloadFromServer(date)
 ```
+
+This keeps the UI fast while making the server-confirmed daily payload the durable boundary.
 
 #### Flow 5: Feed loading → component tree hydration
 
 ```
-   App mount OR ScrapeForm submit
-       │
-       └── useFeedLoader.loadFeed()
-              │
-   ┌── sessionStorage hit? ──┐
-   │ yes                      │ no
-   ▼                          ▼
-setResults(cached)     getDailyPayloadsRange() → Phase 1 cached render
-                              │
-                       scrapeNewsletters() → Phase 2
-                              │
-                       mergePreservingLocalState()
-                       (server fields from scrape,
-                        client fields from cache)
-                              │
-                       mergeIntoCache(key, mergeFn)
-                       emitChange(key)
-                              │
-   App renders Feed
-       │
-   Feed renders CalendarDay(payload)
-       │
-   CalendarDay → useSupabaseStorage(key, payload)
-       │          ↑ seeds readCache (no API call needed)
-       │
-   CalendarDay renders NewsletterDay → ArticleList → ArticleCard
-       │
-   ArticleCard → useArticleState(date, url)
-       │           ↑ useSupabaseStorage(key) → cache HIT (seeded by CalendarDay)
-       │
-   ArticleCard → useSummary(date, url)
-       │           ↑ reads article.summary from same payload
-       │
-   ArticleCard → useSwipeToRemove({ isRemoved, … })
-                   ↑ reads isRemoved from useArticleState
+App mount OR ScrapeForm submit
+      │
+useFeedLoader.loadFeed()
+      │
+      ├─ sessionStorage hit
+      │     └─ hydrateResultPayloads() → setResults(cached)
+      │
+      ├─ Phase 1 daily-range cache
+      │     └─ hydrateResultPayloads() → setResults(cached)
+      │
+      └─ Phase 2 scrape
+            ├─ existing rendered date → mergeDayFromServer()
+            ├─ new rendered date → hydrateDay()
+            └─ setResults(fresh structural payloads)
 ```
+
+After hydration, the component tree receives structural grouping props from `results`, while article cards, day summaries, selection state, and overlays subscribe directly to `articleStore`.

@@ -1,7 +1,7 @@
 ---
 name: state-machines/feed-and-storage
-description: State machines for feed loading, scrape form, and Supabase storage.
-last_updated: 2026-05-03 15:10, bb6b54a
+description: State machines for feed loading, scrape form, the client article store, and mutation persistence.
+last_updated: 2026-05-04 16:28
 ---
 # State Machines: Feed and Storage
 
@@ -18,16 +18,16 @@ last_updated: 2026-05-03 15:10, bb6b54a
 #### States
 
 ```
-idle  →  ready                          (session cache hit, < 10 min old)
+idle  →  ready                          (session cache hit, < 30 min old)
 idle  →  fetching  →  ready             (no cache at all; scrape returns first)
 idle  →  fetching  →  cached  →  merged (cache rendered first, then scrape merges in)
 ```
 
 #### Three-Phase Flow
 
-1. **Session cache check** — `sessionStorage` key `scrapeResults:{start}:{end}`, TTL 10 min. If hit, jump straight to `ready`.
+1. **Session cache check** — `sessionStorage` key `scrapeResults:{start}:{end}`, TTL 30 min. If hit, jump straight to `ready`.
 2. **Phase 1 (cache-first)** — `POST /api/storage/daily-range` fetches cached payloads from Supabase. If any exist, render immediately (`cached`).
-3. **Phase 2 (background scrape)** — `POST /api/scrape` fetches fresh data. If Phase 1 rendered, merge new articles via `mergeIntoCache()` preserving local state (read/removed/summary). If Phase 1 didn't render, set results directly (`ready`).
+3. **Phase 2 (background scrape)** — `POST /api/scrape` fetches fresh data. If Phase 1 rendered, merge existing dates with `mergeDayFromServer()` preserving local state (lifecycle, summaries, digest, selection, expansion). New dates are initialized with `hydrateDay()`. If Phase 1 did not render, fresh payloads are hydrated before `ready`.
 
 **Unified entry point:** Both `App.jsx` (on mount) and `ScrapeForm.jsx` (on submit) call `useFeedLoader.loadFeed()`. This ensures consistent cache-first + merge behavior regardless of entry point.
 
@@ -67,7 +67,7 @@ idle
   │              │
   │              ├─ Success
   │              │    ↓
-  │              │  merging_cache
+  │              │  merging_store
   │              │    ↓
   │              │  complete
   │              │
@@ -82,11 +82,11 @@ idle
 
 **Key state data:** `startDate`, `endDate`, `loading`, `progress`, `error`, `results`.
 
-#### Merge Algorithm (`mergePreservingLocalState`)
+#### Merge Algorithm (`mergePreservingLocalState` + `mergeDayFromServer`)
 
-Server-origin fields (`url`, `title`, `articleMeta`, `category`, `sourceId`, `section`, `sectionEmoji`, `sectionOrder`, `newsletterType`, `issueDate`) are overwritten from fresh scrape. Client-state fields (`read`, `removed`, `summary`, `digest`) are preserved from local cache.
+Server-origin fields (`url`, `title`, `articleMeta`, `category`, `sourceId`, `section`, `sectionEmoji`, `sectionOrder`, `newsletterType`, `issueDate`) are overwritten from fresh scrape. Client-state fields (`read`, `removed`, `summary`, `digest`) are preserved from local cache and from the live article store.
 
-**Module:** `lib/feedMerge.js` — contains `mergePreservingLocalState()` and `SERVER_ORIGIN_FIELDS` constant.
+**Modules:** `lib/feedMerge.js` contains the pure payload merge. `store/articleStore.js` ingests the merged payload into article/day slices.
 
 #### Error Handling
 
@@ -99,9 +99,9 @@ Server-origin fields (`url`, `title`, `articleMeta`, `category`, `sourceId`, `se
 useFeedLoader (results) → App → Feed → CalendarDay → NewsletterDay → ArticleList → ArticleCard
 ```
 
-`CalendarDay` seeds the `readCache` in `useSupabaseStorage` with its payload prop, preventing redundant per-day API calls.
+Feed results provide structural props for date/newsletter/section grouping. Live article, day, selection, summary, and container state comes from `articleStore` subscriptions.
 
-**Selection utilities:** `lib/selectionUtils.js` provides `getSelectedArticles()`, `extractSelectedArticleDescriptors()`, and `groupSelectedByDate()` for working with selected articles across payloads.
+`CalendarDay` consumes `useDayArticlesSummary(date)` for cached day-level derived state such as all-removed auto-folding.
 
 ---
 
@@ -136,59 +136,62 @@ Client-side only: starts at 10%, increments 5% every 500ms capped at 90%, jumps 
 
 **Date range utility:** Uses `getDefaultFeedDateRange()` from `useFeedLoader` for consistent default range calculation (today - 2 days to today).
 
-### 8. Supabase Storage
+### 8. Client Article Store and Mutation Queue
 
 | | |
 |---|---|
-| **Pattern** | Custom hook with module-level cache + pub/sub |
-| **File** | `hooks/useSupabaseStorage.js` |
-| **Scope** | Per-key instance; module-level singletons shared across all instances |
+| **Pattern** | External store (`useSyncExternalStore`) + optimistic mutation queue |
+| **Files** | `store/articleStore.js`, `lib/dailyPayloadMutations.js`, `lib/storageApi.js` |
+| **Scope** | Module-level singleton backing app-wide article/day state |
 
-#### Module-Level Singletons
+#### Store State
 
-| Singleton | Type | Purpose |
-|---|---|---|
-| `readCache` | `Map<key, value>` | In-memory cache. Source of truth between renders. |
-| `inflightReads` | `Map<key, Promise>` | Request deduplication. Prevents N parallel fetches for the same key. |
-| `changeListenersByKey` | `Map<key, Set<fn>>` | Pub/sub. Any `emitChange(key)` notifies all subscribers for that key. |
+| Structure | Purpose |
+|---|---|
+| `articleSlices` | Per-article live state keyed by article key. |
+| `daySlices` | Per-date payload metadata, digest state, and ordered article keys. |
+| `urlToArticleKey` | URL lookup for selection and summary commands. |
+| Listener maps | Separate subscriptions for article, day, day-article-summary, container, and select-mode state. |
+| Derived caches | Selected descriptors and day article summaries. |
 
-#### Hook State
+#### Ingestion
 
-```js
-const [value, setValue]     = useState(defaultValue)
-const [loading, setLoading] = useState(…)
-const [error, setError]     = useState(null)
+| Operation | When |
+|---|---|
+| `hydrateDay(date, payload)` | Initial ingestion for cached/session/fresh payloads. |
+| `mergeDayFromServer(date, payload)` | Background scrape updates an already rendered date. |
+| `replaceDayFromServer(date, payload)` | Server-confirmed write or rollback refreshes a date wholesale. |
+
+Ingestion also removes stale articles for the day so derived ordering and selection do not retain articles absent from the latest authoritative payload.
+
+#### Optimistic Mutations
+
+```
+1. Build article or day patch.
+2. Apply optimistic patch to articleStore.
+3. Persist through daily payload API with expected storage_updated_at metadata.
+4. On success: replace day from server-confirmed payload.
+5. On conflict: refresh server payload and retry once.
+6. On failure: restore day from server payload.
 ```
 
-#### Optimistic Update (`setValueAsync`)
+| API | Purpose |
+|---|---|
+| `queueDailyArticlePatch(date, url, patch)` | One article mutation. |
+| `queueBatchArticlePatches(patches)` | Grouped article mutations; one payload write per date. |
+| `queueDailyPayloadPatch(date, patch)` | Day-level mutation such as digest status. |
 
-```
-1. Snapshot previous value
-2. Optimistic: update React state + readCache + emitChange()
-3. Background: writeValue() → POST to server
-4. On error: revert React state + readCache + emitChange() + set error
-```
+#### Server Endpoints
 
-#### Key Routing
-
-| Key pattern | Read endpoint | Write endpoint |
-|---|---|---|
-| `newsletters:scrapes:{date}` | `GET /api/storage/daily/{date}` | `POST /api/storage/daily/{date}` |
-| `cache:{setting}` | `GET /api/storage/setting/{key}` | `POST /api/storage/setting/{key}` |
-
-#### Cache Seeding
-
-`CalendarDay` passes the authoritative payload from `/api/scrape` as `defaultValue`. The hook seeds `readCache` if the key is empty, preventing N redundant API calls when ArticleCards mount.
+| Operation | Endpoint |
+|---|---|
+| Read day payload + metadata | `GET /api/storage/daily/{date}` |
+| Patch one article | `PATCH /api/storage/daily/{date}/article` |
+| Patch full daily payload | `PATCH /api/storage/daily/{date}` |
 
 #### Cross-Component Sync
 
-`emitChange(key)` does two things:
-1. Calls all registered listeners for that key (same-tab, same-render-tree).
-2. Dispatches `window.CustomEvent('supabase-storage-change')` (cross-tab, listened by `App.jsx` to force re-render).
-
-#### Imperative API
-
-`setStorageValueAsync(key, nextValue)` — same optimistic pattern but callable outside React components. Used by `applyBatchLifecyclePatch()` in `App.jsx` and `updateArticlesAcrossDates()` in `useDigest`.
+Store actions notify only the listener sets affected by a mutation: article listeners, day listeners, derived day-summary listeners, container listeners, and select-mode listeners. This replaces whole-payload pub/sub with slice-level invalidation.
 
 ---
 
@@ -196,23 +199,22 @@ const [error, setError]     = useState(null)
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Tier 1: Module-level readCache (Map)       │  ← Instant, same-tab
-│  Populated by: cache seeding, API reads,    │
-│                optimistic writes             │
+│  Tier 1: articleStore                       │  ← Instant, same-tab
+│  Populated by: feed hydration, scrape merge,│
+│                optimistic mutations          │
 ├─────────────────────────────────────────────┤
 │  Tier 2: sessionStorage                     │  ← Fast, survives re-render
 │  Key: scrapeResults:{start}:{end}           │     but not tab close
-│  TTL: 10 minutes                            │
+│  TTL: 30 minutes                            │
 ├─────────────────────────────────────────────┤
 │  Tier 3: Supabase PostgreSQL (daily_cache)  │  ← Durable, cross-device
-│  Written via POST /api/storage/daily/{date} │
+│  Written via PATCH /api/storage/daily/...   │
 │  Read via GET /api/storage/daily/{date}     │
 └─────────────────────────────────────────────┘
 ```
 
 Plus a separate `localStorage` tier for `expandedContainerIds` only.
 
-Reads cascade: readCache → (if miss) inflightReads dedup → API → cache + return.
-Writes are optimistic: local first → background persist → revert on failure.
+Reads flow through feed loading and day hydration. Writes are optimistic: local store first → background persist → server replacement or rollback.
 
 ---

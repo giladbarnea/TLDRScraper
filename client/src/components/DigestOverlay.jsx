@@ -1,10 +1,13 @@
 import { BookOpen, Sparkles } from 'lucide-react'
+import { useMemo } from 'react'
 import { useElaboration } from '../hooks/useElaboration'
 import { useOverlayContextMenu } from '../hooks/useOverlayContextMenu'
+import { markdownToHtml } from '../lib/markdownUtils'
 import BaseOverlay, { overlayProseClassName } from './BaseOverlay'
 import ElaborationPreview from './ElaborationPreview'
 
-function DigestOverlay({ html, markdown, articleUrls, articleCount, errorMessage, onClose, onMarkRemoved }) {
+function DigestOverlay({ markdown, articleUrls, articleCount, errorMessage, onClose, onMarkRemoved }) {
+  const html = useMemo(() => markdownToHtml(markdown), [markdown])
   const contextMenu = useOverlayContextMenu(true)
   const { elaboration, runElaboration, closeElaboration } = useElaboration({
     sourceMarkdown: markdown,

@@ -44,3 +44,4 @@ else
     --write \
     2>/dev/null || true
 fi
+npx -y fallow --summary || true

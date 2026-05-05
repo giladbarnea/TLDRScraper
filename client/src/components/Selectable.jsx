@@ -1,18 +1,14 @@
 import { Check } from 'lucide-react'
-import { useMemo } from 'react'
-import { useInteraction } from '../contexts/InteractionContext'
 import { useLongPress } from '../hooks/useLongPress'
+import { interactionActions, useIsSelected } from '../store/articleStore'
 
 function Selectable({ id, descendantIds = [], disabled = false, children }) {
-  const { isSelected, itemLongPress, containerLongPress } = useInteraction()
   const isParent = descendantIds.length > 0
-  const selected = useMemo(() => {
-    return !isParent && isSelected(id)
-  }, [isParent, isSelected, id])
+  const selected = useIsSelected(id)
 
   const handleLongPress = () => {
-    if (isParent) containerLongPress(id, descendantIds)
-    else itemLongPress(id)
+    if (isParent) interactionActions.containerLongPress(id, descendantIds)
+    else interactionActions.itemLongPress(id)
   }
 
   const { handlers } = useLongPress(handleLongPress, { disabled })

@@ -3,7 +3,8 @@
 # Pre-commit hook:
 # 1. Scans for secrets with gitleaks
 # 2. Updates last_updated frontmatter in staged markdown files
-# 3. Runs biome lint on staged client files
+# 3. Regenerates PROJECT_STRUCTURE.md
+# 4. Runs biome lint on staged client files
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
@@ -32,6 +33,11 @@ echo ""
 
 # --- Frontmatter update for staged .md files ---
 uv run python3 "$REPO_ROOT/scripts/ops/update_frontmatter.py" --scope=staged
+
+# --- Regenerate PROJECT_STRUCTURE.md ---
+source "$REPO_ROOT/scripts/ops/structural-maintenance.sh"
+_generate_project_structure
+git add "$REPO_ROOT/PROJECT_STRUCTURE.md"
 
 # --- Biome lint for staged client files ---
 if git diff --cached --name-only | grep -q '^client/'; then

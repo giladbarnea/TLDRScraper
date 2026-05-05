@@ -1,6 +1,7 @@
 ---
-status: pending
-last_updated: 2026-05-03 15:10, bb6b54a
+status: done
+last_updated: 2026-05-04 12:43
+impl: impl.iteration-1.md
 ---
 
 # Plan — Collapsing the Reactive Architecture

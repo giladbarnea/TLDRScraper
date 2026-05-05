@@ -2,12 +2,11 @@ import { motion } from 'framer-motion'
 import { AlertCircle, CheckCircle, Trash2, Undo2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useInteraction } from '../contexts/InteractionContext'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
-import { subscribeToArticleAction } from '../lib/articleActionBus'
 import { getSourceLogo } from '../lib/sourceLogoMap'
+import { interactionActions, useIsSelectMode } from '../store/articleStore'
 import Selectable from './Selectable'
 import ZenModeOverlay from './ZenModeOverlay'
 
@@ -80,8 +79,8 @@ function SummaryError({ message }) {
 }
 
 function ArticleCard({ article }) {
-  const { isSelectMode, registerDisabled, itemShortPress } = useInteraction()
-  const { isRead, isRemoved, toggleRemove, markAsRemoved, loading: stateLoading } = useArticleState(
+  const isSelectMode = useIsSelectMode()
+  const { isRead, isRemoved, toggleRemove, markAsRead, markAsRemoved, loading: stateLoading } = useArticleState(
     article.issueDate,
     article.url
   )
@@ -90,8 +89,13 @@ function ArticleCard({ article }) {
 
   const componentId = `article-${article.url}`
 
+  const handleSummaryClose = (markAsReadOnClose = true) => {
+    summary.collapse()
+    if (markAsReadOnClose && !isRead) markAsRead()
+  }
+
   const handleSwipeComplete = () => {
-    if (!isRemoved && summary.expanded) summary.collapse()
+    if (!isRemoved && summary.expanded) handleSummaryClose()
     toggleRemove()
   }
 
@@ -130,33 +134,11 @@ function ArticleCard({ article }) {
     const selection = window.getSelection()
     if (selection.toString().length > 0) return
 
-    const shouldOpen = itemShortPress(componentId)
+    const shouldOpen = interactionActions.itemShortPress(componentId)
     if (shouldOpen) {
       summary.toggle()
     }
   }
-
-  useEffect(() => {
-    registerDisabled(componentId, isRemoved)
-    return () => registerDisabled(componentId, false)
-  }, [componentId, isRemoved, registerDisabled])
-
-  useEffect(() => {
-    return subscribeToArticleAction(article.url, (action) => {
-      if (isRemoved) return
-
-      if (action === 'open-summary') {
-        if (summary.isAvailable) summary.expand()
-        return
-      }
-
-      if (action === 'fetch-summary') {
-        if (summary.status === 'unknown' || summary.status === 'error') {
-          summary.fetch()
-        }
-      }
-    })
-  }, [article.url, isRemoved, summary])
 
   return (
     <Selectable id={componentId} disabled={isRemoved}>
@@ -226,17 +208,16 @@ function ArticleCard({ article }) {
               <SummaryError message={summary.errorMessage} />
             )}
 
-            {!isRemoved && summary.expanded && summary.html && (
+            {!isRemoved && summary.expanded && (
               <ZenModeOverlay
                 url={fullUrl}
-                html={summary.html}
                 summaryMarkdown={summary.markdown}
                 hostname={hostname}
                 displayDomain={displayDomain}
                 articleMeta={article.articleMeta}
-                onClose={() => summary.collapse()}
+                onClose={() => handleSummaryClose()}
                 onMarkRemoved={() => {
-                  summary.collapse(false)
+                  handleSummaryClose(false)
                   markAsRemoved()
                 }}
               />

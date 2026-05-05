@@ -4,32 +4,29 @@ import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import {
   ArticleLifecycleEventType,
   getArticleLifecycleState,
-  reduceArticleLifecycle
+  reduceArticleLifecycle,
 } from '../reducers/articleLifecycleReducer'
-import { useSupabaseStorage } from './useSupabaseStorage'
+import { useArticleSlice } from '../store/articleStore'
 
 export function useArticleState(date, url) {
-  const storageKey = getNewsletterScrapeKey(date)
-  const [payload, , , { loading, error }] = useSupabaseStorage(storageKey, null)
+  const slice = useArticleSlice(date, url)
 
-  const article = payload?.articles?.find(a => a.url === url) || null
-
-  const lifecycleState = getArticleLifecycleState(article)
-  const isRead = article?.read?.isRead ?? false
-  const isRemoved = Boolean(article?.removed)
+  const article = slice
+  const isRead = slice?.read?.isRead ?? false
+  const isRemoved = Boolean(slice?.removed)
+  const lifecycleState = getArticleLifecycleState(slice)
 
   const updateArticle = (updater) => {
-    if (!article) return
-    const previousPayload = payload
-
+    if (!slice) return
+    const storageKey = getNewsletterScrapeKey(date)
     queueDailyArticlePatch({
       date,
       url,
       buildPatch: updater,
-      previousPayload,
-      storageKey
-    }).catch((persistError) => {
-      console.error(`Failed to update article for ${url}:`, persistError)
+      previousPayload: null,
+      storageKey,
+    }).catch((error) => {
+      console.error(`Failed to update article for ${url}:`, error)
     })
   }
 
@@ -47,7 +44,7 @@ export function useArticleState(date, url) {
   const markAsRead = () => {
     dispatchLifecycleEvent({
       type: ArticleLifecycleEventType.MARK_READ,
-      markedAt: new Date().toISOString()
+      markedAt: new Date().toISOString(),
     })
   }
 
@@ -58,7 +55,7 @@ export function useArticleState(date, url) {
   const toggleRead = () => {
     dispatchLifecycleEvent({
       type: ArticleLifecycleEventType.TOGGLE_READ,
-      markedAt: new Date().toISOString()
+      markedAt: new Date().toISOString(),
     })
   }
 
@@ -75,13 +72,13 @@ export function useArticleState(date, url) {
     isRead,
     isRemoved,
     lifecycleState,
-    loading,
-    error,
+    loading: false,
+    error: null,
     markAsRead,
     markAsUnread,
     toggleRead,
     markAsRemoved,
     toggleRemove,
-    updateArticle
+    updateArticle,
   }
 }

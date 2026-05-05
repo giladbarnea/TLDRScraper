@@ -6,57 +6,36 @@ import Feed from './components/Feed'
 import ScrapeForm from './components/ScrapeForm'
 import SelectionActionDock from './components/SelectionActionDock'
 import ToastContainer from './components/ToastContainer'
-import { InteractionProvider, useInteraction } from './contexts/InteractionContext'
 import { useDigest } from './hooks/useDigest'
 import { getDefaultFeedDateRange, useFeedLoader } from './hooks/useFeedLoader'
-import { getCachedStorageValue } from './hooks/useSupabaseStorage'
-import { publishArticleAction } from './lib/articleActionBus'
-import { queueDailyArticlePatch } from './lib/dailyPayloadMutations'
-import { extractSelectedArticleDescriptors, getSelectedArticles, groupSelectedByDate } from './lib/selectionUtils'
-import { getNewsletterScrapeKey } from './lib/storageKeys'
+import { queueBatchArticlePatches } from './lib/dailyPayloadMutations'
 import { ArticleLifecycleEventType, reduceArticleLifecycle } from './reducers/articleLifecycleReducer'
 import * as summaryDataReducer from './reducers/summaryDataReducer'
-
-function getLivePayload(date, fallbackPayloads) {
-  const livePayload = getCachedStorageValue(getNewsletterScrapeKey(date))
-  if (livePayload) return livePayload
-  return fallbackPayloads?.find((payload) => payload.date === date) || null
-}
+import { getSnapshotArticleByUrl, interactionActions, summaryActions, useIsSelectMode, useSelectedDescriptors } from './store/articleStore'
 
 function toBrowserUrl(url) {
   if (url.startsWith('http://') || url.startsWith('https://')) return url
   return `https://${url}`
 }
 
-async function applyBatchLifecyclePatch(selectedArticles, eventFactory) {
-  const groupedArticlesByDate = groupSelectedByDate(selectedArticles)
-
-  await Promise.all([...groupedArticlesByDate.entries()].map(async ([date, articles]) => {
-    const storageKey = getNewsletterScrapeKey(date)
-
-    for (const article of articles) {
-      const patch = reduceArticleLifecycle(article, eventFactory(article)).patch
-      await queueDailyArticlePatch({
-        date,
-        url: article.url,
-        patch,
-        previousPayload: getCachedStorageValue(storageKey) || null,
-        storageKey
-      })
-    }
-  }))
+async function applyBatchLifecyclePatch(selectedDescriptors, eventFactory) {
+  const patches = selectedDescriptors.flatMap(descriptor => {
+    const article = getSnapshotArticleByUrl(descriptor.url)
+    if (!article) return []
+    return [{
+      date: article.issueDate,
+      url: article.url,
+      buildPatch: (currentArticle) => reduceArticleLifecycle(currentArticle, eventFactory(currentArticle)).patch,
+    }]
+  })
+  await queueBatchArticlePatches(patches)
 }
 
 function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
-  const { selectedIds, isSelectMode, clearSelection } = useInteraction()
   const digest = useDigest(results)
-  const [, setStorageVersion] = useState(0)
-
-  useEffect(() => {
-    const handleStorageChange = () => setStorageVersion((version) => version + 1)
-    window.addEventListener('supabase-storage-change', handleStorageChange)
-    return () => window.removeEventListener('supabase-storage-change', handleStorageChange)
-  }, [])
+  const isSelectMode = useIsSelectMode()
+  const selectedDescriptors = useSelectedDescriptors()
+  const selectedCount = selectedDescriptors.length
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -64,26 +43,14 @@ function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
     day: 'numeric'
   })
 
-  const livePayloads = results?.payloads
-    ? results.payloads
-      .map((payload) => getLivePayload(payload.date, results.payloads))
-      .filter(Boolean)
-    : []
-  const selectedArticles = getSelectedArticles(selectedIds, livePayloads)
-  const selectedDescriptors = extractSelectedArticleDescriptors(selectedArticles)
-  const selectedCount = selectedIds.size
-  const singleSelectedId = selectedCount === 1 ? [...selectedIds][0] : null
-  const singleSelectedUrl = singleSelectedId?.startsWith('article-')
-    ? singleSelectedId.slice('article-'.length)
-    : null
-  const singleSelectedArticle = singleSelectedUrl
-    ? selectedArticles.find((article) => article.url === singleSelectedUrl) || null
-    : null
+  const singleDescriptor = selectedCount === 1 ? selectedDescriptors[0] : null
+  const singleSelectedArticle = singleDescriptor ? getSnapshotArticleByUrl(singleDescriptor.url) : null
   const singleSummaryStatus = summaryDataReducer.getSummaryDataStatus(singleSelectedArticle?.summary)
   const canOpenSingleSummary = singleSummaryStatus === summaryDataReducer.SummaryDataStatus.AVAILABLE
   const isSingleSummaryLoading = singleSummaryStatus === summaryDataReducer.SummaryDataStatus.LOADING
-  const summarizeEachActionableCount = selectedArticles.filter((article) => {
-    const status = summaryDataReducer.getSummaryDataStatus(article.summary)
+  const summarizeEachActionableCount = selectedDescriptors.filter(d => {
+    const article = getSnapshotArticleByUrl(d.url)
+    const status = summaryDataReducer.getSummaryDataStatus(article?.summary)
     return status === summaryDataReducer.SummaryDataStatus.UNKNOWN || status === summaryDataReducer.SummaryDataStatus.ERROR
   }).length
   const isSummarizeEachDisabled = selectedCount < 2 || summarizeEachActionableCount === 0
@@ -93,34 +60,31 @@ function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
   }
 
   async function handleMarkSelectedRead() {
-    if (selectedArticles.length === 0) return
-
+    if (selectedCount === 0) return
     const markedAt = new Date().toISOString()
-    await applyBatchLifecyclePatch(selectedArticles, () => ({
+    await applyBatchLifecyclePatch(selectedDescriptors, () => ({
       type: ArticleLifecycleEventType.MARK_READ,
-      markedAt
+      markedAt,
     }))
-    clearSelection()
+    interactionActions.clearSelection()
   }
 
   async function handleMarkSelectedRemoved() {
-    if (selectedArticles.length === 0) return
-
-    await applyBatchLifecyclePatch(selectedArticles, () => ({
-      type: ArticleLifecycleEventType.MARK_REMOVED
+    if (selectedCount === 0) return
+    await applyBatchLifecyclePatch(selectedDescriptors, () => ({
+      type: ArticleLifecycleEventType.MARK_REMOVED,
     }))
-    clearSelection()
+    interactionActions.clearSelection()
   }
 
   function handleSummarizeSingle() {
     if (!singleSelectedArticle) return
-
+    const key = `${singleSelectedArticle.issueDate}::${singleSelectedArticle.url}`
     if (canOpenSingleSummary) {
-      publishArticleAction([singleSelectedArticle.url], 'open-summary')
+      summaryActions.expand(key)
       return
     }
-
-    publishArticleAction([singleSelectedArticle.url], 'fetch-summary')
+    summaryActions.fetch(key)
   }
 
   function handleBrowseSingle() {
@@ -130,16 +94,14 @@ function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
 
   function handleSummarizeEach() {
     if (selectedCount < 2) return
-
-    const actionableUrls = selectedArticles
-      .filter((article) => {
-        const status = summaryDataReducer.getSummaryDataStatus(article.summary)
-        return status === summaryDataReducer.SummaryDataStatus.UNKNOWN || status === summaryDataReducer.SummaryDataStatus.ERROR
-      })
-      .map((article) => article.url)
-
-    if (actionableUrls.length === 0) return
-    publishArticleAction(actionableUrls, 'fetch-summary')
+    for (const descriptor of selectedDescriptors) {
+      const article = getSnapshotArticleByUrl(descriptor.url)
+      if (!article) continue
+      const status = summaryDataReducer.getSummaryDataStatus(article.summary)
+      if (status === summaryDataReducer.SummaryDataStatus.UNKNOWN || status === summaryDataReducer.SummaryDataStatus.ERROR) {
+        summaryActions.fetch(`${article.issueDate}::${article.url}`)
+      }
+    }
   }
 
   return (
@@ -204,7 +166,6 @@ function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
 
       {digest.expanded && (
         <DigestOverlay
-          html={digest.html}
           markdown={digest.markdown}
           articleUrls={digest.articleUrls}
           articleCount={digest.articleCount}
@@ -221,7 +182,7 @@ function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
         canOpenSingleSummary={canOpenSingleSummary}
         isSingleSummaryLoading={isSingleSummaryLoading}
         isSummarizeEachDisabled={isSummarizeEachDisabled}
-        onClearSelection={clearSelection}
+        onClearSelection={interactionActions.clearSelection}
         onMarkRead={handleMarkSelectedRead}
         onMarkRemoved={handleMarkSelectedRemoved}
         onTriggerDigest={handleTriggerDigest}
@@ -288,7 +249,7 @@ function App() {
   }, [loadFeed, setResults])
 
   return (
-    <InteractionProvider>
+    <>
       <ToastContainer />
       <FloatingTree>
         <AppContent
@@ -298,7 +259,7 @@ function App() {
           setShowSettings={setShowSettings}
         />
       </FloatingTree>
-    </InteractionProvider>
+    </>
   )
 }
 

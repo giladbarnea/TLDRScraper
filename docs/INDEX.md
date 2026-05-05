@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-03 15:10, bb6b54a
+last_updated: 2026-05-04 16:28
 ---
 
 # Documentation Index
@@ -35,8 +35,8 @@ This index provides a directory tree of the `docs/` folder along with a brief de
   - *Keywords*: useFeedLoader, two-phase, merge algorithm, session cache, loadFeed
 
 - **[storage.md](client/storage.md)**
-  - *Description*: Client-side storage hook, optimistic updates, and persistence tiers.
-  - *Keywords*: useSupabaseStorage, persistence tiers, optimistic write, readCache, emitChange
+  - *Description*: Client-side article store, optimistic mutation queues, and persistence tiers.
+  - *Keywords*: articleStore, dailyPayloadMutations, optimistic write, persistence tiers, storage_updated_at
 
 - **[articles-and-lifecycle.md](client/articles-and-lifecycle.md)**
   - *Description*: Client article lifecycle domain and reducer pattern.
@@ -65,8 +65,8 @@ This index provides a directory tree of the `docs/` folder along with a brief de
 ## State-machines
 
 - **[feed-and-storage.md](state-machines/feed-and-storage.md)**
-  - *Description*: State machines for feed loading, scrape form, and Supabase storage.
-  - *Keywords*: states, transitions, scraping, storage, cache, optimistic updates, tiers
+  - *Description*: State machines for feed loading, scrape form, the client article store, and mutation persistence.
+  - *Keywords*: states, transitions, scraping, articleStore, mutation queue, optimistic updates, tiers
 
 - **[articles-and-summaries.md](state-machines/articles-and-summaries.md)**
   - *Description*: State machines for article lifecycle, summary data, digest, and the Zen lock.
@@ -85,8 +85,8 @@ This index provides a directory tree of the `docs/` folder along with a brief de
   - *Keywords*: context menu, mobile selection reducer, touching, selection observed
 
 - **[toast.md](state-machines/toast.md)**
-  - *Description*: State machine for toast notifications and global pub/sub buses.
-  - *Keywords*: toast, exiting, toastBus, articleActionBus
+  - *Description*: State machine for toast notifications and global pub/sub.
+  - *Keywords*: toast, exiting, toastBus, summary notification
 
 - **[tracked-state.md](state-machines/tracked-state.md)**
   - *Description*: Internal utility state machine for tracked values in gestures.
