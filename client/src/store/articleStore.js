@@ -209,6 +209,10 @@ function ingestPayload(date, payload, notifyListeners) {
   if (notifyListeners) {
     changedArticleKeys.forEach(notifyArticle)
     if (dayArticleSummaryChanged) notifyDayArticleSummary(date)
+
+    /* TODO (Verify): If I understand the flow correctly, when `ingestPayload` removes stale URLs via `deleteStaleArticles`, it only calls `notifyArticle` for those keys, but `useCompletedArticlesCount`/`useAllArticlesRemoved` now subscribe exclusively through `subscribeDayLifecycle`.
+       In the cache→fresh merge path (`mergeDayFromServer`), dropping an article from a day might therefore change these derived values without emitting a day-lifecycle notification.
+       If my reasoning is right, this could leave the `n/m` badge and all-removed visuals stale until another read/remove toggle happens. */
     if (dayLifecycleChanged) notifyDayLifecycle(date)
     notifyDay(date)
     if (selectedAggregateChanged || staleSelectedCount > 0) notifyAnySelected()
