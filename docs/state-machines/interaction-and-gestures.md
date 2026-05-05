@@ -1,7 +1,7 @@
 ---
 name: state-machines/interaction-and-gestures
 description: State machines for selection interaction, container expansion, and swipe gestures.
-last_updated: 2026-05-05 06:38, 36614cc
+last_updated: 2026-05-05 14:05
 ---
 # State Machines: Interaction and Gestures
 
@@ -76,7 +76,7 @@ Single key: `expandedContainers:v1` → JSON array of container IDs.
 
 #### Auto-Collapse
 
-`FoldableContainer` accepts `defaultFolded`. `CalendarDay` and `NewsletterDay` consume `useDayArticlesSummary(date)` / grouped article state to determine when all articles are removed. Passing `defaultFolded={true}` triggers `interactionActions.setExpanded(id, false)` — removing the ID from `expandedContainerIds` and persisting.
+`FoldableContainer` accepts `defaultFolded`. `CalendarDay` uses `useDayArticlesSummary(date)` for day-level all-removed state. `NewsletterDay` and section containers use `useAllArticlesRemoved(date, urls)` for grouped lifecycle state over their specific article URL sets. Passing `defaultFolded={true}` triggers `interactionActions.setExpanded(id, false)` — removing the ID from `expandedContainerIds` and persisting.
 
 ---
 

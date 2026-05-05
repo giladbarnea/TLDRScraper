@@ -1,9 +1,22 @@
 ---
-last_updated: 2026-05-03 15:10, bb6b54a
+last_updated: 2026-05-05 14:05
+what_is_a_gotcha: Rather confidently signing off on something that later on proved to be at least partially wrong due to wrong assumptions; Figuratively, going thourhg "[allegedly] fixed" -> "oh actually it's not fixed" -> "ahh right... fixed now".
 ---
 # Gotchas
 
 This document catalogs recurring pitfalls in various topics, including managing client-side state persistence and reactivity, surprising design decisions, and so on.
+
+---
+
+#### 2026-05-05: Derived multi-article UI can still go stale after a "store-backed" fix if the subscription shape is wrong
+
+**Desired behavior that didn't work**: After fixing the newsletter/day `n/m` badge to read completion from `articleStore`, removing or reading an article should immediately update the badge and any all-removed visuals (newsletter/section dimming + auto-fold).
+
+**What actually happened and falsified original thesis**: We initially signed off on the badge fix because the implementation had been moved off structural props and onto store state. That confidence was premature. In a real repro (`HN Show` going from `1/2` to all removed), the last article dimmed, the newsletter collapsed, but the badge stayed at `1/2`. We had wrongly assumed that "subscribing to the relevant article keys" was automatically enough to make a multi-article derived UI reliable.
+
+**Cause & Fix**: The first fix subscribed the badge through a render-time-derived set of per-article listeners. That subscription shape was brittle for `useSyncExternalStore`: it depended on a recreated key collection/subscribe closure rather than a stable lifecycle signal. At the same time, newsletter and section `allRemoved` logic was still reading structural `articles.every(a => a.removed)` props instead of live lifecycle state. The durable fix was to add a day-level lifecycle notification path in `articleStore`, then expose selectors that derive grouped state from live slices for a given `(date, urls)` set: `useCompletedArticlesCount(date, urls)` and `useAllArticlesRemoved(date, urls)`. The badge, newsletter containers, and section containers now all use those selectors.
+
+**Generalized principle**: in external-store React code, "derived from the store" is not enough. The subscription boundary itself must match the semantic domain of the UI you are deriving. For grouped UI (badge counts, all-removed container state), prefer a stable grouped lifecycle selector over ad-hoc render-time fan-out subscriptions or structural prop scans.
 
 ---
 

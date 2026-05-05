@@ -1,7 +1,7 @@
 ---
 name: client/reading-overlays
 description: Client architecture for reading overlays including ZenMode and Digest.
-last_updated: 2026-05-05 06:38, 36614cc
+last_updated: 2026-05-05 14:05
 ---
 # Client: Reading Overlays
 
@@ -32,9 +32,11 @@ main()
 │           └── Selectable (long press via interactionActions)
 │               └── FoldableContainer (short press: expand/collapse via interaction layer)
 │                   └── NewsletterDay (Iterated by Issue)
+│                       ├── useAllArticlesRemoved(date, urls) / ReadStatsBadge(date, urls)
 │                       └── Selectable
 │                           └── FoldableContainer
 │                               ├── Section (If newsletter has sections)
+│                               │   ├── useAllArticlesRemoved(date, urls)
 │                               │   └── Selectable
 │                               │       └── FoldableContainer
 │                               │           └── ArticleList
