@@ -1,19 +1,23 @@
+import { useArticleSlice } from '../store/articleStore'
 import ArticleCard from './ArticleCard'
 
-function ArticleList({ articles }) {
-  const sortedArticles = [...articles].sort((a, b) => {
-    const stateA = a.removed ? 1 : 0
-    const stateB = b.removed ? 1 : 0
-
-    if (stateA !== stateB) return stateA - stateB
-
-    return (a.originalOrder ?? 0) - (b.originalOrder ?? 0)
-  })
+function LiveArticleCard({ article }) {
+  const liveArticle = useArticleSlice(article.issueDate, article.url)
+  const isRemoved = Boolean(liveArticle?.removed)
+  const originalOrder = article.originalOrder ?? 0
 
   return (
-    <div>
-      {sortedArticles.map((article) => (
-        <ArticleCard key={article.url} article={article} />
+    <div style={{ order: isRemoved ? 10_000 + originalOrder : originalOrder }}>
+      <ArticleCard article={article} />
+    </div>
+  )
+}
+
+function ArticleList({ articles }) {
+  return (
+    <div className="flex flex-col">
+      {articles.map((article) => (
+        <LiveArticleCard key={article.url} article={article} />
       ))}
     </div>
   )
