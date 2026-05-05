@@ -1,7 +1,7 @@
 ---
 name: state-machines/articles-and-summaries
 description: State machines for article lifecycle, summary data, digest, and the Zen lock.
-last_updated: 2026-05-05 06:38, 36614cc
+last_updated: 2026-05-05 12:01
 ---
 # State Machines: Articles and Summaries
 
@@ -92,7 +92,7 @@ UNREAD  →  READ  →  REMOVED
 |---|---|---|
 | `ArticleCard` | `isRead`, `isRemoved` | Visual styling, conditional rendering, disable selection |
 | `ArticleList` | `article.removed` | Sort removed articles to bottom |
-| `ReadStatsBadge` | `article.read?.isRead`, `article.removed` | Completion count |
+| `ReadStatsBadge` | Live article slices resolved from `(date, url)` via `articleStore` | Completion count (`read` or `removed` / total) |
 | `CalendarDay`, `NewsletterDay` | `articles.every(a => a.removed)` | Auto-fold when all removed |
 | `useSwipeToRemove` | `isRemoved` | Disable drag when removed |
 | `interactionReducer` | `isDisabled(id)` predicate resolving article slice | Prevent selecting removed articles |

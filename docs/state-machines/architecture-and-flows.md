@@ -1,7 +1,7 @@
 ---
 name: state-machines/architecture-and-flows
 description: Cross-cutting topology, coupling matrices, and cross-machine user flows.
-last_updated: 2026-05-05 06:38, 36614cc
+last_updated: 2026-05-05 12:01
 ---
 # State Machines: Architecture and Flows
 
@@ -182,4 +182,5 @@ useFeedLoader.loadFeed()
             └─ setResults(fresh structural payloads)
 ```
 
-After hydration, the component tree receives structural grouping props from `results`, while article cards, day summaries, selection state, and overlays subscribe directly to `articleStore`.
+After hydration, the component tree receives structural grouping props from `results`, while article cards, read/remove counters, day summaries, selection state, and overlays subscribe directly to `articleStore`.
+

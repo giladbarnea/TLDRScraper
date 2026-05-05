@@ -65,8 +65,7 @@
         "-prompts/parallel-research.md",
         "-prompts/parallel-review.md"
       ]
-    },
-    "git:github.com/championswimmer/pi-context-prune"
+    }
   ],
   "skills": [
     "-skills/architecture-create/SKILL.md",
@@ -83,6 +82,8 @@
     "-skills/impeccable-design/SKILL.md",
     "-skills/peer-review/SKILL.md",
     "-skills/react-best-practices/SKILL.md",
-    "-skills/prompt-subagent/SKILL.md"
+    "-skills/prompt-subagent/SKILL.md",
+    "-skills/load-project-context/SKILL.md",
+    "-skills/post-implementation/SKILL.md"
   ]
 }
