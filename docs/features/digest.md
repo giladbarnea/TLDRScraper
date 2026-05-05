@@ -1,7 +1,7 @@
 ---
 name: features/digest
 description: End-to-end architecture of the Digest feature including elaboration and caching.
-last_updated: 2026-05-04 16:28
+last_updated: 2026-05-05 06:38, 36614cc
 ---
 # Digest Feature Architecture
 

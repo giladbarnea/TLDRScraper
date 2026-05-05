@@ -1,7 +1,7 @@
 ---
 name: client/interaction-and-selection
 description: Client-side interaction architecture, selection modes, and foldable containers.
-last_updated: 2026-05-04 16:28
+last_updated: 2026-05-05 06:38, 36614cc
 ---
 # Client: Interaction and Selection
 

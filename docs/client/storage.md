@@ -1,7 +1,7 @@
 ---
 name: client/storage
 description: Client-side article store, optimistic mutation queues, and persistence tiers.
-last_updated: 2026-05-04 16:28
+last_updated: 2026-05-05 06:38, 36614cc
 ---
 # Client: Storage
 

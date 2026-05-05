@@ -1,7 +1,7 @@
 ---
 name: client/summaries-and-digests
 description: Client-side summary and digest data vs view state management.
-last_updated: 2026-05-04 16:28
+last_updated: 2026-05-05 06:38, 36614cc
 ---
 # Client: Summaries and Digests
 
