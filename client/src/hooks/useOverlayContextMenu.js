@@ -6,16 +6,22 @@ import {
   reduceMobileSelectionMenu,
 } from '../reducers/mobileSelectionMenuReducer'
 
+const LINK_LONG_PRESS_DELAY_MS = 550
+const LINK_LONG_PRESS_MOVE_TOLERANCE_PX = 10
+
 const MenuOpenSource = Object.freeze({
   NONE: 'none',
   DESKTOP: 'desktop',
   MOBILE_SELECTION: 'mobile-selection',
+  LINK: 'link',
 })
 
 const CLOSED_MENU_STATE = Object.freeze({
   isOpen: false,
   positionReference: null,
   selectedText: '',
+  linkUrl: '',
+  linkText: '',
   source: MenuOpenSource.NONE,
 })
 
@@ -33,6 +39,35 @@ function createPointPositionReference(x, y) {
   }
 }
 
+function createElementPositionReference(element) {
+  const boundingRect = copyDomRect(element.getBoundingClientRect())
+  const clientRects = Array.from(element.getClientRects()).map(copyDomRect)
+  return {
+    kind: 'element',
+    boundingRect,
+    clientRects,
+    placement: 'bottom',
+    offsetPx: 8,
+  }
+}
+
+function getEventTargetElement(event) {
+  if (event.target instanceof Element) return event.target
+  return event.target.parentElement
+}
+
+function readLinkTarget(event) {
+  const targetElement = getEventTargetElement(event)
+  const link = targetElement?.closest('a[href]')
+  if (!link || !event.currentTarget.contains(link)) return null
+
+  return {
+    linkUrl: link.href,
+    linkText: link.textContent.trim() || link.href,
+    positionReference: createElementPositionReference(link),
+  }
+}
+
 export function useOverlayContextMenu(enabled = true) {
   const [menuState, setMenuState] = useState(CLOSED_MENU_STATE)
   const menuStateRef = useRef(menuState)
@@ -44,11 +79,13 @@ export function useOverlayContextMenu(enabled = true) {
 
   console.log('[ctxmenu] render — enabled:', enabled, '| isOpen:', menuState.isOpen)
 
-  const openMenu = useCallback(({ source, positionReference, selectedText = '' }) => {
+  const openMenu = useCallback(({ source, positionReference, selectedText = '', linkUrl = '', linkText = '' }) => {
     const nextState = {
       isOpen: true,
       positionReference,
       selectedText,
+      linkUrl,
+      linkText,
       source,
     }
     menuStateRef.current = nextState
@@ -74,6 +111,7 @@ export function useOverlayContextMenu(enabled = true) {
   }, [closeMenu])
 
   const handleContextMenu = useDesktopContextMenu({ enabled, openMenu })
+  const linkLongPressHandlers = useLinkLongPressContextMenu({ enabled, openMenu })
   useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelectionStateRef })
 
   useEffect(() => {
@@ -85,7 +123,10 @@ export function useOverlayContextMenu(enabled = true) {
     isOpen: menuState.isOpen,
     positionReference: menuState.positionReference,
     selectedText: menuState.selectedText,
+    linkUrl: menuState.linkUrl,
+    linkText: menuState.linkText,
     handleContextMenu,
+    linkLongPressHandlers,
     onOpenChange,
   }
 }
@@ -95,7 +136,18 @@ function useDesktopContextMenu({ enabled, openMenu }) {
     console.log('[ctxmenu] handleContextMenu — enabled:', enabled, '| target:', event.target.tagName)
     if (!enabled) return
 
+    const linkTarget = readLinkTarget(event)
     event.preventDefault()
+
+    if (linkTarget) {
+      openMenu({
+        source: MenuOpenSource.LINK,
+        ...linkTarget,
+      })
+      console.log('[ctxmenu] opened via link context menu | url:', linkTarget.linkUrl)
+      return
+    }
+
     openMenu({
       source: MenuOpenSource.DESKTOP,
       positionReference: createPointPositionReference(event.clientX, event.clientY),
@@ -103,6 +155,84 @@ function useDesktopContextMenu({ enabled, openMenu }) {
     })
     console.log('[ctxmenu] opened via right-click at', event.clientX, event.clientY)
   }, [enabled, openMenu])
+}
+
+function useLinkLongPressContextMenu({ enabled, openMenu }) {
+  const timerRef = useRef(null)
+  const touchStartPointRef = useRef(null)
+  const didOpenRef = useRef(false)
+  const suppressNextLinkClickRef = useRef(false)
+
+  const clearTimer = useCallback(() => {
+    window.clearTimeout(timerRef.current)
+    timerRef.current = null
+  }, [])
+
+  const cancelPress = useCallback(() => {
+    clearTimer()
+    touchStartPointRef.current = null
+  }, [clearTimer])
+
+  const handleTouchStart = useCallback((event) => {
+    if (!enabled) return
+    const linkTarget = readLinkTarget(event)
+    if (!linkTarget) return
+
+    const touch = event.touches[0]
+    didOpenRef.current = false
+    touchStartPointRef.current = { x: touch.clientX, y: touch.clientY }
+    clearTimer()
+    timerRef.current = window.setTimeout(() => {
+      didOpenRef.current = true
+      suppressNextLinkClickRef.current = true
+      window.navigator.vibrate?.(8)
+      openMenu({
+        source: MenuOpenSource.LINK,
+        ...linkTarget,
+      })
+      console.log('[ctxmenu] opened via link long press | url:', linkTarget.linkUrl)
+    }, LINK_LONG_PRESS_DELAY_MS)
+  }, [clearTimer, enabled, openMenu])
+
+  const handleTouchMove = useCallback((event) => {
+    if (!touchStartPointRef.current) return
+    const touch = event.touches[0]
+    const deltaX = Math.abs(touch.clientX - touchStartPointRef.current.x)
+    const deltaY = Math.abs(touch.clientY - touchStartPointRef.current.y)
+    if (Math.max(deltaX, deltaY) <= LINK_LONG_PRESS_MOVE_TOLERANCE_PX) return
+    cancelPress()
+  }, [cancelPress])
+
+  const handleTouchEnd = useCallback((event) => {
+    clearTimer()
+    touchStartPointRef.current = null
+    if (!didOpenRef.current) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    window.setTimeout(() => {
+      suppressNextLinkClickRef.current = false
+    }, 800)
+  }, [clearTimer])
+
+  const handleClickCapture = useCallback((event) => {
+    if (!suppressNextLinkClickRef.current) return
+    if (!getEventTargetElement(event)?.closest('a[href]')) return
+
+    suppressNextLinkClickRef.current = false
+    event.preventDefault()
+    event.stopPropagation()
+  }, [])
+
+  useEffect(() => cancelPress, [cancelPress])
+
+  return {
+    onTouchStart: handleTouchStart,
+    onTouchMove: handleTouchMove,
+    onTouchEnd: handleTouchEnd,
+    onTouchCancel: cancelPress,
+    onClickCapture: handleClickCapture,
+  }
 }
 
 function useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelectionStateRef }) {

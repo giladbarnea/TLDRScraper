@@ -108,6 +108,7 @@ function BaseOverlay({
             <div
               ref={scrollRef}
               onContextMenu={overlayMenu?.handleContextMenu}
+              {...(overlayMenu?.linkLongPressHandlers ?? {})}
               data-overlay-content={overlayMenu ? true : undefined}
               className="flex-1 overflow-y-auto bg-white"
             >
@@ -156,6 +157,8 @@ function BaseOverlay({
           actions={overlayMenu.actions}
           onOpenChange={overlayMenu.onOpenChange}
           selectedText={overlayMenu.selectedText}
+          linkUrl={overlayMenu.linkUrl}
+          linkText={overlayMenu.linkText}
         />
       )}
 

@@ -7,7 +7,7 @@
 .vercel
 .env*.local
 PROJECT_STRUCTURE.md
-
+.pi/git
 # Byte-compiled / optimized / DLL files
 __pycache__/
 .*cache*
