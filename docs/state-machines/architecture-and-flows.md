@@ -1,7 +1,7 @@
 ---
 name: state-machines/architecture-and-flows
 description: Cross-cutting topology, coupling matrices, and cross-machine user flows.
-last_updated: 2026-05-05 12:01
+last_updated: 2026-05-05 12:41, a9479b2
 ---
 # State Machines: Architecture and Flows
 
