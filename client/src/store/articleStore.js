@@ -19,6 +19,7 @@ const urlToArticleKey = new Map() // url → most-recent articleKey (for O(1) se
 const articleListeners = new Map()    // articleKey → Set<() => void>
 const dayListeners = new Map()        // date → Set<() => void>
 const dayArticleSummaryListeners = new Map() // date → Set<() => void>
+const dayLifecycleListeners = new Map() // date → Set<() => void>
 const containerListeners = new Map()  // containerId → Set<() => void>
 const anySelectedListeners = new Set()
 
@@ -36,6 +37,12 @@ function notifyDay(date) {
 
 function notifyDayArticleSummary(date) {
   dayArticleSummaryListeners.get(date)?.forEach(listener => {
+    listener()
+  })
+}
+
+function notifyDayLifecycle(date) {
+  dayLifecycleListeners.get(date)?.forEach(listener => {
     listener()
   })
 }
@@ -156,6 +163,7 @@ function ingestPayload(date, payload, notifyListeners) {
   const changedArticleKeys = []
   const nextArticleKeys = new Set()
   let selectedAggregateChanged = false
+  let dayLifecycleChanged = false
 
   payload.articles.forEach((article, index) => {
     const key = articleKey(date, article.url)
@@ -171,7 +179,15 @@ function ingestPayload(date, payload, notifyListeners) {
     articleSlices.set(key, next)
     urlToArticleKey.set(article.url, key)
     if (next.selected) selectedAggregateChanged = true
-    if (notifyListeners) changedArticleKeys.push(key)
+    if (notifyListeners) {
+      changedArticleKeys.push(key)
+      if (
+        Boolean(existing?.removed) !== Boolean(next.removed)
+        || Boolean(existing?.read?.isRead) !== Boolean(next.read?.isRead)
+      ) {
+        dayLifecycleChanged = true
+      }
+    }
   })
 
   const { staleArticleKeys, staleSelectedCount } = deleteStaleArticles(date, nextArticleKeys)
@@ -193,6 +209,7 @@ function ingestPayload(date, payload, notifyListeners) {
   if (notifyListeners) {
     changedArticleKeys.forEach(notifyArticle)
     if (dayArticleSummaryChanged) notifyDayArticleSummary(date)
+    if (dayLifecycleChanged) notifyDayLifecycle(date)
     notifyDay(date)
     if (selectedAggregateChanged || staleSelectedCount > 0) notifyAnySelected()
     staleArticleKeys.forEach(notifyArticle)
@@ -271,6 +288,10 @@ export function applyArticlePatch(key, patch) {
   const date = parseArticleKey(key).date
   const selectedAggregateChanged = current.selected || next.selected
   const dayArticleSummaryChanged = updateDayRemovedCount(date, Boolean(current.removed), Boolean(next.removed))
+  const dayLifecycleChanged = (
+    Boolean(current.removed) !== Boolean(next.removed)
+    || Boolean(current.read?.isRead) !== Boolean(next.read?.isRead)
+  )
 
   if ('selected' in patch) {
     const selectedCountDelta = (patch.selected ? 1 : 0) - (current.selected ? 1 : 0)
@@ -283,12 +304,14 @@ export function applyArticlePatch(key, patch) {
 
   notifyArticle(key)
   if (dayArticleSummaryChanged) notifyDayArticleSummary(date)
+  if (dayLifecycleChanged) notifyDayLifecycle(date)
   if (selectedAggregateChanged) notifyAnySelected()
 }
 
 export function applyArticlePatches(patches) {
   const changedArticleKeys = []
   const changedDaySummaries = new Set()
+  const changedDayLifecycles = new Set()
   let selectedAggregateChanged = false
   let selectedCountDelta = 0
 
@@ -305,6 +328,13 @@ export function applyArticlePatches(patches) {
       changedDaySummaries.add(date)
     }
 
+    if (
+      Boolean(current.removed) !== Boolean(next.removed)
+      || Boolean(current.read?.isRead) !== Boolean(next.read?.isRead)
+    ) {
+      changedDayLifecycles.add(date)
+    }
+
     if (current.selected || next.selected) selectedAggregateChanged = true
 
     if ('selected' in patch) {
@@ -319,6 +349,7 @@ export function applyArticlePatches(patches) {
 
   changedArticleKeys.forEach(notifyArticle)
   changedDaySummaries.forEach(notifyDayArticleSummary)
+  changedDayLifecycles.forEach(notifyDayLifecycle)
   if (selectedAggregateChanged) notifyAnySelected()
 }
 
@@ -350,16 +381,6 @@ function subscribeArticle(key, listener) {
   }
 }
 
-function subscribeArticles(keys, listener) {
-  if (keys.length === 0) return () => {}
-  const unsubscribers = keys.map((key) => subscribeArticle(key, listener))
-  return () => {
-    unsubscribers.forEach((unsubscribe) => {
-      unsubscribe()
-    })
-  }
-}
-
 function subscribeDay(date, listener) {
   if (!dayListeners.has(date)) dayListeners.set(date, new Set())
   dayListeners.get(date).add(listener)
@@ -379,6 +400,17 @@ function subscribeDayArticleSummary(date, listener) {
     if (!set) return
     set.delete(listener)
     if (set.size === 0) dayArticleSummaryListeners.delete(date)
+  }
+}
+
+function subscribeDayLifecycle(date, listener) {
+  if (!dayLifecycleListeners.has(date)) dayLifecycleListeners.set(date, new Set())
+  dayLifecycleListeners.get(date).add(listener)
+  return () => {
+    const set = dayLifecycleListeners.get(date)
+    if (!set) return
+    set.delete(listener)
+    if (set.size === 0) dayLifecycleListeners.delete(date)
   }
 }
 
@@ -465,14 +497,28 @@ export function useDayArticlesSummary(date) {
   )
 }
 
+function countCompletedArticles(date, urls) {
+  return urls.reduce((count, url) => {
+    const article = articleSlices.get(articleKey(date, url))
+    return count + (article?.read?.isRead || article?.removed ? 1 : 0)
+  }, 0)
+}
+
+function areAllArticlesRemoved(date, urls) {
+  return urls.length > 0 && urls.every((url) => articleSlices.get(articleKey(date, url))?.removed)
+}
+
 export function useCompletedArticlesCount(date, urls) {
-  const keys = urls.map((url) => articleKey(date, url))
   return useSyncExternalStore(
-    listener => subscribeArticles(keys, listener),
-    () => keys.reduce((count, key) => {
-      const article = articleSlices.get(key)
-      return count + (article?.read?.isRead || article?.removed ? 1 : 0)
-    }, 0)
+    listener => subscribeDayLifecycle(date, listener),
+    () => countCompletedArticles(date, urls)
+  )
+}
+
+export function useAllArticlesRemoved(date, urls) {
+  return useSyncExternalStore(
+    listener => subscribeDayLifecycle(date, listener),
+    () => areAllArticlesRemoved(date, urls)
   )
 }
 

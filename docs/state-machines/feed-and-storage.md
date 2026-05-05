@@ -1,7 +1,7 @@
 ---
 name: state-machines/feed-and-storage
 description: State machines for feed loading, scrape form, the client article store, and mutation persistence.
-last_updated: 2026-05-05 06:38, 36614cc
+last_updated: 2026-05-05 14:05
 ---
 # State Machines: Feed and Storage
 
@@ -101,7 +101,7 @@ useFeedLoader (results) → App → Feed → CalendarDay → NewsletterDay → A
 
 Feed results provide structural props for date/newsletter/section grouping. Live article, day, selection, summary, and container state comes from `articleStore` subscriptions.
 
-`CalendarDay` consumes `useDayArticlesSummary(date)` for cached day-level derived state such as all-removed auto-folding.
+`CalendarDay` consumes `useDayArticlesSummary(date)` for cached day-level derived state such as all-removed auto-folding. `ReadStatsBadge`, `NewsletterDay`, and section containers consume grouped lifecycle selectors over `(date, urls)` so read/removed transitions stay reactive without scanning structural props.
 
 ---
 
@@ -151,8 +151,8 @@ Client-side only: starts at 10%, increments 5% every 500ms capped at 90%, jumps 
 | `articleSlices` | Per-article live state keyed by article key. |
 | `daySlices` | Per-date payload metadata, digest state, and ordered article keys. |
 | `urlToArticleKey` | URL lookup for selection and summary commands. |
-| Listener maps | Separate subscriptions for article, day, day-article-summary, container, and select-mode state. |
-| Derived caches | Selected descriptors and day article summaries. |
+| Listener maps | Separate subscriptions for article, day, day-article-summary, day-lifecycle, container, and select-mode state. |
+| Derived caches | Selected descriptors and day article summaries. Grouped lifecycle selectors also derive counts and all-removed state from live article slices. |
 
 #### Ingestion
 
@@ -191,7 +191,7 @@ Ingestion also removes stale articles for the day so derived ordering and select
 
 #### Cross-Component Sync
 
-Store actions notify only the listener sets affected by a mutation: article listeners, day listeners, derived day-summary listeners, container listeners, and select-mode listeners. This replaces whole-payload pub/sub with slice-level invalidation.
+Store actions notify only the listener sets affected by a mutation: article listeners, day listeners, derived day-summary listeners, day-lifecycle listeners, container listeners, and select-mode listeners. This replaces whole-payload pub/sub with slice-level invalidation while still supporting grouped lifecycle UI such as badges and all-removed container state.
 
 ---
 

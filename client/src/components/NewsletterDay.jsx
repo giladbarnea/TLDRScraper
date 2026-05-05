@@ -1,3 +1,4 @@
+import { useAllArticlesRemoved } from '../store/articleStore'
 import ArticleList from './ArticleList'
 import FoldableContainer from './FoldableContainer'
 import ReadStatsBadge from './ReadStatsBadge'
@@ -43,7 +44,8 @@ function SectionTitle({ displayTitle }) {
 }
 
 function Section({ date, sourceId, newsletterTitle, sectionKey, articles }) {
-  const allRemoved = articles.every(a => a.removed)
+  const articleUrls = articles.map((article) => article.url)
+  const allRemoved = useAllArticlesRemoved(date, articleUrls)
   const sectionEmoji = articles[0].sectionEmoji
   const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
   const componentId = `section-${date}-${sourceId}-${sectionKey}`
@@ -81,7 +83,8 @@ function SectionsList({ date, sourceId, title, sections, sortedSectionKeys }) {
 }
 
 function NewsletterDay({ date, title, issue, articles }) {
-  const allRemoved = articles.length > 0 && articles.every(a => a.removed)
+  const articleUrls = articles.map((article) => article.url)
+  const allRemoved = useAllArticlesRemoved(date, articleUrls)
   const hasSections = articles.some(a => a.section)
 
   const sections = hasSections ? groupArticlesBySection(articles) : {}
@@ -100,7 +103,7 @@ function NewsletterDay({ date, title, issue, articles }) {
             <h3 className="font-display font-semibold text-[17px] text-slate-900">
               {title}
             </h3>
-            <ReadStatsBadge date={date} urls={articles.map((article) => article.url)} />
+            <ReadStatsBadge date={date} urls={articleUrls} />
           </div>
         }
         defaultFolded={allRemoved}
