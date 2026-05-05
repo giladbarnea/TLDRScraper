@@ -51,10 +51,11 @@
     {
       "source": "npm:pi-subagents",
       "extensions": [
-        "+index.ts"
+        "+index.ts",
+        "-src/extension/index.ts"
       ],
       "skills": [
-        "+skills/pi-subagents/SKILL.md"
+        "-skills/pi-subagents/SKILL.md"
       ],
       "prompts": [
         "-prompts/gather-context-and-clarify.md",
@@ -81,6 +82,7 @@
     "-skills/web-a11y-guidelines/SKILL.md",
     "-skills/impeccable-design/SKILL.md",
     "-skills/peer-review/SKILL.md",
-    "+skills/react-best-practices/SKILL.md"
+    "-skills/react-best-practices/SKILL.md",
+    "-skills/prompt-subagent/SKILL.md"
   ]
 }
