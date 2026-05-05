@@ -1,7 +1,7 @@
 ---
 name: state-machines/interaction-and-gestures
 description: State machines for selection interaction, container expansion, and swipe gestures.
-last_updated: 2026-05-05 18:25, a006dd4
+last_updated: 2026-05-05 20:55
 ---
 # State Machines: Interaction and Gestures
 
@@ -74,9 +74,11 @@ Single key: `expandedContainers:v1` → JSON array of container IDs.
 | `newsletter-{date}-{sourceId}` | `NewsletterDay` | `newsletter-2024-01-15-tldr_tech` |
 | `section-{date}-{sourceId}-{sectionKey}` | `NewsletterDay/Section` | `section-2024-01-15-tldr_tech-Web Dev` |
 
-#### Auto-Collapse
+#### Auto-Collapse And Removed Ordering
 
-`FoldableContainer` accepts `defaultFolded`. `CalendarDay` uses `useDayArticlesSummary(date)` for day-level all-removed state. `NewsletterDay` and section containers use `useAllArticlesRemoved(date, urls)` for grouped lifecycle state over their specific article URL sets. Passing `defaultFolded={true}` triggers `interactionActions.setExpanded(id, false)` — removing the ID from `expandedContainerIds` and persisting.
+`FoldableContainer` accepts `defaultFolded`. `CalendarDay` uses `useDayArticlesSummary(date)` for day-level all-removed state. Newsletter and section containers receive grouped lifecycle state from `RemovedOrderSlot`, which subscribes through `useAllArticlesRemoved(date, urls)` for their specific article URL sets. Passing `defaultFolded={true}` triggers `interactionActions.setExpanded(id, false)` — removing the ID from `expandedContainerIds` and persisting.
+
+`RemovedOrderSlot` also gives all-removed groups a high flex order, so fully removed sections sink within a newsletter and fully removed newsletters sink within their calendar day using the same live grouped read model that drives dimming and auto-collapse.
 
 ---
 

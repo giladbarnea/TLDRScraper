@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-05 06:33
+last_updated: 2026-05-05 20:52
 ---
 
 .
@@ -113,6 +113,7 @@ last_updated: 2026-05-05 06:33
 │  │  │  ├── NewsletterDay.jsx
 │  │  │  ├── OverlayContextMenu.jsx
 │  │  │  ├── ReadStatsBadge.jsx
+│  │  │  ├── RemovedOrderSlot.jsx
 │  │  │  ├── ScrapeForm.jsx
 │  │  │  ├── Selectable.jsx
 │  │  │  ├── SelectionActionDock.jsx
