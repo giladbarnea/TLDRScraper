@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-05 14:19
+last_updated: 2026-05-05 18:25, a006dd4
 result_of: fix/newsletter-counter-and-container-reactivity
 pertains_to: GOTCHAS.md 2026-05-05 ‘Derived multi-article UI can still go stale after a "store-backed" fix if the subscription shape is wrong’ entry
 ---

@@ -1,7 +1,7 @@
 ---
 name: state-machines/feed-and-storage
 description: State machines for feed loading, scrape form, the client article store, and mutation persistence.
-last_updated: 2026-05-05 14:05
+last_updated: 2026-05-05 18:25, a006dd4
 ---
 # State Machines: Feed and Storage
 

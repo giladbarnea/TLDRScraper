@@ -1,7 +1,7 @@
 ---
 name: state-machines/articles-and-summaries
 description: State machines for article lifecycle, summary data, digest, and the Zen lock.
-last_updated: 2026-05-05 14:05
+last_updated: 2026-05-05 18:25, a006dd4
 ---
 # State Machines: Articles and Summaries
 

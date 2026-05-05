@@ -1,7 +1,7 @@
 ---
 name: client/reading-overlays
 description: Client architecture for reading overlays including ZenMode and Digest.
-last_updated: 2026-05-05 14:05
+last_updated: 2026-05-05 18:25, a006dd4
 ---
 # Client: Reading Overlays
 
