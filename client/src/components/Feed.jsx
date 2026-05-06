@@ -1,10 +1,12 @@
+import { useVisibleDates } from '../store/articleStore'
 import CalendarDay from './CalendarDay'
 
-function Feed({ payloads }) {
+function Feed() {
+  const visibleDates = useVisibleDates()
   return (
     <div className="space-y-12 pb-24">
-      {payloads.map((payload) => (
-        <CalendarDay key={payload.date} payload={payload} />
+      {visibleDates.map((date) => (
+        <CalendarDay key={date} date={date} />
       ))}
     </div>
   )
