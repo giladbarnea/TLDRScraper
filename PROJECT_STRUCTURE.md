@@ -1,50 +1,8 @@
 ---
-last_updated: 2026-05-06 07:56
+last_updated: 2026-05-06 08:46
 ---
 
 .
-├── .agents
-│  └── skills
-│     ├── architecture-create
-│     │  └── SKILL.md
-│     ├── impeccable-design
-│     │  ├── references
-│     │  └── SKILL.md
-│     ├── load-project-context
-│     │  └── SKILL.md
-│     ├── peer-review
-│     │  ├── references
-│     │  │  ├── peer-review-instructions.md
-│     │  │  └── self-peer-review.md
-│     │  └── SKILL.md
-│     ├── post-implementation
-│     │  └── SKILL.md
-│     ├── prompt-subagent
-│     │  └── SKILL.md
-│     ├── react-best-practices
-│     │  ├── AGENTS.md
-│     │  ├── metadata.json
-│     │  ├── README.md
-│     │  └── SKILL.md
-│     ├── reconcile
-│     │  └── SKILL.md
-│     ├── research-codebase
-│     │  └── SKILL.md
-│     ├── simplify-code
-│     │  ├── create
-│     │  │  ├── anthropics-version.md
-│     │  │  └── create.py
-│     │  └── SKILL.md
-│     ├── supabase-postgres-best-practices
-│     ├── terse-output
-│     │  ├── metadata.yaml
-│     │  └── SKILL.md
-│     ├── to-done
-│     │  └── SKILL.md
-│     ├── vercel
-│     │  └── SKILL.md
-│     └── web-a11y-guidelines
-│        └── SKILL.md
 ├── .githooks
 │  ├── post-merge
 │  ├── pre-commit
@@ -157,18 +115,7 @@ last_updated: 2026-05-06 07:56
 │  ├── summary-overlay.png
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
-├── db
-│  ├── create_digests_table.sql
-│  ├── create_patch_daily_article_function.sql
-│  └── create_patch_daily_payload_function.sql
 ├── scripts
-│  ├── dev
-│  │  ├── auto-pr-merge.sh
-│  │  ├── install-codex-cli.sh
-│  │  ├── pr-review-comments.py
-│  │  ├── run-agent-via-litellm.sh
-│  │  ├── run-agent.sh
-│  │  └── run-codex.sh
 │  └── ops
 │     ├── clean_vercel_deployments.py
 │     ├── ensure_submodules.sh
@@ -186,7 +133,6 @@ last_updated: 2026-05-06 07:56
 ├── CLAUDE.md
 ├── GOTCHAS.md
 ├── Justfile
-├── litellm_config.yaml
 ├── newsletter_config.py
 ├── newsletter_merger.py
 ├── newsletter_scraper.py
@@ -202,7 +148,6 @@ last_updated: 2026-05-06 07:56
 ├── supabase_client.py
 ├── tldr_app.py
 ├── tldr_service.py
-├── TLDRScraper.code-workspace
 ├── util.py
 ├── uv.lock
 └── vercel.json

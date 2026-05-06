@@ -57,18 +57,17 @@ function _generate_project_structure() {
     '.run'
     '.codex'
     '.gemini'
-    '.agents/agents'
+    '.agents'
     '.claude'
     '.pi'
-    '.agents/skills/react-best-practices/rules'
-    '.agents/skills/impeccable-design/references/*'
-    '.agents/skills/frontend-design-*'
-    '.agents/skills/supabase-postgres-best-practices/*'
-    'scripts/portfolio'
+    'db'
     'tests/'
     'thoughts/'
     'vendor'
-
+    'litellm_config.yaml'
+    'TLDRScraper.code-workspace'
+    'client/.fallow'
+    'scripts/dev'
   )
   local ignore_glob
   local old_ifs="$IFS"
@@ -126,8 +125,7 @@ function _sync_external_dirs() {
 }
 
 function _build_simplify_code_skill() {
-  local script=".agents/skills/simplify-code/create/create.py"
-  [[ -f "$script" ]] && uv run python3 "$script"
+  uv run python3 .agents/skills/simplify-code/create/create.py
 }
 
 # run_structural_maintenance [workdir=$PWD]
