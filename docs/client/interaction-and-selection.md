@@ -1,7 +1,7 @@
 ---
 name: client/interaction-and-selection
 description: Client-side interaction architecture, selection modes, and foldable containers.
-last_updated: 2026-05-05 06:38, 36614cc
+last_updated: 2026-05-05 20:20
 ---
 # Client: Interaction and Selection
 
@@ -42,6 +42,10 @@ Selection behavior is implemented as a **declarative state machine** with a smal
 - **FoldableContainer**
   - On click, calls `interactionActions.containerShortPress(containerId)` to expand/collapse, regardless of selection mode.
   - On mount (when `defaultFolded` is true), calls `interactionActions.setExpanded(id, false)` to push initial collapsed state into the shared `expandedContainerIds` set.
+- **RemovedOrderSlot**
+  - Wraps newsletter and section containers in flex lists.
+  - Subscribes to `useAllArticlesRemoved(date, urls)` once for the grouped URL set and passes the result into the rendered container.
+  - Uses that same live all-removed result to sink removed groups via flex order, keeping group ordering, dimming, and auto-collapse on one store-backed read model.
 
 ---
 

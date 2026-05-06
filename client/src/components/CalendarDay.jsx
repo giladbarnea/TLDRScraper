@@ -3,6 +3,7 @@ import { hydrateDay, useDayArticlesSummary } from '../store/articleStore'
 import FoldableContainer from './FoldableContainer'
 import NewsletterDay from './NewsletterDay'
 import ReadStatsBadge from './ReadStatsBadge'
+import RemovedOrderSlot from './RemovedOrderSlot'
 import Selectable from './Selectable'
 
 function formatDateDisplay(dateStr) {
@@ -26,21 +27,30 @@ function CalendarDayTitle({ dateStr, articleUrls }) {
 
 function NewsletterList({ date, issues, articles }) {
   return (
-    <div className="space-y-4">
-      {issues.map(issue => {
+    <div className="flex flex-col gap-4">
+      {issues.map((issue, index) => {
         const newsletterName = issue.category
         const newsletterArticles = articles.filter(a => a.category === newsletterName)
 
         if (newsletterArticles.length === 0) return null
 
         return (
-          <NewsletterDay
+          <RemovedOrderSlot
             key={`${date}-${newsletterName}`}
             date={date}
-            title={newsletterName}
-            issue={issue}
-            articles={newsletterArticles}
-          />
+            urls={newsletterArticles.map((article) => article.url)}
+            originalOrder={index}
+          >
+            {(allRemoved) => (
+              <NewsletterDay
+                date={date}
+                title={newsletterName}
+                issue={issue}
+                articles={newsletterArticles}
+                allRemoved={allRemoved}
+              />
+            )}
+          </RemovedOrderSlot>
         )
       })}
     </div>
