@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-06 07:26
+last_updated: 2026-05-06 07:56
 ---
 
 .
@@ -177,26 +177,6 @@ last_updated: 2026-05-06 07:26
 │     ├── structural-maintenance.sh
 │     ├── synced_external_subdirs.txt
 │     └── update_frontmatter.py
-├── vendor
-│  └── consensus
-│     ├── consensus
-│     │  ├── __init__.py
-│     │  ├── core.py
-│     │  └── web.py
-│     ├── web
-│     │  ├── src
-│     │  │  ├── consensus.css
-│     │  │  ├── ConsensusApp.jsx
-│     │  │  └── main.jsx
-│     │  ├── index.html
-│     │  ├── package-lock.json
-│     │  ├── package.json
-│     │  └── vite.config.js
-│     ├── .gitignore
-│     ├── pyproject.toml
-│     ├── README.md
-│     ├── serve.py
-│     └── uv.lock
 ├── .gitattributes
 ├── .gitignore
 ├── .gitmodules

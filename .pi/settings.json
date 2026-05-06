@@ -76,14 +76,14 @@
     "-skills/research-codebase/SKILL.md",
     "-skills/simplify-code/SKILL.md",
     "-skills/supabase-postgres-best-practices/SKILL.md",
-    "-skills/to-done/SKILL.md",
     "-skills/vercel/SKILL.md",
     "-skills/web-a11y-guidelines/SKILL.md",
     "-skills/impeccable-design/SKILL.md",
     "-skills/peer-review/SKILL.md",
     "-skills/react-best-practices/SKILL.md",
     "-skills/prompt-subagent/SKILL.md",
-    "-skills/load-project-context/SKILL.md",
-    "-skills/post-implementation/SKILL.md"
+    "-skills/post-implementation/SKILL.md",
+    "+skills/load-project-context/SKILL.md",
+    "+skills/to-done/SKILL.md"
   ]
 }
