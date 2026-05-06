@@ -125,7 +125,8 @@ function _sync_external_dirs() {
 }
 
 function _build_simplify_code_skill() {
-  uv run python3 .agents/skills/simplify-code/build/build.py
+  local script=".agents/skills/simplify-code/create/create.py"
+  [[ -f "$script" ]] && uv run python3 "$script"
 }
 
 # run_structural_maintenance [workdir=$PWD]

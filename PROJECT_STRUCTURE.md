@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-06 07:09
+last_updated: 2026-05-06 07:26
 ---
 
 .
@@ -14,7 +14,6 @@ last_updated: 2026-05-06 07:09
 │     │  └── SKILL.md
 │     ├── peer-review
 │     │  ├── references
-│     │  │  ├── direct-peer-review-instructions.md
 │     │  │  ├── peer-review-instructions.md
 │     │  │  └── self-peer-review.md
 │     │  └── SKILL.md
@@ -32,6 +31,9 @@ last_updated: 2026-05-06 07:09
 │     ├── research-codebase
 │     │  └── SKILL.md
 │     ├── simplify-code
+│     │  ├── create
+│     │  │  ├── anthropics-version.md
+│     │  │  └── create.py
 │     │  └── SKILL.md
 │     ├── supabase-postgres-best-practices
 │     ├── terse-output

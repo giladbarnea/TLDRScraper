@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build .agents/skills/simplify-code/SKILL.md by combining the current skill
+Create .agents/skills/simplify-code/SKILL.md by combining the current skill
 with a Gemini-tersified version of Addy Osmani's code-simplification skill.
 
 Output structure:
@@ -22,9 +22,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(PROJECT_ROOT / 'scripts' / 'ops'))
 import markdown_frontmatter
 
-BUILD_DIR = Path(__file__).resolve().parent
-SKILL_MD = BUILD_DIR.parent / 'SKILL.md'
-ANTHROPICS_VERSION = BUILD_DIR / 'anthropics-version.md'
+CREATE_DIR = Path(__file__).resolve().parent
+SKILL_MD = CREATE_DIR.parent / 'SKILL.md'
+ANTHROPICS_VERSION = CREATE_DIR / 'anthropics-version.md'
 
 ADIS_REPO = "addyosmani/agent-skills"
 ADIS_FILE_PATH = "skills/code-simplification/SKILL.md"
@@ -43,7 +43,7 @@ def fetch(url: str) -> str:
 
 def github_api_fetch(path: str) -> object:
     url = f"https://api.github.com/{path.lstrip('/')}"
-    headers = {'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'TLDRScraper-build'}
+    headers = {'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'TLDRScraper-create'}
     token = os.environ.get('GITHUB_API_TOKEN')
     if token:
         headers['Authorization'] = f'token {token}'
@@ -65,8 +65,8 @@ def upstream_file_changed_since(pinned_commit: str, latest_commit: str) -> bool:
     return ADIS_FILE_PATH in changed_files
 
 
-def should_rebuild() -> tuple[bool, str]:
-    """Return (rebuild_needed, latest_upstream_commit_sha)."""
+def should_recreate() -> tuple[bool, str]:
+    """Return (recreate_needed, latest_upstream_commit_sha)."""
     latest_commit = fetch_latest_upstream_commit()
 
     if not SKILL_MD.exists():
@@ -108,10 +108,10 @@ def run_gemini_terser(adis_body: str) -> str:
     return adis_body
 
 
-def build() -> None:
-    rebuild, latest_commit = should_rebuild()
-    if not rebuild:
-        print("simplify-code SKILL.md is up to date, skipping build")
+def create() -> None:
+    recreate, latest_commit = should_recreate()
+    if not recreate:
+        print("simplify-code SKILL.md is up to date, skipping create")
         return
 
     adis_body = strip_inspired_by(strip_frontmatter(fetch(ADIS_RAW_URL)))
@@ -133,8 +133,8 @@ def build() -> None:
         markdown_frontmatter.render(output_frontmatter, f"{terse_adis_body}\n---\n{current_body}"),
         encoding='utf-8',
     )
-    print(f"Built {SKILL_MD}")
+    print(f"Created {SKILL_MD}")
 
 
 if __name__ == '__main__':
-    build()
+    create()
