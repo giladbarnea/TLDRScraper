@@ -1,15 +1,11 @@
 ---
-last_updated: 2026-05-05 20:20
+last_updated: 2026-05-06 07:09
 ---
 
 .
 ├── .agents
 │  └── skills
 │     ├── architecture-create
-│     │  └── SKILL.md
-│     ├── consensus
-│     │  ├── scripts
-│     │  │  └── run_consensus.py
 │     │  └── SKILL.md
 │     ├── impeccable-design
 │     │  ├── references
@@ -89,10 +85,6 @@ last_updated: 2026-05-05 20:20
 ├── api
 │  └── index.py
 ├── client
-│  ├── .fallow
-│  │  ├── .gitignore
-│  │  ├── cache.bin
-│  │  └── churn.bin
 │  ├── scripts
 │  │  └── lint.sh
 │  ├── src
