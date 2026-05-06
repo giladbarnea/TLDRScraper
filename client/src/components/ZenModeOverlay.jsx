@@ -1,15 +1,13 @@
-import { Sparkles } from 'lucide-react'
 import { useMemo } from 'react'
-import { useElaboration } from '../hooks/useElaboration'
 import { useOverlayContextMenu } from '../hooks/useOverlayContextMenu'
+import { useReadingOverlayMenuActions } from '../hooks/useReadingOverlayMenuActions'
 import { markdownToHtml } from '../lib/markdownUtils'
 import BaseOverlay, { overlayProseClassName } from './BaseOverlay'
-import ElaborationPreview from './ElaborationPreview'
 
 function ZenModeOverlay({ url, summaryMarkdown, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
   const html = useMemo(() => markdownToHtml(summaryMarkdown), [summaryMarkdown])
   const contextMenu = useOverlayContextMenu(true)
-  const { elaboration, runElaboration, closeElaboration } = useElaboration({
+  const { actions, overlayLayers } = useReadingOverlayMenuActions({
     sourceMarkdown: summaryMarkdown,
     articleUrls: [url],
   })
@@ -18,19 +16,11 @@ function ZenModeOverlay({ url, summaryMarkdown, hostname, displayDomain, article
     ? `${articleMeta.slice(0, 22)}...`
     : articleMeta
 
-  const actions = [
-    {
-      key: 'elaborate',
-      label: 'Elaborate',
-      icon: <Sparkles size={15} />,
-      onSelect: runElaboration,
-    },
-  ]
-
   const overlayMenu = {
     isOpen: contextMenu.isOpen,
     positionReference: contextMenu.positionReference,
     selectedText: contextMenu.selectedText,
+    actionContext: contextMenu.actionContext,
     handleContextMenu: contextMenu.handleContextMenu,
     onOpenChange: contextMenu.onOpenChange,
     actions,
@@ -61,16 +51,7 @@ function ZenModeOverlay({ url, summaryMarkdown, hostname, displayDomain, article
       onClose={onClose}
       onMarkRemoved={onMarkRemoved}
       overlayMenu={overlayMenu}
-      overlayLayers={(
-        <ElaborationPreview
-          isOpen={elaboration.status !== 'idle'}
-          status={elaboration.status}
-          selectedText={elaboration.selectedText}
-          markdown={elaboration.markdown}
-          errorMessage={elaboration.errorMessage}
-          onClose={closeElaboration}
-        />
-      )}
+      overlayLayers={overlayLayers}
     >
       <div className={overlayProseClassName} dangerouslySetInnerHTML={{ __html: html }} />
     </BaseOverlay>

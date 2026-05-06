@@ -1,7 +1,7 @@
 ---
 name: state-machines/context-menu
 description: State machine for the overlay context menu, including mobile selection reducers.
-last_updated: 2026-05-03 15:10, bb6b54a
+last_updated: 2026-05-06 04:47
 ---
 # State Machines: Context Menu
 
@@ -22,14 +22,15 @@ The exported `useOverlayContextMenu` is a thin coordinator that composes two pri
 
 - `useDesktopContextMenu({ enabled, openMenu })` — owns `onContextMenu` (desktop right-click) only.
 - `useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelectionStateRef })` — owns `selectionchange` / `touchstart` / `touchend` (mobile native text selection) only. Transition decisions are delegated to `reduceMobileSelectionMenu` in `reducers/mobileSelectionMenuReducer.js`; the hook only does DOM reads, listener setup/teardown, and decision execution.
+- `useLinkLongPressMenu({ enabled, openMenu })` — owns pointer-based long press on overlay links and opens the same menu with a link action context.
 
 Dismissal is no longer project-owned. `OverlayContextMenu.jsx` wires `useDismiss()` from Floating UI for Escape and outside-press, and forwards those dismiss reasons into the hook's `onOpenChange(open, event, reason)` callback. The coordinator still owns `closeMenu()`, because only it knows whether a close should also clear the native selection.
 
 #### State Shape
 
 ```js
-{ isOpen: false, positionReference: null, selectedText: '', source: 'none' }
-// source ∈ { 'none', 'desktop', 'mobile-selection' }   (MenuOpenSource)
+{ isOpen: false, positionReference: null, selectedText: '', source: 'none', actionContext: null }
+// source ∈ { 'none', 'desktop', 'mobile-selection', 'link' }   (MenuOpenSource)
 // positionReference is null when closed, else:
 // {
 //   kind: 'point' | 'range',
@@ -51,6 +52,7 @@ menuStateRef             // mirrors menuState so `onOpenChange(..., reason)` can
 ```
 CLOSED  ──(right-click in overlay content)──►  OPEN (source=desktop)
 CLOSED  ──(mobile: selection settled in [data-overlay-content] after touchend)──►  OPEN (source=mobile-selection)
+CLOSED  ──(mobile: link long-press in [data-overlay-content])──►  OPEN (source=link)
 OPEN    ──(outside press / Escape / selection cleared / enabled→false)──►  CLOSED
 ```
 
@@ -68,6 +70,7 @@ Because `source` lives inside `menuState` (not a standalone ref), the right-clic
 | `touchstart` (capture, document) | `useMobileSelectionMenu` | Dispatches `TOUCH_STARTED` into `reduceMobileSelectionMenu`; reducer flips `isTouching=true`. Menu will not open or close mid-touch. |
 | `touchend` (capture, document) | `useMobileSelectionMenu` (mobile finger lift) | Reads current `[data-overlay-content]` selection; dispatches `TOUCH_ENDED { selection }`. Reducer returns `OPEN_MENU` when a selection is present, `NONE` otherwise (preserving the ghost-click guard when the selection collapsed mid-tap). |
 | `selectionchange` (document) | `useMobileSelectionMenu` (mobile selection handles) | Dispatches `SELECTION_OBSERVED` when a non-empty overlay selection exists, else `SELECTION_CLEARED`. Reducer decides: mid-touch → store or hold; idle and open → `CLOSE_MENU`; idle and closed → reposition/open via `OPEN_MENU`. |
+| steady `pointerdown` on overlay link | `useLinkLongPressMenu` | After the long-press delay, opens with `source=link`, `actionContext={kind:'link', url, label}`, and an element-position reference. The subsequent native click on that link is suppressed. |
 | `outside-press` | `OverlayContextMenu` via `useDismiss()` | Calls `onOpenChange(false, event, 'outside-press')`. The coordinator clears the native selection only when the menu source was `mobile-selection`, then resets the mobile reducer. On coarse pointers, outside-press is wired to `'click'` instead of `'pointerdown'` so scroll starts do not dismiss the menu. |
 | `Escape` | `OverlayContextMenu` via `useDismiss()` | Calls `onOpenChange(false, event, 'escape-key')`. Floating UI keeps the reader open because the menu is the topmost child `FloatingNode`. |
 | `enabled → false` | coordinator effect | `closeMenu()` (also resets mobile reducer) |
@@ -98,8 +101,9 @@ This removes the old project-owned viewport clamp math. Desktop remains cursor-a
 
 | Consumer | Action | Effect |
 |---|---|---|
-| `ZenModeOverlay` | `Elaborate` | Captures selected text, calls `runElaboration` from `useElaboration({ sourceMarkdown: summaryMarkdown, articleUrls: [url] })`, and opens `ElaborationPreview` |
-| `DigestOverlay` | `Elaborate` | Captures selected text, calls `runElaboration` from `useElaboration({ sourceMarkdown: markdown, articleUrls })`, and opens `ElaborationPreview`. Identical action shape; only the URL list differs (Digest passes N source URLs vs Zen's one) |
+| Shared readers | `Elaborate` | Visible for text-selection contexts. Captures selected text, calls `runElaboration`, and opens `ElaborationPreview`. Zen passes one source URL; Digest passes N source URLs. |
+| Shared readers | `Open` | Visible for link contexts. Opens the target URL in a new tab. |
+| Shared readers | `Summarize` | Visible for link contexts. Calls `useLinkSummary` against `/api/summarize-url` and opens the same preview shell with summary copy. |
 
 #### Mobile selection reducer
 

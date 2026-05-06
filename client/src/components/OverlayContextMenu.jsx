@@ -23,7 +23,7 @@ function createVirtualReference(positionReference) {
   }
 }
 
-function OverlayContextMenu({ isOpen, positionReference, actions, onOpenChange, selectedText }) {
+function OverlayContextMenu({ isOpen, positionReference, actions, onOpenChange, selectedText, actionContext }) {
   const nodeId = useFloatingNodeId()
   const isCoarsePointer = matchMedia('(pointer: coarse)').matches
 
@@ -53,6 +53,11 @@ function OverlayContextMenu({ isOpen, positionReference, actions, onOpenChange, 
   })
   const { getFloatingProps } = useInteractions([dismiss])
 
+  const visibleActions = useMemo(
+    () => actions.filter((action) => !action.isVisible || action.isVisible(actionContext)),
+    [actions, actionContext]
+  )
+
   const virtualReference = useMemo(
     () => positionReference ? createVirtualReference(positionReference) : null,
     [positionReference]
@@ -66,7 +71,7 @@ function OverlayContextMenu({ isOpen, positionReference, actions, onOpenChange, 
     refs.setFloating(node)
   }, [refs])
 
-  if (!isOpen) return null
+  if (!isOpen || visibleActions.length === 0) return null
 
   function handleActionClick(action) {
     if (action.disabled) return
@@ -75,7 +80,7 @@ function OverlayContextMenu({ isOpen, positionReference, actions, onOpenChange, 
     console.log('[ctxmenu] action click — key:', action.key, '| text:', text.slice(0, 40), '| live:', window.getSelection()?.toString()?.slice(0, 40))
     window.getSelection()?.removeAllRanges()
     onOpenChange(false)
-    action.onSelect(text)
+    action.onSelect(text, actionContext)
   }
 
   return (
@@ -98,7 +103,7 @@ function OverlayContextMenu({ isOpen, positionReference, actions, onOpenChange, 
               style: floatingStyles,
             })}
           >
-            {actions.map((action) => (
+            {visibleActions.map((action) => (
               <button
                 key={action.key}
                 type="button"

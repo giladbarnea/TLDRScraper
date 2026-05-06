@@ -23,7 +23,7 @@ function SnippetEcho({ text }) {
   )
 }
 
-function LoadingBody({ selectedText }) {
+function LoadingBody({ selectedText, loadingLabel }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
       <motion.div
@@ -33,7 +33,7 @@ function LoadingBody({ selectedText }) {
       >
         <Sparkles size={22} />
       </motion.div>
-      <p className="text-sm font-medium text-slate-500">Elaborating…</p>
+      <p className="text-sm font-medium text-slate-500">{loadingLabel}</p>
       <div className="max-w-sm">
         <SnippetEcho text={selectedText} />
       </div>
@@ -41,11 +41,11 @@ function LoadingBody({ selectedText }) {
   )
 }
 
-function ErrorBody({ message }) {
+function ErrorBody({ message, fallbackMessage }) {
   return (
     <div className="flex flex-1 items-center justify-center px-6">
       <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-        {message || 'Elaboration failed. Try again.'}
+        {message || fallbackMessage}
       </p>
     </div>
   )
@@ -65,7 +65,17 @@ function AvailableBody({ markdown, selectedText }) {
   )
 }
 
-function ElaborationPreview({ isOpen, status, selectedText, markdown, errorMessage, onClose }) {
+function ElaborationPreview({
+  isOpen,
+  status,
+  selectedText,
+  markdown,
+  errorMessage,
+  onClose,
+  ariaLabel = 'Elaboration',
+  loadingLabel = 'Elaborating…',
+  errorFallback = 'Elaboration failed. Try again.',
+}) {
   const [isMounted, setIsMounted] = useState(isOpen)
   const closeButtonRef = useRef(null)
   const nodeId = useFloatingNodeId()
@@ -114,7 +124,7 @@ function ElaborationPreview({ isOpen, status, selectedText, markdown, errorMessa
                     ref: refs.setFloating,
                     role: 'dialog',
                     'aria-modal': true,
-                    'aria-label': 'Elaboration',
+                    'aria-label': ariaLabel,
                     initial: { opacity: 0, scale: 0.92 },
                     animate: { opacity: 1, scale: 1 },
                     exit: { opacity: 0, scale: 0.96 },
@@ -134,8 +144,12 @@ function ElaborationPreview({ isOpen, status, selectedText, markdown, errorMessa
                     <X size={15} />
                   </button>
 
-                  {status === 'loading' && <LoadingBody selectedText={selectedText} />}
-                  {status === 'error' && <ErrorBody message={errorMessage} />}
+                  {status === 'loading' && (
+                    <LoadingBody selectedText={selectedText} loadingLabel={loadingLabel} />
+                  )}
+                  {status === 'error' && (
+                    <ErrorBody message={errorMessage} fallbackMessage={errorFallback} />
+                  )}
                   {status === 'available' && (
                     <AvailableBody markdown={markdown} selectedText={selectedText} />
                   )}

@@ -6,10 +6,13 @@ import {
   reduceMobileSelectionMenu,
 } from '../reducers/mobileSelectionMenuReducer'
 
+const LONG_PRESS_DELAY_MS = 520
+
 const MenuOpenSource = Object.freeze({
   NONE: 'none',
   DESKTOP: 'desktop',
   MOBILE_SELECTION: 'mobile-selection',
+  LINK: 'link',
 })
 
 const CLOSED_MENU_STATE = Object.freeze({
@@ -17,6 +20,7 @@ const CLOSED_MENU_STATE = Object.freeze({
   positionReference: null,
   selectedText: '',
   source: MenuOpenSource.NONE,
+  actionContext: null,
 })
 
 function copyDomRect(rect) {
@@ -33,6 +37,32 @@ function createPointPositionReference(x, y) {
   }
 }
 
+function createElementPositionReference(element) {
+  const boundingRect = copyDomRect(element.getBoundingClientRect())
+  return {
+    kind: 'element',
+    boundingRect,
+    clientRects: [boundingRect],
+    placement: 'bottom',
+    offsetPx: 10,
+  }
+}
+
+function readAnchorContext(target) {
+  const anchor = target.closest?.('[data-overlay-content] a[href]')
+  if (!anchor) return null
+
+  return {
+    selectedText: anchor.textContent.trim() || anchor.href,
+    positionReference: createElementPositionReference(anchor),
+    actionContext: {
+      kind: 'link',
+      url: anchor.href,
+      label: anchor.textContent.trim() || anchor.href,
+    },
+  }
+}
+
 export function useOverlayContextMenu(enabled = true) {
   const [menuState, setMenuState] = useState(CLOSED_MENU_STATE)
   const menuStateRef = useRef(menuState)
@@ -44,12 +74,13 @@ export function useOverlayContextMenu(enabled = true) {
 
   console.log('[ctxmenu] render — enabled:', enabled, '| isOpen:', menuState.isOpen)
 
-  const openMenu = useCallback(({ source, positionReference, selectedText = '' }) => {
+  const openMenu = useCallback(({ source, positionReference, selectedText = '', actionContext = null }) => {
     const nextState = {
       isOpen: true,
       positionReference,
       selectedText,
       source,
+      actionContext,
     }
     menuStateRef.current = nextState
     setMenuState(nextState)
@@ -75,6 +106,7 @@ export function useOverlayContextMenu(enabled = true) {
 
   const handleContextMenu = useDesktopContextMenu({ enabled, openMenu })
   useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelectionStateRef })
+  useLinkLongPressMenu({ enabled, openMenu })
 
   useEffect(() => {
     if (enabled) return
@@ -85,6 +117,7 @@ export function useOverlayContextMenu(enabled = true) {
     isOpen: menuState.isOpen,
     positionReference: menuState.positionReference,
     selectedText: menuState.selectedText,
+    actionContext: menuState.actionContext,
     handleContextMenu,
     onOpenChange,
   }
@@ -96,12 +129,90 @@ function useDesktopContextMenu({ enabled, openMenu }) {
     if (!enabled) return
 
     event.preventDefault()
+    const anchorContext = readAnchorContext(event.target)
+    if (anchorContext) {
+      openMenu({
+        source: MenuOpenSource.LINK,
+        ...anchorContext,
+      })
+      return
+    }
+
     openMenu({
       source: MenuOpenSource.DESKTOP,
       positionReference: createPointPositionReference(event.clientX, event.clientY),
       selectedText: '',
+      actionContext: { kind: 'text-selection' },
     })
     console.log('[ctxmenu] opened via right-click at', event.clientX, event.clientY)
+  }, [enabled, openMenu])
+}
+
+function useLinkLongPressMenu({ enabled, openMenu }) {
+  useEffect(() => {
+    if (!enabled) return
+
+    let longPressTimeoutId = null
+    let pendingAnchorContext = null
+    let suppressNextLinkClick = false
+
+    function clearLongPress() {
+      window.clearTimeout(longPressTimeoutId)
+      longPressTimeoutId = null
+      pendingAnchorContext = null
+    }
+
+    function handlePointerDown(event) {
+      if (!event.isPrimary) return
+      if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return
+
+      const anchorContext = readAnchorContext(event.target)
+      if (!anchorContext) return
+
+      pendingAnchorContext = anchorContext
+      longPressTimeoutId = window.setTimeout(() => {
+        suppressNextLinkClick = true
+        window.navigator.vibrate?.(8)
+        openMenu({
+          source: MenuOpenSource.LINK,
+          ...pendingAnchorContext,
+        })
+        pendingAnchorContext = null
+        longPressTimeoutId = null
+      }, LONG_PRESS_DELAY_MS)
+    }
+
+    function handleClick(event) {
+      if (!suppressNextLinkClick) return
+      if (!readAnchorContext(event.target)) return
+
+      event.preventDefault()
+      event.stopPropagation()
+      suppressNextLinkClick = false
+    }
+
+    function handlePointerMove(event) {
+      if (!pendingAnchorContext) return
+      if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return
+      clearLongPress()
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    document.addEventListener('pointerup', clearLongPress, true)
+    document.addEventListener('pointercancel', clearLongPress, true)
+    document.addEventListener('pointermove', handlePointerMove, true)
+    document.addEventListener('click', handleClick, true)
+    document.addEventListener('scroll', clearLongPress, true)
+
+    return () => {
+      clearLongPress()
+      document.removeEventListener('pointerdown', handlePointerDown, true)
+      document.removeEventListener('pointerup', clearLongPress, true)
+      document.removeEventListener('pointercancel', clearLongPress, true)
+      document.removeEventListener('pointermove', handlePointerMove, true)
+      document.removeEventListener('click', handleClick, true)
+      document.removeEventListener('scroll', clearLongPress, true)
+    }
   }, [enabled, openMenu])
 }
 
@@ -149,6 +260,7 @@ function useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelec
           source: MenuOpenSource.MOBILE_SELECTION,
           positionReference: decision.selection.positionReference,
           selectedText: decision.selection.selectedText,
+          actionContext: { kind: 'text-selection' },
         })
         console.log('[ctxmenu] opened via selection | text:', decision.selection.selectedText.slice(0, 40))
         return
@@ -185,22 +297,21 @@ function useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelec
     function handleSelectionChange() {
       const selection = readOverlaySelection()
       console.log('[ctxmenu] selectionchange — selection:', selection ? selection.selectedText.slice(0, 40) : 'null')
-      dispatchMobileSelectionEvent(
-        selection
-          ? { type: MobileSelectionMenuEventType.SELECTION_OBSERVED, selection }
-          : { type: MobileSelectionMenuEventType.SELECTION_CLEARED }
-      )
+      dispatchMobileSelectionEvent(selection
+        ? { type: MobileSelectionMenuEventType.SELECTION_OBSERVED, selection }
+        : { type: MobileSelectionMenuEventType.SELECTION_CLEARED })
     }
 
-    document.addEventListener('selectionchange', handleSelectionChange)
     document.addEventListener('touchstart', handleTouchStart, true)
     document.addEventListener('touchend', handleTouchEnd, true)
+    document.addEventListener('selectionchange', handleSelectionChange)
 
     return () => {
-      document.removeEventListener('selectionchange', handleSelectionChange)
+      console.log('[ctxmenu] mobile cleanup')
+      resetMobileSelectionStateRef.current = () => {}
       document.removeEventListener('touchstart', handleTouchStart, true)
       document.removeEventListener('touchend', handleTouchEnd, true)
-      resetMobileSelectionStateRef.current = () => {}
+      document.removeEventListener('selectionchange', handleSelectionChange)
     }
-  }, [enabled, openMenu, closeMenu, resetMobileSelectionStateRef])
+  }, [closeMenu, enabled, openMenu, resetMobileSelectionStateRef])
 }

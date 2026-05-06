@@ -156,6 +156,7 @@ function BaseOverlay({
           actions={overlayMenu.actions}
           onOpenChange={overlayMenu.onOpenChange}
           selectedText={overlayMenu.selectedText}
+          actionContext={overlayMenu.actionContext}
         />
       )}
 
