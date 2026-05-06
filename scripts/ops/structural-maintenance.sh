@@ -67,6 +67,7 @@ function _generate_project_structure() {
     'scripts/portfolio'
     'tests/'
     'thoughts/'
+    'vendor'
 
   )
   local ignore_glob
