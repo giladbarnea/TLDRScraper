@@ -1,17 +1,16 @@
-import { applyArticlePatch, applyArticlePatches, applyDayPatch, composePayloadFromStore, replaceDayFromServer } from '../store/articleStore'
+import { applyArticlePatch, applyArticlePatches, applyDayPatch, composeDayPayloadForServer, ingestDayPayload, parseArticleKey } from '../store/articleStore'
 import { getDailyPayloadWithMetadata, patchDailyArticle, patchDailyPayload } from './storageApi'
-import { getNewsletterScrapeKey } from './storageKeys'
 
-const mutationQueueByStorageKey = new Map()
+const mutationQueueByDate = new Map()
 
-function enqueueDailyPayloadMutation(storageKey, task) {
-  const previousTask = mutationQueueByStorageKey.get(storageKey) || Promise.resolve()
+function enqueueMutation(date, task) {
+  const previousTask = mutationQueueByDate.get(date) || Promise.resolve()
   const nextTask = previousTask.catch(() => {}).then(task)
-  mutationQueueByStorageKey.set(storageKey, nextTask)
+  mutationQueueByDate.set(date, nextTask)
 
   nextTask.finally(() => {
-    if (mutationQueueByStorageKey.get(storageKey) === nextTask) {
-      mutationQueueByStorageKey.delete(storageKey)
+    if (mutationQueueByDate.get(date) === nextTask) {
+      mutationQueueByDate.delete(date)
     }
   })
 
@@ -37,11 +36,11 @@ function isEmptyPatch(patch) {
   return !patch || Object.keys(patch).length === 0
 }
 
-function assertUniqueUrls(items) {
-  const urls = new Set()
+function assertUniqueKeys(items) {
+  const keys = new Set()
   for (const item of items) {
-    if (urls.has(item.url)) throw new Error(`Duplicate article patch for url: ${item.url}`)
-    urls.add(item.url)
+    if (keys.has(item.key)) throw new Error(`Duplicate article patch for key: ${item.key}`)
+    keys.add(item.key)
   }
 }
 
@@ -50,8 +49,9 @@ function resolveArticlePatches(latestPayload, items) {
   const resolvedItems = []
 
   for (const item of items) {
-    const latestArticle = articlesByUrl.get(item.url)
-    if (!latestArticle) throw new Error(`Article not found for url: ${item.url}`)
+    const { url } = parseArticleKey(item.key)
+    const latestArticle = articlesByUrl.get(url)
+    if (!latestArticle) throw new Error(`Article not found for url: ${url}`)
 
     if (!item.resolved) {
       item.resolvedPatch = typeof item.buildPatch === 'function'
@@ -60,7 +60,7 @@ function resolveArticlePatches(latestPayload, items) {
       item.resolved = true
     }
 
-    if (!isEmptyPatch(item.resolvedPatch)) resolvedItems.push(item)
+    if (!isEmptyPatch(item.resolvedPatch)) resolvedItems.push({ ...item, url })
   }
 
   return resolvedItems
@@ -78,9 +78,8 @@ function applyArticlePatchesToPayload(payload, resolvedItems) {
   }
 }
 
-async function loadPayloadMutationState(date, fallbackPayload) {
-  // Possibly a true positive: reveals a potential minor queue-key vs state-key mismatch.
-  let latestPayload = composePayloadFromStore(date) || fallbackPayload
+async function loadPayloadMutationState(date) {
+  let latestPayload = composeDayPayloadForServer(date)
   let expectedUpdatedAt = latestPayload?.storage_updated_at
 
   if (!expectedUpdatedAt) {
@@ -96,21 +95,13 @@ async function loadPayloadMutationState(date, fallbackPayload) {
 async function restorePayloadFromServer(date) {
   const storageRow = await getDailyPayloadWithMetadata(date)
   if (storageRow?.payload) {
-    replaceDayFromServer(date, storageRow.payload)
+    ingestDayPayload(storageRow.payload)
   }
 }
 
-async function runQueuedOptimisticPatch({
-  date,
-  storageKey,
-  fallbackPayload,
-  // Returns { optimisticPayload, shouldSkip, applyOptimistic }
-  // applyOptimistic(resolvedPatch) applies to store; called only when !shouldSkip
-  buildOptimistic,
-  sendPatch,
-}) {
-  return enqueueDailyPayloadMutation(storageKey, async () => {
-    let { latestPayload, expectedUpdatedAt } = await loadPayloadMutationState(date, fallbackPayload)
+async function runQueuedOptimisticPatch({ date, buildOptimistic, sendPatch }) {
+  return enqueueMutation(date, async () => {
+    let { latestPayload, expectedUpdatedAt } = await loadPayloadMutationState(date)
 
     for (let attemptIndex = 0; attemptIndex < 2; attemptIndex += 1) {
       const { optimisticPayload, shouldSkip, applyOptimistic } = buildOptimistic(latestPayload)
@@ -120,7 +111,7 @@ async function runQueuedOptimisticPatch({
 
       const patchResult = await sendPatch(expectedUpdatedAt)
       if (patchResult.success) {
-        replaceDayFromServer(date, patchResult.payload)
+        ingestDayPayload(patchResult.payload)
         return patchResult.payload
       }
 
@@ -142,19 +133,17 @@ async function runQueuedOptimisticPatch({
 export async function queueBatchArticlePatches(patches) {
   const byDate = new Map()
   for (const item of patches) {
-    if (!byDate.has(item.date)) byDate.set(item.date, [])
-    byDate.get(item.date).push({ ...item, resolved: false, resolvedPatch: null })
+    const { date } = parseArticleKey(item.key)
+    if (!byDate.has(date)) byDate.set(date, [])
+    byDate.get(date).push({ ...item, resolved: false, resolvedPatch: null })
   }
 
   await Promise.all([...byDate.entries()].map(([date, items]) => {
-    assertUniqueUrls(items)
-    const storageKey = items[0]?.storageKey ?? getNewsletterScrapeKey(date)
+    assertUniqueKeys(items)
     let payloadPatch = null
 
     return runQueuedOptimisticPatch({
       date,
-      storageKey,
-      fallbackPayload: null,
       buildOptimistic(latestPayload) {
         const resolvedItems = resolveArticlePatches(latestPayload, items)
         if (resolvedItems.length === 0) {
@@ -168,7 +157,7 @@ export async function queueBatchArticlePatches(patches) {
           optimisticPayload,
           shouldSkip: false,
           applyOptimistic: () => applyArticlePatches(resolvedItems.map((item) => ({
-            key: `${date}::${item.url}`,
+            key: item.key,
             patch: item.resolvedPatch,
           }))),
         }
@@ -180,20 +169,11 @@ export async function queueBatchArticlePatches(patches) {
   }))
 }
 
-export function queueDailyArticlePatch({
-  date,
-  url,
-  patch,
-  buildPatch,
-  previousPayload = null,
-  storageKey = getNewsletterScrapeKey(date),
-}) {
-  const articleKey = `${date}::${url}`
+export function queueDailyArticlePatch({ key, patch, buildPatch }) {
+  const { date, url } = parseArticleKey(key)
 
   return runQueuedOptimisticPatch({
     date,
-    storageKey,
-    fallbackPayload: previousPayload,
     buildOptimistic(latestPayload) {
       const latestArticle = latestPayload?.articles?.find((article) => article.url === url)
       if (!latestArticle) throw new Error(`Article not found for url: ${url}`)
@@ -203,14 +183,13 @@ export function queueDailyArticlePatch({
         return { optimisticPayload: latestPayload, shouldSkip: true, applyOptimistic: () => {} }
       }
 
-      // Freeze the resolved patch — must not re-evaluate buildPatch on retry
       patch = resolvedPatch
       buildPatch = null
 
       return {
         optimisticPayload: applyArticlePatchToPayload(latestPayload, url, resolvedPatch),
         shouldSkip: false,
-        applyOptimistic: () => applyArticlePatch(articleKey, resolvedPatch),
+        applyOptimistic: () => applyArticlePatch(key, resolvedPatch),
       }
     },
     sendPatch(expectedUpdatedAt) {
@@ -219,18 +198,11 @@ export function queueDailyArticlePatch({
   })
 }
 
-export function queueDailyPayloadPatch({
-  date,
-  payloadPatch,
-  previousPayload = null,
-  storageKey = getNewsletterScrapeKey(date),
-}) {
+export function queueDailyPayloadPatch({ date, payloadPatch }) {
   if (isEmptyPatch(payloadPatch)) return Promise.resolve(null)
 
   return runQueuedOptimisticPatch({
     date,
-    storageKey,
-    fallbackPayload: previousPayload,
     buildOptimistic(latestPayload) {
       if (isEmptyPatch(payloadPatch)) {
         return { optimisticPayload: latestPayload, shouldSkip: true, applyOptimistic: () => {} }

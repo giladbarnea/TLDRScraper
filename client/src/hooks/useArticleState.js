@@ -1,30 +1,25 @@
 import { queueDailyArticlePatch } from '../lib/dailyPayloadMutations'
 import { logTransition } from '../lib/stateTransitionLogger'
-import { getNewsletterScrapeKey } from '../lib/storageKeys'
 import {
   ArticleLifecycleEventType,
   getArticleLifecycleState,
   reduceArticleLifecycle,
 } from '../reducers/articleLifecycleReducer'
-import { useArticleSlice } from '../store/articleStore'
+import { parseArticleKey, useArticleSlice } from '../store/articleStore'
 
-export function useArticleState(date, url) {
-  const slice = useArticleSlice(date, url)
+export function useArticleState(articleKey) {
+  const slice = useArticleSlice(articleKey)
+  const { url } = parseArticleKey(articleKey)
 
-  const article = slice
   const isRead = slice?.read?.isRead ?? false
   const isRemoved = Boolean(slice?.removed)
   const lifecycleState = getArticleLifecycleState(slice)
 
   const updateArticle = (updater) => {
     if (!slice) return
-    const storageKey = getNewsletterScrapeKey(date)
     queueDailyArticlePatch({
-      date,
-      url,
+      key: articleKey,
       buildPatch: updater,
-      previousPayload: null,
-      storageKey,
     }).catch((error) => {
       console.error(`Failed to update article for ${url}:`, error)
     })
@@ -68,7 +63,7 @@ export function useArticleState(date, url) {
   }
 
   return {
-    article,
+    article: slice,
     isRead,
     isRemoved,
     lifecycleState,

@@ -11,31 +11,36 @@ import { getDefaultFeedDateRange, useFeedLoader } from './hooks/useFeedLoader'
 import { queueBatchArticlePatches } from './lib/dailyPayloadMutations'
 import { ArticleLifecycleEventType, reduceArticleLifecycle } from './reducers/articleLifecycleReducer'
 import * as summaryDataReducer from './reducers/summaryDataReducer'
-import { getSnapshotArticleByUrl, interactionActions, summaryActions, useIsSelectMode, useSelectedDescriptors } from './store/articleStore'
+import {
+  getSnapshotArticle,
+  interactionActions,
+  summaryActions,
+  useFeedStatus,
+  useIsSelectMode,
+  useSelectedArticles,
+  useVisibleDates,
+} from './store/articleStore'
 
 function toBrowserUrl(url) {
   if (url.startsWith('http://') || url.startsWith('https://')) return url
   return `https://${url}`
 }
 
-async function applyBatchLifecyclePatch(selectedDescriptors, eventFactory) {
-  const patches = selectedDescriptors.flatMap(descriptor => {
-    const article = getSnapshotArticleByUrl(descriptor.url)
-    if (!article) return []
-    return [{
-      date: article.issueDate,
-      url: article.url,
-      buildPatch: (currentArticle) => reduceArticleLifecycle(currentArticle, eventFactory(currentArticle)).patch,
-    }]
-  })
+async function applyBatchLifecyclePatch(selectedArticles, eventFactory) {
+  const patches = selectedArticles.map(({ key }) => ({
+    key,
+    buildPatch: (currentArticle) => reduceArticleLifecycle(currentArticle, eventFactory(currentArticle)).patch,
+  }))
   await queueBatchArticlePatches(patches)
 }
 
-function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
-  const digest = useDigest(results)
+function AppContent({ loadFeed, showSettings, setShowSettings }) {
+  const feedStatus = useFeedStatus()
+  const visibleDates = useVisibleDates()
+  const digest = useDigest()
   const isSelectMode = useIsSelectMode()
-  const selectedDescriptors = useSelectedDescriptors()
-  const selectedCount = selectedDescriptors.length
+  const selectedArticles = useSelectedArticles()
+  const selectedCount = selectedArticles.length
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -43,26 +48,26 @@ function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
     day: 'numeric'
   })
 
-  const singleDescriptor = selectedCount === 1 ? selectedDescriptors[0] : null
-  const singleSelectedArticle = singleDescriptor ? getSnapshotArticleByUrl(singleDescriptor.url) : null
+  const singleDescriptor = selectedCount === 1 ? selectedArticles[0] : null
+  const singleSelectedArticle = singleDescriptor ? getSnapshotArticle(singleDescriptor.key) : null
   const singleSummaryStatus = summaryDataReducer.getSummaryDataStatus(singleSelectedArticle?.summary)
   const canOpenSingleSummary = singleSummaryStatus === summaryDataReducer.SummaryDataStatus.AVAILABLE
   const isSingleSummaryLoading = singleSummaryStatus === summaryDataReducer.SummaryDataStatus.LOADING
-  const summarizeEachActionableCount = selectedDescriptors.filter(d => {
-    const article = getSnapshotArticleByUrl(d.url)
+  const summarizeEachActionableCount = selectedArticles.filter(({ key }) => {
+    const article = getSnapshotArticle(key)
     const status = summaryDataReducer.getSummaryDataStatus(article?.summary)
     return status === summaryDataReducer.SummaryDataStatus.UNKNOWN || status === summaryDataReducer.SummaryDataStatus.ERROR
   }).length
   const isSummarizeEachDisabled = selectedCount < 2 || summarizeEachActionableCount === 0
 
   function handleTriggerDigest() {
-    digest.trigger(selectedDescriptors)
+    digest.trigger(selectedArticles)
   }
 
   async function handleMarkSelectedRead() {
     if (selectedCount === 0) return
     const markedAt = new Date().toISOString()
-    await applyBatchLifecyclePatch(selectedDescriptors, () => ({
+    await applyBatchLifecyclePatch(selectedArticles, () => ({
       type: ArticleLifecycleEventType.MARK_READ,
       markedAt,
     }))
@@ -71,20 +76,19 @@ function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
 
   async function handleMarkSelectedRemoved() {
     if (selectedCount === 0) return
-    await applyBatchLifecyclePatch(selectedDescriptors, () => ({
+    await applyBatchLifecyclePatch(selectedArticles, () => ({
       type: ArticleLifecycleEventType.MARK_REMOVED,
     }))
     interactionActions.clearSelection()
   }
 
   function handleSummarizeSingle() {
-    if (!singleSelectedArticle) return
-    const key = `${singleSelectedArticle.issueDate}::${singleSelectedArticle.url}`
+    if (!singleDescriptor) return
     if (canOpenSingleSummary) {
-      summaryActions.expand(key)
+      summaryActions.expand(singleDescriptor.key)
       return
     }
-    summaryActions.fetch(key)
+    summaryActions.fetch(singleDescriptor.key)
   }
 
   function handleBrowseSingle() {
@@ -94,15 +98,19 @@ function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
 
   function handleSummarizeEach() {
     if (selectedCount < 2) return
-    for (const descriptor of selectedDescriptors) {
-      const article = getSnapshotArticleByUrl(descriptor.url)
+    for (const { key } of selectedArticles) {
+      const article = getSnapshotArticle(key)
       if (!article) continue
       const status = summaryDataReducer.getSummaryDataStatus(article.summary)
       if (status === summaryDataReducer.SummaryDataStatus.UNKNOWN || status === summaryDataReducer.SummaryDataStatus.ERROR) {
-        summaryActions.fetch(`${article.issueDate}::${article.url}`)
+        summaryActions.fetch(key)
       }
     }
   }
+
+  const isLoadingInitial = feedStatus.status === 'idle' || feedStatus.status === 'fetching'
+  const hasContent = visibleDates.length > 0
+  const isError = feedStatus.status === 'error' && !hasContent
 
   return (
     <div className="min-h-screen flex justify-center font-sans bg-slate-50 text-slate-900 selection:bg-brand-100 selection:text-brand-900">
@@ -145,14 +153,21 @@ function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
         </header>
 
         <main className="px-6">
-          {!results ? (
+          {isLoadingInitial && !hasContent ? (
             <div className="flex flex-col items-center justify-center py-32 opacity-50 animate-pulse">
               <div className="w-12 h-12 bg-slate-200 rounded-full mb-4"></div>
               <div className="h-4 w-32 bg-slate-200 rounded mb-2"></div>
               <div className="h-3 w-24 bg-slate-100 rounded"></div>
             </div>
-          ) : (results.payloads && results.payloads.length > 0) ? (
-            <Feed payloads={results.payloads} />
+          ) : hasContent ? (
+            <Feed />
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center py-32 text-slate-400">
+              <p>Failed to load feed.</p>
+              <button onClick={() => setShowSettings(true)} className="mt-4 text-brand-600 font-medium hover:underline">
+                Open settings to retry
+              </button>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-32 text-slate-400">
               <p>No newsletters found for this period.</p>
@@ -195,7 +210,7 @@ function AppContent({ results, loadFeed, showSettings, setShowSettings }) {
 }
 
 function App() {
-  const { results, setResults, loadFeed } = useFeedLoader()
+  const { loadFeed } = useFeedLoader()
   const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
@@ -238,22 +253,19 @@ function App() {
       startDate,
       endDate,
       signal: controller.signal,
-      useSessionCache: true
     }).catch((error) => {
       if (error.name === 'AbortError') return
       console.error('Failed to load feed:', error)
-      setResults((previousResults) => previousResults ?? { payloads: [], stats: null })
     })
 
     return () => controller.abort()
-  }, [loadFeed, setResults])
+  }, [loadFeed])
 
   return (
     <>
       <ToastContainer />
       <FloatingTree>
         <AppContent
-          results={results}
           loadFeed={loadFeed}
           showSettings={showSettings}
           setShowSettings={setShowSettings}
