@@ -48,11 +48,42 @@ function createElementPositionReference(element) {
   }
 }
 
+function readOverlaySelection() {
+  const selection = window.getSelection()
+  const selectedText = selection?.toString().trim() ?? ''
+  if (!selection || selection.isCollapsed || !selectedText) return null
+
+  const anchorElement = selection.anchorNode instanceof Element
+    ? selection.anchorNode
+    : selection.anchorNode?.parentElement
+  if (!anchorElement?.closest('[data-overlay-content]')) {
+    console.log('[ctxmenu] readOverlaySelection — selection not inside [data-overlay-content], skipping')
+    return null
+  }
+
+  const range = selection.getRangeAt(0)
+  const boundingRect = copyDomRect(range.getBoundingClientRect())
+  const clientRects = Array.from(range.getClientRects()).map(copyDomRect)
+  if (clientRects.length === 0) return null
+
+  return {
+    selectedText,
+    positionReference: {
+      kind: 'range',
+      boundingRect,
+      clientRects,
+      placement: 'bottom',
+      offsetPx: 12,
+    },
+  }
+}
+
 function readAnchorContext(target) {
   const anchor = target.closest?.('[data-overlay-content] a[href]')
   if (!anchor) return null
 
   return {
+    anchorElement: anchor,
     selectedText: anchor.textContent.trim() || anchor.href,
     positionReference: createElementPositionReference(anchor),
     actionContext: {
@@ -129,6 +160,19 @@ function useDesktopContextMenu({ enabled, openMenu }) {
     if (!enabled) return
 
     event.preventDefault()
+    const selectionContext = readOverlaySelection()
+    // `useReadingOverlayMenuActions` keys visibility off `actionContext`, so a live text selection
+    // must win even inside an <a> or right-clicking linked text stops exposing `Elaborate`.
+    if (selectionContext) {
+      openMenu({
+        source: MenuOpenSource.DESKTOP,
+        positionReference: createPointPositionReference(event.clientX, event.clientY),
+        selectedText: selectionContext.selectedText,
+        actionContext: { kind: 'text-selection' },
+      })
+      return
+    }
+
     const anchorContext = readAnchorContext(event.target)
     if (anchorContext) {
       openMenu({
@@ -154,7 +198,9 @@ function useLinkLongPressMenu({ enabled, openMenu }) {
 
     let longPressTimeoutId = null
     let pendingAnchorContext = null
-    let suppressNextLinkClick = false
+    // Suppress only the synthetic click that belongs to the long-pressed anchor. If no such click
+    // arrives, clear the latch on the next captured click so later taps do not get swallowed.
+    let suppressedAnchorElement = null
 
     function clearLongPress() {
       window.clearTimeout(longPressTimeoutId)
@@ -171,7 +217,7 @@ function useLinkLongPressMenu({ enabled, openMenu }) {
 
       pendingAnchorContext = anchorContext
       longPressTimeoutId = window.setTimeout(() => {
-        suppressNextLinkClick = true
+        suppressedAnchorElement = pendingAnchorContext.anchorElement
         window.navigator.vibrate?.(8)
         openMenu({
           source: MenuOpenSource.LINK,
@@ -183,12 +229,17 @@ function useLinkLongPressMenu({ enabled, openMenu }) {
     }
 
     function handleClick(event) {
-      if (!suppressNextLinkClick) return
-      if (!readAnchorContext(event.target)) return
+      if (!suppressedAnchorElement) return
+
+      const anchorContext = readAnchorContext(event.target)
+      if (!anchorContext || anchorContext.anchorElement !== suppressedAnchorElement) {
+        suppressedAnchorElement = null
+        return
+      }
 
       event.preventDefault()
       event.stopPropagation()
-      suppressNextLinkClick = false
+      suppressedAnchorElement = null
     }
 
     function handlePointerMove(event) {
@@ -227,31 +278,6 @@ function useMobileSelectionMenu({ enabled, openMenu, closeMenu, resetMobileSelec
 
     resetMobileSelectionStateRef.current = () => {
       mobileStateRef.current = createInitialMobileSelectionMenuState()
-    }
-
-    function readOverlaySelection() {
-      const selection = window.getSelection()
-      const selectedText = selection?.toString().trim() ?? ''
-      if (!selection || selection.isCollapsed || !selectedText) return null
-      if (!selection.anchorNode?.parentElement?.closest('[data-overlay-content]')) {
-        console.log('[ctxmenu] readOverlaySelection — selection not inside [data-overlay-content], skipping')
-        return null
-      }
-
-      const range = selection.getRangeAt(0)
-      const boundingRect = copyDomRect(range.getBoundingClientRect())
-      const clientRects = Array.from(range.getClientRects()).map(copyDomRect)
-      if (clientRects.length === 0) return null
-      return {
-        selectedText,
-        positionReference: {
-          kind: 'range',
-          boundingRect,
-          clientRects,
-          placement: 'bottom',
-          offsetPx: 12,
-        },
-      }
     }
 
     function runMobileSelectionDecision(decision) {
