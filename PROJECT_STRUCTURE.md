@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-05 06:33
+last_updated: 2026-05-05 20:20
 ---
 
 .
@@ -7,7 +7,6 @@ last_updated: 2026-05-05 06:33
 │  └── skills
 │     ├── architecture-create
 │     │  └── SKILL.md
-│     ├── architecture-sync-since-last-updated
 │     ├── consensus
 │     │  ├── scripts
 │     │  │  └── run_consensus.py
@@ -36,7 +35,6 @@ last_updated: 2026-05-05 06:33
 │     │  └── SKILL.md
 │     ├── research-codebase
 │     │  └── SKILL.md
-│     ├── review-plan
 │     ├── simplify-code
 │     │  └── SKILL.md
 │     ├── supabase-postgres-best-practices
@@ -49,9 +47,6 @@ last_updated: 2026-05-05 06:33
 │     │  └── SKILL.md
 │     └── web-a11y-guidelines
 │        └── SKILL.md
-├── .fallow
-│  ├── .gitignore
-│  └── churn.bin
 ├── .githooks
 │  ├── post-merge
 │  ├── pre-commit
@@ -113,6 +108,7 @@ last_updated: 2026-05-05 06:33
 │  │  │  ├── NewsletterDay.jsx
 │  │  │  ├── OverlayContextMenu.jsx
 │  │  │  ├── ReadStatsBadge.jsx
+│  │  │  ├── RemovedOrderSlot.jsx
 │  │  │  ├── ScrapeForm.jsx
 │  │  │  ├── Selectable.jsx
 │  │  │  ├── SelectionActionDock.jsx
@@ -171,7 +167,6 @@ last_updated: 2026-05-05 06:33
 │  ├── create_digests_table.sql
 │  ├── create_patch_daily_article_function.sql
 │  └── create_patch_daily_payload_function.sql
-├── hidden_apps
 ├── scripts
 │  ├── dev
 │  │  ├── auto-pr-merge.sh
@@ -211,7 +206,6 @@ last_updated: 2026-05-05 06:33
 ├── .gitattributes
 ├── .gitignore
 ├── .gitmodules
-├── .synthesize-findings.md
 ├── .vercelignore
 ├── AGENTS.md
 ├── BUGS.md

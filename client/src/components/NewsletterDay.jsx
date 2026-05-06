@@ -1,7 +1,7 @@
-import { useAllArticlesRemoved } from '../store/articleStore'
 import ArticleList from './ArticleList'
 import FoldableContainer from './FoldableContainer'
 import ReadStatsBadge from './ReadStatsBadge'
+import RemovedOrderSlot from './RemovedOrderSlot'
 import Selectable from './Selectable'
 
 function groupArticlesBySection(articles) {
@@ -43,9 +43,7 @@ function SectionTitle({ displayTitle }) {
   )
 }
 
-function Section({ date, sourceId, newsletterTitle, sectionKey, articles }) {
-  const articleUrls = articles.map((article) => article.url)
-  const allRemoved = useAllArticlesRemoved(date, articleUrls)
+function Section({ date, sourceId, newsletterTitle, sectionKey, articles, allRemoved }) {
   const sectionEmoji = articles[0].sectionEmoji
   const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
   const componentId = `section-${date}-${sourceId}-${sectionKey}`
@@ -57,11 +55,11 @@ function Section({ date, sourceId, newsletterTitle, sectionKey, articles }) {
         key={`${newsletterTitle}-${sectionKey}`}
         id={componentId}
         title={<SectionTitle displayTitle={displayTitle} />}
-        headerClassName={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+        headerClassName="transition-all duration-300"
         defaultFolded={allRemoved}
-        className="mb-3"
+        className={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
       >
-        <div className={`mt-2 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
+        <div className="mt-2 transition-all duration-300">
           <ArticleList articles={articles} />
         </div>
       </FoldableContainer>
@@ -70,21 +68,33 @@ function Section({ date, sourceId, newsletterTitle, sectionKey, articles }) {
 }
 
 function SectionsList({ date, sourceId, title, sections, sortedSectionKeys }) {
-  return sortedSectionKeys.map(sectionKey => (
-    <Section
-      key={`${title}-${sectionKey}`}
-      date={date}
-      sourceId={sourceId}
-      newsletterTitle={title}
-      sectionKey={sectionKey}
-      articles={sections[sectionKey]}
-    />
-  ))
+  return sortedSectionKeys.map((sectionKey, index) => {
+    const articles = sections[sectionKey]
+
+    return (
+      <RemovedOrderSlot
+        key={`${title}-${sectionKey}`}
+        date={date}
+        urls={articles.map((article) => article.url)}
+        originalOrder={index}
+      >
+        {(allRemoved) => (
+          <Section
+            date={date}
+            sourceId={sourceId}
+            newsletterTitle={title}
+            sectionKey={sectionKey}
+            articles={articles}
+            allRemoved={allRemoved}
+          />
+        )}
+      </RemovedOrderSlot>
+    )
+  })
 }
 
-function NewsletterDay({ date, title, issue, articles }) {
+function NewsletterDay({ date, title, issue, articles, allRemoved }) {
   const articleUrls = articles.map((article) => article.url)
-  const allRemoved = useAllArticlesRemoved(date, articleUrls)
   const hasSections = articles.some(a => a.section)
 
   const sections = hasSections ? groupArticlesBySection(articles) : {}
@@ -97,7 +107,8 @@ function NewsletterDay({ date, title, issue, articles }) {
     <Selectable id={componentId} descendantIds={descendantIds}>
       <FoldableContainer
         id={componentId}
-        headerClassName={`border-b border-slate-100 transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+        headerClassName="border-b border-slate-100 transition-all duration-300"
+        className={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
         title={
           <div className="flex items-center gap-2.5 py-2">
             <h3 className="font-display font-semibold text-[17px] text-slate-900">
@@ -108,7 +119,7 @@ function NewsletterDay({ date, title, issue, articles }) {
         }
         defaultFolded={allRemoved}
       >
-        <div className="space-y-4 mt-3">
+        <div className="mt-3 flex flex-col gap-3">
           <IssueSubtitle issue={issue} allRemoved={allRemoved} />
 
           {hasSections ? (
