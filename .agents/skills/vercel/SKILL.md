@@ -1,7 +1,7 @@
 ---
 name: vercel
 description: read this before performing Vercel operations
-last_updated: 2026-05-07 12:21
+last_updated: 2026-05-07 12:50, df68ef0
 ---
 # Vercel Deployment Operations
 
