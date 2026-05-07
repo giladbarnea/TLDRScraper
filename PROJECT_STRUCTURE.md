@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-06 19:47
+last_updated: 2026-05-07 12:00
 ---
 
 .
@@ -97,7 +97,8 @@ last_updated: 2026-05-06 19:47
 │  │  │  ├── mobileSelectionMenuReducer.js
 │  │  │  └── summaryDataReducer.js
 │  │  ├── store
-│  │  │  └── articleStore.js
+│  │  │  ├── articleStore.js
+│  │  │  └── articleStore.test.js
 │  │  ├── App.jsx
 │  │  ├── index.css
 │  │  └── main.jsx
@@ -124,9 +125,9 @@ last_updated: 2026-05-06 19:47
 ├── .gitattributes
 ├── .gitignore
 ├── .gitmodules
+├── .ignore
 ├── .vercelignore
 ├── AGENTS.md
-├── BUGS.md
 ├── CLAUDE.md
 ├── GOTCHAS.md
 ├── Justfile
