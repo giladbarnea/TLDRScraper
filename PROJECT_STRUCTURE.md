@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-06 08:46
+last_updated: 2026-05-07 12:00
 ---
 
 .
@@ -60,7 +60,6 @@ last_updated: 2026-05-06 08:46
 │  │  │  ├── NewsletterDay.jsx
 │  │  │  ├── OverlayContextMenu.jsx
 │  │  │  ├── ReadStatsBadge.jsx
-│  │  │  ├── RemovedOrderSlot.jsx
 │  │  │  ├── ScrapeForm.jsx
 │  │  │  ├── Selectable.jsx
 │  │  │  ├── SelectionActionDock.jsx
@@ -81,7 +80,6 @@ last_updated: 2026-05-06 08:46
 │  │  │  └── useTrackedState.js
 │  │  ├── lib
 │  │  │  ├── dailyPayloadMutations.js
-│  │  │  ├── feedMerge.js
 │  │  │  ├── interactionConstants.js
 │  │  │  ├── markdownUtils.js
 │  │  │  ├── quakeConsole.js
@@ -90,7 +88,6 @@ last_updated: 2026-05-06 08:46
 │  │  │  ├── sourceLogoMap.js
 │  │  │  ├── stateTransitionLogger.js
 │  │  │  ├── storageApi.js
-│  │  │  ├── storageKeys.js
 │  │  │  ├── toastBus.js
 │  │  │  └── zenLock.js
 │  │  ├── reducers
@@ -100,7 +97,8 @@ last_updated: 2026-05-06 08:46
 │  │  │  ├── mobileSelectionMenuReducer.js
 │  │  │  └── summaryDataReducer.js
 │  │  ├── store
-│  │  │  └── articleStore.js
+│  │  │  ├── articleStore.js
+│  │  │  └── articleStore.test.js
 │  │  ├── App.jsx
 │  │  ├── index.css
 │  │  └── main.jsx
@@ -127,9 +125,9 @@ last_updated: 2026-05-06 08:46
 ├── .gitattributes
 ├── .gitignore
 ├── .gitmodules
+├── .ignore
 ├── .vercelignore
 ├── AGENTS.md
-├── BUGS.md
 ├── CLAUDE.md
 ├── GOTCHAS.md
 ├── Justfile
