@@ -1,5 +1,8 @@
 ---
-last_updated: 2026-05-06 16:40
+last_updated: 2026-05-09 17:17
+status: completed
+implementation: summary.md
+todos: unified-feed-read-model-todos.md
 ---
 
 # Unified Feed Read Model Plan
