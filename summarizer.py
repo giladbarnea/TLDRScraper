@@ -27,7 +27,7 @@ _DIGEST_PROMPT_CACHE = None
 
 SUMMARIZE_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
 DEFAULT_THINKING_EFFORT = "low"
-DEFAULT_MODEL = "gemini-3.1-pro-preview"
+DEFAULT_MODEL = "gemini-3.1-flash-lite-preview"
 DEFAULT_ELABORATE_MODEL="gemini-3-flash-preview"
 
 
