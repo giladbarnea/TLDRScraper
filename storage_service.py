@@ -129,6 +129,51 @@ def get_daily_payloads_range(start_date, end_date):
         for row in result.data
     ]
 
+def delete_daily_payloads_range(start_date, end_date):
+    """Delete cached daily payloads in [start_date, end_date]. Returns deleted row count."""
+    supabase = supabase_client.get_supabase_client()
+    result = supabase.table('daily_cache') \
+        .delete() \
+        .gte('date', start_date) \
+        .lte('date', end_date) \
+        .execute()
+    return len(result.data or [])
+
+
+def get_daily_payloads_summary(start_date, end_date):
+    """Flat per-day, per-article summary of cached state for debug panels."""
+    rows = get_daily_payloads_range(start_date, end_date)
+    summary = []
+    for row in rows:
+        payload = row['payload'] or {}
+        articles_summary = []
+        for article in payload.get('articles', []) or []:
+            summary_data = article.get('summary') or {}
+            tldr_data = article.get('tldr') or {}
+            markdown = summary_data.get('markdown') or tldr_data.get('markdown') or ''
+            articles_summary.append({
+                'url': article.get('url'),
+                'has_read': bool((article.get('read') or {}).get('isRead')),
+                'has_removed': bool(article.get('removed')),
+                'has_summary': bool(markdown),
+                'summary_chars': len(markdown),
+                'summary_status': summary_data.get('status') or tldr_data.get('status'),
+            })
+        digest_data = payload.get('digest') or {}
+        digest_markdown = digest_data.get('markdown') or ''
+        summary.append({
+            'date': row['date'],
+            'cached_at': row['cached_at'],
+            'storage_updated_at': payload.get('storage_updated_at'),
+            'article_count': len(articles_summary),
+            'has_digest': bool(digest_markdown),
+            'digest_chars': len(digest_markdown),
+            'digest_status': digest_data.get('status'),
+            'articles': articles_summary,
+        })
+    return summary
+
+
 def is_date_cached(date):
     """
     Check if a specific date exists in cache.

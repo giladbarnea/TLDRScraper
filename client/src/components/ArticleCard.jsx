@@ -204,6 +204,14 @@ function ArticleCard({ articleKey }) {
                 />
               )}
 
+              <span
+                data-debug-article-url={slice.url}
+                className="text-[10px] font-mono text-slate-300 truncate select-text"
+                title={slice.url}
+              >
+                {slice.url}
+              </span>
+
             {!isRemoved && summary.status === 'error' && (
               <SummaryError message={summary.errorMessage} />
             )}

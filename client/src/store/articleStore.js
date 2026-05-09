@@ -784,7 +784,11 @@ export const summaryActions = Object.freeze({
     window.fetch('/api/summarize-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, summarize_effort: requestedEffort }),
+      body: JSON.stringify({
+        url,
+        summarize_effort: requestedEffort,
+        issue_date: slice.issueDate,
+      }),
       signal: controller.signal,
     }).then(r => r.json()).then(result => {
       if (requestTokens.get(key) !== token) return
@@ -796,6 +800,9 @@ export const summaryActions = Object.freeze({
           effort: requestedEffort,
           checkedAt: new Date().toISOString(),
         })
+        if (result.payload) {
+          ingestDayPayload(result.payload)
+        }
         const currentSlice = articlesByKey.get(key)
         emitToast({
           title: currentSlice?.title ?? url,

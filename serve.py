@@ -3,6 +3,7 @@
 TLDR Newsletter Scraper backend with a proxy.
 """
 
+import datetime
 import importlib
 import logging
 import os
@@ -77,6 +78,44 @@ def summarize_daily_payload_patch(patch: dict) -> str:
     return " ".join(parts)
 
 
+def persist_article_summary(date: str, url: str, summary_data: dict, max_retries: int = 5) -> dict:
+    """Persist a summary into the daily_cache article entry, retrying on optimistic-concurrency conflicts.
+
+    Returns the full updated payload row from `patch_daily_article`. Raises on missing row or retry exhaustion.
+    """
+    last_conflict_updated_at = None
+    for attempt_index in range(max_retries):
+        row = storage_service.get_daily_payload_row(date)
+        if row is None:
+            raise ValueError(f"Daily payload not found for date: {date}")
+
+        rpc_result = storage_service.patch_daily_article(
+            date,
+            url,
+            {"summary": summary_data},
+            row["updated_at"],
+        )
+
+        if not rpc_result.get("conflict"):
+            return {
+                "payload": rpc_result.get("payload"),
+                "updated_at": rpc_result.get("updated_at"),
+            }
+
+        last_conflict_updated_at = rpc_result.get("updated_at")
+        logger.info(
+            "persist_article_summary conflict date=%s url=%s attempt=%s updated_at=%s",
+            date,
+            url,
+            attempt_index + 1,
+            last_conflict_updated_at,
+        )
+
+    raise RuntimeError(
+        f"persist_article_summary conflict retry exhausted (date={date}, url={url}, attempts={max_retries})"
+    )
+
+
 def register_consensus_submodule() -> None:
     """Mount the standalone consensus app when the submodule is present."""
     if not CONSENSUS_SUBMODULE_DIRECTORY.exists():
@@ -140,16 +179,20 @@ def scrape_newsletters_in_date_range():
 def summarize_url_endpoint(model: str = DEFAULT_MODEL):
     """Create a summary of the content at a URL.
 
-    Requires 'url'. Optional: 'summarize_effort' to set the reasoning effort level, 'model' query param to specify Gemini model.
+    Requires 'url'. Optional: 'issue_date' (YYYY-MM-DD) to persist the summary into Supabase
+    for that day's article. 'summarize_effort' to set the reasoning effort level. 'model'
+    query param to specify Gemini model.
     """
     try:
         data = request.get_json() or {}
         model_param = request.args.get("model", DEFAULT_MODEL)
         url = data.get("url", "")
+        issue_date = data.get("issue_date")
         summarize_effort = data.get("summarize_effort", DEFAULT_THINKING_EFFORT)
         logger.info(
-            "summarize_url start url=%s summarize_effort=%s model=%s",
+            "summarize_url start url=%s issue_date=%s summarize_effort=%s model=%s",
             url,
+            issue_date,
             summarize_effort,
             model_param,
         )
@@ -158,10 +201,30 @@ def summarize_url_endpoint(model: str = DEFAULT_MODEL):
             summarize_effort=summarize_effort,
             model=model_param,
         )
+
+        if result.get("success") and issue_date:
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            summary_data = {
+                "status": "available",
+                "markdown": result["summary_markdown"],
+                "effort": summarize_effort,
+                "checkedAt": now_iso,
+                "errorMessage": None,
+            }
+            persisted = persist_article_summary(issue_date, url, summary_data)
+            result["payload"] = persisted["payload"]
+            logger.info(
+                "summarize_url persisted url=%s issue_date=%s updated_at=%s",
+                url,
+                issue_date,
+                persisted["updated_at"],
+            )
+
         logger.info(
-            "summarize_url done url=%s success=%s",
+            "summarize_url done url=%s success=%s persisted=%s",
             url,
             result.get("success"),
+            "payload" in result,
         )
 
         return jsonify(result)
@@ -505,6 +568,40 @@ def check_storage_is_cached(date):
             exc_info=True,
         )
         return jsonify({"success": False, "error": repr(e)}), 500
+
+
+@app.route("/api/debug/supabase-url", methods=["GET"])
+def debug_supabase_url():
+    """Return SUPABASE_URL of the connected Supabase instance for manual-test observability."""
+    try:
+        return jsonify({"success": True, "url": util.resolve_env_var("SUPABASE_URL")})
+    except Exception as error:
+        logger.exception("debug_supabase_url failed: %s", error)
+        return jsonify({"success": False, "error": repr(error)}), 500
+
+
+@app.route("/api/debug/clear-daily-cache", methods=["POST"])
+def debug_clear_daily_cache():
+    """Delete daily_cache rows in [start_date, end_date]. Manual-test setup helper."""
+    try:
+        data = request.get_json()
+        deleted_count = storage_service.delete_daily_payloads_range(data['start_date'], data['end_date'])
+        return jsonify({"success": True, "deleted_count": deleted_count})
+    except Exception as error:
+        logger.exception("debug_clear_daily_cache failed: %s", error)
+        return jsonify({"success": False, "error": repr(error)}), 500
+
+
+@app.route("/api/debug/daily-cache-summary", methods=["POST"])
+def debug_daily_cache_summary():
+    """Flat summary of daily_cache rows in [start_date, end_date] for debug panels."""
+    try:
+        data = request.get_json()
+        summary = storage_service.get_daily_payloads_summary(data['start_date'], data['end_date'])
+        return jsonify({"success": True, "summary": summary})
+    except Exception as error:
+        logger.exception("debug_daily_cache_summary failed: %s", error)
+        return jsonify({"success": False, "error": repr(error)}), 500
 
 
 if __name__ == "__main__":

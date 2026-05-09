@@ -34,7 +34,11 @@ export function useFeedLoader() {
 
     let phaseOneRendered = false
 
-    const cachedPayloads = await getDailyPayloadsRange(startDate, endDate, signal).catch(() => [])
+    const cachedPayloads = await getDailyPayloadsRange(startDate, endDate, signal).catch((error) => {
+      if (error?.name === 'AbortError') return []
+      console.error('getDailyPayloadsRange failed; falling back to empty cache:', error)
+      return []
+    })
     if (signal?.aborted) return
     if (requestTokenRef.current !== requestToken) return
 
@@ -52,6 +56,7 @@ export function useFeedLoader() {
     } catch (error) {
       if (signal?.aborted) return
       if (requestTokenRef.current !== requestToken) return
+      console.error(`scrapeNewsletters failed for ${range}:`, error)
       logTransition('feed', range, phaseOneRendered ? 'cached' : 'fetching', 'error', error.message)
       setFeedStatus({ status: 'error', error: error.message })
       if (!phaseOneRendered) throw error
