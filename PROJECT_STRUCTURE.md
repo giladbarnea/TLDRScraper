@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-07 12:00
+last_updated: 2026-05-09 05:07
 ---
 
 .
@@ -53,6 +53,7 @@ last_updated: 2026-05-07 12:00
 │  │  │  ├── ArticleList.jsx
 │  │  │  ├── BaseOverlay.jsx
 │  │  │  ├── CalendarDay.jsx
+│  │  │  ├── DebugPanel.jsx
 │  │  │  ├── DigestOverlay.jsx
 │  │  │  ├── ElaborationPreview.jsx
 │  │  │  ├── Feed.jsx
@@ -64,6 +65,7 @@ last_updated: 2026-05-07 12:00
 │  │  │  ├── Selectable.jsx
 │  │  │  ├── SelectionActionDock.jsx
 │  │  │  ├── ToastContainer.jsx
+│  │  │  ├── YamlView.jsx
 │  │  │  └── ZenModeOverlay.jsx
 │  │  ├── hooks
 │  │  │  ├── useArticleState.js
@@ -79,6 +81,7 @@ last_updated: 2026-05-07 12:00
 │  │  │  ├── useSwipeToRemove.js
 │  │  │  └── useTrackedState.js
 │  │  ├── lib
+│  │  │  ├── apiError.js
 │  │  │  ├── dailyPayloadMutations.js
 │  │  │  ├── interactionConstants.js
 │  │  │  ├── markdownUtils.js
@@ -89,6 +92,8 @@ last_updated: 2026-05-07 12:00
 │  │  │  ├── stateTransitionLogger.js
 │  │  │  ├── storageApi.js
 │  │  │  ├── toastBus.js
+│  │  │  ├── yamlLog.js
+│  │  │  ├── yamlTokens.js
 │  │  │  └── zenLock.js
 │  │  ├── reducers
 │  │  │  ├── articleLifecycleReducer.js
