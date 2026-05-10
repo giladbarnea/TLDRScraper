@@ -25,8 +25,71 @@
 # ```
 
 # -------
-# Example sessions.yaml file:
 sessions:
+  # May 10 2026
+  680db8fb-8906-4fb6-b01f-9212fa32ee92:
+    description:
+      - "Evaluated and addressed PR comments for the 'unified feed read model' implementation, focusing on preserving the article-key identity invariant."
+      - "Resolved a bug in digest collapse where matching URLs across different dates were incorrectly marked read; transitioned the digest flow to be fully article-key-scoped."
+      - "Verified the fix using a synthetic duplicate-URL scenario injected into Supabase, ensuring that mutations remain isolated to the specific article keys involved in a digest."
+      - "Documented the identity-invariant rationale and the verification process in a new design note."
+    custom_title: "fix data inconsistency pr comments"
+    directories: [~/dev/TLDRScraper]
+    updated_when_message_count_was: 21
+    keywords: [pr-comments, article-identity, digest-refactor, supabase-mutation, verification]
+    prominent_tech_stack: [React, Supabase, Python]
+    new_files:
+      - thoughts/26-05-05-client-read-model-boundaries/pr-comments-fix.md
+    edited_files:
+      - client/src/hooks/useDigest.js
+      - client/src/store/articleStore.js
+      - thoughts/26-05-05-client-read-model-boundaries/unified-feed-read-model-plan.md
+
+  # May 09 2026
+  c8c997ac-347a-43e3-8716-7bf8128e4ae6:
+    description:
+      - "Implemented the 'unified feed read model' plan, refactoring the article store into a single source of truth that manages article state and ingestion boundaries, eliminating complex merge logic and sessionStorage caching."
+      - "Migrated the entire component tree (Feed, CalendarDay, NewsletterDay, ArticleList, ArticleCard) and hooks (useDigest, dailyPayloadMutations) to be article-key-driven rather than URL-driven, and deleted legacy merge/storage utilities."
+      - "Established an automated testing suite for the store using Vitest and happy-dom, covering critical invariants like cross-date URL independence and stale article pruning."
+      - "Developed a suite of 'AAA UI testing' building blocks including a DebugPanel with live YAML store stats, a custom YAML tokenizer for syntax highlighting, and server-side endpoints for clearing Supabase cache rows."
+      - "Improved system-wide observability and reliability by tightening API error handling and moving summary persistence to the server-side, ensuring article summaries are durable before returning to the client."
+    custom_title: "[implement] unified feed read model"
+    directories: [~/dev/TLDRScraper]
+    updated_when_message_count_was: 96
+    keywords: [unified-read-model, store-refactor, automated-testing, debug-observability, server-side-persistence]
+    prominent_tech_stack: [React, Vitest, Supabase, Python]
+    new_files:
+      - thoughts/26-05-05-client-read-model-boundaries/unified-feed-read-model-todos.md
+      - client/src/store/articleStore.test.js
+      - client/src/lib/yamlLog.js
+      - client/src/lib/yamlTokens.js
+      - client/src/lib/yamlTokens.test.js
+      - client/src/components/YamlView.jsx
+      - client/src/components/DebugPanel.jsx
+      - client/src/lib/apiError.js
+      - thoughts/26-05-05-client-read-model-boundaries/summary.md
+    edited_files:
+      - client/src/store/articleStore.js
+      - client/src/hooks/useFeedLoader.js
+      - client/src/App.jsx
+      - client/src/components/Feed.jsx
+      - client/src/components/CalendarDay.jsx
+      - client/src/components/NewsletterDay.jsx
+      - client/src/components/ArticleList.jsx
+      - client/src/components/ArticleCard.jsx
+      - client/src/hooks/useArticleState.js
+      - client/src/hooks/useSummary.js
+      - client/src/components/ReadStatsBadge.jsx
+      - client/src/components/Selectable.jsx
+      - client/src/hooks/useDigest.js
+      - client/src/hooks/dailyPayloadMutations.js
+      - client/src/lib/scraper.js
+      - client/package.json
+      - client/vite.config.js
+      - serve.py
+      - storage_service.py
+      - thoughts/26-05-05-client-read-model-boundaries/unified-feed-read-model-plan.md
+
   # Apr 20 2026
   8d2faf95-fdde-48d4-89eb-67fe0c1c683b:
     description:

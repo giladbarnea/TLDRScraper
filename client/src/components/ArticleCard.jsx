@@ -6,7 +6,7 @@ import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
 import { getSourceLogo } from '../lib/sourceLogoMap'
-import { interactionActions, useIsSelectMode } from '../store/articleStore'
+import { interactionActions, useArticleSlice, useIsSelectMode } from '../store/articleStore'
 import Selectable from './Selectable'
 import ZenModeOverlay from './ZenModeOverlay'
 
@@ -78,16 +78,14 @@ function SummaryError({ message }) {
   )
 }
 
-function ArticleCard({ article }) {
+function ArticleCard({ articleKey }) {
+  const slice = useArticleSlice(articleKey)
   const isSelectMode = useIsSelectMode()
-  const { isRead, isRemoved, toggleRemove, markAsRead, markAsRemoved, loading: stateLoading } = useArticleState(
-    article.issueDate,
-    article.url
-  )
-  const summary = useSummary(article.issueDate, article.url)
+  const { isRead, isRemoved, toggleRemove, markAsRead, markAsRemoved, loading: stateLoading } = useArticleState(articleKey)
+  const summary = useSummary(articleKey)
   const { isAvailable } = summary
 
-  const componentId = `article-${article.url}`
+  const componentId = articleKey
 
   const handleSummaryClose = (markAsReadOnClose = true) => {
     summary.collapse()
@@ -103,14 +101,16 @@ function ArticleCard({ article }) {
     isRemoved,
     stateLoading,
     onSwipeComplete: handleSwipeComplete,
-    url: article.url,
+    url: slice?.url,
   })
 
   const swipeEnabled = canDrag && !isSelectMode
 
-  const fullUrl = article.url.startsWith('http://') || article.url.startsWith('https://')
-    ? article.url
-    : `https://${article.url}`
+  if (!slice) return null
+
+  const fullUrl = slice.url.startsWith('http://') || slice.url.startsWith('https://')
+    ? slice.url
+    : `https://${slice.url}`
 
   const { displayDomain, hostname } = (() => {
     try {
@@ -165,11 +165,11 @@ function ArticleCard({ article }) {
           whileTap={swipeEnabled ? { scale: 0.99 } : undefined}
           onClick={handleCardClick}
           style={{ touchAction: swipeEnabled ? "pan-y" : "auto" }}
-          data-article-title={article.title}
-          data-article-url={article.url}
-          data-article-date={article.issueDate}
-          data-article-category={article.category}
-          data-article-source={article.sourceId}
+          data-article-title={slice.title}
+          data-article-url={slice.url}
+          data-article-date={slice.issueDate}
+          data-article-category={slice.category}
+          data-article-source={slice.sourceId}
           data-read={isRead}
           data-removed={isRemoved}
           data-state-loading={stateLoading}
@@ -193,16 +193,24 @@ function ArticleCard({ article }) {
             <div className="flex flex-col gap-1.5 min-w-0 flex-1">
               <ArticleTitle
                 isRead={isRead}
-                title={article.title}
+                title={slice.title}
               />
 
               {!isRemoved && (
                 <ArticleMeta
-                  sourceId={article.sourceId}
+                  sourceId={slice.sourceId}
                   domain={displayDomain}
-                  articleMeta={article.articleMeta}
+                  articleMeta={slice.articleMeta}
                 />
               )}
+
+              <span
+                data-debug-article-url={slice.url}
+                className="text-[10px] font-mono text-slate-300 truncate select-text"
+                title={slice.url}
+              >
+                {slice.url}
+              </span>
 
             {!isRemoved && summary.status === 'error' && (
               <SummaryError message={summary.errorMessage} />
@@ -214,7 +222,7 @@ function ArticleCard({ article }) {
                 summaryMarkdown={summary.markdown}
                 hostname={hostname}
                 displayDomain={displayDomain}
-                articleMeta={article.articleMeta}
+                articleMeta={slice.articleMeta}
                 onClose={() => handleSummaryClose()}
                 onMarkRemoved={() => {
                   handleSummaryClose(false)
@@ -234,7 +242,7 @@ function ArticleCard({ article }) {
                 }}
                 className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-slate-400 hover:text-slate-900"
                 title="Restore article"
-                aria-label={`Restore ${article.title}`}
+                aria-label={`Restore ${slice.title}`}
               >
                 <Undo2 size={14} />
                 <span>Restore</span>

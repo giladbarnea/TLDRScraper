@@ -26,9 +26,10 @@ _SUMMARY_PROMPT_CACHE = None
 _DIGEST_PROMPT_CACHE = None
 
 SUMMARIZE_EFFORT_OPTIONS = ("minimal", "low", "medium", "high")
-DEFAULT_THINKING_EFFORT = "low"
-DEFAULT_MODEL = "gemini-3.1-pro-preview"
+DEFAULT_THINKING_EFFORT = "high"
+DEFAULT_MODEL = "gemini-3-flash-preview"
 DEFAULT_ELABORATE_MODEL="gemini-3-flash-preview"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 
 def normalize_summarize_effort(value: str) -> str:
@@ -520,8 +521,35 @@ def _map_reasoning_effort_to_thinking_level(summarize_effort: str) -> str:
     return "high"
 
 
+def _call_llm_via_openrouter(prompt: str, model: str, thinking_effort: str) -> str:
+    """Fallback LLM call via OpenRouter using the same model when Gemini is unreachable."""
+    api_key = util.resolve_env_var("OPENROUTER_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY not set")
+
+    effort = normalize_summarize_effort(thinking_effort)
+    openrouter_effort = "low" if effort == "minimal" else effort
+
+    resp = requests.post(
+        f"{OPENROUTER_BASE_URL}/chat/completions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": f"google/{model}",
+            "messages": [{"role": "user", "content": prompt}],
+            "reasoning": {"effort": openrouter_effort},
+        },
+        timeout=600,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return data["choices"][0]["message"]["content"]
+
+
 def _call_llm(prompt: str, thinking_effort: str = DEFAULT_THINKING_EFFORT, model: str = DEFAULT_MODEL) -> str:
-    """Call Gemini API with prompt."""
+    """Call Gemini API with prompt, falling back to OpenRouter on network errors."""
     api_key = util.resolve_env_var("GEMINI_API_KEY", "")
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY not set")
@@ -546,9 +574,21 @@ def _call_llm(prompt: str, thinking_effort: str = DEFAULT_THINKING_EFFORT, model
         }
     }
 
-    resp = requests.post(url, headers=headers, data=json.dumps(body), timeout=600)
-    resp.raise_for_status()
-    data = resp.json()
+    try:
+        resp = requests.post(url, headers=headers, data=json.dumps(body), timeout=600)
+        resp.raise_for_status()
+        data = resp.json()
+    except requests.exceptions.ConnectionError as e:
+        logger.warning(f"Gemini network error ({e}), falling back to OpenRouter")
+        return _call_llm_via_openrouter(prompt, model, thinking_effort)
+    except requests.exceptions.Timeout as e:
+        logger.warning(f"Gemini timeout ({e}), falling back to OpenRouter")
+        return _call_llm_via_openrouter(prompt, model, thinking_effort)
+    except requests.exceptions.HTTPError as e:
+        if e.response is not None and e.response.status_code == 429:
+            logger.warning(f"Gemini rate limited, falling back to OpenRouter")
+            return _call_llm_via_openrouter(prompt, model, thinking_effort)
+        raise
 
     candidates = data.get("candidates") or []
     if not candidates:

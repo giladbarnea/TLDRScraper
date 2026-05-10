@@ -1,34 +1,16 @@
+import { motion } from 'framer-motion'
+import { useNewsletterView } from '../store/articleStore'
 import ArticleList from './ArticleList'
 import FoldableContainer from './FoldableContainer'
 import ReadStatsBadge from './ReadStatsBadge'
-import RemovedOrderSlot from './RemovedOrderSlot'
 import Selectable from './Selectable'
 
-function groupArticlesBySection(articles) {
-  return articles.reduce((acc, article) => {
-    const sectionKey = article.section
-    if (!acc[sectionKey]) {
-      acc[sectionKey] = []
-    }
-    acc[sectionKey].push(article)
-    return acc
-  }, {})
-}
-
-function getSortedSectionKeys(sections) {
-  return Object.keys(sections).sort((a, b) => {
-    const articleA = sections[a][0]
-    const articleB = sections[b][0]
-    return (articleA.sectionOrder ?? 0) - (articleB.sectionOrder ?? 0)
-  })
-}
-
-function IssueSubtitle({ issue, allRemoved }) {
-  if (!issue?.subtitle || issue.subtitle === issue.title) return null
+function IssueSubtitle({ subtitle, title, allRemoved }) {
+  if (!subtitle || subtitle === title) return null
 
   return (
     <div className={`mb-3 text-xs text-slate-400 tracking-wide transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}>
-      <span>{issue.subtitle}</span>
+      <span>{subtitle}</span>
     </div>
   )
 }
@@ -43,68 +25,40 @@ function SectionTitle({ displayTitle }) {
   )
 }
 
-function Section({ date, sourceId, newsletterTitle, sectionKey, articles, allRemoved }) {
-  const sectionEmoji = articles[0].sectionEmoji
-  const displayTitle = sectionEmoji ? `${sectionEmoji} ${sectionKey}` : sectionKey
+function Section({ date, sourceId, section, originalOrder }) {
+  const { key: sectionKey, emoji, articleKeys, allRemoved } = section
+  const displayTitle = emoji ? `${emoji} ${sectionKey}` : sectionKey
   const componentId = `section-${date}-${sourceId}-${sectionKey}`
-  const descendantIds = articles.map(a => `article-${a.url}`)
+  const order = allRemoved ? 10_000 + originalOrder : originalOrder
 
   return (
-    <Selectable id={componentId} descendantIds={descendantIds}>
-      <FoldableContainer
-        key={`${newsletterTitle}-${sectionKey}`}
-        id={componentId}
-        title={<SectionTitle displayTitle={displayTitle} />}
-        headerClassName="transition-all duration-300"
-        defaultFolded={allRemoved}
-        className={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
-      >
-        <div className="mt-2 transition-all duration-300">
-          <ArticleList articles={articles} />
-        </div>
-      </FoldableContainer>
-    </Selectable>
+    <motion.div layout style={{ order }}>
+      <Selectable id={componentId} descendantIds={articleKeys}>
+        <FoldableContainer
+          id={componentId}
+          title={<SectionTitle displayTitle={displayTitle} />}
+          headerClassName="transition-all duration-300"
+          defaultFolded={allRemoved}
+          className={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+        >
+          <div className="mt-2 transition-all duration-300">
+            <ArticleList articleKeys={articleKeys} />
+          </div>
+        </FoldableContainer>
+      </Selectable>
+    </motion.div>
   )
 }
 
-function SectionsList({ date, sourceId, title, sections, sortedSectionKeys }) {
-  return sortedSectionKeys.map((sectionKey, index) => {
-    const articles = sections[sectionKey]
+function NewsletterDay({ date, sourceId }) {
+  const view = useNewsletterView(date, sourceId)
+  if (!view) return null
 
-    return (
-      <RemovedOrderSlot
-        key={`${title}-${sectionKey}`}
-        date={date}
-        urls={articles.map((article) => article.url)}
-        originalOrder={index}
-      >
-        {(allRemoved) => (
-          <Section
-            date={date}
-            sourceId={sourceId}
-            newsletterTitle={title}
-            sectionKey={sectionKey}
-            articles={articles}
-            allRemoved={allRemoved}
-          />
-        )}
-      </RemovedOrderSlot>
-    )
-  })
-}
-
-function NewsletterDay({ date, title, issue, articles, allRemoved }) {
-  const articleUrls = articles.map((article) => article.url)
-  const hasSections = articles.some(a => a.section)
-
-  const sections = hasSections ? groupArticlesBySection(articles) : {}
-  const sortedSectionKeys = hasSections ? getSortedSectionKeys(sections) : []
-
-  const componentId = `newsletter-${date}-${issue.source_id}`
-  const descendantIds = articles.map(a => `article-${a.url}`)
+  const { title, issue, articleKeys, sections, hasSections, allRemoved, completedCount, totalCount } = view
+  const componentId = `newsletter-${date}-${sourceId}`
 
   return (
-    <Selectable id={componentId} descendantIds={descendantIds}>
+    <Selectable id={componentId} descendantIds={articleKeys}>
       <FoldableContainer
         id={componentId}
         headerClassName="border-b border-slate-100 transition-all duration-300"
@@ -114,24 +68,26 @@ function NewsletterDay({ date, title, issue, articles, allRemoved }) {
             <h3 className="font-display font-semibold text-[17px] text-slate-900">
               {title}
             </h3>
-            <ReadStatsBadge date={date} urls={articleUrls} />
+            <ReadStatsBadge completedCount={completedCount} totalCount={totalCount} />
           </div>
         }
         defaultFolded={allRemoved}
       >
         <div className="mt-3 flex flex-col gap-3">
-          <IssueSubtitle issue={issue} allRemoved={allRemoved} />
+          <IssueSubtitle subtitle={issue?.subtitle} title={title} allRemoved={allRemoved} />
 
           {hasSections ? (
-            <SectionsList
-              date={date}
-              sourceId={issue.source_id}
-              title={title}
-              sections={sections}
-              sortedSectionKeys={sortedSectionKeys}
-            />
+            sections.map((section, index) => (
+              <Section
+                key={`${title}-${section.key}`}
+                date={date}
+                sourceId={sourceId}
+                section={section}
+                originalOrder={index}
+              />
+            ))
           ) : (
-            <ArticleList articles={articles} />
+            <ArticleList articleKeys={articleKeys} />
           )}
         </div>
       </FoldableContainer>

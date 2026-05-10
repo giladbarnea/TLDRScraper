@@ -1,11 +1,11 @@
 import { useEffect, useMemo } from 'react'
 import { releaseZenLock } from '../lib/zenLock'
 import * as summaryDataReducer from '../reducers/summaryDataReducer'
-import { summaryActions, useArticleSlice } from '../store/articleStore'
+import { parseArticleKey, summaryActions, useArticleSlice } from '../store/articleStore'
 
-export function useSummary(date, url, type = 'summary') {
-  const slice = useArticleSlice(date, url)
-  const key = `${date}::${url}`
+export function useSummary(articleKey, type = 'summary') {
+  const slice = useArticleSlice(articleKey)
+  const { url } = parseArticleKey(articleKey)
 
   const data = slice?.[type] || null
   const status = summaryDataReducer.getSummaryDataStatus(data)
@@ -18,18 +18,18 @@ export function useSummary(date, url, type = 'summary') {
   const effort = data?.effort || 'low'
 
   const commands = useMemo(() => Object.freeze({
-    fetch: (summaryEffort) => summaryActions.fetch(key, summaryEffort),
-    toggle: (summaryEffort) => summaryActions.toggle(key, summaryEffort),
-    collapse: () => summaryActions.collapse(key),
-    expand: () => summaryActions.expand(key),
-  }), [key])
+    fetch: (summaryEffort) => summaryActions.fetch(articleKey, summaryEffort),
+    toggle: (summaryEffort) => summaryActions.toggle(articleKey, summaryEffort),
+    collapse: () => summaryActions.collapse(articleKey),
+    expand: () => summaryActions.expand(articleKey),
+  }), [articleKey])
 
   useEffect(() => {
     return () => {
       releaseZenLock(url)
-      summaryActions.abort(key)
+      summaryActions.abort(articleKey)
     }
-  }, [url, key])
+  }, [url, articleKey])
 
   return useMemo(() => ({
     data,

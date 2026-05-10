@@ -1,14 +1,13 @@
+import { readApiResponse } from './apiError'
+
 export async function getDailyPayloadWithMetadata(date) {
   const response = await window.fetch(`/api/storage/daily/${date}`)
-  const data = await response.json()
 
   if (response.status === 404) {
     return null
   }
 
-  if (!data.success) {
-    throw new Error(data.error || 'Failed to load payload metadata')
-  }
+  const data = await readApiResponse(response, `GET /api/storage/daily/${date}`)
 
   return {
     payload: data.payload,
@@ -26,20 +25,17 @@ export async function patchDailyPayload(date, { patch, expectedUpdatedAt }) {
     })
   })
 
-  const data = await response.json()
-
   if (response.status === 409) {
+    const conflictData = await response.json()
     return {
       success: false,
       conflict: true,
-      payload: data.payload,
-      updatedAt: data.updated_at
+      payload: conflictData.payload,
+      updatedAt: conflictData.updated_at,
     }
   }
 
-  if (!data.success) {
-    throw new Error(data.error || 'Failed to patch payload')
-  }
+  const data = await readApiResponse(response, `PATCH /api/storage/daily/${date}`)
 
   return {
     success: true,
@@ -56,13 +52,8 @@ export async function getDailyPayloadsRange(startDate, endDate, signal) {
     signal
   })
 
-  const data = await response.json()
-
-  if (data.success) {
-    return data.payloads
-  }
-
-  throw new Error(data.error || 'Failed to load payloads')
+  const data = await readApiResponse(response, 'POST /api/storage/daily-range')
+  return data.payloads
 }
 
 export async function patchDailyArticle(date, { url, patch, expectedUpdatedAt }) {
@@ -76,20 +67,17 @@ export async function patchDailyArticle(date, { url, patch, expectedUpdatedAt })
     })
   })
 
-  const data = await response.json()
-
   if (response.status === 409) {
+    const conflictData = await response.json()
     return {
       success: false,
       conflict: true,
-      payload: data.payload,
-      updatedAt: data.updated_at
+      payload: conflictData.payload,
+      updatedAt: conflictData.updated_at,
     }
   }
 
-  if (!data.success) {
-    throw new Error(data.error || 'Failed to patch article')
-  }
+  const data = await readApiResponse(response, `PATCH /api/storage/daily/${date}/article`)
 
   return {
     success: true,
