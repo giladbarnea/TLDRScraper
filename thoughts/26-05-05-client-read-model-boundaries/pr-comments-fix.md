@@ -4,7 +4,7 @@ plan: unified-feed-read-model-plan.md
 parent_implementation: summary.md
 branch: fix-data-inconsistency
 pr: 661
-last_updated: 2026-05-10 17:52
+last_updated: 2026-05-10 18:02, f1f2f31
 ---
 
 # Digest Collapse Key Scoping — PR 661 Fixup

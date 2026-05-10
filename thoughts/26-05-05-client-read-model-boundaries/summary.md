@@ -2,7 +2,7 @@
 status: completed
 plan: unified-feed-read-model-plan.md
 todos: unified-feed-read-model-todos.md
-last_updated: 2026-05-09 17:17
+last_updated: 2026-05-10 18:02, f1f2f31
 ---
 
 # Unified Feed Read Model — Implementation Notes

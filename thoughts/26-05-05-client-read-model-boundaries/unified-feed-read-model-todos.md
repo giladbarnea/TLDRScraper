@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-06 19:47
+last_updated: 2026-05-10 18:02, f1f2f31
 companion_to: unified-feed-read-model-plan.md
 ---
 
