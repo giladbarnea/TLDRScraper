@@ -5,7 +5,7 @@ import { logTransition } from '../lib/stateTransitionLogger'
 import { acquireZenLock, releaseZenLock } from '../lib/zenLock'
 import { ArticleLifecycleEventType, reduceArticleLifecycle } from '../reducers/articleLifecycleReducer'
 import * as summaryDataReducer from '../reducers/summaryDataReducer'
-import { findArticleKeysByUrls, getSnapshotArticle, getSnapshotDay, interactionActions, parseArticleKey, useDigestState, useVisibleDates } from '../store/articleStore'
+import { getSnapshotArticle, getSnapshotDay, interactionActions, parseArticleKey, useDigestState, useVisibleDates } from '../store/articleStore'
 
 const DIGEST_LOCK_OWNER = 'digest'
 
@@ -121,10 +121,10 @@ export function useDigest() {
   const trigger = (selectedArticles) => {
     if (!selectedArticles || selectedArticles.length < 2) return
 
-    if (isAvailable && data?.articleUrls) {
-      const incomingUrls = new Set(selectedArticles.map(d => d.url))
-      const cachedUrls = new Set(data.articleUrls)
-      if (incomingUrls.size === cachedUrls.size && [...incomingUrls].every(u => cachedUrls.has(u))) {
+    if (isAvailable && data?.articleKeys) {
+      const incomingKeys = new Set(selectedArticles.map(d => d.key))
+      const cachedKeys = new Set(data.articleKeys)
+      if (incomingKeys.size === cachedKeys.size && [...incomingKeys].every(k => cachedKeys.has(k))) {
         expand()
         return
       }
@@ -182,10 +182,15 @@ export function useDigest() {
 
         if (result.success) {
           await restoreDigestArticlesSummary(keysByDate, previousSummaryByKey)
+          const includedUrls = new Set(result.included_urls ?? articleUrls)
+          const includedKeys = selectedArticles
+            .filter(({ url }) => includedUrls.has(url))
+            .map(({ key }) => key)
           await writeDigest({
             status: summaryDataReducer.SummaryDataStatus.AVAILABLE,
             markdown: result.digest_markdown,
-            articleUrls: result.included_urls ?? articleUrls,
+            articleKeys: includedKeys,
+            articleUrls: [...includedUrls],
             generatedAt: new Date().toISOString(),
             effort: 'low',
             errorMessage: null,
@@ -230,10 +235,9 @@ export function useDigest() {
 
   const collapse = useCallback(async (shouldRemove = false) => {
     try {
-      if (status === summaryDataReducer.SummaryDataStatus.AVAILABLE && data?.articleUrls?.length > 0) {
-        const keys = findArticleKeysByUrls(data.articleUrls)
+      if (status === summaryDataReducer.SummaryDataStatus.AVAILABLE && data?.articleKeys?.length > 0) {
         const keysByDate = new Map()
-        for (const key of keys) {
+        for (const key of data.articleKeys) {
           const { date } = parseArticleKey(key)
           if (!keysByDate.has(date)) keysByDate.set(date, [])
           keysByDate.get(date).push(key)

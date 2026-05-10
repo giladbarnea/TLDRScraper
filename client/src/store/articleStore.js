@@ -397,15 +397,6 @@ export function getSnapshotDay(date) {
   return daysByDate.get(date) ?? null
 }
 
-export function findArticleKeysByUrls(urls) {
-  const urlSet = new Set(urls)
-  const found = []
-  for (const [key, slice] of articlesByKey) {
-    if (urlSet.has(slice.url)) found.push(key)
-  }
-  return found
-}
-
 function getSnapshotFeed() {
   return feed
 }

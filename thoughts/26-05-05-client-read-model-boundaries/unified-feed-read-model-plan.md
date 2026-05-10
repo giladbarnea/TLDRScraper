@@ -1,7 +1,8 @@
 ---
-last_updated: 2026-05-09 17:17
+last_updated: 2026-05-10 17:52
 status: completed
 implementation: summary.md
+followups: pr-comments-fix.md
 todos: unified-feed-read-model-todos.md
 ---
 

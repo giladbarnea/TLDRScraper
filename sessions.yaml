@@ -25,8 +25,26 @@
 # ```
 
 # -------
-# Example sessions.yaml file:
 sessions:
+  # May 10 2026
+  680db8fb-8906-4fb6-b01f-9212fa32ee92:
+    description:
+      - "Evaluated and addressed PR comments for the 'unified feed read model' implementation, focusing on preserving the article-key identity invariant."
+      - "Resolved a bug in digest collapse where matching URLs across different dates were incorrectly marked read; transitioned the digest flow to be fully article-key-scoped."
+      - "Verified the fix using a synthetic duplicate-URL scenario injected into Supabase, ensuring that mutations remain isolated to the specific article keys involved in a digest."
+      - "Documented the identity-invariant rationale and the verification process in a new design note."
+    custom_title: "fix data inconsistency pr comments"
+    directories: [~/dev/TLDRScraper]
+    updated_when_message_count_was: 21
+    keywords: [pr-comments, article-identity, digest-refactor, supabase-mutation, verification]
+    prominent_tech_stack: [React, Supabase, Python]
+    new_files:
+      - thoughts/26-05-05-client-read-model-boundaries/pr-comments-fix.md
+    edited_files:
+      - client/src/hooks/useDigest.js
+      - client/src/store/articleStore.js
+      - thoughts/26-05-05-client-read-model-boundaries/unified-feed-read-model-plan.md
+
   # May 09 2026
   c8c997ac-347a-43e3-8716-7bf8128e4ae6:
     description:

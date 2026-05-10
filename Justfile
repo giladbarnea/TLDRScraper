@@ -196,6 +196,52 @@ logs:
   mkdir -p "$run_dir"
   touch "$backend_log_file" "$frontend_log_file"
 
+  tail -n +1 "$backend_log_file" "$frontend_log_file" 2>/dev/null |
+    awk -v backend_log_file="$backend_log_file" -v frontend_log_file="$frontend_log_file" '
+      function switch_to(stream_name) {
+        if (current_stream != "" && current_stream != stream_name) {
+          print "</" current_stream ">"
+        }
+        if (current_stream != stream_name) {
+          current_stream = stream_name
+          print "<" current_stream ">"
+          fflush()
+        }
+      }
+
+      $0 == "==> " backend_log_file " <==" {
+        switch_to("server")
+        next
+      }
+
+      $0 == "==> " frontend_log_file " <==" {
+        switch_to("client")
+        next
+      }
+
+      {
+        print
+        fflush()
+      }
+
+      END {
+        if (current_stream != "") {
+          print "</" current_stream ">"
+        }
+      }
+    '
+
+logs-follow:
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  run_dir='{{run_dir}}'
+  backend_log_file='{{backend_log_file}}'
+  frontend_log_file='{{frontend_log_file}}'
+
+  mkdir -p "$run_dir"
+  touch "$backend_log_file" "$frontend_log_file"
+
   tail -n +1 -F "$backend_log_file" "$frontend_log_file" 2>/dev/null |
     awk -v backend_log_file="$backend_log_file" -v frontend_log_file="$frontend_log_file" '
       function switch_to(stream_name) {
