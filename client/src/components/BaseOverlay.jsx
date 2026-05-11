@@ -30,6 +30,7 @@ function BaseOverlay({
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
   const nodeId = useFloatingNodeId()
+  // If need to improve design: extract shared state/actions around OverlayContextMenu by introducing a small useOverlayPointMenu primitive.
   const [linkMenuState, setLinkMenuState] = useState(CLOSED_OVERLAY_LINK_MENU_STATE)
   const overlayMenuHandleContextMenu = overlayMenu?.handleContextMenu
   const overlayMenuOnOpenChange = overlayMenu?.onOpenChange

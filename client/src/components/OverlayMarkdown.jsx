@@ -112,6 +112,7 @@ function htmlToReact(html) {
 }
 
 function OverlayMarkdown({ markdown }) {
+  // If need to improve design: render markdown from an AST, not sanitized HTML → DOMParser → React. Current design is because current pipeline is marked + KaTeX + DOMPurify. Cleaner: use a React markdown/rehype pipeline and override link nodes directly.
   const html = useMemo(() => markdownToHtml(markdown), [markdown])
   const content = useMemo(() => htmlToReact(html), [html])
   return <div className={overlayProseClassName}>{content}</div>
