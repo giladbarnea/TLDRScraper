@@ -1,4 +1,4 @@
-import { BookOpen, Check, ExternalLink, FileText, GitMerge, Sparkles, Trash2, X } from 'lucide-react'
+import { BookOpen, Check, ExternalLink, FileText, GitMerge, Podcast, Sparkles, Trash2, X } from 'lucide-react'
 
 function DockButton({ label, icon, onClick, disabled = false, danger = false, accent = false, style }) {
   const buttonBaseClassName = 'group flex min-w-16 flex-col items-center gap-1 rounded-xl px-2 py-1 text-slate-100 transition-all duration-200 ease-[var(--ease-springy)] hover:-translate-y-0.5 hover:text-white active:translate-y-0 active:scale-[0.96] disabled:opacity-35 disabled:hover:translate-y-0 disabled:hover:text-slate-100 disabled:active:scale-100 motion-safe:animate-dock-action-enter'
@@ -28,6 +28,7 @@ function SelectionActionDock({
   isSelectMode,
   selectedCount,
   isDigestLoading,
+  isPodcastLoading,
   canOpenSingleSummary,
   isSingleSummaryLoading,
   isSummarizeEachDisabled,
@@ -35,6 +36,7 @@ function SelectionActionDock({
   onMarkRead,
   onMarkRemoved,
   onTriggerDigest,
+  onTriggerPodcast,
   onSummarizeSingle,
   onBrowseSingle,
   onSummarizeEach,
@@ -85,6 +87,14 @@ function SelectionActionDock({
       icon: <GitMerge size={21} />,
       onClick: onTriggerDigest,
       disabled: isDigestLoading,
+      accent: true,
+    })
+    actions.push({
+      key: 'podcast',
+      label: isPodcastLoading ? 'Loading...' : 'Podcast',
+      icon: <Podcast size={21} />,
+      onClick: onTriggerPodcast,
+      disabled: isPodcastLoading,
       accent: true,
     })
     actions.push({

@@ -39,6 +39,7 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
   const feedStatus = useFeedStatus()
   const visibleDates = useVisibleDates()
   const digest = useDigest()
+  const [isPodcastLoading, setIsPodcastLoading] = useState(false)
   const isSelectMode = useIsSelectMode()
   const selectedArticles = useSelectedArticles()
   const selectedCount = selectedArticles.length
@@ -63,6 +64,23 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
 
   function handleTriggerDigest() {
     digest.trigger(selectedArticles)
+  }
+
+  async function handleTriggerPodcast() {
+    if (selectedCount < 2 || isPodcastLoading) return
+
+    setIsPodcastLoading(true)
+    try {
+      await window.fetch('/api/podcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls: selectedArticles.map(({ url }) => url) }),
+      })
+    } catch (error) {
+      console.error('Failed to request podcast:', error)
+    } finally {
+      setIsPodcastLoading(false)
+    }
   }
 
   async function handleMarkSelectedRead() {
@@ -202,6 +220,7 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
         isSelectMode={isSelectMode}
         selectedCount={selectedCount}
         isDigestLoading={digest.loading}
+        isPodcastLoading={isPodcastLoading}
         canOpenSingleSummary={canOpenSingleSummary}
         isSingleSummaryLoading={isSingleSummaryLoading}
         isSummarizeEachDisabled={isSummarizeEachDisabled}
@@ -209,6 +228,7 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
         onMarkRead={handleMarkSelectedRead}
         onMarkRemoved={handleMarkSelectedRemoved}
         onTriggerDigest={handleTriggerDigest}
+        onTriggerPodcast={handleTriggerPodcast}
         onSummarizeSingle={handleSummarizeSingle}
         onBrowseSingle={handleBrowseSingle}
         onSummarizeEach={handleSummarizeEach}
