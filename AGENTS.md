@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-03 15:10, bb6b54a
+last_updated: 2026-05-11 15:33
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -46,7 +46,10 @@ env | grep -E -o '^[A-Z_]+' | grep -e TOKEN -e API -e KEY -e SUPABASE -e VERCEL 
 - SUPABASE_URL
 - VERCEL_PROD_DEPLOYMENT_URL
 - VERCEL_PROJECT_ID
+- VERCEL_PROJECT_NAME
+- VERCEL_ORG_ID
 - VERCEL_TOKEN
+- OPENROUTER_API_KEY
 
 This is true both for local and production environments.
 
