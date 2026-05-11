@@ -1,6 +1,6 @@
 ---
 plan: thoughts/26-05-11-overlay-links-custom-component/plan.md
-last_updated: 2026-05-11 12:35
+last_updated: 2026-05-11 13:00, bf3c068
 ---
 # Overlay custom links implementation notes
 
