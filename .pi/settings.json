@@ -84,6 +84,6 @@
     "-skills/prompt-subagent/SKILL.md",
     "-skills/post-implementation/SKILL.md",
     "+skills/load-project-context/SKILL.md",
-    "+skills/to-done/SKILL.md"
+    "-skills/to-done/SKILL.md"
   ]
 }
