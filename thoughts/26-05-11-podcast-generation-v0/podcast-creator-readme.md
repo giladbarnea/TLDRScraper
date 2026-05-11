@@ -1,5 +1,6 @@
 ---
-last_updated: 2026-05-11 15:19
+last_updated: 2026-05-11 16:15
+implementation: ./implementation.md
 ---
 
 # Podcast Creator

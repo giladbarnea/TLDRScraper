@@ -1,7 +1,7 @@
 ---
 name: server/storage
 description: Server-side database schema and storage flow.
-last_updated: 2026-05-03 15:10, bb6b54a
+last_updated: 2026-05-11 16:15
 ---
 # Server: Storage
 
@@ -41,6 +41,16 @@ CREATE TABLE daily_cache (
   },
   cached_at: '2024-01-01T12:00:00Z'
 }
+```
+
+### Table: podcast_episodes
+
+```sql
+CREATE TABLE podcast_episodes (
+  canonical_url TEXT PRIMARY KEY,
+  audio_base64  TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 ```
 
 ### Storage Flow

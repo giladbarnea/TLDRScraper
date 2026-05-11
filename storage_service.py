@@ -276,6 +276,27 @@ def set_digest(
         )
 
 
+def get_podcast_episode(canonical_url: str) -> str | None:
+    """Return cached base64-encoded mp3 for canonical_url, or None on miss."""
+    supabase = supabase_client.get_supabase_client()
+    result = (
+        supabase.table('podcast_episodes')
+        .select('audio_base64')
+        .eq('canonical_url', canonical_url)
+        .execute()
+    )
+    return result.data[0]['audio_base64'] if result.data else None
+
+
+def set_podcast_episode(canonical_url: str, audio_base64: str) -> None:
+    """Persist a generated podcast episode (upsert)."""
+    supabase = supabase_client.get_supabase_client()
+    supabase.table('podcast_episodes').upsert({
+        'canonical_url': canonical_url,
+        'audio_base64': audio_base64,
+    }).execute()
+
+
 def _probe_seen_urls_table_once() -> bool:
     """Probe seen_urls table availability and retry after transient failures.
 
