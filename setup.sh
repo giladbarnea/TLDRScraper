@@ -447,6 +447,9 @@ function main() {
     VERCEL_TOKEN
     VERCEL_PROJECT_ID
     VERCEL_PROD_DEPLOYMENT_URL
+    OPENROUTER_API_KEY
+    VERCEL_ORG_ID
+    VERCEL_PROJECT_NAME
   )
   local pattern="($(
     IFS='|'

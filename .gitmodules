@@ -1,3 +1,0 @@
-[submodule "vendor/consensus"]
-	path = vendor/consensus
-	url = https://github.com/giladbarnea/consensus.git
