@@ -16,6 +16,7 @@ dependencies = [
     "anthropic>=0.72.0",
     "openai>=2.0.0",
     "google-genai>=1.36.0",
+    "podcast-creator>=0.2.6",
 ]
 
 [dependency-groups]
