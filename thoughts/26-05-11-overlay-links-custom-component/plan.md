@@ -7,7 +7,8 @@ created: "2026-05-11 13:50"
 modified: "2026-05-11 14:12"
 messages: 1
 custom_title: "TLDRScraper plan replace Overlay links with custom components"
-last_updated: 2026-05-11 11:40
+last_updated: 2026-05-11 12:35
+implementation: thoughts/26-05-11-overlay-links-custom-component/implementation.md
 ---
 <assistant-response i="4" model="gpt-5.5">
 ## Assistant

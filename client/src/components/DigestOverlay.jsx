@@ -1,13 +1,11 @@
 import { BookOpen, Sparkles } from 'lucide-react'
-import { useMemo } from 'react'
 import { useElaboration } from '../hooks/useElaboration'
 import { useOverlayContextMenu } from '../hooks/useOverlayContextMenu'
-import { markdownToHtml } from '../lib/markdownUtils'
-import BaseOverlay, { overlayProseClassName } from './BaseOverlay'
+import BaseOverlay from './BaseOverlay'
 import ElaborationPreview from './ElaborationPreview'
+import OverlayMarkdown from './OverlayMarkdown'
 
 function DigestOverlay({ markdown, articleUrls, articleCount, errorMessage, onClose, onMarkRemoved }) {
-  const html = useMemo(() => markdownToHtml(markdown), [markdown])
   const contextMenu = useOverlayContextMenu(true)
   const { elaboration, runElaboration, closeElaboration } = useElaboration({
     sourceMarkdown: markdown,
@@ -56,10 +54,10 @@ function DigestOverlay({ markdown, articleUrls, articleCount, errorMessage, onCl
         />
       )}
     >
-      {errorMessage && !html ? (
+      {errorMessage && !markdown ? (
         <div className="text-sm text-red-500 bg-red-50 p-4 rounded-lg">{errorMessage}</div>
       ) : (
-        <div className={overlayProseClassName} dangerouslySetInnerHTML={{ __html: html }} />
+        <OverlayMarkdown markdown={markdown} />
       )}
     </BaseOverlay>
   )

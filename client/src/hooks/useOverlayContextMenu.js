@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPointPositionReference } from '../lib/floatingPositionReference'
 import {
   createInitialMobileSelectionMenuState,
   MobileSelectionMenuDecisionType,
@@ -21,16 +22,6 @@ const CLOSED_MENU_STATE = Object.freeze({
 
 function copyDomRect(rect) {
   return { x: rect.x, y: rect.y, top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height }
-}
-
-function createPointPositionReference(x, y) {
-  return {
-    kind: 'point',
-    boundingRect: { x, y, top: y, left: x, right: x, bottom: y, width: 0, height: 0 },
-    clientRects: [],
-    placement: 'bottom-start',
-    offsetPx: 0,
-  }
 }
 
 export function useOverlayContextMenu(enabled = true) {

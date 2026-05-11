@@ -1,13 +1,11 @@
 import { Sparkles } from 'lucide-react'
-import { useMemo } from 'react'
 import { useElaboration } from '../hooks/useElaboration'
 import { useOverlayContextMenu } from '../hooks/useOverlayContextMenu'
-import { markdownToHtml } from '../lib/markdownUtils'
-import BaseOverlay, { overlayProseClassName } from './BaseOverlay'
+import BaseOverlay from './BaseOverlay'
 import ElaborationPreview from './ElaborationPreview'
+import OverlayMarkdown from './OverlayMarkdown'
 
 function ZenModeOverlay({ url, summaryMarkdown, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
-  const html = useMemo(() => markdownToHtml(summaryMarkdown), [summaryMarkdown])
   const contextMenu = useOverlayContextMenu(true)
   const { elaboration, runElaboration, closeElaboration } = useElaboration({
     sourceMarkdown: summaryMarkdown,
@@ -72,7 +70,7 @@ function ZenModeOverlay({ url, summaryMarkdown, hostname, displayDomain, article
         />
       )}
     >
-      <div className={overlayProseClassName} dangerouslySetInnerHTML={{ __html: html }} />
+      <OverlayMarkdown markdown={summaryMarkdown} />
     </BaseOverlay>
   )
 }

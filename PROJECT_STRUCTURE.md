@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-10 04:05
+last_updated: 2026-05-11 12:35
 ---
 
 .
@@ -60,6 +60,9 @@ last_updated: 2026-05-10 04:05
 │  │  │  ├── FoldableContainer.jsx
 │  │  │  ├── NewsletterDay.jsx
 │  │  │  ├── OverlayContextMenu.jsx
+│  │  │  ├── OverlayLink.jsx
+│  │  │  ├── OverlayLinkMenuContext.js
+│  │  │  ├── OverlayMarkdown.jsx
 │  │  │  ├── ReadStatsBadge.jsx
 │  │  │  ├── ScrapeForm.jsx
 │  │  │  ├── Selectable.jsx
@@ -83,6 +86,7 @@ last_updated: 2026-05-10 04:05
 │  │  ├── lib
 │  │  │  ├── apiError.js
 │  │  │  ├── dailyPayloadMutations.js
+│  │  │  ├── floatingPositionReference.js
 │  │  │  ├── interactionConstants.js
 │  │  │  ├── markdownUtils.js
 │  │  │  ├── quakeConsole.js

@@ -1,14 +1,21 @@
 import { FloatingNode, useDismiss, useFloating, useFloatingNodeId, useInteractions } from '@floating-ui/react'
-import { Check, CheckCircle, ChevronDown } from 'lucide-react'
-import { useEffect, useMemo, useRef } from 'react'
+import { Check, CheckCircle, ChevronDown, Link as LinkIcon } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useOverscrollUp } from '../hooks/useOverscrollUp'
 import { usePullToClose } from '../hooks/usePullToClose'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import OverlayContextMenu from './OverlayContextMenu'
+import { OverlayLinkMenuContext } from './OverlayLinkMenuContext'
 
 const OVERLAY_OVERSCROLL_THRESHOLD = 60
 const OVERLAY_CONTENT_SHIFT_FACTOR = 0.4
+
+const CLOSED_OVERLAY_LINK_MENU_STATE = Object.freeze({
+  isOpen: false,
+  href: '',
+  positionReference: null,
+})
 
 export const overlayProseClassName = 'prose prose-slate max-w-none font-serif text-slate-700 leading-relaxed text-lg prose-p:my-3 prose-headings:text-slate-900 prose-headings:tracking-tight prose-h1:text-2xl prose-h1:font-bold prose-h2:text-xl prose-h2:font-semibold prose-h3:text-lg prose-h3:font-semibold prose-blockquote:border-slate-200 prose-strong:text-slate-900'
 
@@ -23,6 +30,40 @@ function BaseOverlay({
   const containerRef = useRef(null)
   const scrollRef = useRef(null)
   const nodeId = useFloatingNodeId()
+  const [linkMenuState, setLinkMenuState] = useState(CLOSED_OVERLAY_LINK_MENU_STATE)
+  const overlayMenuHandleContextMenu = overlayMenu?.handleContextMenu
+  const overlayMenuOnOpenChange = overlayMenu?.onOpenChange
+
+  const closeOverlayLinkMenu = useCallback(() => {
+    setLinkMenuState(CLOSED_OVERLAY_LINK_MENU_STATE)
+  }, [])
+
+  const openOverlayLinkMenu = useCallback(({ href, positionReference }) => {
+    overlayMenuOnOpenChange?.(false)
+    setLinkMenuState({ isOpen: true, href, positionReference })
+  }, [overlayMenuOnOpenChange])
+
+  const handleOverlayContextMenu = useCallback((event) => {
+    closeOverlayLinkMenu()
+    overlayMenuHandleContextMenu?.(event)
+  }, [closeOverlayLinkMenu, overlayMenuHandleContextMenu])
+
+  const handleLinkMenuOpenChange = useCallback((open) => {
+    if (!open) closeOverlayLinkMenu()
+  }, [closeOverlayLinkMenu])
+
+  const overlayLinkMenuValue = useMemo(() => ({
+    openOverlayLinkMenu,
+  }), [openOverlayLinkMenu])
+
+  const linkMenuActions = useMemo(() => ([
+    {
+      key: 'dummy-link-action',
+      label: 'Dummy action',
+      icon: <LinkIcon size={15} />,
+      onSelect: () => console.log('[overlay-link] dummy action — url:', linkMenuState.href),
+    },
+  ]), [linkMenuState.href])
 
   const { progress, hasScrolled } = useScrollProgress(scrollRef)
   // usePullToClose attaches a non-passive touchmove listener that calls preventDefault() on every
@@ -70,8 +111,13 @@ function BaseOverlay({
     }
   }, [])
 
+  useEffect(() => {
+    if (overlayMenu?.isOpen) closeOverlayLinkMenu()
+  }, [closeOverlayLinkMenu, overlayMenu?.isOpen])
+
   return (
-    <FloatingNode id={nodeId}>
+    <OverlayLinkMenuContext.Provider value={overlayLinkMenuValue}>
+      <FloatingNode id={nodeId}>
       {createPortal(
         <div {...portalRootProps}>
           <div ref={containerRef} className="w-full h-full bg-white flex flex-col animate-zen-enter">
@@ -107,7 +153,7 @@ function BaseOverlay({
 
             <div
               ref={scrollRef}
-              onContextMenu={overlayMenu?.handleContextMenu}
+              onContextMenu={overlayMenu ? handleOverlayContextMenu : undefined}
               data-overlay-content={overlayMenu ? true : undefined}
               className="flex-1 overflow-y-auto bg-white"
             >
@@ -149,18 +195,29 @@ function BaseOverlay({
         document.body
       )}
 
-      {overlayMenu && (
-        <OverlayContextMenu
-          isOpen={overlayMenu.isOpen}
-          positionReference={overlayMenu.positionReference}
-          actions={overlayMenu.actions}
-          onOpenChange={overlayMenu.onOpenChange}
-          selectedText={overlayMenu.selectedText}
-        />
-      )}
+        {overlayMenu && !linkMenuState.isOpen && (
+          <OverlayContextMenu
+            isOpen={overlayMenu.isOpen}
+            positionReference={overlayMenu.positionReference}
+            actions={overlayMenu.actions}
+            onOpenChange={overlayMenu.onOpenChange}
+            selectedText={overlayMenu.selectedText}
+          />
+        )}
 
-      {overlayLayers}
-    </FloatingNode>
+        {linkMenuState.isOpen && (
+          <OverlayContextMenu
+            isOpen={linkMenuState.isOpen}
+            positionReference={linkMenuState.positionReference}
+            actions={linkMenuActions}
+            onOpenChange={handleLinkMenuOpenChange}
+            selectedText={linkMenuState.href}
+          />
+        )}
+
+        {overlayLayers}
+      </FloatingNode>
+    </OverlayLinkMenuContext.Provider>
   )
 }
 
