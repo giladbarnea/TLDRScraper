@@ -1,136 +1,212 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: ./scripts/auto-pr-merge.sh <branch-name> "<commit-message>"
-# Example: ./scripts/auto-pr-merge.sh fix-bug "Fix navigation bug"
+# Usage: scripts/dev/auto-pr-merge.sh [-m MSG] [-t TITLE] [-b BODY] [-p PR] [step...]
+#
+# Composable building blocks for committing, pushing, creating a PR,
+# waiting for CI, and merging. Run one or more steps in order.
+#
+# Steps:
+#   commit  Stage all files, create a commit (no-op if tree is clean)
+#   push    Push the current branch to origin and set upstream
+#   pr      Create a pull request, or reuse an existing open PR for the branch
+#   wait    Poll CI checks until all pass (timeout: 10 min)
+#   merge   Squash-merge the PR, delete the remote branch, checkout main
+#
+# If no steps are given, defaults to: commit push pr wait merge
+#
+# Examples:
+#   # Full flow from dirty worktree:
+#   scripts/dev/auto-pr-merge.sh -m "fix bug"
+#
+#   # Already committed, just push, PR, wait, merge:
+#   scripts/dev/auto-pr-merge.sh -m "fix bug" push pr wait merge
+#
+#   # PR already exists — just wait and merge:
+#   scripts/dev/auto-pr-merge.sh wait merge
+#   # Same, but skip the branch lookup:
+#   scripts/dev/auto-pr-merge.sh -p 665 wait merge
 
-if [ $# -lt 2 ]; then
-  echo "Usage: $0 <branch-name> <commit-message> [pr-title] [pr-body]"
-  echo "Example: $0 fix-bug 'Fix navigation bug' 'Fix nav' 'Fixes #123'"
-  exit 1
-fi
+# ── State ────────────────────────────────────────────────────────────────────
+MESSAGE=""
+TITLE=""
+BODY=""
+PR_NUMBER=""
+PR_URL=""
+BRANCH=$(git branch --show-current)
+STEPS=()
 
-BRANCH_NAME="$1"
-COMMIT_MESSAGE="$2"
-PR_TITLE="${3:-$COMMIT_MESSAGE}"
-PR_BODY="${4:-}"
+MAX_WAIT=600
+POLL_INTERVAL=10
 
-echo "🚀 Starting automated PR workflow for branch: $BRANCH_NAME"
-if ! command -v git_current_branch 2>/dev/null; then
-  git_current_branch() {
-    local ref
-    ref=$(GIT_OPTIONAL_LOCKS=0 command git symbolic-ref --quiet HEAD 2>/dev/null)
-    local ret=$?
-    if [[ $ret != 0 ]]; then
-      [[ $ret == 128 ]] && return
-      ref=$(GIT_OPTIONAL_LOCKS=0 command git rev-parse --short HEAD 2>/dev/null) || return
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+usage() {
+  sed -n '2,21p' "$0"
+  exit 0
+}
+
+lookup_pr() {
+  local info
+  info=$(gh pr view "$BRANCH" --json state,number,url 2>/dev/null || echo "")
+  if [[ -z "$info" ]]; then
+    echo "❌ No PR found for branch '$BRANCH'"
+    exit 1
+  fi
+  PR_STATE=$(echo "$info" | jq -r '.state')
+  PR_NUMBER=$(echo "$info" | jq -r '.number')
+  PR_URL=$(echo "$info" | jq -r '.url')
+  if [[ "$PR_STATE" = "MERGED" || "$PR_STATE" = "CLOSED" ]]; then
+    echo "❌ PR #$PR_NUMBER for '$BRANCH' is $PR_STATE"
+    exit 1
+  fi
+}
+
+require_message() {
+  if [[ -z "$MESSAGE" ]]; then
+    echo "❌ -m <message> is required when running 'commit'"
+    exit 1
+  fi
+}
+
+# ── Steps ────────────────────────────────────────────────────────────────────
+
+do_commit() {
+  require_message
+  git add -A
+  if git diff --cached --quiet; then
+    echo "📭 Nothing to commit — worktree is clean"
+    return 0
+  fi
+  echo "💾 Committing changes..."
+  git commit -m "$MESSAGE"
+}
+
+do_push() {
+  echo "⬆️  Pushing to origin..."
+  git push -u origin "$BRANCH"
+}
+
+do_pr() {
+  echo "🔍 Checking for existing PR on '$BRANCH'..."
+  local info
+  info=$(gh pr view "$BRANCH" --json state,number,url 2>/dev/null || echo "")
+
+  if [[ -n "$info" ]]; then
+    PR_STATE=$(echo "$info" | jq -r '.state')
+    PR_NUMBER=$(echo "$info" | jq -r '.number')
+    PR_URL=$(echo "$info" | jq -r '.url')
+
+    if [[ "$PR_STATE" = "MERGED" || "$PR_STATE" = "CLOSED" ]]; then
+      echo "❌ PR #$PR_NUMBER already exists and is $PR_STATE"
+      echo "   URL: $PR_URL"
+      exit 1
     fi
-    echo ${ref#refs/heads/}
-  }
-fi
 
-# 1. Create and checkout branch
-if [[ "$(git_current_branch)" = "$BRANCH_NAME" ]]; then
-  :
-else
-  echo "📝 Creating branch..."
-  git checkout -b "$BRANCH_NAME"
-fi
-# 2. Add all changes and commit
-echo "💾 Committing changes..."
-git add -A
-git commit -m "$COMMIT_MESSAGE"
-
-# 3. Push to remote
-echo "⬆️  Pushing to remote..."
-git push -u origin "$BRANCH_NAME"
-
-# 4. Check if PR already exists for this branch
-echo "🔍 Checking if PR already exists..."
-PR_INFO=$(gh pr view "$BRANCH_NAME" --json state,number,url 2>/dev/null || echo "")
-
-if [ -n "$PR_INFO" ]; then
-  PR_STATE=$(echo "$PR_INFO" | jq -r '.state')
-  PR_NUMBER=$(echo "$PR_INFO" | jq -r '.number')
-  PR_URL=$(echo "$PR_INFO" | jq -r '.url')
-
-  if [ "$PR_STATE" = "MERGED" ] || [ "$PR_STATE" = "CLOSED" ]; then
-    echo "❌ PR #$PR_NUMBER already exists and is $PR_STATE"
+    echo "✅ Reusing existing open PR #$PR_NUMBER"
     echo "   URL: $PR_URL"
-    exit 1
+    return 0
   fi
 
-  echo "✅ Found existing open PR #$PR_NUMBER, will poll and merge it"
-  echo "   URL: $PR_URL"
-else
-  # 5. Create PR
   echo "🔀 Creating pull request..."
-  if [ -z "$PR_BODY" ]; then
-    PR_BODY="$(
-      cat <<EOF
-## Summary
-$COMMIT_MESSAGE
-EOF
-    )"
+  local title="${TITLE:-$MESSAGE}"
+  local body="$BODY"
+  if [[ -z "$body" ]]; then
+    body="## Summary
+${MESSAGE}"
   fi
 
-  PR_URL=$(gh pr create --title "$PR_TITLE" --body "$PR_BODY")
+  PR_URL=$(gh pr create --title "$title" --body "$body")
   PR_NUMBER=$(echo "$PR_URL" | grep -o '[0-9]\+$')
-
   echo "✅ PR created: $PR_URL"
-fi
+}
 
-# 6. Poll for workflow completion
-echo "⏳ Polling for workflow completion..."
-MAX_WAIT=600     # 10 minutes max
-POLL_INTERVAL=10 # Check every 10 seconds
-ELAPSED=0
-
-while [ $ELAPSED -lt $MAX_WAIT ]; do
-  # Get workflow status
-  CHECKS_OUTPUT=$(gh pr checks "$PR_NUMBER" 2>&1 || true)
-
-  # Check if any workflows are still pending
-  if echo "$CHECKS_OUTPUT" | grep -q "pending\|in_progress\|queued"; then
-    echo "⏳ Workflows still running... (${ELAPSED}s elapsed)"
-    sleep $POLL_INTERVAL
-    ELAPSED=$((ELAPSED + POLL_INTERVAL))
-    continue
+do_wait() {
+  if [[ -z "$PR_NUMBER" ]]; then
+    if [[ -n "${1:-}" ]]; then
+      PR_NUMBER="$1"
+    else
+      lookup_pr
+    fi
   fi
 
-  # Check if any workflows failed
-  if echo "$CHECKS_OUTPUT" | grep -q "fail"; then
-    echo "❌ Workflow checks failed:"
-    echo "$CHECKS_OUTPUT"
-    echo ""
-    echo "PR URL: $PR_URL"
-    exit 1
+  echo "⏳ Polling CI for PR #$PR_NUMBER..."
+  local elapsed=0
+
+  while [[ $elapsed -lt $MAX_WAIT ]]; do
+    local checks
+    checks=$(gh pr checks "$PR_NUMBER" 2>&1 || true)
+
+    if echo "$checks" | grep -q "pending\|in_progress\|queued"; then
+      echo "⏳ Still running... (${elapsed}s)"
+      sleep "$POLL_INTERVAL"
+      elapsed=$((elapsed + POLL_INTERVAL))
+      continue
+    fi
+
+    if echo "$checks" | grep -q "fail"; then
+      echo "❌ CI checks failed:"
+      echo "$checks"
+      exit 1
+    fi
+
+    if echo "$checks" | grep -qE "pass|skipping|success"; then
+      echo "✅ All checks passed!"
+      return 0
+    fi
+
+    sleep "$POLL_INTERVAL"
+    elapsed=$((elapsed + POLL_INTERVAL))
+  done
+
+  echo "⏱️  Timeout waiting for CI (${MAX_WAIT}s)"
+  exit 1
+}
+
+do_merge() {
+  if [[ -z "$PR_NUMBER" ]]; then
+    lookup_pr
   fi
 
-  # All checks passed
-  if echo "$CHECKS_OUTPUT" | grep -qE "pass|skipping|success"; then
-    echo "✅ All workflow checks passed!"
-    break
-  fi
+  echo "🔀 Squash-merging PR #$PR_NUMBER..."
+  gh pr merge "$PR_NUMBER" --squash --delete-branch
 
-  # Fallback - wait a bit more
-  sleep $POLL_INTERVAL
-  ELAPSED=$((ELAPSED + POLL_INTERVAL))
+  echo "🎉 Merged PR #$PR_NUMBER and deleted remote branch"
+  echo "🔄 Switching to main..."
+  git checkout main
+  git pull
+  echo "✅ All done!"
+}
+
+# ── Parse ────────────────────────────────────────────────────────────────────
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -m) MESSAGE="$2"; shift 2 ;;
+    -t) TITLE="$2"; shift 2 ;;
+    -b) BODY="$2"; shift 2 ;;
+    -p) PR_NUMBER="$2"; shift 2 ;;
+    -h|--help) usage ;;
+    commit|push|pr|wait|merge) STEPS+=("$1"); shift ;;
+    *) echo "Unknown argument: $1"; usage ;;
+  esac
 done
 
-if [ $ELAPSED -ge $MAX_WAIT ]; then
-  echo "⏱️  Timeout waiting for workflows (${MAX_WAIT}s)"
-  echo "PR URL: $PR_URL"
-  exit 1
+if [[ ${#STEPS[@]} -eq 0 ]]; then
+  STEPS=(commit push pr wait merge)
 fi
 
-# 7. Merge PR
-echo "🔀 Merging PR..."
-gh pr merge "$PR_NUMBER" --squash --delete-branch
+# ── Run ──────────────────────────────────────────────────────────────────────
 
-echo "🎉 Successfully merged PR #$PR_NUMBER and deleted remote branch"
-echo "🔄 Switching back to main..."
-git checkout main
-git pull
+echo "🚀 Branch: $BRANCH  |  Steps: ${STEPS[*]}"
+echo ""
 
-echo "✅ All done!"
+for step in "${STEPS[@]}"; do
+  case "$step" in
+    commit) do_commit ;;
+    push)   do_push ;;
+    pr)     do_pr ;;
+    wait)   do_wait ;;
+    merge)  do_merge ;;
+  esac
+done
