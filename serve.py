@@ -322,17 +322,16 @@ def digest_endpoint():
 
 @app.route("/api/podcast", methods=["POST"])
 def podcast_endpoint():
-    """Return an MP3 podcast for the given URL.
+    """Return an MP3 podcast synthesized from multiple URLs.
 
-    Requires 'url' in request body. Canonicalizes, returns cached audio if present;
-    otherwise scrapes, generates, persists, and returns. Response is raw audio/mpeg.
+    Requires 'urls' in the request body as a non-empty array of URL strings.
+    Response is raw audio/mpeg.
     """
     try:
         data = request.get_json()
-        url = data["url"]
-        result = podcast_service.get_or_create_podcast_episode(url)
+        result = podcast_service.get_or_create_podcast_episode(data["urls"])
         response = Response(result["audio_bytes"], mimetype="audio/mpeg")
-        response.headers["X-Canonical-Url"] = result["canonical_url"]
+        response.headers["X-Canonical-Urls"] = ",".join(result["canonical_urls"])
         response.headers["X-Cache"] = "hit" if result["cached"] else "miss"
         return response
     except KeyError as error:
