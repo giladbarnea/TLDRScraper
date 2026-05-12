@@ -69,7 +69,7 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
   }
 
   async function handleTriggerPodcast() {
-    if (selectedCount < 2 || isPodcastLoading) return
+    if (selectedCount < 1 || isPodcastLoading) return
 
     setIsPodcastLoading(true)
     try {
