@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-12 08:19
+last_updated: 2026-05-12 21:38
 ---
 
 .
@@ -87,13 +87,13 @@ last_updated: 2026-05-12 08:19
 │  │  ├── lib
 │  │  │  ├── apiError.js
 │  │  │  ├── dailyPayloadMutations.js
+│  │  │  ├── faviconUrl.js
 │  │  │  ├── floatingPositionReference.js
 │  │  │  ├── interactionConstants.js
 │  │  │  ├── markdownUtils.js
 │  │  │  ├── quakeConsole.js
 │  │  │  ├── requestUtils.js
 │  │  │  ├── scraper.js
-│  │  │  ├── sourceLogoMap.js
 │  │  │  ├── stateTransitionLogger.js
 │  │  │  ├── storageApi.js
 │  │  │  ├── toastBus.js

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
-import { getSourceLogo } from '../lib/sourceLogoMap'
+import { getFaviconUrl } from '../lib/faviconUrl'
 import { interactionActions, useArticleSlice, useIsSelectMode } from '../store/articleStore'
 import Selectable from './Selectable'
 import ZenModeOverlay from './ZenModeOverlay'
@@ -40,15 +40,15 @@ function ArticleTitle({ isRead, title }) {
   )
 }
 
-function ArticleMeta({ sourceId, domain, articleMeta }) {
-  const sourceLogo = getSourceLogo(sourceId)
+function ArticleMeta({ hostname, domain, articleMeta }) {
+  const faviconUrl = getFaviconUrl(hostname)
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      {sourceLogo && (
+      {faviconUrl && (
         <div className="w-4 h-4 rounded-full bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
           <img
-            src={sourceLogo}
+            src={faviconUrl}
             alt={domain}
             className="w-full h-full object-contain"
             loading="lazy"
@@ -198,7 +198,7 @@ function ArticleCard({ articleKey }) {
 
               {!isRemoved && (
                 <ArticleMeta
-                  sourceId={slice.sourceId}
+                  hostname={hostname}
                   domain={displayDomain}
                   articleMeta={slice.articleMeta}
                 />

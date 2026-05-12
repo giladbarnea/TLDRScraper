@@ -1,12 +1,14 @@
 import { Sparkles } from 'lucide-react'
 import { useElaboration } from '../hooks/useElaboration'
 import { useOverlayContextMenu } from '../hooks/useOverlayContextMenu'
+import { getFaviconUrl } from '../lib/faviconUrl'
 import BaseOverlay from './BaseOverlay'
 import ElaborationPreview from './ElaborationPreview'
 import OverlayMarkdown from './OverlayMarkdown'
 
 function ZenModeOverlay({ url, summaryMarkdown, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
   const contextMenu = useOverlayContextMenu(true)
+  const faviconUrl = getFaviconUrl(hostname)
   const { elaboration, runElaboration, closeElaboration } = useElaboration({
     sourceMarkdown: summaryMarkdown,
     articleUrls: [url],
@@ -43,9 +45,9 @@ function ZenModeOverlay({ url, summaryMarkdown, hostname, displayDomain, article
           rel="noopener noreferrer"
           className="flex items-center gap-2 hover:opacity-70 transition-opacity"
         >
-          {hostname && (
+          {faviconUrl && (
             <img
-              src={`https://www.google.com/s2/favicons?domain=${hostname}&sz=64`}
+              src={faviconUrl}
               className="w-4 h-4 rounded-full border border-slate-200"
               alt=""
             />
