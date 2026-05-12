@@ -10,9 +10,10 @@ import os
 import pathlib
 import sys
 
-from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask import Flask, Response, request, jsonify, send_from_directory
 import requests
 
+import podcast_service
 import util
 import tldr_app
 import storage_service
@@ -304,14 +305,29 @@ def digest_endpoint():
 
 @app.route("/api/podcast", methods=["POST"])
 def podcast_endpoint():
-    """Return a hardcoded MP3 while the client podcast player is under test."""
+    """Return an MP3 podcast synthesized from the selected source URLs.
+
+    Requires 'urls' in the request body as a non-empty array of URL strings.
+    Response is raw audio/mpeg.
+    """
     try:
-        audio_path = "/Users/giladbarnea/dev/tractor-ami/audio/engine_accel_crescendo.mp3"
-        return send_file(
-            audio_path,
-            mimetype="audio/mpeg",
-            download_name="page-readable-hume.mp3",
+        data = request.get_json()
+        result = podcast_service.get_or_create_podcast_episode(data["urls"])
+        response = Response(result["audio_bytes"], mimetype="audio/mpeg")
+        response.headers["X-Canonical-Urls"] = ",".join(result["canonical_urls"])
+        response.headers["X-Cache"] = "hit" if result["cached"] else "miss"
+        return response
+    except KeyError as error:
+        return jsonify({"success": False, "error": f"Missing field: {error}"}), 400
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except requests.RequestException as error:
+        logger.error(
+            "request error error=%s",
+            repr(error),
+            exc_info=True,
         )
+        return jsonify({"success": False, "error": f"Network error: {repr(error)}"}), 502
     except Exception as error:
         logger.exception("podcast_endpoint failed: %s", error)
         return jsonify({"success": False, "error": repr(error)}), 500

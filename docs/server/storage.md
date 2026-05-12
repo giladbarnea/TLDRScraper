@@ -1,7 +1,7 @@
 ---
 name: server/storage
 description: Server-side database schema and storage flow.
-last_updated: 2026-05-12 08:22
+last_updated: 2026-05-12 20:42
 ---
 # Server: Storage
 
@@ -61,7 +61,7 @@ CREATE TABLE podcast_episodes (
 2. **Cache Hit**: POST /api/storage/daily-range → Read from Supabase → Skip scrape API call
 3. **User Interaction**: Modify article state → POST /api/storage/daily/{date} → Supabase upsert → Dispatches 'supabase-storage-change' event
 4. **Summary**: Fetch from API → Update article → POST /api/storage/daily/{date} → Supabase upsert
-5. **Podcast**: Current `/api/podcast` is temporarily short-circuited to return a local MP3 fixture for client-player testing. Intended generation path remains selected URLs → canonicalize + source-set cache lookup → scrape missing source set → generate MP3 → upsert `podcast_episodes`.
+5. **Podcast**: Selected URLs → canonicalize + source-set cache lookup → scrape missing source set → generate MP3 → upsert `podcast_episodes`.
 6. **cached_at contract**: Only scrape writes advance cached_at; user-state updates must not mutate cached_at so it remains a scrape freshness signal.
 
 ###
