@@ -53,7 +53,7 @@ function PodcastPlayer({ audioUrl, onClose }) {
     audio.currentTime = fraction * duration
   }
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0
+  const progress = duration > 0 ? currentTime / duration : 0
 
   function seek(seconds) {
     const audio = audioRef.current
@@ -80,10 +80,13 @@ function PodcastPlayer({ audioUrl, onClose }) {
         type="button"
         aria-label="Seek podcast"
         onClick={seekToFraction}
-        className="group absolute inset-x-0 top-0 h-2 cursor-pointer bg-transparent"
+        className="absolute inset-x-0 top-0 h-3 cursor-pointer bg-transparent"
       >
-        <div className="pointer-events-none h-px w-full bg-white/15 group-hover:h-0.5 transition-[height]">
-          <div className="h-full bg-white/70" style={{ width: `${progressPercent}%` }} />
+        <div className="pointer-events-none relative h-0.5 w-full bg-white/10">
+          <div
+            className="absolute inset-0 origin-left bg-brand-500 transition-transform duration-100"
+            style={{ transform: `scaleX(${progress})` }}
+          />
         </div>
       </button>
       <button
