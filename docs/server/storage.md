@@ -1,7 +1,7 @@
 ---
 name: server/storage
 description: Server-side database schema and storage flow.
-last_updated: 2026-05-11 19:38, ca26db7
+last_updated: 2026-05-12 05:32
 ---
 # Server: Storage
 
@@ -53,12 +53,15 @@ CREATE TABLE podcast_episodes (
 );
 ```
 
+`canonical_url` is a legacy column name from the single-source v0. For multi-source podcasts it stores the stable source-set cache key produced after canonicalizing the selected URLs.
+
 ### Storage Flow
 
 1. **Initial Scrape**: API response → Build payloads → POST /api/storage/daily/{date} → Supabase upsert
 2. **Cache Hit**: POST /api/storage/daily-range → Read from Supabase → Skip scrape API call
 3. **User Interaction**: Modify article state → POST /api/storage/daily/{date} → Supabase upsert → Dispatches 'supabase-storage-change' event
 4. **Summary**: Fetch from API → Update article → POST /api/storage/daily/{date} → Supabase upsert
-5. **cached_at contract**: Only scrape writes advance cached_at; user-state updates must not mutate cached_at so it remains a scrape freshness signal.
+5. **Podcast**: Selected URLs → canonicalize + source-set cache lookup → scrape missing source set → generate MP3 → upsert `podcast_episodes`
+6. **cached_at contract**: Only scrape writes advance cached_at; user-state updates must not mutate cached_at so it remains a scrape freshness signal.
 
 ###

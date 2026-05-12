@@ -1,7 +1,7 @@
 ---
 name: client/interaction-and-selection
 description: Client-side interaction architecture, selection modes, and foldable containers.
-last_updated: 2026-05-06 06:49, 02cad9b
+last_updated: 2026-05-12 05:32
 ---
 # Client: Interaction and Selection
 
@@ -42,6 +42,10 @@ Selection behavior is implemented as a **declarative state machine** with a smal
 - **FoldableContainer**
   - On click, calls `interactionActions.containerShortPress(containerId)` to expand/collapse, regardless of selection mode.
   - On mount (when `defaultFolded` is true), calls `interactionActions.setExpanded(id, false)` to push initial collapsed state into the shared `expandedContainerIds` set.
+- **SelectionActionDock**
+  - Renders the action surface for the current selection mode.
+  - Single-selection actions stay article-local (`Summarize`, `Open`, `Browse`). Multi-selection actions fan out over the selected descriptor list (`Digest`, `Podcast`, `Summarize Each`).
+  - `Podcast` currently starts the server request for the selected URLs and owns only loading affordance; audio response handling is intentionally not wired yet.
 - **RemovedOrderSlot**
   - Wraps newsletter and section containers in flex lists.
   - Subscribes to `useAllArticlesRemoved(date, urls)` once for the grouped URL set and passes the result into the rendered container.
