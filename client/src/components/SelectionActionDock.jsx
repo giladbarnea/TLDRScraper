@@ -61,6 +61,14 @@ function SelectionActionDock({
       onClick: onMarkRemoved,
       danger: true,
     },
+    {
+      key: 'podcast',
+      label: isPodcastLoading ? 'Loading...' : 'Podcast',
+      icon: <Podcast size={21} />,
+      onClick: onTriggerPodcast,
+      disabled: isPodcastLoading,
+      accent: true,
+    }
   ]
 
   if (selectedCount === 1) {
@@ -87,14 +95,6 @@ function SelectionActionDock({
       icon: <GitMerge size={21} />,
       onClick: onTriggerDigest,
       disabled: isDigestLoading,
-      accent: true,
-    })
-    actions.push({
-      key: 'podcast',
-      label: isPodcastLoading ? 'Loading...' : 'Podcast',
-      icon: <Podcast size={21} />,
-      onClick: onTriggerPodcast,
-      disabled: isPodcastLoading,
       accent: true,
     })
     actions.push({

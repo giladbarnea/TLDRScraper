@@ -1,6 +1,6 @@
 ---
 plan: null
-last_updated: 2026-05-12 05:32
+last_updated: 2026-05-12 08:22
 ---
 
 # Podcast Generation v1 — Implementation Notes
@@ -9,7 +9,7 @@ last_updated: 2026-05-12 05:32
 
 This pass moved podcast generation from a single-source backend proof of concept toward a selected-article workflow. The server endpoint now accepts a selected URL list, and the client selection dock exposes a `Podcast` action beside `Digest` for multi-selection mode.
 
-The work intentionally stops before audio response handling. The client starts the request and shows a loading affordance, but it does not yet create an object URL, open a player, persist playback state, or surface errors to the user.
+The first pass intentionally stopped before audio response handling. The follow-up pass now consumes the returned audio blob, creates an object URL, and mounts a minimal bottom audio player. It still does not persist playback state or surface errors to the user beyond console logging.
 
 ## Decisions
 
@@ -19,11 +19,13 @@ The podcast source document now uses XML-like tags, matching the prompt style al
 
 The podcast cache key is now source-set based rather than single-URL based. The storage column name remains `canonical_url` because that is the deployed schema, but `docs/server/storage.md` now calls out that the column stores a stable source-set key for multi-source podcast episodes.
 
-On the client, `SelectionActionDock` owns the button shape while `App.jsx` owns the request handler. That mirrors the existing digest wiring closely enough for the first UI affordance without prematurely creating a `usePodcast` hook before response handling exists.
+On the client, `SelectionActionDock` owns the button shape while `App.jsx` owns the request handler and audio-object URL lifecycle. `PodcastPlayer` is intentionally a tiny playback surface rather than a feature state machine: it controls a native audio element, skip controls, and dismissal only.
+
+For player testing, `serve.py` temporarily short-circuits `/api/podcast` to return a known local MP3 fixture. That isolates client playback work from slow podcast generation and expensive upstream model calls.
 
 ## Challenges
 
-The main ambiguity was where the podcast feature should live architecturally. Digest has a full persisted read model and overlay, while podcast currently has only a blocking server endpoint that returns raw audio bytes. Adding a hook now would have implied a state machine that does not exist yet, so the implementation keeps the client wiring deliberately thin.
+The main ambiguity was where the podcast feature should live architecturally. Digest has a full persisted read model and overlay, while podcast currently has only a blocking server endpoint that returns raw audio bytes. Adding a hook now would imply a larger state machine than the current feature needs, so the implementation keeps the client wiring deliberately thin.
 
 The other wrinkle is storage naming. Renaming the database column would be cleaner semantically, but it would turn a small feature pass into a migration. Treating `canonical_url` as a legacy physical column and documenting the logical cache-key meaning keeps the change focused.
 
@@ -33,4 +35,4 @@ There was no formal plan file for this v1 pass. The implementation was driven by
 
 ## Follow-ups
 
-The next meaningful step is response handling: consume the returned MP3 bytes, provide a playback/download surface, and decide whether successful generation should clear selection like digest does. A dedicated `usePodcast` hook may become justified once those view and lifecycle states are real.
+The next meaningful step is replacing the server fixture with real generated audio again, then deciding whether successful playback should clear selection like digest does. A dedicated `usePodcast` hook may become justified once generation progress, playback state, cache metadata, and error UX become real product states.

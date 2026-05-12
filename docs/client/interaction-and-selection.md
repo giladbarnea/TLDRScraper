@@ -1,7 +1,7 @@
 ---
 name: client/interaction-and-selection
 description: Client-side interaction architecture, selection modes, and foldable containers.
-last_updated: 2026-05-12 05:32
+last_updated: 2026-05-12 08:22
 ---
 # Client: Interaction and Selection
 
@@ -45,7 +45,10 @@ Selection behavior is implemented as a **declarative state machine** with a smal
 - **SelectionActionDock**
   - Renders the action surface for the current selection mode.
   - Single-selection actions stay article-local (`Summarize`, `Open`, `Browse`). Multi-selection actions fan out over the selected descriptor list (`Digest`, `Podcast`, `Summarize Each`).
-  - `Podcast` currently starts the server request for the selected URLs and owns only loading affordance; audio response handling is intentionally not wired yet.
+  - `Podcast` starts the server request for the selected URLs, converts the returned audio blob into an object URL, and mounts `PodcastPlayer` above all overlays.
+- **PodcastPlayer**
+  - A minimal native-audio surface fixed to the bottom 15% of the viewport.
+  - Owns playback, 15-second rewind, 10-second forward, and close controls. Closing unmounts the player and revokes the object URL through `App.jsx` cleanup.
 - **RemovedOrderSlot**
   - Wraps newsletter and section containers in flex lists.
   - Subscribes to `useAllArticlesRemoved(date, urls)` once for the grouped URL set and passes the result into the rendered container.
