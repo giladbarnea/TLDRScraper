@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-11 16:11
+last_updated: 2026-05-12 08:19
 ---
 
 .
@@ -63,6 +63,7 @@ last_updated: 2026-05-11 16:11
 │  │  │  ├── OverlayLink.jsx
 │  │  │  ├── OverlayLinkMenuContext.js
 │  │  │  ├── OverlayMarkdown.jsx
+│  │  │  ├── PodcastPlayer.jsx
 │  │  │  ├── ReadStatsBadge.jsx
 │  │  │  ├── ScrapeForm.jsx
 │  │  │  ├── Selectable.jsx
@@ -125,7 +126,6 @@ last_updated: 2026-05-11 16:11
 ├── scripts
 │  └── ops
 │     ├── clean_vercel_deployments.py
-│     ├── ensure_submodules.sh
 │     ├── generate_project_tree.py
 │     ├── markdown_frontmatter.py
 │     ├── structural-maintenance.sh

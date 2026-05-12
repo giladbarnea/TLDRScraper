@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import DebugPanel from './components/DebugPanel'
 import DigestOverlay from './components/DigestOverlay'
 import Feed from './components/Feed'
+import PodcastPlayer from './components/PodcastPlayer'
 import ScrapeForm from './components/ScrapeForm'
 import SelectionActionDock from './components/SelectionActionDock'
 import ToastContainer from './components/ToastContainer'
@@ -39,6 +40,8 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
   const feedStatus = useFeedStatus()
   const visibleDates = useVisibleDates()
   const digest = useDigest()
+  const [isPodcastLoading, setIsPodcastLoading] = useState(false)
+  const [podcastAudioUrl, setPodcastAudioUrl] = useState(null)
   const isSelectMode = useIsSelectMode()
   const selectedArticles = useSelectedArticles()
   const selectedCount = selectedArticles.length
@@ -64,6 +67,32 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
   function handleTriggerDigest() {
     digest.trigger(selectedArticles)
   }
+
+  async function handleTriggerPodcast() {
+    if (selectedCount < 1 || isPodcastLoading) return
+
+    setIsPodcastLoading(true)
+    try {
+      const response = await window.fetch('/api/podcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls: selectedArticles.map(({ url }) => url) }),
+      })
+      if (!response.ok) throw new Error(`Podcast request failed with ${response.status}`)
+      const audioBlob = await response.blob()
+      setPodcastAudioUrl(URL.createObjectURL(audioBlob))
+    } catch (error) {
+      console.error('Failed to request podcast:', error)
+    } finally {
+      setIsPodcastLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (podcastAudioUrl) URL.revokeObjectURL(podcastAudioUrl)
+    }
+  }, [podcastAudioUrl])
 
   async function handleMarkSelectedRead() {
     if (selectedCount === 0) return
@@ -198,10 +227,19 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
         />
       )}
 
+      {podcastAudioUrl && (
+        <PodcastPlayer
+          key={podcastAudioUrl}
+          audioUrl={podcastAudioUrl}
+          onClose={() => setPodcastAudioUrl(null)}
+        />
+      )}
+
       <SelectionActionDock
         isSelectMode={isSelectMode}
         selectedCount={selectedCount}
         isDigestLoading={digest.loading}
+        isPodcastLoading={isPodcastLoading}
         canOpenSingleSummary={canOpenSingleSummary}
         isSingleSummaryLoading={isSingleSummaryLoading}
         isSummarizeEachDisabled={isSummarizeEachDisabled}
@@ -209,6 +247,7 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
         onMarkRead={handleMarkSelectedRead}
         onMarkRemoved={handleMarkSelectedRemoved}
         onTriggerDigest={handleTriggerDigest}
+        onTriggerPodcast={handleTriggerPodcast}
         onSummarizeSingle={handleSummarizeSingle}
         onBrowseSingle={handleBrowseSingle}
         onSummarizeEach={handleSummarizeEach}

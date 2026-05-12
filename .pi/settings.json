@@ -46,7 +46,6 @@
   },
   "quietStartup": false,
   "skipVersionCheck": false,
-  "theme": "dark",
   "packages": [
     {
       "source": "npm:pi-subagents",

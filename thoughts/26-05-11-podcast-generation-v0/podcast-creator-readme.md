@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-11 19:38, ca26db7
+last_updated: 2026-05-12 14:20
 implementation: ./implementation.md
 ---
 
@@ -7,13 +7,6 @@ implementation: ./implementation.md
 
 An AI-powered podcast generation library that creates conversational audio content from text-based sources. This pip-installable package processes documents, generates structured outlines, creates natural dialogue transcripts, and converts them into high-quality audio podcasts using **LangGraph workflow orchestration**.
 
-## 🎧 **Live Demo**
-
-[Listen to a real podcast](https://soundcloud.com/lfnovo/situational-awareness-podcast) generated with this tool - a 4-person debate on the [Situational Awareness Paper](https://situational-awareness.ai/wp-content/uploads/2024/06/situationalawareness.pdf). Includes my own cloned voice 😂
-
-*Generated using the `diverse_panel` episode profile with 4 AI experts discussing the nuances of artificial general intelligence and situational awareness.*
-
-And [here is a one-speaker version](https://soundcloud.com/lfnovo/single-speaker-podcast-on-situational-awareness) of it, like your real dedicated teacher.
 
 ## 🚀 Quick Start
 
@@ -72,23 +65,6 @@ podcast-creator init
 
 ### Generate Your First Podcast
 
-#### 🎨 **New: Web Interface**
-
-[![Podcast Creator Studio Interface](/lfnovo/podcast-creator/raw/main/streamlit.png)](/lfnovo/podcast-creator/blob/main/streamlit.png)
-
-```
-# Launch the Streamlit web interface
-podcast-creator ui
-
-# Custom port/host
-podcast-creator ui --port 8080 --host 0.0.0.0
-
-# The UI provides:
-# - Visual profile management
-# - Multi-content podcast generation
-# - Episode library with playback
-# - Import/export functionality
-```
 
 #### 🚀 **Episode Profiles (Streamlined)**
 
@@ -133,16 +109,6 @@ asyncio.run(main())
 Episode Profiles are **pre-configured sets of podcast generation parameters** that enable one-liner podcast creation for common use cases while maintaining full customization flexibility.
 
 ### 🚀 **Why Episode Profiles?**
-
-* **67% fewer parameters** to specify for common use cases
-* **Consistent configurations** across podcast series
-* **Faster iteration** and prototyping
-* **Team collaboration** with shared settings
-* **Full backward compatibility** with existing code
-
-### 📋 **Bundled Profiles**
-
-| Profile | Description | Speakers | Segments | Use Case |
 | --- | --- | --- | --- | --- |
 | `tech_discussion` | Technology topics with expert analysis | 2 AI researchers | 4 | Technical content, AI/ML topics |
 | `solo_expert` | Educational explanations | 1 expert teacher | 3 | Learning content, tutorials |
@@ -238,21 +204,21 @@ configure("speakers_config", {
 })
 ```
 
-### 🎙️ **Core Features**
+### Core Features
 
-* **🎨 Web Interface**: Complete Streamlit UI for visual podcast creation
-* **🎯 Episode Profiles**: Pre-configured settings for one-liner podcast creation
-* **🔄 LangGraph Workflow**: Advanced state management and parallel processing
-* **🔁 Automatic Retry**: Exponential backoff for transient API failures (LLM & TTS)
-* **👥 Multi-Speaker Support**: Dynamic 1-4 speaker configurations with rich personalities
-* **⚡ Parallel Audio Generation**: API-safe batching with concurrent processing
-* **🔧 Fully Configurable**: Multiple AI providers (OpenAI, Anthropic, Google, etc.)
-* **📊 Multi-Content Support**: Combine text, files, and URLs in structured arrays
-* **🤖 AI-Powered Generation**: Creates structured outlines and natural dialogues
-* **🎵 Multi-Provider TTS**: ElevenLabs, OpenAI, Google TTS support
-* **📝 Flexible Templates**: Jinja2-based prompt customization
-* **🌍 Multilingual Support**: Generate content in multiple languages
-* **📚 Episode Library**: Built-in audio playback and transcript viewing
+* **Web Interface**: Complete Streamlit UI for visual podcast creation
+* **Episode Profiles**: Pre-configured settings for one-liner podcast creation
+* **LangGraph Workflow**: Advanced state management and parallel processing
+* **Automatic Retry**: Exponential backoff for transient API failures (LLM & TTS)
+* **Multi-Speaker Support**: Dynamic 1-4 speaker configurations with rich personalities
+* **Parallel Audio Generation**: API-safe batching with concurrent processing
+* **Fully Configurable**: Multiple AI providers (OpenAI, Anthropic, Google, etc.)
+* **Multi-Content Support**: Combine text, files, and URLs in structured arrays
+* **AI-Powered Generation**: Creates structured outlines and natural dialogues
+* **Multi-Provider TTS**: ElevenLabs, OpenAI, Google TTS support
+* **Flexible Templates**: Jinja2-based prompt customization
+* **Multilingual Support**: Generate content in multiple languages
+* **Episode Library**: Built-in audio playback and transcript viewing
 
 ## 🏗️ Architecture
 
@@ -594,75 +560,6 @@ The `podcast-creator ui` command launches a comprehensive Streamlit interface th
 
 The interface automatically detects missing dependencies and offers to run initialization if needed.
 
-## 🚀 Performance
-
-* **⚡ Parallel Processing**: 5 concurrent audio clips per batch (configurable)
-* **🔄 API-Safe Batching**: Respects provider rate limits
-* **📊 Scalable**: Handles 30+ dialogue segments efficiently
-* **⏱️ Fast Generation**: ~2-3 minutes for typical podcasts
-* **🎯 Optimized Workflow**: Smart resource management
-
-### ⚠️ Rate Limiting Configuration
-
-If you encounter errors like `ElevenLabs API error: Too many concurrent requests`, you can adjust the parallel processing batch size:
-
-```
-# In your .env file
-TTS_BATCH_SIZE=2  # Reduce from default 5 to 2 for ElevenLabs free plan
-```
-
-This is particularly useful for:
-
-* **ElevenLabs Free Plan**: Limited to 2 concurrent requests
-* **Other TTS providers** with stricter rate limits
-* **Debugging**: Set to 1 for sequential processing
-
-### 🔁 Retry Configuration
-
-LLM and TTS API calls automatically retry on transient failures (network errors, timeouts, rate limits) with exponential backoff. Non-retryable errors are raised immediately without retry — this includes programming errors (e.g. `ValueError`) and HTTP 4xx client errors (e.g. 404 model not found, 401 auth failure), except 429 rate-limit which is retried.
-
-```
-# In your .env file
-PODCAST_RETRY_MAX_ATTEMPTS=3       # Max retry attempts (default: 3)
-PODCAST_RETRY_WAIT_MULTIPLIER=5    # Backoff multiplier in seconds (default: 5)
-PODCAST_RETRY_WAIT_MAX=30          # Max wait between retries in seconds (default: 30)
-```
-
-You can also configure retries programmatically for LLM calls (outline and transcript generation):
-
-```
-result = await create_podcast(
-    content="Your content...",
-    episode_profile="tech_discussion",
-    episode_name="my_podcast",
-    output_dir="output/my_podcast",
-    retry_max_attempts=5,        # Override default
-    retry_wait_multiplier=3,     # Override default
-)
-```
-
-To disable retries entirely, set `PODCAST_RETRY_MAX_ATTEMPTS=1`.
-
-### 🌐 Proxy Configuration
-
-If you're behind a corporate firewall or need to route requests through a proxy, use standard environment variables:
-
-```
-# In your .env file or shell environment
-HTTP_PROXY=http://proxy.example.com:8080
-HTTPS_PROXY=http://proxy.example.com:8080
-NO_PROXY=localhost,127.0.0.1
-```
-
-**Authenticated Proxies:**
-
-```
-# Proxies with authentication are supported
-HTTP_PROXY=http://user:password@proxy.example.com:8080
-HTTPS_PROXY=http://user:password@proxy.example.com:8080
-```
-
-The underlying libraries (esperanto, content-core) automatically detect and use these standard proxy environment variables for all network requests.
 
 ## 🧪 Development
 
@@ -736,24 +633,6 @@ Check the `examples/` directory for:
 * Multi-language podcasts
 * Different content types
 
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](/lfnovo/podcast-creator/blob/main/CONTRIBUTING.md) for details on:
-
-* 🚀 Getting started with development
-* 📋 Our pull request process
-* 🧪 Testing guidelines
-* 🎨 Code style and standards
-* 🐛 How to report bugs
-* 💡 How to suggest new features
-
-Quick links:
-
-* [Good First Issues](https://github.com/lfnovo/podcast-creator/labels/good%20first%20issue)
-* [Contributing Guide](/lfnovo/podcast-creator/blob/main/CONTRIBUTING.md)
-* [Report a Bug](https://github.com/lfnovo/podcast-creator/issues/new?template=bug_report.md)
-* [Request a Feature](https://github.com/lfnovo/podcast-creator/issues/new?template=feature_request.md)
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/lfnovo/podcast-creator/blob/main/LICENSE) file for details.
@@ -762,7 +641,4 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 
 * **Examples**: [Examples](https://github.com/lfnovo/podcast-creator/tree/main/examples)
 
----
-
-Made with ❤️ for the AI community
 

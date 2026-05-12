@@ -1,17 +1,18 @@
-"""Podcast episode generation: scrape URL, generate audio via podcast-creator, persist to Supabase.
+"""Podcast episode generation: scrape URLs, generate audio via podcast-creator, persist to Supabase.
 
-POC/MVP scope: single-speaker (`solo_expert` profile) with OpenAI TTS, openai-gpt-4o-mini for
+MVP scope: single-speaker (`solo_expert` profile) with OpenAI TTS, openai-gpt-4o-mini for
 outline+transcript (avoids needing ANTHROPIC_API_KEY).
 """
 import asyncio
 import base64
+import hashlib
 import logging
 import shutil
 import tempfile
 from pathlib import Path
 
 import storage_service
-import summarizer
+import tldr_service
 import util
 
 logger = logging.getLogger("podcast_service")
@@ -37,36 +38,82 @@ async def _generate_audio_bytes(content_markdown: str, episode_name: str) -> byt
         shutil.rmtree(work_dir, ignore_errors=True)
 
 
-def get_or_create_podcast_episode(url: str) -> dict:
-    """Return mp3 bytes for the podcast version of `url`, cache-first.
+def _generate_podcast_cache_key(canonical_urls: list[str]) -> str:
+    """Generate a stable cache key from canonical source URLs.
 
-    Returns dict with: canonical_url, audio_bytes, cached (bool).
+    >>> _generate_podcast_cache_key(["https://b.com", "https://a.com"]) == _generate_podcast_cache_key(["https://a.com", "https://b.com"])
+    True
     """
-    canonical_url = util.canonicalize_url(url)
-    logger.info("podcast lookup canonical_url=%s", canonical_url)
+    payload = "|".join(sorted(canonical_urls))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-    cached_b64 = storage_service.get_podcast_episode(canonical_url)
+
+def _format_podcast_source_markdown(
+    canonical_urls: list[str],
+    markdown_by_url: dict[str, str],
+) -> str:
+    """Join scraped article markdown into one XML-like source document.
+
+    >>> formatted = _format_podcast_source_markdown(["https://example.com/a"], {"https://example.com/a": "Body"})
+    >>> '<sources>' in formatted and '<source index="1" url="https://example.com/a">' in formatted
+    True
+    >>> '</source>' in formatted and '</sources>' in formatted
+    True
+    """
+    source_blocks = [
+        f'<source index="{index}" url="{url}">\n{markdown_by_url[url]}\n</source>'
+        for index, url in enumerate(canonical_urls, start=1)
+    ]
+    return "<sources>\n" + "\n\n".join(source_blocks) + "\n</sources>"
+
+
+def get_or_create_podcast_episode(urls: list[str]) -> dict:
+    """Return mp3 bytes for the podcast version of a URL list, cache-first.
+
+    Returns dict with: canonical_urls, audio_bytes, cached (bool).
+    """
+    if not isinstance(urls, list) or not urls:
+        raise ValueError("urls must be a non-empty list")
+
+    cleaned_urls: list[str] = []
+    for raw_url in urls:
+        if not isinstance(raw_url, str) or not raw_url.strip():
+            raise ValueError("urls must contain non-empty strings")
+        cleaned_urls.append(raw_url.strip())
+
+    canonical_urls = sorted(util.canonicalize_url(url) for url in cleaned_urls)
+    cache_key = _generate_podcast_cache_key(canonical_urls)
+    logger.info("podcast lookup cache_key=%s url_count=%d", cache_key[:8], len(canonical_urls))
+
+    cached_b64 = storage_service.get_podcast_episode(cache_key)
     if cached_b64:
-        logger.info("podcast cache hit canonical_url=%s", canonical_url)
+        logger.info("podcast cache hit cache_key=%s", cache_key[:8])
         return {
-            "canonical_url": canonical_url,
+            "canonical_urls": canonical_urls,
             "audio_bytes": base64.b64decode(cached_b64),
             "cached": True,
         }
 
-    logger.info("podcast cache miss; scraping canonical_url=%s", canonical_url)
-    markdown = summarizer.url_to_markdown(canonical_url)
+    logger.info("podcast cache miss; scraping cache_key=%s", cache_key[:8])
+    markdown_by_url = tldr_service._fetch_article_markdowns_parallel(canonical_urls)
+    content_markdown = _format_podcast_source_markdown(canonical_urls, markdown_by_url)
 
-    logger.info("generating podcast canonical_url=%s markdown_chars=%d", canonical_url, len(markdown))
-    episode_name = canonical_url.replace("/", "_").replace(".", "_")[:60]
-    audio_bytes = asyncio.run(_generate_audio_bytes(markdown, episode_name))
+    logger.info(
+        "generating podcast cache_key=%s url_count=%d markdown_chars=%d",
+        cache_key[:8],
+        len(canonical_urls),
+        len(content_markdown),
+    )
+    audio_bytes = asyncio.run(
+        _generate_audio_bytes(content_markdown, f"podcast_{cache_key[:12]}")
+    )
 
     audio_b64 = base64.b64encode(audio_bytes).decode("ascii")
-    storage_service.set_podcast_episode(canonical_url, audio_b64)
-    logger.info("podcast persisted canonical_url=%s audio_bytes=%d", canonical_url, len(audio_bytes))
+    storage_service.set_podcast_episode(cache_key, audio_b64)
+    logger.info("podcast persisted cache_key=%s audio_bytes=%d", cache_key[:8], len(audio_bytes))
 
     return {
-        "canonical_url": canonical_url,
+        "canonical_urls": canonical_urls,
         "audio_bytes": audio_bytes,
         "cached": False,
     }

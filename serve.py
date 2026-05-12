@@ -13,9 +13,9 @@ import sys
 from flask import Flask, Response, request, jsonify, send_from_directory
 import requests
 
+import podcast_service
 import util
 import tldr_app
-import podcast_service
 import storage_service
 
 from summarizer import DEFAULT_MODEL, DEFAULT_THINKING_EFFORT, DEFAULT_ELABORATE_MODEL
@@ -37,8 +37,6 @@ logging.basicConfig(
     force=True  # Override any existing configuration
 )
 logger = logging.getLogger("serve")
-CONSENSUS_SUBMODULE_DIRECTORY = pathlib.Path(__file__).resolve().parent / "vendor" / "consensus"
-
 
 def summarize_article_patch(patch: dict) -> str:
     """Return a compact, log-friendly summary of an article patch."""
@@ -116,21 +114,6 @@ def persist_article_summary(date: str, url: str, summary_data: dict, max_retries
         f"persist_article_summary conflict retry exhausted (date={date}, url={url}, attempts={max_retries})"
     )
 
-
-def register_consensus_submodule() -> None:
-    """Mount the standalone consensus app when the submodule is present."""
-    if not CONSENSUS_SUBMODULE_DIRECTORY.exists():
-        logger.info("Consensus submodule not found at %s", CONSENSUS_SUBMODULE_DIRECTORY)
-        return
-
-    if str(CONSENSUS_SUBMODULE_DIRECTORY) not in sys.path:
-        sys.path.insert(0, str(CONSENSUS_SUBMODULE_DIRECTORY))
-
-    consensus_module = importlib.import_module("consensus")
-    consensus_module.register_with_host_app(app)
-
-
-register_consensus_submodule()
 
 
 @app.route("/")
@@ -322,23 +305,29 @@ def digest_endpoint():
 
 @app.route("/api/podcast", methods=["POST"])
 def podcast_endpoint():
-    """Return an MP3 podcast for the given URL.
+    """Return an MP3 podcast synthesized from the selected source URLs.
 
-    Requires 'url' in request body. Canonicalizes, returns cached audio if present;
-    otherwise scrapes, generates, persists, and returns. Response is raw audio/mpeg.
+    Requires 'urls' in the request body as a non-empty array of URL strings.
+    Response is raw audio/mpeg.
     """
     try:
         data = request.get_json()
-        url = data["url"]
-        result = podcast_service.get_or_create_podcast_episode(url)
+        result = podcast_service.get_or_create_podcast_episode(data["urls"])
         response = Response(result["audio_bytes"], mimetype="audio/mpeg")
-        response.headers["X-Canonical-Url"] = result["canonical_url"]
+        response.headers["X-Canonical-Urls"] = ",".join(result["canonical_urls"])
         response.headers["X-Cache"] = "hit" if result["cached"] else "miss"
         return response
     except KeyError as error:
         return jsonify({"success": False, "error": f"Missing field: {error}"}), 400
     except ValueError as error:
         return jsonify({"success": False, "error": str(error)}), 400
+    except requests.RequestException as error:
+        logger.error(
+            "request error error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": f"Network error: {repr(error)}"}), 502
     except Exception as error:
         logger.exception("podcast_endpoint failed: %s", error)
         return jsonify({"success": False, "error": repr(error)}), 500

@@ -108,11 +108,6 @@ print(f"  {file_path}.last_updated -> {timestamp}")
 PY
 }
 
-function _sync_tracked_submodules() {
-  local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
-  SERVER_CONTEXT_WORKDIR="$workdir" bash "$workdir/scripts/ops/ensure_submodules.sh"
-}
-
 function _sync_external_dirs() {
   local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
   local registry="$workdir/scripts/ops/synced_external_subdirs.txt"
@@ -134,7 +129,6 @@ function run_structural_maintenance() {
   local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
   chmod +x .githooks/*
   _ensure_agent_symlinks "$workdir"
-  _sync_tracked_submodules
   _generate_project_structure
   _sync_external_dirs
   _build_simplify_code_skill

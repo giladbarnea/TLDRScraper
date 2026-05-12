@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-20 08:09
+last_updated: 2026-05-12 08:19
 ---
 # Ops & Automation: Contracts and Triggers
 
@@ -13,7 +13,6 @@ last_updated: 2026-04-20 08:09
 | `CLAUDE.md` | `AGENTS.md` | hardlink — filesystem |
 | `.agents/skills/prompt-subagent/` | `giladbarnea/llm-templates` | `post-merge`, `setup.sh` |
 | `.agents/skills/supabase-postgres-best-practices/` | `giladbarnea/llm-templates` | `post-merge`, `setup.sh` |
-| `vendor/consensus/` | `.gitmodules` | `post-merge`, `setup.sh` |
 | `.agents/skills/simplify-code/SKILL.md` | `build/build.py` | `post-merge`, `setup.sh` |
 
 ## Trigger → Action Map
