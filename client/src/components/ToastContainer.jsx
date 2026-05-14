@@ -88,11 +88,7 @@ function LiquidGlassFilter() {
           x="0" y="0" result="normalMap"
           xlinkHref="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='80' preserveAspectRatio='none'><radialGradient id='m' cx='50%' cy='50%' r='65%'><stop offset='0%' stop-color='rgb(128,128,255)'/><stop offset='50%' stop-color='rgb(180,180,255)'/><stop offset='95%' stop-color='rgb(255,255,255)'/></radialGradient><rect width='100%' height='100%' fill='url(%23m)'/></svg>"
         />
-        {/* Mild pre-blur of the input smooths the SourceGraphic so the lens
-            bend reads as fluid refraction rather than crisp pixel displacement
-            (technique from the switcher reference). */}
-        <feGaussianBlur in="SourceGraphic" stdDeviation="0.6" result="preblurred" />
-        <feDisplacementMap in="preblurred" in2="normalMap" scale="-140" xChannelSelector="R" yChannelSelector="G" />
+        <feDisplacementMap in="SourceGraphic" in2="normalMap" scale="-140" xChannelSelector="R" yChannelSelector="G" />
       </filter>
     </svg>
   )
