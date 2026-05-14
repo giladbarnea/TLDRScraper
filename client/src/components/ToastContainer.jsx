@@ -1,4 +1,3 @@
-import { CheckCircle } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { subscribeToToasts } from '../lib/toastBus'
@@ -27,26 +26,16 @@ function Toast({ id, title, onOpen, onDismiss }) {
     <div
       onClick={handleClick}
       className={`
-        relative overflow-hidden
-        flex items-center gap-3
-        bg-gradient-to-r from-brand-50/95 to-white/95 text-slate-900
-        px-4 py-3.5 rounded-2xl
-        border border-brand-200/70
-        ring-1 ring-brand-100/80
-        shadow-elevated backdrop-blur-sm
+        liquid-glass-toast
+        relative
+        text-slate-900
+        px-5 py-3 rounded-[22px]
         max-w-md w-full
         pointer-events-auto cursor-pointer
         ${exiting ? 'animate-toast-out' : 'animate-toast-in'}
       `}
     >
-      <span className="absolute inset-y-0 left-0 w-1.5 bg-brand-300/80" />
-      <span className="ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700">
-        <CheckCircle size={16} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-700/90">Summary ready</p>
-        <p className="text-base font-semibold text-slate-800 truncate">{title}</p>
-      </div>
+      <p className="text-[15px] font-semibold text-slate-900 truncate">{title}</p>
     </div>
   )
 }
@@ -66,11 +55,33 @@ export default function ToastContainer() {
   if (toasts.length === 0) return null
 
   return createPortal(
-    <div className="fixed top-4 left-0 right-0 z-[300] flex flex-col items-center gap-2.5 pointer-events-none px-4">
-      {toasts.map(toast => (
-        <Toast key={toast.id} {...toast} onDismiss={dismiss} />
-      ))}
-    </div>,
+    <>
+      <LiquidGlassFilter />
+      <div className="fixed top-4 left-0 right-0 z-[300] flex flex-col items-center gap-2.5 pointer-events-none px-4">
+        {toasts.map(toast => (
+          <Toast key={toast.id} {...toast} onDismiss={dismiss} />
+        ))}
+      </div>
+    </>,
     document.body
+  )
+}
+
+/* feDisplacementMap with a radial normal map: zero displacement at the center,
+ * maximum at the rim — bends content underneath the glass at the perimeter,
+ * which is what reads as "refraction through curved glass." Chrome/Firefox
+ * only; Safari silently no-ops `backdrop-filter: url()`, falling through to
+ * the box-shadow specular stack defined in CSS. */
+function LiquidGlassFilter() {
+  return (
+    <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}>
+      <filter id="liquid-glass-lens" x="-10%" y="-10%" width="120%" height="120%">
+        <feImage
+          x="0" y="0" result="normalMap"
+          xlinkHref="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='80' preserveAspectRatio='none'><radialGradient id='m' cx='50%' cy='50%' r='80%'><stop offset='0%' stop-color='rgb(128,128,255)'/><stop offset='95%' stop-color='rgb(255,255,255)'/></radialGradient><rect width='100%' height='100%' fill='url(%23m)'/></svg>"
+        />
+        <feDisplacementMap in="SourceGraphic" in2="normalMap" scale="-60" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </svg>
   )
 }
