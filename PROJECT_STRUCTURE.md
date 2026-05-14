@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-12 21:38
+last_updated: 2026-05-14 07:26
 ---
 
 .
@@ -133,7 +133,6 @@ last_updated: 2026-05-12 21:38
 │     └── update_frontmatter.py
 ├── .gitattributes
 ├── .gitignore
-├── .gitmodules
 ├── .ignore
 ├── .vercelignore
 ├── AGENTS.md
