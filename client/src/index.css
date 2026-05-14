@@ -269,9 +269,8 @@
 
   position: relative;
   /* Vertical gradient sells convex curvature (top catches light, bottom sits
-   * in self-shadow). The opacity ramps from ~80% white at the top to ~64% at
-   * the bottom — translucent enough to feel like a real surface, opaque
-   * enough to dampen anything beneath so the toast text wins.
+   * in self-shadow). Opacity ramps 88% → 72% — solid enough that the toast
+   * is a substantial surface, translucent enough to feel like real glass.
    *
    * brightness(1.1) is the key dampening ingredient: it lifts dark content
    * beneath the toast toward middle-gray, reducing its contrast (and thus
@@ -280,26 +279,26 @@
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--lg-light) 80%, transparent) 0%,
-      color-mix(in srgb, var(--lg-light) 72%, transparent) 55%,
-      color-mix(in srgb, var(--lg-light) 64%, transparent) 100%
+      color-mix(in srgb, var(--lg-light) 88%, transparent) 0%,
+      color-mix(in srgb, var(--lg-light) 80%, transparent) 55%,
+      color-mix(in srgb, var(--lg-light) 72%, transparent) 100%
     );
   backdrop-filter: blur(12px) saturate(135%) brightness(1.1);
   -webkit-backdrop-filter: blur(12px) saturate(135%) brightness(1.1);
   box-shadow:
     /* Hairline perimeter — defines the silhouette */
-    inset 0 0 0 0.5px color-mix(in srgb, var(--lg-dark) 9%, transparent),
-    /* Crisp 1px bright top rim — the strongest specular cue */
-    inset 0 1px 0 -0.25px color-mix(in srgb, var(--lg-light) 100%, transparent),
-    /* Broad soft top glow — light-from-above band, not a rim */
-    inset 0 12px 14px -10px color-mix(in srgb, var(--lg-light) 95%, transparent),
-    /* Faint dark bottom rim — the curved underside sitting in shadow */
-    inset 0 -1px 0 -0.5px color-mix(in srgb, var(--lg-dark) 10%, transparent),
-    /* Soft inner shadow at the bottom — deepens the convex feel */
-    inset 0 -8px 12px -8px color-mix(in srgb, var(--lg-dark) 10%, transparent),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--lg-dark) 13%, transparent),
+    /* Crisp 1.5px bright top rim — the strongest specular cue, pushed harder */
+    inset 0 1.5px 0 -0.25px color-mix(in srgb, var(--lg-light) 100%, transparent),
+    /* Broad soft top glow — light-from-above band, deepened */
+    inset 0 14px 16px -10px color-mix(in srgb, var(--lg-light) 100%, transparent),
+    /* Faint dark bottom rim — the curved underside sitting in shadow, pushed harder */
+    inset 0 -1.25px 0 -0.5px color-mix(in srgb, var(--lg-dark) 15%, transparent),
+    /* Soft inner shadow at the bottom — deeper convex feel */
+    inset 0 -10px 14px -8px color-mix(in srgb, var(--lg-dark) 13%, transparent),
     /* Elevation */
-    0 1px 2px 0 color-mix(in srgb, var(--lg-dark) 8%, transparent),
-    0 12px 32px -4px color-mix(in srgb, var(--lg-dark) 14%, transparent);
+    0 1px 2px 0 color-mix(in srgb, var(--lg-dark) 9%, transparent),
+    0 14px 36px -4px color-mix(in srgb, var(--lg-dark) 16%, transparent);
 }
 
 /* Progressive enhancement: in browsers that support SVG filters in
@@ -309,7 +308,7 @@
  * no-ops the url() and falls through to the rule above. */
 @supports (backdrop-filter: url(#liquid-glass-lens)) or (-webkit-backdrop-filter: url(#liquid-glass-lens)) {
   .liquid-glass-toast {
-    backdrop-filter: blur(6px) saturate(135%) brightness(1.1) url(#liquid-glass-lens);
-    -webkit-backdrop-filter: blur(6px) saturate(135%) brightness(1.1) url(#liquid-glass-lens);
+    backdrop-filter: blur(4px) saturate(140%) brightness(1.1) url(#liquid-glass-lens);
+    -webkit-backdrop-filter: blur(4px) saturate(140%) brightness(1.1) url(#liquid-glass-lens);
   }
 }
