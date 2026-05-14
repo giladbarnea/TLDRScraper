@@ -5,17 +5,18 @@ import { subscribeToToasts } from '../lib/toastBus'
 const TOAST_VISIBLE_MS = 12000
 const EXIT_ANIMATION_MS = 350
 
-function Toast({ id, title, onOpen, onDismiss }) {
+function Toast({ id, title, onOpen, onDismiss, persistent = false }) {
   const [exiting, setExiting] = useState(false)
 
   useEffect(() => {
+    if (persistent) return
     const exitTimer = setTimeout(() => setExiting(true), TOAST_VISIBLE_MS - EXIT_ANIMATION_MS)
     const removeTimer = setTimeout(() => onDismiss(id), TOAST_VISIBLE_MS)
     return () => {
       clearTimeout(exitTimer)
       clearTimeout(removeTimer)
     }
-  }, [id, onDismiss])
+  }, [id, onDismiss, persistent])
 
   const handleClick = () => {
     onOpen?.()
@@ -52,12 +53,11 @@ export default function ToastContainer() {
 
   const dismiss = useCallback((id) => setToasts(prev => prev.filter(t => t.id !== id)), [])
 
-  if (toasts.length === 0) return null
-
   return createPortal(
     <>
       <LiquidGlassFilter />
       <div className="fixed top-4 left-0 right-0 z-[300] flex flex-col items-center gap-2.5 pointer-events-none px-4">
+        <Toast id="mock" title="AI models now reason better than most humans on complex tasks" onDismiss={() => {}} persistent />
         {toasts.map(toast => (
           <Toast key={toast.id} {...toast} onDismiss={dismiss} />
         ))}
