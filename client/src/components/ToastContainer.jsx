@@ -71,24 +71,22 @@ export default function ToastContainer() {
   )
 }
 
-/* feDisplacementMap with a radial normal map: zero displacement at the center,
- * maximum at the rim — bends content underneath the glass at the perimeter,
- * which is what reads as "refraction through curved glass." The radial
- * gradient ramps fast (max-out by 60% radius) so the bend concentrates
- * aggressively at the rim — Apple's "black hole" character where text
- * passing the perimeter warps to near-unrecognizable. Scale -130 matches
- * the heavy-displacement slider-button reference. Chrome/Firefox only;
- * Safari silently no-ops `backdrop-filter: url()`, falling through to the
- * box-shadow specular stack. */
+/* Refraction via self-referential displacement: the backdrop displaces itself.
+ * R channel drives X displacement, B channel drives Y. Content edges (where
+ * R/B change steeply, e.g. dark text on white) generate the strongest
+ * displacement gradients, so text underneath the toast gets visibly warped
+ * across the entire element body — not just at the perimeter. This is the
+ * apple-liquid-glass-experiments technique. A mild post-displacement blur
+ * smooths the warped result so it reads as fluid refraction.
+ *
+ * Chrome/Firefox only; Safari silently no-ops `backdrop-filter: url()`,
+ * falling through to the box-shadow specular stack. */
 function LiquidGlassFilter() {
   return (
     <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}>
-      <filter id="liquid-glass-lens" x="-30%" y="-30%" width="160%" height="160%">
-        <feImage
-          x="0" y="0" result="normalMap"
-          xlinkHref="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='80' preserveAspectRatio='none'><radialGradient id='m' cx='50%' cy='50%' r='65%'><stop offset='0%' stop-color='rgb(128,128,255)'/><stop offset='50%' stop-color='rgb(180,180,255)'/><stop offset='95%' stop-color='rgb(255,255,255)'/></radialGradient><rect width='100%' height='100%' fill='url(%23m)'/></svg>"
-        />
-        <feDisplacementMap in="SourceGraphic" in2="normalMap" scale="-140" xChannelSelector="R" yChannelSelector="G" />
+      <filter id="liquid-glass-lens" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="linearRGB">
+        <feDisplacementMap in="SourceGraphic" in2="SourceGraphic" scale="40" xChannelSelector="R" yChannelSelector="B" result="displaced" />
+        <feGaussianBlur in="displaced" stdDeviation="1.5" />
       </filter>
     </svg>
   )
