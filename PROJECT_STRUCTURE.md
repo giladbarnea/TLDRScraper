@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-12 21:38
+last_updated: 2026-05-13 20:18
 ---
 
 .
@@ -58,6 +58,7 @@ last_updated: 2026-05-12 21:38
 │  │  │  ├── ElaborationPreview.jsx
 │  │  │  ├── Feed.jsx
 │  │  │  ├── FoldableContainer.jsx
+│  │  │  ├── LinkSummarizePreview.jsx
 │  │  │  ├── NewsletterDay.jsx
 │  │  │  ├── OverlayContextMenu.jsx
 │  │  │  ├── OverlayLink.jsx
@@ -76,6 +77,7 @@ last_updated: 2026-05-12 21:38
 │  │  │  ├── useDigest.js
 │  │  │  ├── useElaboration.js
 │  │  │  ├── useFeedLoader.js
+│  │  │  ├── useLinkSummarize.js
 │  │  │  ├── useLongPress.js
 │  │  │  ├── useOverlayContextMenu.js
 │  │  │  ├── useOverscrollUp.js

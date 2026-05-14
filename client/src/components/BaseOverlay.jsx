@@ -1,10 +1,12 @@
 import { FloatingNode, useDismiss, useFloating, useFloatingNodeId, useInteractions } from '@floating-ui/react'
-import { Check, CheckCircle, ChevronDown, Link as LinkIcon } from 'lucide-react'
+import { AlignLeft, Check, CheckCircle, ChevronDown, ExternalLink } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useLinkSummarize } from '../hooks/useLinkSummarize'
 import { useOverscrollUp } from '../hooks/useOverscrollUp'
 import { usePullToClose } from '../hooks/usePullToClose'
 import { useScrollProgress } from '../hooks/useScrollProgress'
+import LinkSummarizePreview from './LinkSummarizePreview'
 import OverlayContextMenu from './OverlayContextMenu'
 import { OverlayLinkMenuContext } from './OverlayLinkMenuContext'
 
@@ -57,14 +59,22 @@ function BaseOverlay({
     openOverlayLinkMenu,
   }), [openOverlayLinkMenu])
 
+  const { linkSummary, runLinkSummarize, closeLinkSummary } = useLinkSummarize()
+
   const linkMenuActions = useMemo(() => ([
     {
-      key: 'dummy-link-action',
-      label: 'Dummy action',
-      icon: <LinkIcon size={15} />,
-      onSelect: () => console.log('[overlay-link] dummy action — url:', linkMenuState.href),
+      key: 'open-tab',
+      label: 'Open',
+      icon: <ExternalLink size={15} />,
+      onSelect: (href) => window.open(href, '_blank', 'noopener,noreferrer'),
     },
-  ]), [linkMenuState.href])
+    {
+      key: 'summarize-link',
+      label: 'Summarize',
+      icon: <AlignLeft size={15} />,
+      onSelect: runLinkSummarize,
+    },
+  ]), [runLinkSummarize])
 
   const { progress, hasScrolled } = useScrollProgress(scrollRef)
   // usePullToClose attaches a non-passive touchmove listener that calls preventDefault() on every
@@ -217,6 +227,15 @@ function BaseOverlay({
         )}
 
         {overlayLayers}
+
+        <LinkSummarizePreview
+          isOpen={linkSummary.status !== 'idle'}
+          status={linkSummary.status}
+          url={linkSummary.url}
+          markdown={linkSummary.markdown}
+          errorMessage={linkSummary.errorMessage}
+          onClose={closeLinkSummary}
+        />
       </FloatingNode>
     </OverlayLinkMenuContext.Provider>
   )
