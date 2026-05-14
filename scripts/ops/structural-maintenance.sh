@@ -7,7 +7,6 @@ sync_external_subdir() {
   local src_dir="$2"
   local dest_dir="$3"
 
-  echo "==> Syncing $src_dir from $repo_url into $dest_dir"
   git fetch "$repo_url" main --quiet
   mkdir -p "$dest_dir"
   git archive FETCH_HEAD:"$src_dir" | tar -x -C "$dest_dir"
@@ -111,12 +110,15 @@ PY
 function _sync_external_dirs() {
   local workdir="${SERVER_CONTEXT_WORKDIR:-$PWD}"
   local registry="$workdir/scripts/ops/synced_external_subdirs.txt"
-  echo "[sync_external_dirs] Syncing external subdirectories..."
+  local failed=false
   while IFS=' ' read -r repo_url src_dir dest_dir; do
     [[ -z "$repo_url" || "$repo_url" == "#"* ]] && continue
-    sync_external_subdir "$repo_url" "$src_dir" "$dest_dir"
+    if ! sync_external_subdir "$repo_url" "$src_dir" "$dest_dir" 2>/dev/null; then
+      echo "[sync_external_dirs] ERROR: failed to sync $src_dir from $repo_url" >&2
+      failed=true
+    fi
   done <"$registry"
-  echo "[sync_external_dirs] Sync complete."
+  [[ "$failed" == false ]] && echo "[sync_external_dirs] Synced external subdirs successfully."
 }
 
 function _build_simplify_code_skill() {
