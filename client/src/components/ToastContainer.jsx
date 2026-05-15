@@ -76,8 +76,7 @@ export default function ToastContainer() {
  * R/B change steeply, e.g. dark text on white) generate the strongest
  * displacement gradients, so text underneath the toast gets visibly warped
  * across the entire element body — not just at the perimeter. This is the
- * apple-liquid-glass-experiments technique. A mild post-displacement blur
- * smooths the warped result so it reads as fluid refraction.
+ * apple-liquid-glass-experiments technique.
  *
  * Chrome/Firefox only; Safari silently no-ops `backdrop-filter: url()`,
  * falling through to the box-shadow specular stack. */
@@ -85,8 +84,7 @@ function LiquidGlassFilter() {
   return (
     <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}>
       <filter id="liquid-glass-lens" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="linearRGB">
-        <feDisplacementMap in="SourceGraphic" in2="SourceGraphic" scale="40" xChannelSelector="R" yChannelSelector="B" result="displaced" />
-        <feGaussianBlur in="displaced" stdDeviation="1.5" />
+        <feDisplacementMap in="SourceGraphic" in2="SourceGraphic" scale="40" xChannelSelector="R" yChannelSelector="B" />
       </filter>
     </svg>
   )
