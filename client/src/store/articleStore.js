@@ -797,7 +797,6 @@ export const summaryActions = Object.freeze({
         const currentSlice = articlesByKey.get(key)
         emitToast({
           title: currentSlice?.title ?? url,
-          url,
           onOpen: () => summaryActions.expand(key),
         })
       } else {

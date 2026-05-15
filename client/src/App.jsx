@@ -8,6 +8,7 @@ import PodcastPlayer from './components/PodcastPlayer'
 import ScrapeForm from './components/ScrapeForm'
 import SelectionActionDock from './components/SelectionActionDock'
 import ToastContainer from './components/ToastContainer'
+import LiquidGlassDefs from './components/visual-effects/LiquidGlassDefs'
 import { useDigest } from './hooks/useDigest'
 import { getDefaultFeedDateRange, useFeedLoader } from './hooks/useFeedLoader'
 import { queueBatchArticlePatches } from './lib/dailyPayloadMutations'
@@ -311,6 +312,7 @@ function App() {
 
   return (
     <>
+      <LiquidGlassDefs />
       <ToastContainer />
       <FloatingTree>
         <AppContent

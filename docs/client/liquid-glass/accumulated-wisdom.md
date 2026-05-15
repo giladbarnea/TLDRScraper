@@ -1,7 +1,7 @@
 ---
 name: client/liquid-glass
 description: Liquid Glass design guidance for client surfaces, starting from the toast reference implementation.
-last_updated: 2026-05-15 06:52
+last_updated: 2026-05-15 07:31
 ---
 # Client: Liquid Glass
 
@@ -9,9 +9,11 @@ last_updated: 2026-05-15 06:52
 
 ## Scope
 
-This document captures the current working guidance for Liquid Glass client surfaces. The first converged implementation lives in the global toast surface:
+This document captures the current working guidance for Liquid Glass client surfaces. The first converged implementation still lives in the global toast surface, but the material shell has now been extracted so future work can reuse it without copying toast code:
 - `client/src/components/ToastContainer.jsx`
-- `client/src/index.css` (`.liquid-glass-toast`)
+- `client/src/components/visual-effects/LiquidGlassSurface.jsx`
+- `client/src/components/visual-effects/LiquidGlassDefs.jsx`
+- `client/src/index.css` (`.liquid-glass-surface` and its data-attribute presets)
 
 Treat the toast as the reference specimen before generalizing the design to other surfaces.
 

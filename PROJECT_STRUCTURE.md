@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-14 07:26
+last_updated: 2026-05-15 07:31
 ---
 
 .
@@ -49,6 +49,9 @@ last_updated: 2026-05-14 07:26
 │  │  └── lint.sh
 │  ├── src
 │  │  ├── components
+│  │  │  ├── visual-effects
+│  │  │  │  ├── LiquidGlassDefs.jsx
+│  │  │  │  └── LiquidGlassSurface.jsx
 │  │  │  ├── ArticleCard.jsx
 │  │  │  ├── ArticleList.jsx
 │  │  │  ├── BaseOverlay.jsx

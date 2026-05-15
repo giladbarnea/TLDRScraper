@@ -251,64 +251,43 @@
   animation: toast-slide-out 350ms cubic-bezier(0.32, 0, 0.67, 0) forwards;
 }
 
-/* ── Liquid Glass — Toast (solid variant) ──
+/* ── Liquid Glass — shared surface shell ──
  *
- * The "solid" Liquid Glass for use over neutral/light backgrounds where the
- * translucent variant has nothing colorful to refract. Near-opaque cream-white
- * surface that still preserves the rim, top specular ridge, and soft drop
- * shadow. A small amount of backdrop blur lets the surface pick up a hint of
- * the background's tint so the pill never looks "pasted on."
- *
- * Light catches the upper rim (bright inset) and the lower rim sits in shadow
- * (dark inset) — together they sell the curved-glass illusion without any
- * transparency. A hairline outer ring defines the silhouette.
+ * Keep the reusable material recipe separate from any single component. The
+ * current solid/compact/subtle preset is the first converged surface and can
+ * now be reused by future overlays, pills, or controls without copying the
+ * toast-specific class.
  */
-.liquid-glass-toast {
-  --lg-light: #ffffff;
-  --lg-dark: #001428;
+.liquid-glass-surface {
+  --liquid-glass-light: #ffffff;
+  --liquid-glass-dark: #001428;
 
   position: relative;
-  /* Vertical gradient sells convex curvature (top catches light, bottom sits
-   * in self-shadow). Opacity ramps 88% → 72% — solid enough that the toast
-   * is a substantial surface, translucent enough to feel like real glass.
-   *
-   * brightness(1.1) is the key dampening ingredient: it lifts dark content
-   * beneath the toast toward middle-gray, reducing its contrast (and thus
-   * its attention pull) without destroying shapes. Lighter literal blur lets
-   * the rim refraction read clearly. */
+}
+
+.liquid-glass-surface[data-liquid-glass-variant="solid"][data-liquid-glass-depth="compact"] {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--lg-light) 88%, transparent) 0%,
-      color-mix(in srgb, var(--lg-light) 80%, transparent) 55%,
-      color-mix(in srgb, var(--lg-light) 72%, transparent) 100%
+      color-mix(in srgb, var(--liquid-glass-light) 88%, transparent) 0%,
+      color-mix(in srgb, var(--liquid-glass-light) 80%, transparent) 55%,
+      color-mix(in srgb, var(--liquid-glass-light) 72%, transparent) 100%
     );
   backdrop-filter: blur(12px) saturate(135%) brightness(1.1);
   -webkit-backdrop-filter: blur(12px) saturate(135%) brightness(1.1);
   box-shadow:
-    /* Hairline perimeter — defines the silhouette */
-    inset 0 0 0 0.5px color-mix(in srgb, var(--lg-dark) 13%, transparent),
-    /* Crisp 1.5px bright top rim — the strongest specular cue, pushed harder */
-    inset 0 1.5px 0 -0.25px color-mix(in srgb, var(--lg-light) 100%, transparent),
-    /* Broad soft top glow — light-from-above band, deepened */
-    inset 0 14px 16px -10px color-mix(in srgb, var(--lg-light) 100%, transparent),
-    /* Faint dark bottom rim — the curved underside sitting in shadow, pushed harder */
-    inset 0 -1.25px 0 -0.5px color-mix(in srgb, var(--lg-dark) 15%, transparent),
-    /* Soft inner shadow at the bottom — deeper convex feel */
-    inset 0 -10px 14px -8px color-mix(in srgb, var(--lg-dark) 13%, transparent),
-    /* Elevation */
-    0 1px 2px 0 color-mix(in srgb, var(--lg-dark) 9%, transparent),
-    0 14px 36px -4px color-mix(in srgb, var(--lg-dark) 16%, transparent);
+    inset 0 0 0 0.5px color-mix(in srgb, var(--liquid-glass-dark) 13%, transparent),
+    inset 0 1.5px 0 -0.25px color-mix(in srgb, var(--liquid-glass-light) 100%, transparent),
+    inset 0 14px 16px -10px color-mix(in srgb, var(--liquid-glass-light) 100%, transparent),
+    inset 0 -1.25px 0 -0.5px color-mix(in srgb, var(--liquid-glass-dark) 15%, transparent),
+    inset 0 -10px 14px -8px color-mix(in srgb, var(--liquid-glass-dark) 13%, transparent),
+    0 1px 2px 0 color-mix(in srgb, var(--liquid-glass-dark) 9%, transparent),
+    0 14px 36px -4px color-mix(in srgb, var(--liquid-glass-dark) 16%, transparent);
 }
 
-/* Progressive enhancement: in browsers that support SVG filters in
- * backdrop-filter (Chrome/Firefox), chain the radial displacement map so
- * content underneath the toast bends at the rim — the "light distortion at
- * the border" that the slider-button reference demonstrates. Safari silently
- * no-ops the url() and falls through to the rule above. */
-@supports (backdrop-filter: url(#liquid-glass-lens)) or (-webkit-backdrop-filter: url(#liquid-glass-lens)) {
-  .liquid-glass-toast {
-    backdrop-filter: blur(4px) saturate(140%) brightness(1.1) url(#liquid-glass-lens);
-    -webkit-backdrop-filter: blur(4px) saturate(140%) brightness(1.1) url(#liquid-glass-lens);
+@supports (backdrop-filter: url(#liquid-glass-lens-subtle)) or (-webkit-backdrop-filter: url(#liquid-glass-lens-subtle)) {
+  .liquid-glass-surface[data-liquid-glass-variant="solid"][data-liquid-glass-depth="compact"][data-liquid-glass-lens="subtle"] {
+    backdrop-filter: blur(4px) saturate(140%) brightness(1.1) url(#liquid-glass-lens-subtle);
+    -webkit-backdrop-filter: blur(4px) saturate(140%) brightness(1.1) url(#liquid-glass-lens-subtle);
   }
 }
