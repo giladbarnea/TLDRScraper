@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-05 06:38, 36614cc
+last_updated: 2026-05-15 06:52
 ---
 
 # Documentation Index
@@ -49,6 +49,14 @@ This index provides a directory tree of the `docs/` folder along with a brief de
 - **[interaction-and-selection.md](client/interaction-and-selection.md)**
   - *Description*: Client-side interaction architecture, selection modes, and foldable containers.
   - *Keywords*: select mode, long press, suppress latch, Selectable, FoldableContainer
+
+- **[liquid-glass/accumulated-wisdom.md](client/liquid-glass/accumulated-wisdom.md)**
+  - *Description*: Practical Liquid Glass design guidance for client surfaces, anchored in the toast implementation.
+  - *Keywords*: liquid glass, toast, translucency, refraction, hierarchy, overlay
+
+- **[liquid-glass/meet-liquid-glass-video-transcript.md](client/liquid-glass/meet-liquid-glass-video-transcript.md)**
+  - *Description*: Transcript of Apple's Liquid Glass introduction, useful as source material for design principles and vocabulary.
+  - *Keywords*: Liquid Glass, lensing, refraction, highlights, shadows, variants, legibility
 
 - **[reading-overlays.md](client/reading-overlays.md)**
   - *Description*: Client architecture for reading overlays including ZenMode and Digest.
