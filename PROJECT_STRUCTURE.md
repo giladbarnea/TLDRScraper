@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-15 07:31
+last_updated: 2026-05-15 10:02
 ---
 
 .
@@ -119,7 +119,7 @@ last_updated: 2026-05-15 07:31
 │  ├── .nvmrc
 │  ├── biome.json
 │  ├── index.html
-│  ├── main-screen.png
+│  ├── main-screen.jpg
 │  ├── package-lock.json
 │  ├── package.json
 │  ├── postcss.config.js
