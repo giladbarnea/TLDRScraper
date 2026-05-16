@@ -1,7 +1,7 @@
 ---
 name: client/liquid-glass
 description: Liquid Glass design guidance for client surfaces, starting from the toast reference implementation.
-last_updated: 2026-05-15 07:31
+last_updated: 2026-05-16 12:12
 ---
 # Client: Liquid Glass
 
@@ -73,8 +73,16 @@ The base appearance must stand on its own without SVG-backed backdrop distortion
 Use progressive enhancement:
 1. Base layer: gradient, translucency, specular rim, shadow, modest backdrop blur/brightness.
 2. Enhanced layer: SVG-driven backdrop distortion in browsers that support `backdrop-filter: url(...)`.
+3. Alive layer: optional `LiquidGlassTouchLight` child. WebGL canvas that paints a press-anchored radial glow inside the surface. Drop in as a child of any `LiquidGlassSurface`; it auto-attaches to its parent's pointerdown. Silent when `prefers-reduced-motion`, `prefers-reduced-transparency`, or no WebGL context.
 
-Do not make the design depend on the enhanced layer for basic quality. Some browsers will silently fall back to the base material.
+Do not make the design depend on any layer above the base for basic quality. Some browsers will silently fall back to the base material.
+
+## Alive layer constraints
+
+When opting a surface into `LiquidGlassTouchLight`:
+- Give the surface `overflow: hidden` so the canvas's `border-radius: inherit` clip is enforced.
+- Lift the surface's text/children above the canvas with `position: relative; z-index: 1`. The canvas sits at z-index 0 inside the surface.
+- Do not stack two touch-light canvases on overlapping glass — the effect is per-surface, not per-tree.
 
 ## Practical heuristics for future surfaces
 

@@ -1,10 +1,22 @@
 ---
-last_updated: 2026-05-05 18:25, a006dd4
+last_updated: 2026-05-16 12:12
 what_is_a_gotcha: Rather confidently signing off on something that later on proved to be at least partially wrong due to wrong assumptions; Figuratively, going thourhg "[allegedly] fixed" -> "oh actually it's not fixed" -> "ahh right... fixed now".
 ---
 # Gotchas
 
 This document catalogs recurring pitfalls in various topics, including managing client-side state persistence and reactivity, surprising design decisions, and so on.
+
+---
+
+#### 2026-05-15: Forcing `WEBGL_lose_context` in React effect cleanup breaks dev remounts
+
+**Desired behavior that didn't work**: A WebGL-backed touch glow (`LiquidGlassTouchLight`) inside the toast should initialize reliably and react to `pointerdown` on mobile.
+
+**What actually happened and falsified original thesis**: The canvas reported `webgl` context support, but one toast instance logged `TypeError: Argument 1 ('shader') to WebGLRenderingContext.shaderSource must be an instance of WebGLShader`, and later `createShader failed for type 35633`. We initially investigated the shader code and pointer event wiring. That was the wrong level.
+
+**Cause & Fix**: In React dev/StrictMode, effects mount, clean up, and mount again. The first mount compiled successfully. Cleanup then called `gl.getExtension('WEBGL_lose_context')?.loseContext()`, which intentionally poisoned the context/canvas. On the second mount, `getContext('webgl')` still returned an object, but `createShader()` returned `null`, so shader setup aborted before the `pointerdown` listener path became usable. Removing the forced context-loss call from cleanup fixed the remount and restored the effect.
+
+**Generalized principle**: in React effect cleanup, do not force-destroy scarce browser resources unless the runtime actually requires it. Dev remount semantics are part of the execution model; cleanup must leave the next mount able to reinitialize normally. A context object existing does not imply it is healthy.
 
 ---
 
