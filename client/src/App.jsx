@@ -90,6 +90,15 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
   useEffect(() => {
     if (!isAddArticleOpen) return
     addArticleInputRef.current?.focus()
+  }, [isAddArticleOpen])
+
+  function handleToggleAddArticle() {
+    if (isAddArticleOpen) {
+      setIsAddArticleOpen(false)
+      return
+    }
+    setAddArticleUrlInput('')
+    setIsAddArticleOpen(true)
     if (!navigator.clipboard?.readText) return
     navigator.clipboard.readText()
       .then((clipboardText) => {
@@ -101,7 +110,7 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
       .catch((error) => {
         console.debug('Clipboard prefill unavailable:', error)
       })
-  }, [isAddArticleOpen])
+  }
 
   function handleTriggerDigest() {
     digest.trigger(selectedArticles)
@@ -226,7 +235,7 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
 
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setIsAddArticleOpen(value => !value)}
+                onClick={handleToggleAddArticle}
                 className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${isAddArticleOpen ? 'bg-cyan-50 text-cyan-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
                 title="Add Article"
               >
