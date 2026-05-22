@@ -1,4 +1,7 @@
+import html as html_module
 import logging
+import re
+import urllib.parse as urlparse
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date as date_type
@@ -305,6 +308,132 @@ def scrape_newsletters_in_date_range(
         "stats": _build_stats_from_payloads(ordered_payloads, total_network_fetches),
         "source": "live",
     }
+
+
+_URL_PATH_EXTENSION_PATTERN = re.compile(r"\.(html?|php|aspx?)$", re.IGNORECASE)
+_URL_PATH_SEPARATOR_PATTERN = re.compile(r"[-_]+")
+_MARKDOWN_H1_PATTERN = re.compile(r"^#\s+(.+?)\s*$", re.MULTILINE)
+_HTML_TITLE_PATTERN = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
+
+
+def _scrape_url_to_markdown_and_html(url: str) -> tuple[str, str | None]:
+    """Fetch URL and return (markdown, html_or_None). GitHub repo URLs return README markdown with no html."""
+    if summarizer._is_github_repo_url(url):
+        return summarizer._fetch_github_readme(url), None
+    response = summarizer.scrape_url(url)
+    return summarizer.h.handle(response.text), response.text
+
+
+def _extract_h1_from_markdown(markdown: str) -> str | None:
+    r"""Return the first top-level heading from markdown, or None.
+
+    >>> _extract_h1_from_markdown("# Hello\nworld")
+    'Hello'
+    >>> _extract_h1_from_markdown("no heading here") is None
+    True
+    """
+    match = _MARKDOWN_H1_PATTERN.search(markdown)
+    if not match:
+        return None
+    return match.group(1).strip() or None
+
+
+def _extract_title_from_html(html_text: str) -> str | None:
+    """Return the contents of the first <title> tag, unescaped, or None.
+
+    >>> _extract_title_from_html("<html><title>Hi &amp; bye</title></html>")
+    'Hi & bye'
+    >>> _extract_title_from_html("<html><body>nope</body></html>") is None
+    True
+    """
+    match = _HTML_TITLE_PATTERN.search(html_text)
+    if not match:
+        return None
+    return html_module.unescape(match.group(1).strip()) or None
+
+
+def _title_from_url_path(url: str) -> str:
+    """Sentence-case the last URL path segment; fall back to friendly domain name.
+
+    >>> _title_from_url_path("https://www.example.com/blog/foo-bar_baz-")
+    'Foo bar baz'
+    >>> _title_from_url_path("https://example.com")
+    'Example'
+    """
+    target = url if "://" in url else f"https://{url}"
+    path = urlparse.urlparse(target).path.strip("/")
+    if not path:
+        return util.get_domain_name(url)
+    last_segment = path.split("/")[-1]
+    last_segment = _URL_PATH_EXTENSION_PATTERN.sub("", last_segment)
+    cleaned = _URL_PATH_SEPARATOR_PATTERN.sub(" ", last_segment).strip()
+    if not cleaned:
+        return util.get_domain_name(url)
+    return cleaned[0].upper() + cleaned[1:].lower()
+
+
+def _derive_title(markdown: str, html_text: str | None, url: str) -> str:
+    """Title cascade: first markdown H1 → HTML <title> → cleaned URL path."""
+    h1 = _extract_h1_from_markdown(markdown)
+    if h1:
+        return h1
+    if html_text:
+        html_title = _extract_title_from_html(html_text)
+        if html_title:
+            return html_title
+    return _title_from_url_path(url)
+
+
+def add_url_as_article(url: str) -> dict:
+    """Scrape a URL and persist it as an article in today's daily payload, bypassing source adapters.
+
+    Reuses the scraping, merge and cache-write pipeline so the entry is indistinguishable from
+    one produced by an adapter. Date defaults to today (Pacific) since a bare URL carries no
+    publication-date metadata.
+    """
+    cleaned_url = url.strip()
+    if not cleaned_url:
+        raise ValueError("Missing url")
+
+    canonical_url = util.canonicalize_url(cleaned_url)
+    target_date = datetime.now(util.PACIFIC_TZ).date().isoformat()
+    domain_name = util.get_domain_name(cleaned_url)
+    source_id = f"manual:{canonical_url.split('/', 1)[0]}"
+
+    markdown, html_text = _scrape_url_to_markdown_and_html(cleaned_url)
+    title = _derive_title(markdown, html_text, cleaned_url)
+
+    logger.info(
+        "add_url_as_article scraped url=%s canonical=%s title=%r target_date=%s",
+        cleaned_url, canonical_url, title, target_date,
+    )
+
+    article = {
+        "url": canonical_url,
+        "title": title,
+        "article_meta": "",
+        "date": target_date,
+        "category": domain_name,
+        "source_id": source_id,
+        "removed": False,
+    }
+
+    new_payload = _build_payload_from_scrape(target_date, [article], [])
+
+    cached_rows = storage_service.get_daily_payloads_range(target_date, target_date)
+    merged_payload = (
+        _merge_payloads(new_payload, cached_rows[0]["payload"])
+        if cached_rows
+        else new_payload
+    )
+
+    saved = storage_service.set_daily_payload_from_scrape(target_date, merged_payload)
+    logger.info(
+        "add_url_as_article persisted url=%s date=%s cached_at=%s",
+        canonical_url, target_date, saved.get("cached_at") if saved else None,
+    )
+
+    return {"date": target_date, "payload": merged_payload}
 
 
 def _fetch_articles_content_parallel(articles: list[dict]) -> tuple[list[dict], list[dict]]:
