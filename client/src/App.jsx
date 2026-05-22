@@ -92,6 +92,13 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
     addArticleInputRef.current?.focus()
   }, [isAddArticleOpen])
 
+  useEffect(() => {
+    if (!isAddArticleOpen) return
+    if (!canSubmitArticleUrl) return
+    if (isAddArticleSubmitting) return
+    submitAddArticleUrl(addArticleUrlInput)
+  }, [isAddArticleOpen, canSubmitArticleUrl, isAddArticleSubmitting, addArticleUrlInput])
+
   function handleToggleAddArticle() {
     if (isAddArticleOpen) {
       setIsAddArticleOpen(false)
