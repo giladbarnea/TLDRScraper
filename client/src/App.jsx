@@ -1,6 +1,6 @@
 import { FloatingTree } from '@floating-ui/react'
-import { Bug, Calendar } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Bug, Calendar, Link, Plus } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import DebugPanel from './components/DebugPanel'
 import DigestOverlay from './components/DigestOverlay'
 import Feed from './components/Feed'
@@ -10,11 +10,13 @@ import SelectionActionDock from './components/SelectionActionDock'
 import ToastContainer from './components/ToastContainer'
 import { useDigest } from './hooks/useDigest'
 import { getDefaultFeedDateRange, useFeedLoader } from './hooks/useFeedLoader'
+import { readApiResponse } from './lib/apiError'
 import { queueBatchArticlePatches } from './lib/dailyPayloadMutations'
 import { ArticleLifecycleEventType, reduceArticleLifecycle } from './reducers/articleLifecycleReducer'
 import * as summaryDataReducer from './reducers/summaryDataReducer'
 import {
   getSnapshotArticle,
+  ingestDayPayload,
   interactionActions,
   summaryActions,
   useFeedStatus,
@@ -26,6 +28,21 @@ import {
 function toBrowserUrl(url) {
   if (url.startsWith('http://') || url.startsWith('https://')) return url
   return `https://${url}`
+}
+
+function canonicalizeCandidateUrl(urlText) {
+  const trimmedUrl = urlText.trim()
+  if (!trimmedUrl) return ''
+  const urlWithScheme = trimmedUrl.includes('://') ? trimmedUrl : `https://${trimmedUrl}`
+  try {
+    const parsed = new URL(urlWithScheme)
+    const normalizedHost = parsed.hostname.toLowerCase().replace(/^www\./, '')
+    if (!normalizedHost.includes('.')) return ''
+    const normalizedPath = parsed.pathname === '/' ? '' : parsed.pathname
+    return `${normalizedHost}${normalizedPath}`
+  } catch {
+    return ''
+  }
 }
 
 async function applyBatchLifecyclePatch(selectedArticles, eventFactory) {
@@ -42,6 +59,10 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
   const digest = useDigest()
   const [isPodcastLoading, setIsPodcastLoading] = useState(false)
   const [podcastAudioUrl, setPodcastAudioUrl] = useState(null)
+  const [isAddArticleOpen, setIsAddArticleOpen] = useState(false)
+  const [addArticleUrlInput, setAddArticleUrlInput] = useState('')
+  const [isAddArticleSubmitting, setIsAddArticleSubmitting] = useState(false)
+  const addArticleInputRef = useRef(null)
   const isSelectMode = useIsSelectMode()
   const selectedArticles = useSelectedArticles()
   const selectedCount = selectedArticles.length
@@ -63,6 +84,24 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
     return status === summaryDataReducer.SummaryDataStatus.UNKNOWN || status === summaryDataReducer.SummaryDataStatus.ERROR
   }).length
   const isSummarizeEachDisabled = selectedCount < 2 || summarizeEachActionableCount === 0
+  const canonicalCandidateUrl = canonicalizeCandidateUrl(addArticleUrlInput)
+  const canSubmitArticleUrl = canonicalCandidateUrl.length > 0
+
+  useEffect(() => {
+    if (!isAddArticleOpen) return
+    addArticleInputRef.current?.focus()
+    if (!navigator.clipboard?.readText) return
+    navigator.clipboard.readText()
+      .then((clipboardText) => {
+        const trimmedClipboardText = clipboardText.trim()
+        const hasUrlInClipboard = canonicalizeCandidateUrl(trimmedClipboardText).length > 0
+        if (!hasUrlInClipboard) return
+        setAddArticleUrlInput(trimmedClipboardText)
+      })
+      .catch((error) => {
+        console.debug('Clipboard prefill unavailable:', error)
+      })
+  }, [isAddArticleOpen])
 
   function handleTriggerDigest() {
     digest.trigger(selectedArticles)
@@ -86,6 +125,33 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
     } finally {
       setIsPodcastLoading(false)
     }
+  }
+
+  async function submitAddArticleUrl(urlText) {
+    if (!canonicalizeCandidateUrl(urlText)) return
+    if (isAddArticleSubmitting) return
+    setIsAddArticleSubmitting(true)
+    try {
+      const response = await window.fetch('/api/url-to-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlText.trim() }),
+      })
+      const result = await readApiResponse(response, 'POST /api/url-to-article')
+      if (!response.ok) throw new Error(`Add article request failed with ${response.status}`)
+      if (result.payload) ingestDayPayload(result.payload)
+      setAddArticleUrlInput('')
+      setIsAddArticleOpen(false)
+    } catch (error) {
+      console.error('Failed to add article URL:', error)
+    } finally {
+      setIsAddArticleSubmitting(false)
+    }
+  }
+
+  function handleAddArticleInputChange(event) {
+    const nextInputValue = event.target.value
+    setAddArticleUrlInput(nextInputValue)
   }
 
   useEffect(() => {
@@ -160,6 +226,13 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
 
             <div className="flex items-center gap-3">
               <button
+                onClick={() => setIsAddArticleOpen(value => !value)}
+                className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${isAddArticleOpen ? 'bg-cyan-50 text-cyan-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
+                title="Add Article"
+              >
+                <Link size={18} className="transition-colors" />
+              </button>
+              <button
                 onClick={() => setShowDebug(!showDebug)}
                 className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${showDebug ? 'bg-emerald-50 text-emerald-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
                 title="Debug Panel"
@@ -172,6 +245,31 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
                 title="Date Range & Settings"
               >
                 <Calendar size={18} className="transition-colors" />
+              </button>
+            </div>
+          </div>
+
+          <div className={`
+              overflow-hidden transition-all duration-300 ease-in-out
+              ${isAddArticleOpen ? 'max-h-[180px] opacity-100 mt-4' : 'max-h-0 opacity-0'}
+          `}>
+            <div className="bg-white rounded-2xl p-4 shadow-elevated border border-slate-200/50 flex flex-col gap-3">
+              <input
+                ref={addArticleInputRef}
+                type="text"
+                value={addArticleUrlInput}
+                onChange={handleAddArticleInputChange}
+                placeholder="Paste or type article URL"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-300"
+              />
+              <button
+                type="button"
+                onClick={() => submitAddArticleUrl(addArticleUrlInput)}
+                disabled={!canSubmitArticleUrl || isAddArticleSubmitting}
+                className="inline-flex items-center justify-center gap-2 self-end rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Plus size={14} />
+                {isAddArticleSubmitting ? 'Adding…' : 'Add'}
               </button>
             </div>
           </div>
