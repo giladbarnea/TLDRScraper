@@ -1,7 +1,7 @@
 ---
 name: client/interaction-and-selection
 description: Client-side interaction architecture, selection modes, and foldable containers.
-last_updated: 2026-05-12 08:22
+last_updated: 2026-05-22 11:20
 ---
 # Client: Interaction and Selection
 
@@ -49,6 +49,13 @@ Selection behavior is implemented as a **declarative state machine** with a smal
 - **PodcastPlayer**
   - A minimal native-audio surface fixed to the bottom 15% of the viewport.
   - Owns playback, 15-second rewind, 10-second forward, and close controls. Closing unmounts the player and revokes the object URL through `App.jsx` cleanup.
+- **App header quick actions (`App.jsx`)**
+  - Adds an **Add Article** control immediately left of the Debug control.
+  - Toggling Add Article reveals an inline URL input panel.
+  - If the user types/pastes a valid URL into the input, the client auto-submits `POST /api/url-to-article`.
+  - On success, the returned day payload is ingested via `ingestDayPayload`, so the new manual article appears without a full reload.
+  - On panel open, the client attempts clipboard prefill (`navigator.clipboard.readText()`): valid URL text is inserted into the input but intentionally **not auto-submitted**.
+  - In clipboard-prefill mode, explicit user confirmation is required via the **Add** button.
 - **RemovedOrderSlot**
   - Wraps newsletter and section containers in flex lists.
   - Subscribes to `useAllArticlesRemoved(date, urls)` once for the grouped URL set and passes the result into the rendered container.
