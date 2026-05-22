@@ -384,12 +384,17 @@ def _derive_title(markdown: str, html_text: str | None, url: str) -> str:
     return _title_from_url_path(url)
 
 
+MANUAL_SOURCE_ID = "from_here_and_there"
+MANUAL_CATEGORY = "From here and there"
+
+
 def add_url_as_article(url: str) -> dict:
     """Scrape a URL and persist it as an article in today's daily payload, bypassing source adapters.
 
-    Reuses the scraping, merge and cache-write pipeline so the entry is indistinguishable from
-    one produced by an adapter. Date defaults to today (Pacific) since a bare URL carries no
-    publication-date metadata.
+    All manual entries share a single pseudo-source ("From here and there") so the client's
+    issue-driven renderer surfaces them as one virtual newsletter. Reuses the scrape, merge
+    and cache-write pipeline so the entry is indistinguishable from an adapter-produced one.
+    Date defaults to today (Pacific) since a bare URL carries no publication-date metadata.
     """
     cleaned_url = url.strip()
     if not cleaned_url:
@@ -397,8 +402,6 @@ def add_url_as_article(url: str) -> dict:
 
     canonical_url = util.canonicalize_url(cleaned_url)
     target_date = datetime.now(util.PACIFIC_TZ).date().isoformat()
-    domain_name = util.get_domain_name(cleaned_url)
-    source_id = f"manual:{canonical_url.split('/', 1)[0]}"
 
     markdown, html_text = _scrape_url_to_markdown_and_html(cleaned_url)
     title = _derive_title(markdown, html_text, cleaned_url)
@@ -413,12 +416,19 @@ def add_url_as_article(url: str) -> dict:
         "title": title,
         "article_meta": "",
         "date": target_date,
-        "category": domain_name,
-        "source_id": source_id,
+        "category": MANUAL_CATEGORY,
+        "source_id": MANUAL_SOURCE_ID,
         "removed": False,
     }
+    issue = {
+        "date": target_date,
+        "source_id": MANUAL_SOURCE_ID,
+        "category": MANUAL_CATEGORY,
+        "title": None,
+        "subtitle": None,
+    }
 
-    new_payload = _build_payload_from_scrape(target_date, [article], [])
+    new_payload = _build_payload_from_scrape(target_date, [article], [issue])
 
     cached_rows = storage_service.get_daily_payloads_range(target_date, target_date)
     merged_payload = (
