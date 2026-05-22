@@ -232,6 +232,34 @@ def summarize_url_endpoint(model: str = DEFAULT_MODEL):
         return jsonify({"success": False, "error": repr(e)}), 500
 
 
+@app.route("/api/url-to-article", methods=["POST"])
+def url_to_article_endpoint():
+    """Scrape a URL and store it as a manual article in today's daily payload.
+
+    Requires 'url' in the request body. Bypasses source adapter logic but reuses the rest
+    of the storage pipeline. Date defaults to today (Pacific) since a bare URL carries no
+    publication-date metadata.
+    """
+    try:
+        data = request.get_json()
+        result = tldr_app.add_url_as_article(data["url"])
+        return jsonify(result)
+    except KeyError as error:
+        return jsonify({"success": False, "error": f"Missing field: {error}"}), 400
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except requests.RequestException as error:
+        logger.error(
+            "request error error=%s",
+            repr(error),
+            exc_info=True,
+        )
+        return jsonify({"success": False, "error": f"Network error: {repr(error)}"}), 502
+    except Exception as error:
+        logger.exception("url_to_article_endpoint failed: %s", error)
+        return jsonify({"success": False, "error": repr(error)}), 500
+
+
 @app.route("/api/elaborate", methods=["POST"])
 def elaborate_endpoint(model: str = DEFAULT_ELABORATE_MODEL):
     """Elaborate on a selected portion of a previously-rendered source (summary or digest).

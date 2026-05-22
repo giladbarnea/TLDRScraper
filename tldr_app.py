@@ -67,6 +67,16 @@ def summarize_url(
     return payload
 
 
+def add_url_as_article(url: str) -> dict:
+    """Shape the URL-to-article response for the HTTP layer."""
+    result = tldr_service.add_url_as_article(url)
+    return {
+        "success": True,
+        "date": result["date"],
+        "payload": result["payload"],
+    }
+
+
 def elaborate(
     selected_text: str,
     source_markdown: str,
