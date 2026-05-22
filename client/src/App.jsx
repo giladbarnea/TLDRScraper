@@ -10,6 +10,7 @@ import SelectionActionDock from './components/SelectionActionDock'
 import ToastContainer from './components/ToastContainer'
 import { useDigest } from './hooks/useDigest'
 import { getDefaultFeedDateRange, useFeedLoader } from './hooks/useFeedLoader'
+import { readApiResponse } from './lib/apiError'
 import { queueBatchArticlePatches } from './lib/dailyPayloadMutations'
 import { ArticleLifecycleEventType, reduceArticleLifecycle } from './reducers/articleLifecycleReducer'
 import * as summaryDataReducer from './reducers/summaryDataReducer'
@@ -136,10 +137,8 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: urlText.trim() }),
       })
-      const result = await response.json()
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || `Add article request failed with ${response.status}`)
-      }
+      const result = await readApiResponse(response, 'POST /api/url-to-article')
+      if (!response.ok) throw new Error(`Add article request failed with ${response.status}`)
       if (result.payload) ingestDayPayload(result.payload)
       setAddArticleUrlInput('')
       setIsClipboardPrefill(false)
