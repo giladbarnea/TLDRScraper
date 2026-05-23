@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-05 06:38, 36614cc
+last_updated: 2026-05-23 12:56
 ---
 
 # Documentation Index
@@ -87,6 +87,10 @@ This index provides a directory tree of the `docs/` folder along with a brief de
 - **[toast.md](state-machines/toast.md)**
   - *Description*: State machine for toast notifications and global pub/sub.
   - *Keywords*: toast, exiting, toastBus, summary notification
+
+- **[add-url.md](state-machines/add-url.md)**
+  - *Description*: State machine for the URL-to-article modal and auto-submit on paste.
+  - *Keywords*: add URL, auto-submit, isLikelyUrl, AddUrlOverlay, pseudo-source
 
 - **[tracked-state.md](state-machines/tracked-state.md)**
   - *Description*: Internal utility state machine for tracked values in gestures.
