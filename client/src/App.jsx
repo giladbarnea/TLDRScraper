@@ -1,6 +1,7 @@
 import { FloatingTree } from '@floating-ui/react'
 import { Bug, Calendar } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import AddUrlButton from './components/AddUrlButton'
 import DebugPanel from './components/DebugPanel'
 import DigestOverlay from './components/DigestOverlay'
 import Feed from './components/Feed'
@@ -36,7 +37,7 @@ async function applyBatchLifecyclePatch(selectedArticles, eventFactory) {
   await queueBatchArticlePatches(patches)
 }
 
-function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setShowDebug }) {
+function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setShowDebug, showAddUrl, setShowAddUrl }) {
   const feedStatus = useFeedStatus()
   const visibleDates = useVisibleDates()
   const digest = useDigest()
@@ -159,7 +160,9 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
             </div>
 
             <div className="flex items-center gap-3">
+              <AddUrlButton open={showAddUrl} onOpenChange={setShowAddUrl} />
               <button
+                data-testid="debug-button"
                 onClick={() => setShowDebug(!showDebug)}
                 className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${showDebug ? 'bg-emerald-50 text-emerald-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
                 title="Debug Panel"
@@ -167,6 +170,7 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
                 <Bug size={18} className="transition-colors" />
               </button>
               <button
+                data-testid="settings-button"
                 onClick={() => setShowSettings(!showSettings)}
                 className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${showSettings ? 'bg-brand-50 text-brand-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
                 title="Date Range & Settings"
@@ -260,6 +264,7 @@ function App() {
   const { loadFeed } = useFeedLoader()
   const [showSettings, setShowSettings] = useState(false)
   const [showDebug, setShowDebug] = useState(false)
+  const [showAddUrl, setShowAddUrl] = useState(false)
 
   useEffect(() => {
     let firstFrameId = 0
@@ -319,6 +324,8 @@ function App() {
           setShowSettings={setShowSettings}
           showDebug={showDebug}
           setShowDebug={setShowDebug}
+          showAddUrl={showAddUrl}
+          setShowAddUrl={setShowAddUrl}
         />
       </FloatingTree>
       <DebugPanel open={showDebug} onClose={() => setShowDebug(false)} />

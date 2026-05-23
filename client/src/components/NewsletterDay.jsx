@@ -63,6 +63,11 @@ function NewsletterDay({ date, sourceId }) {
         id={componentId}
         headerClassName="border-b border-slate-100 transition-all duration-300"
         className={`transition-all duration-300 ${allRemoved ? 'opacity-50' : ''}`}
+        dataAttributes={{
+          'data-testid': 'newsletter-day',
+          'data-source-id': sourceId,
+          'data-date': date,
+        }}
         title={
           <div className="flex items-center gap-2.5 py-2">
             <h3 className="font-display font-semibold text-[17px] text-slate-900">

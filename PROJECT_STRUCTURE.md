@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-13 20:18
+last_updated: 2026-05-23 12:52
 ---
 
 .
@@ -49,6 +49,7 @@ last_updated: 2026-05-13 20:18
 │  │  └── lint.sh
 │  ├── src
 │  │  ├── components
+│  │  │  ├── AddUrlButton.jsx
 │  │  │  ├── ArticleCard.jsx
 │  │  │  ├── ArticleList.jsx
 │  │  │  ├── BaseOverlay.jsx
@@ -99,6 +100,8 @@ last_updated: 2026-05-13 20:18
 │  │  │  ├── stateTransitionLogger.js
 │  │  │  ├── storageApi.js
 │  │  │  ├── toastBus.js
+│  │  │  ├── topLevelDomains.js
+│  │  │  ├── urlDetection.js
 │  │  │  ├── yamlLog.js
 │  │  │  ├── yamlTokens.js
 │  │  │  └── zenLock.js
@@ -142,6 +145,9 @@ last_updated: 2026-05-13 20:18
 ├── CLAUDE.md
 ├── GOTCHAS.md
 ├── Justfile
+├── Keyboard not accounted for.png
+├── Newsletter Aggregator.png
+├── Newsletter Aggregator2.png
 ├── newsletter_config.py
 ├── newsletter_merger.py
 ├── newsletter_scraper.py
@@ -153,9 +159,11 @@ last_updated: 2026-05-13 20:18
 ├── sessions.yaml
 ├── setup.sh
 ├── source_routes.py
+├── Still1.png
 ├── storage_service.py
 ├── summarizer.py
 ├── supabase_client.py
+├── Syncing
 ├── tldr_app.py
 ├── tldr_service.py
 ├── util.py
