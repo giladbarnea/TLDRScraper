@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-23 12:52
+last_updated: 2026-05-23 12:57
 ---
 
 .
@@ -145,9 +145,6 @@ last_updated: 2026-05-23 12:52
 ├── CLAUDE.md
 ├── GOTCHAS.md
 ├── Justfile
-├── Keyboard not accounted for.png
-├── Newsletter Aggregator.png
-├── Newsletter Aggregator2.png
 ├── newsletter_config.py
 ├── newsletter_merger.py
 ├── newsletter_scraper.py
@@ -159,11 +156,9 @@ last_updated: 2026-05-23 12:52
 ├── sessions.yaml
 ├── setup.sh
 ├── source_routes.py
-├── Still1.png
 ├── storage_service.py
 ├── summarizer.py
 ├── supabase_client.py
-├── Syncing
 ├── tldr_app.py
 ├── tldr_service.py
 ├── util.py

@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-11 15:36, 60b4621
+last_updated: 2026-05-23 12:57
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
@@ -70,15 +70,7 @@ Run the `/load-project-context` skill right after `./setup.sh` is finished.
 ./setup.sh
 ```
 
-### Frontend development
-
-For frontend development with hot reload in a background process:
-
-```bash
-builtin cd client && CI=1 npm run dev
-```
-
-This runs Vite dev server on port 3000 with API proxy to localhost:5001.
+Run `just dev` to start both server and client in the background (idempotent). Run `just stop` to bring them down.
 
 ### `uv` usage
 
