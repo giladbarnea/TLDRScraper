@@ -1,7 +1,7 @@
 ---
 name: state-machines/add-url
 description: State machine for the toolbar's URL-to-article modal and auto-submit.
-last_updated: 2026-05-24 05:22
+last_updated: 2026-05-24 05:46, be365c0
 ---
 # State Machines: Add URL
 

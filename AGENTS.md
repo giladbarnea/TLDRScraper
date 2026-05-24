@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-23 12:57
+last_updated: 2026-05-24 05:46, be365c0
 description: Fundamental instructions for AI coding agents.
 ---
 # Agents Guide
