@@ -6,10 +6,6 @@ import { emitToast } from '../lib/toastBus'
 import { isLikelyUrl } from '../lib/urlDetection'
 import { ingestDayPayload } from '../store/articleStore'
 
-const IDLE = 'idle'
-const SUBMITTING = 'submitting'
-const ERROR = 'error'
-
 async function postUrlToArticle(url) {
   const response = await window.fetch('/api/url-to-article', {
     method: 'POST',
@@ -27,23 +23,19 @@ function humanizeError(message) {
   return message
 }
 
-function deriveDataState({ status, hasInput, isValid }) {
-  if (status === SUBMITTING) return 'submitting'
-  if (status === ERROR) return 'error'
-  if (!hasInput) return 'empty'
-  return isValid ? 'valid' : 'pending'
+function readViewport() {
+  const vv = window.visualViewport
+  if (!vv) return { top: 0, height: null }
+  return { top: vv.offsetTop, height: vv.height }
 }
 
 // iOS Safari's fixed-position ignores the keyboard; visualViewport tracks what's visible.
 function useVisualViewportInsets() {
-  const [insets, setInsets] = useState({ top: 0, height: null })
+  const [insets, setInsets] = useState(readViewport)
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
-    function update() {
-      setInsets({ top: vv.offsetTop, height: vv.height })
-    }
-    update()
+    function update() { setInsets({ top: vv.offsetTop, height: vv.height }) }
     vv.addEventListener('resize', update)
     vv.addEventListener('scroll', update)
     return () => {
@@ -56,15 +48,15 @@ function useVisualViewportInsets() {
 
 function AddUrlOverlay({ onClose }) {
   const [value, setValue] = useState('')
-  const [status, setStatus] = useState(IDLE)
+  const [status, setStatus] = useState('idle')
   const [errorMessage, setErrorMessage] = useState(null)
   const inputRef = useRef(null)
   const insets = useVisualViewportInsets()
 
   const trimmed = value.trim()
-  const hasInput = trimmed.length > 0
-  const isValid = hasInput && isLikelyUrl(trimmed)
-  const dataState = deriveDataState({ status, hasInput, isValid })
+  const isValid = trimmed.length > 0 && isLikelyUrl(trimmed)
+  const isSubmitting = status === 'submitting'
+  const hasError = status === 'error'
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -74,14 +66,14 @@ function AddUrlOverlay({ onClose }) {
     function handleKey(event) {
       if (event.key !== 'Escape') return
       event.preventDefault()
-      if (status !== SUBMITTING) onClose()
+      if (!isSubmitting) onClose()
     }
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
-  }, [status, onClose])
+  }, [isSubmitting, onClose])
 
   async function submitUrl(url) {
-    setStatus(SUBMITTING)
+    setStatus('submitting')
     setErrorMessage(null)
     try {
       const result = await postUrlToArticle(url)
@@ -91,7 +83,7 @@ function AddUrlOverlay({ onClose }) {
       onClose()
     } catch (error) {
       console.error('add-url failed:', error)
-      setStatus(ERROR)
+      setStatus('error')
       setErrorMessage(humanizeError(error.message))
     }
   }
@@ -99,34 +91,29 @@ function AddUrlOverlay({ onClose }) {
   function handleInputChange(event) {
     const next = event.target.value
     setValue(next)
-    if (status === ERROR) {
-      setStatus(IDLE)
+    if (hasError) {
+      setStatus('idle')
       setErrorMessage(null)
     }
-    if (status !== SUBMITTING && isLikelyUrl(next.trim())) {
-      submitUrl(next.trim())
-    }
+    if (!isSubmitting && isLikelyUrl(next.trim())) submitUrl(next.trim())
   }
 
   function handleBackdropClick() {
-    if (status !== SUBMITTING) onClose()
+    if (!isSubmitting) onClose()
   }
 
-  const showError = status === ERROR
-  const inputBorderClass = showError
-    ? 'border-red-300 focus:border-red-400'
-    : 'border-slate-200 focus:border-slate-300'
-
-  const overlayStyle = insets.height
-    ? { top: insets.top, height: insets.height }
-    : undefined
+  const dataState = hasError ? 'error'
+    : isSubmitting ? 'submitting'
+    : !trimmed ? 'empty'
+    : isValid ? 'valid'
+    : 'pending'
 
   return createPortal(
     <div
       data-testid="add-url-overlay"
       data-state={dataState}
       onMouseDown={handleBackdropClick}
-      style={overlayStyle}
+      style={insets.height ? { top: insets.top, height: insets.height } : undefined}
       className="fixed inset-x-0 top-0 h-[100dvh] z-[140] flex items-center justify-center bg-slate-900/30 backdrop-blur-sm animate-overlay-menu-enter"
     >
       <div
@@ -141,17 +128,17 @@ function AddUrlOverlay({ onClose }) {
               inputMode="url"
               value={value}
               onChange={handleInputChange}
-              disabled={status === SUBMITTING}
+              disabled={isSubmitting}
               data-testid="add-url-input"
               data-valid={isValid}
               placeholder="Paste a URL"
-              className={`w-full bg-slate-50 text-xl sm:text-2xl text-slate-900 placeholder:text-slate-300 rounded-2xl border ${inputBorderClass} focus:outline-none px-6 py-4 pr-14 transition-colors disabled:opacity-60`}
+              className={`w-full bg-slate-50 text-xl sm:text-2xl text-slate-900 placeholder:text-slate-300 rounded-2xl border ${hasError ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-slate-300'} focus:outline-none px-6 py-4 pr-14 transition-colors disabled:opacity-60`}
               spellCheck={false}
               autoCapitalize="off"
               autoCorrect="off"
               autoComplete="off"
             />
-            {status === SUBMITTING && (
+            {isSubmitting && (
               <span
                 data-testid="add-url-spinner"
                 role="status"
@@ -161,16 +148,8 @@ function AddUrlOverlay({ onClose }) {
                 <Loader2 size={22} className="animate-spin" />
               </span>
             )}
-            <span
-              data-testid="add-url-status"
-              data-status={status}
-              data-valid={isValid}
-              className="sr-only"
-            >
-              {dataState}{errorMessage ? `: ${errorMessage}` : ''}
-            </span>
           </div>
-          {showError && (
+          {hasError && (
             <p
               data-testid="add-url-error"
               role="alert"
@@ -186,21 +165,22 @@ function AddUrlOverlay({ onClose }) {
   )
 }
 
-function AddUrlButton({ open, onOpenChange }) {
+function AddUrlButton() {
+  const [open, setOpen] = useState(false)
   return (
     <>
       <button
         type="button"
         data-testid="add-url-button"
         data-state={open ? 'open' : 'closed'}
-        onClick={() => onOpenChange(true)}
+        onClick={() => setOpen(true)}
         className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${open ? 'bg-brand-50 text-brand-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
         title="Add URL"
         aria-label="Add URL"
       >
         <Link2 size={18} className="transition-colors" />
       </button>
-      {open && <AddUrlOverlay onClose={() => onOpenChange(false)} />}
+      {open && <AddUrlOverlay onClose={() => setOpen(false)} />}
     </>
   )
 }

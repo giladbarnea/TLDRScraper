@@ -37,7 +37,7 @@ async function applyBatchLifecyclePatch(selectedArticles, eventFactory) {
   await queueBatchArticlePatches(patches)
 }
 
-function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setShowDebug, showAddUrl, setShowAddUrl }) {
+function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setShowDebug }) {
   const feedStatus = useFeedStatus()
   const visibleDates = useVisibleDates()
   const digest = useDigest()
@@ -160,7 +160,7 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
             </div>
 
             <div className="flex items-center gap-3">
-              <AddUrlButton open={showAddUrl} onOpenChange={setShowAddUrl} />
+              <AddUrlButton />
               <button
                 data-testid="debug-button"
                 onClick={() => setShowDebug(!showDebug)}
@@ -264,7 +264,6 @@ function App() {
   const { loadFeed } = useFeedLoader()
   const [showSettings, setShowSettings] = useState(false)
   const [showDebug, setShowDebug] = useState(false)
-  const [showAddUrl, setShowAddUrl] = useState(false)
 
   useEffect(() => {
     let firstFrameId = 0
@@ -324,8 +323,6 @@ function App() {
           setShowSettings={setShowSettings}
           showDebug={showDebug}
           setShowDebug={setShowDebug}
-          showAddUrl={showAddUrl}
-          setShowAddUrl={setShowAddUrl}
         />
       </FloatingTree>
       <DebugPanel open={showDebug} onClose={() => setShowDebug(false)} />
