@@ -79,18 +79,7 @@ class LucumrAdapter(NewsletterAdapter):
 
         except Exception as e:
             logger.error(f"Error fetching feed: {e}", exc_info=True)
-
-        issues = []
-        if articles:
-            issues.append({
-                'date': target_date_str,
-                'source_id': self.config.source_id,
-                'category': self.config.category_display_names.get('blog', "Armin Ronacher"),
-                'title': None,
-                'subtitle': None
-            })
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
 
     def _entry_to_article(self, entry: dict, date: str) -> dict | None:
         """Convert Atom feed entry to article dict.

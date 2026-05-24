@@ -143,18 +143,7 @@ class DeepMindAdapter(NewsletterAdapter):
 
         except Exception as e:
             logger.error(f"Error fetching blog: {e}", exc_info=True)
-
-        issues = []
-        if articles:
-            issues.append({
-                'date': util.format_date_for_url(date),
-                'source_id': self.config.source_id,
-                'category': self.config.category_display_names.get('blog', 'Google DeepMind'),
-                'title': None,
-                'subtitle': None
-            })
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
 
     def _card_to_article(self, card, date: str) -> dict | None:
         """Convert blog article card to article dict.

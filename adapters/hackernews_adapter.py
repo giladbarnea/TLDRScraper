@@ -44,18 +44,7 @@ class HackerNewsAdapter(NewsletterAdapter):
             article = self._algolia_story_to_article(story, date_str)
             if article:
                 articles.append(article)
-
-        issues = []
-        if articles:
-            issues = [{
-                "date": util.format_date_for_url(date),
-                "source_id": self.config.source_id,
-                "category": "HN Show",
-                "title": None,
-                "subtitle": None,
-            }]
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
 
     @util.retry()
     def _fetch_stories_algolia(self, start_timestamp: int, end_timestamp: int, min_points: int, min_comments: int, limit: int) -> list:

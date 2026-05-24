@@ -83,17 +83,7 @@ class NetflixAdapter(NewsletterAdapter):
             logger.error(f"Error fetching RSS feed: {e}", exc_info=True)
 
         # Create issue metadata if we have articles
-        issues = []
-        if articles:
-            issues.append({
-                'date': util.format_date_for_url(date),
-                'source_id': self.config.source_id,
-                'category': 'Netflix Tech',
-                'title': None,
-                'subtitle': None
-            })
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
 
     @util.retry()
     def _fetch_rss_feed(self) -> list[dict]:

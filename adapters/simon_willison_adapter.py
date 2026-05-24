@@ -85,18 +85,7 @@ class SimonWillisonAdapter(NewsletterAdapter):
 
         except Exception as e:
             logger.error(f"Error fetching feed: {e}", exc_info=True)
-
-        issues = []
-        if articles:
-            issues.append({
-                'date': target_date_str,
-                'source_id': self.config.source_id,
-                'category': self.config.category_display_names.get('blog', 'Simon Willison'),
-                'title': None,
-                'subtitle': None
-            })
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
 
     def _clean_url(self, url: str) -> str:
         """Remove feed-specific fragments from URL.

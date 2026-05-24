@@ -63,7 +63,7 @@ class SoftwareLeadWeeklyAdapter(NewsletterAdapter):
             html = self.fetch_issue(str(issue_number), "newsletter")
             if html is None:
                 logger.info(f"No content found for issue {issue_number}")
-                return self._normalize_response([], [])
+                return self._normalize_response([])
 
             markdown = self._html_to_markdown(html)
             parsed_articles = self.parse_articles(markdown, issue_date.strftime("%Y-%m-%d"), "newsletter")
@@ -77,18 +77,7 @@ class SoftwareLeadWeeklyAdapter(NewsletterAdapter):
 
         except Exception as e:
             logger.error(f"Error fetching issue {issue_number}: {e}", exc_info=True)
-
-        issues = []
-        if articles:
-            issues.append({
-                'date': issue_date.strftime("%Y-%m-%d"),
-                'source_id': self.config.source_id,
-                'category': self.config.category_display_names.get('newsletter', 'Software Lead Weekly'),
-                'title': f"Issue #{issue_number}",
-                'subtitle': None
-            })
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
 
     def _get_issue_date_for_target(self, target_date: datetime) -> datetime:
         """Get the Friday that corresponds to the target date.
@@ -223,28 +212,3 @@ class SoftwareLeadWeeklyAdapter(NewsletterAdapter):
             i += 1
 
         return articles
-
-    def extract_issue_metadata(self, markdown: str, date: str, newsletter_type: str) -> dict | None:
-        """Extract issue metadata from markdown.
-
-        Args:
-            markdown: Converted markdown content
-            date: Date string for the issue
-            newsletter_type: Type (not used, included for interface compatibility)
-
-        Returns:
-            Dictionary with issue metadata
-        """
-        title_match = re.search(r'Issue #(\d+),\s+(.+)', markdown)
-        if title_match:
-            issue_number = title_match.group(1)
-            issue_date = title_match.group(2)
-            return {
-                'date': date,
-                'source_id': self.config.source_id,
-                'category': self.config.category_display_names.get('newsletter', 'Software Lead Weekly'),
-                'title': f"Issue #{issue_number}",
-                'subtitle': issue_date
-            }
-
-        return None

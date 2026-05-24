@@ -10,7 +10,7 @@ import logging
 import re
 import time
 import unicodedata
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 from adapters.newsletter_adapter import NewsletterAdapter
 import util
@@ -26,18 +26,6 @@ class NewsletterSection:
     order: int
     title: str
     emoji: str | None = None
-
-
-@dataclass
-class NewsletterIssue:
-    """Represents metadata for a newsletter issue."""
-
-    date: str
-    newsletter_type: str
-    category: str
-    title: str | None
-    subtitle: str | None
-    sections: list[NewsletterSection]
 
 
 @dataclass
@@ -261,45 +249,6 @@ class TLDRAdapter(NewsletterAdapter):
             articles.append(article)
 
         return articles
-
-    def extract_issue_metadata(
-        self, markdown: str, date: str, newsletter_type: str
-    ) -> dict | None:
-        """Extract TLDR issue metadata (title, subtitle, sections).
-
-        Args:
-            markdown: Markdown content converted from HTML
-            date: Date string for the issue
-            newsletter_type: Newsletter type (e.g., "tech", "ai")
-
-        Returns:
-            Dictionary with issue metadata, or None if no metadata found
-        """
-        parsed = self._parse_markdown_structure(markdown, date, newsletter_type)
-
-        if not parsed.issue_title and not parsed.issue_subtitle and not parsed.sections:
-            return None
-
-        category = self.config.category_display_names.get(
-            newsletter_type, f"TLDR {newsletter_type.capitalize()}"
-        )
-
-        metadata_sections = parsed.sections
-        if parsed.issue_subtitle and parsed.sections:
-            subtitle_text = parsed.issue_subtitle
-            if parsed.sections[0].title == subtitle_text:
-                metadata_sections = parsed.sections[1:]
-
-        issue = NewsletterIssue(
-            date=util.format_date_for_url(date),
-            newsletter_type=newsletter_type,
-            category=category,
-            title=parsed.issue_title,
-            subtitle=parsed.issue_subtitle,
-            sections=metadata_sections,
-        )
-
-        return asdict(issue)
 
     @staticmethod
     def _is_symbol_only_line(text: str) -> bool:

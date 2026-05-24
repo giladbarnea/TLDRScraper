@@ -15,6 +15,10 @@ Prerequisites: run from the project root with Supabase env vars loaded:
 
 import datetime as dt
 import json
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
 import util
 import storage_service
@@ -62,48 +66,47 @@ def make_adapter(source_id):
 # Raw adapter (zoomed in — no canonicalization, no history dedup):
 #   adapter = make_adapter("deepmind")
 #   raw = adapter.scrape_date("2026-05-19", [])
-#       # → {"articles": [...], "issues": [...]}
+#       # → {"source_id": ..., "articles": [...]}
 #
 # Production wrapper (canonicalizes URLs, applies history dedup):
 #   date_str, result = scrape_single_source_for_date("2026-05-19", "deepmind", [])
-#       # result = {"articles", "issues", "network_articles", "error", "source_id"}
+#       # result = {"articles", "network_articles", "error", "source_id"}
 
 
 # ────────────────────────────────────────────────────────────────
 # Stage 2 — Per-date merge across sources
 # ────────────────────────────────────────────────────────────────
 # merge_source_results_for_date(date_str, [(source_id, result), ...])
-#   URL-deduplicates articles; keys issues by (date, source_id, category).
+#   URL-deduplicates articles across sources, preserving source order.
 #
 # Example after running Stage 1 for several sources:
 #   sids = ["deepmind", "simon_willison", "hackernews"]
 #   results = [scrape_single_source_for_date("2026-05-19", sid, [])[1] for sid in sids]
 #   pairs = [(r["source_id"], r) for r in results]
 #   merged = merge_source_results_for_date("2026-05-19", pairs)
-#       # → {"articles", "issues", "network_fetches"}
+#       # → {"articles", "network_fetches"}
 
 
 # ────────────────────────────────────────────────────────────────
-# Stage 3 — Build payload from scrape  (date filter lives HERE)
+# Stage 3 — Build payload from scrape
 # ────────────────────────────────────────────────────────────────
-# _build_payload_from_scrape(date_str, articles, issues)
-#   Builds the per-date payload. Filters ISSUES by issue["date"] == date_str;
-#   articles are passed through unfiltered. ← suspected leak point.
+# _build_payload_from_scrape(date_str, articles)
+#   Normalizes each article into API shape and stamps the date.
 #
 # _article_to_payload(article)  → single article in API shape.
 #
 # Example:
-#   payload = _build_payload_from_scrape("2026-05-19", merged["articles"], merged["issues"])
+#   payload = _build_payload_from_scrape("2026-05-19", merged["articles"])
 
 
 # ────────────────────────────────────────────────────────────────
 # Stage 4 — Cache merge
 # ────────────────────────────────────────────────────────────────
 # _merge_payloads(new_payload, cached_payload)
-#   Article union by URL (cached user-state preserved); issue union by triple-key.
+#   Article union by URL; cached user-state (read, removed, summary) is preserved.
 #
 # Example:
-#   cached = storage_service.get_daily_payload("2026-05-19") or {"articles": [], "issues": []}
+#   cached = storage_service.get_daily_payload("2026-05-19") or {"articles": []}
 #   final = _merge_payloads(payload, cached)
 
 
@@ -146,16 +149,11 @@ def clear_storage(start, end=None):
 # ────────────────────────────────────────────────────────────────
 
 def show(payload, *, limit=10):
-    """Compact print of a payload: counts, issues, first N articles."""
+    """Compact print of a payload: counts and first N articles."""
     if payload is None:
         print("None"); return
     articles = payload.get("articles", []) if isinstance(payload, dict) else []
-    issues = payload.get("issues", []) if isinstance(payload, dict) else []
-    print(f"date={payload.get('date')}  articles={len(articles)}  issues={len(issues)}")
-    if issues:
-        print("issues:")
-        for issue in issues:
-            print(f"  source={issue.get('source_id'):25s} date={issue.get('date')}  category={issue.get('category')!r}")
+    print(f"date={payload.get('date')}  articles={len(articles)}")
     if articles:
         print(f"articles (first {min(limit, len(articles))}):")
         for article in articles[:limit]:
@@ -197,7 +195,7 @@ def _cli():
     p = sub.add_parser("merge-day", help="Stage 1+2: scrape several sources then merge_source_results_for_date")
     p.add_argument("date"); p.add_argument("sources", nargs="+")
 
-    p = sub.add_parser("payload-day", help="Stage 1+2+3: + _build_payload_from_scrape (issue date filter)")
+    p = sub.add_parser("payload-day", help="Stage 1+2+3: + _build_payload_from_scrape")
     p.add_argument("date"); p.add_argument("sources", nargs="+")
 
     p = sub.add_parser("pipeline", help="Stage 5: scrape_newsletters_in_date_range (writes to storage)")
@@ -227,12 +225,12 @@ def _cli():
     elif args.cmd == "peek":
         adapter = make_adapter(args.source)
         raw = adapter.scrape_date(args.date, [])
-        show({"date": args.date, "articles": raw.get("articles", []), "issues": raw.get("issues", [])})
+        show({"date": args.date, "articles": raw.get("articles", [])})
 
     elif args.cmd == "scrape-source":
         date_str, result = scrape_single_source_for_date(args.date, args.source, [])
         print(f"date_str={date_str}  source={result['source_id']}  network={result['network_articles']}  error={result['error']}")
-        show({"date": date_str, "articles": result["articles"], "issues": result["issues"]})
+        show({"date": date_str, "articles": result["articles"]})
 
     elif args.cmd == "merge-day":
         pairs = []
@@ -241,7 +239,7 @@ def _cli():
             pairs.append((sid, result))
         merged = merge_source_results_for_date(args.date, pairs)
         print(f"network_fetches={merged['network_fetches']}")
-        show({"date": args.date, "articles": merged["articles"], "issues": merged["issues"]})
+        show({"date": args.date, "articles": merged["articles"]})
 
     elif args.cmd == "payload-day":
         pairs = []
@@ -249,9 +247,8 @@ def _cli():
             _, result = scrape_single_source_for_date(args.date, sid, [])
             pairs.append((sid, result))
         merged = merge_source_results_for_date(args.date, pairs)
-        payload = _build_payload_from_scrape(args.date, merged["articles"], merged["issues"])
-        print(f"PRE-FILTER  articles={len(merged['articles'])}  issues={len(merged['issues'])}")
-        print(f"POST-FILTER articles={len(payload['articles'])}  issues={len(payload['issues'])}")
+        payload = _build_payload_from_scrape(args.date, merged["articles"])
+        print(f"merged articles={len(merged['articles'])}  payload articles={len(payload['articles'])}")
         show(payload)
 
     elif args.cmd == "pipeline":

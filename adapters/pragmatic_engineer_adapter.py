@@ -59,7 +59,7 @@ class PragmaticEngineerAdapter(NewsletterAdapter):
 
             if not feed.entries:
                 logger.warning(f"No entries found in RSS feed")
-                return self._normalize_response([], [])
+                return self._normalize_response([])
 
             logger.info(f"Fetched {len(feed.entries)} total entries from RSS")
 
@@ -72,18 +72,7 @@ class PragmaticEngineerAdapter(NewsletterAdapter):
 
         except Exception as e:
             logger.error(f"Error fetching RSS feed: {e}", exc_info=True)
-
-        issues = []
-        if articles:
-            issues.append({
-                'date': target_date_str,
-                'source_id': self.config.source_id,
-                'category': 'The Pragmatic Engineer',
-                'title': None,
-                'subtitle': None
-            })
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
 
     def _parse_rss_entry(self, entry: dict, target_date: datetime.date, excluded_set: set) -> dict | None:
         """Parse RSS entry into article dict if it matches the target date.

@@ -67,7 +67,7 @@ class ReactStatusAdapter(NewsletterAdapter):
 
             if not feed.entries:
                 logger.warning("No entries found in RSS feed")
-                return self._normalize_response([], [])
+                return self._normalize_response([])
 
             logger.info(f"Fetched {len(feed.entries)} issues from RSS")
 
@@ -76,7 +76,7 @@ class ReactStatusAdapter(NewsletterAdapter):
 
             if not matching_entry:
                 logger.info(f"No issue found for {target_date_str}")
-                return self._normalize_response([], [])
+                return self._normalize_response([])
 
             # Parse articles from the issue
             parsed_articles = self._parse_issue_articles(
@@ -89,20 +89,7 @@ class ReactStatusAdapter(NewsletterAdapter):
 
         except Exception as e:
             logger.error(f"Error fetching RSS feed: {e}", exc_info=True)
-
-        issues = []
-        if articles:
-            category = self.config.category_display_names.get("newsletter", "React Status")
-            issue_title = matching_entry.get('title', '') if matching_entry else None
-            issues.append({
-                'date': target_date_str,
-                'source_id': self.config.source_id,
-                'category': category,
-                'title': issue_title,
-                'subtitle': None
-            })
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
 
     def _find_matching_issue(self, entries: list, target_date: datetime.date) -> dict | None:
         """Find the RSS entry matching the target date.

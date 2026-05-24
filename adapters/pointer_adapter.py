@@ -68,7 +68,7 @@ class PointerAdapter(NewsletterAdapter):
 
             if not issue_url:
                 logger.info(f"No issue found for {date_str}")
-                return self._normalize_response([], [])
+                return self._normalize_response([])
 
             logger.info(f"Found issue URL: {issue_url}")
 
@@ -85,17 +85,7 @@ class PointerAdapter(NewsletterAdapter):
             logger.error(f"Error scraping Pointer for {date_str}: {e}", exc_info=True)
 
         category = self.config.category_display_names.get("newsletter", "Pointer")
-        issues = []
-        if articles:
-            issues = [{
-                'date': date_str,
-                'source_id': self.config.source_id,
-                'category': category,
-                'title': None,
-                'subtitle': None
-            }]
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
 
     def _get_issue_url_for_date(self, target_date: str) -> str | None:
         """Get issue URL for a specific date by parsing archives page.

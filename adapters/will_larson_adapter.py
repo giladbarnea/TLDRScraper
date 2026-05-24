@@ -121,14 +121,4 @@ class WillLarsonAdapter(NewsletterAdapter):
             logger.error(f"Error fetching RSS feed: {e}", exc_info=True)
 
         # Create issue metadata if we have articles
-        issues = []
-        if articles:
-            issues.append({
-                'date': target_date_str,
-                'source_id': self.config.source_id,
-                'category': 'Engineering Leadership',
-                'title': 'Irrational Exuberance',
-                'subtitle': 'Will Larson'
-            })
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
