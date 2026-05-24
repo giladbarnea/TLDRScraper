@@ -169,3 +169,120 @@ def show(payload, *, limit=10):
 def dump(obj):
     """Pretty JSON dump."""
     print(json.dumps(obj, indent=2, default=str))
+
+
+# ────────────────────────────────────────────────────────────────
+# Thin CLI
+# ────────────────────────────────────────────────────────────────
+# Run as:   uv run python3 pipeline_replay.py <cmd> [args]
+# Requires Supabase env vars loaded for any storage / pipeline command.
+
+def _resolve_end(end, start):
+    return end or start
+
+
+def _cli():
+    import argparse
+    parser = argparse.ArgumentParser(description="TLDRScraper pipeline replay")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("sources", help="List registered source_ids")
+
+    p = sub.add_parser("peek", help="Stage 1 (raw): adapter.scrape_date — no canonicalization, no dedup")
+    p.add_argument("date"); p.add_argument("source")
+
+    p = sub.add_parser("scrape-source", help="Stage 1 (prod-wrapped): scrape_single_source_for_date")
+    p.add_argument("date"); p.add_argument("source")
+
+    p = sub.add_parser("merge-day", help="Stage 1+2: scrape several sources then merge_source_results_for_date")
+    p.add_argument("date"); p.add_argument("sources", nargs="+")
+
+    p = sub.add_parser("payload-day", help="Stage 1+2+3: + _build_payload_from_scrape (issue date filter)")
+    p.add_argument("date"); p.add_argument("sources", nargs="+")
+
+    p = sub.add_parser("pipeline", help="Stage 5: scrape_newsletters_in_date_range (writes to storage)")
+    p.add_argument("start"); p.add_argument("end", nargs="?")
+    p.add_argument("--sources", nargs="+")
+
+    p = sub.add_parser("get", help="Storage: get_daily_payload_row")
+    p.add_argument("date")
+
+    p = sub.add_parser("summary", help="Storage: get_daily_payloads_summary over a date range")
+    p.add_argument("start"); p.add_argument("end", nargs="?")
+
+    p = sub.add_parser("clear", help="Storage: delete_daily_payloads_range (DESTRUCTIVE)")
+    p.add_argument("start"); p.add_argument("end", nargs="?")
+    p.add_argument("--yes", action="store_true", help="Skip confirmation")
+
+    p = sub.add_parser("today", help="Print today_pacific()")
+
+    args = parser.parse_args()
+
+    if args.cmd == "sources":
+        for sid in list_sources(): print(sid)
+
+    elif args.cmd == "today":
+        print(today_pacific())
+
+    elif args.cmd == "peek":
+        adapter = make_adapter(args.source)
+        raw = adapter.scrape_date(args.date, [])
+        show({"date": args.date, "articles": raw.get("articles", []), "issues": raw.get("issues", [])})
+
+    elif args.cmd == "scrape-source":
+        date_str, result = scrape_single_source_for_date(args.date, args.source, [])
+        print(f"date_str={date_str}  source={result['source_id']}  network={result['network_articles']}  error={result['error']}")
+        show({"date": date_str, "articles": result["articles"], "issues": result["issues"]})
+
+    elif args.cmd == "merge-day":
+        pairs = []
+        for sid in args.sources:
+            _, result = scrape_single_source_for_date(args.date, sid, [])
+            pairs.append((sid, result))
+        merged = merge_source_results_for_date(args.date, pairs)
+        print(f"network_fetches={merged['network_fetches']}")
+        show({"date": args.date, "articles": merged["articles"], "issues": merged["issues"]})
+
+    elif args.cmd == "payload-day":
+        pairs = []
+        for sid in args.sources:
+            _, result = scrape_single_source_for_date(args.date, sid, [])
+            pairs.append((sid, result))
+        merged = merge_source_results_for_date(args.date, pairs)
+        payload = _build_payload_from_scrape(args.date, merged["articles"], merged["issues"])
+        print(f"PRE-FILTER  articles={len(merged['articles'])}  issues={len(merged['issues'])}")
+        print(f"POST-FILTER articles={len(payload['articles'])}  issues={len(payload['issues'])}")
+        show(payload)
+
+    elif args.cmd == "pipeline":
+        end = _resolve_end(args.end, args.start)
+        result = scrape_newsletters_in_date_range(args.start, end, source_ids=args.sources)
+        print(f"source={result['source']}  stats={result['stats']}")
+        for payload in result["payloads"]:
+            show(payload)
+            print()
+
+    elif args.cmd == "get":
+        row = storage_service.get_daily_payload_row(args.date)
+        if row is None:
+            print("None"); return
+        print(f"updated_at={row['updated_at']}")
+        show(row["payload"])
+
+    elif args.cmd == "summary":
+        end = _resolve_end(args.end, args.start)
+        for day in storage_service.get_daily_payloads_summary(args.start, end):
+            print(f"{day['date']}  cached_at={day['cached_at']}  articles={day['article_count']}")
+
+    elif args.cmd == "clear":
+        end = _resolve_end(args.end, args.start)
+        if not args.yes:
+            confirm = input(f"DELETE rows in [{args.start}, {end}]? (yes/no) ")
+            if confirm != "yes":
+                print("aborted"); return
+        deleted = storage_service.delete_daily_payloads_range(args.start, end)
+        print(f"deleted={deleted}")
+
+
+if __name__ == "__main__":
+    _cli()
