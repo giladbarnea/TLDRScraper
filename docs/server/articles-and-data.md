@@ -1,7 +1,7 @@
 ---
 name: server/articles-and-data
 description: Data structures for Articles and Issues, and history deduplication algorithms.
-last_updated: 2026-05-03 15:10, bb6b54a
+last_updated: 2026-05-23 12:54
 ---
 # Server: Articles and Data Structures
 
@@ -89,5 +89,11 @@ if config.deduplicate_across_history:
 # filter_new_urls_for_history_dedup: queries seen_urls, returns new-only set, upserts them
 # Falls back to pass-through if seen_urls table is unavailable (probe retries every 30s)
 ```
+
+---
+
+## Manual URLs (POST /api/url-to-article)
+
+User-submitted URLs bypass adapters: `tldr_service.add_url_as_article(url)` scrapes the page, derives a title, and persists the article under a single pseudo-source (`source_id = "from_here_and_there"`, category `"From here and there"`) on today's date. The accompanying synthetic issue is what the client's issue-driven renderer needs to surface the entry as a virtual newsletter.
 
 ---
