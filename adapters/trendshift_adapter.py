@@ -27,7 +27,7 @@ class TrendshiftAdapter(NewsletterAdapter):
 
         if target_date != today:
             logger.info("Trendshift only serves today's data via SSR; skipping %s", target_date)
-            return self._normalize_response([], [])
+            return self._normalize_response([])
 
         excluded_set = set(excluded_urls)
         category = self.config.category_display_names["daily_explore"]
@@ -39,20 +39,7 @@ class TrendshiftAdapter(NewsletterAdapter):
             if canonical_url in excluded_set:
                 continue
             articles.append(article)
-
-        issues = []
-        if articles:
-            issues.append(
-                {
-                    "date": target_date,
-                    "source_id": self.config.source_id,
-                    "category": category,
-                    "title": "Trendshift Daily Explore",
-                    "subtitle": None,
-                }
-            )
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
 
     @util.retry(max_attempts=2, delay=1.0)
     def _scrape_daily_explore(self, target_date: str) -> list[dict]:

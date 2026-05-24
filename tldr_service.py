@@ -89,10 +89,9 @@ def _article_to_payload(article: dict) -> dict:
     }
 
 
-def _build_payload_from_scrape(date_str: str, articles: list[dict], issues: list[dict]) -> dict:
+def _build_payload_from_scrape(date_str: str, articles: list[dict]) -> dict:
     payload_articles = [_article_to_payload(article) for article in articles]
-    payload_issues = [issue for issue in issues if issue.get("date") == date_str]
-    return {"date": date_str, "articles": payload_articles, "issues": payload_issues}
+    return {"date": date_str, "articles": payload_articles}
 
 
 def _merge_payloads(new_payload: dict, cached_payload: dict) -> dict:
@@ -118,21 +117,9 @@ def _merge_payloads(new_payload: dict, cached_payload: dict) -> dict:
             continue
         merged_articles.append(cached_article)
 
-    merged_issues = cached_payload.get("issues") or new_payload.get("issues") or []
-    if cached_payload.get("issues") and new_payload.get("issues"):
-        seen_issue_keys = set()
-        merged_issues = []
-        for issue in cached_payload.get("issues", []) + new_payload.get("issues", []):
-            key = (issue.get("date"), issue.get("source_id"), issue.get("category"))
-            if key in seen_issue_keys:
-                continue
-            seen_issue_keys.add(key)
-            merged_issues.append(issue)
-
     return {
         "date": new_payload.get("date"),
         "articles": merged_articles,
-        "issues": merged_issues,
     }
 
 
@@ -262,7 +249,6 @@ def scrape_newsletters_in_date_range(
                     )
                     result = {
                         "articles": [],
-                        "issues": [],
                         "network_articles": 0,
                         "error": str(error),
                         "source_id": source_id,
@@ -283,7 +269,6 @@ def scrape_newsletters_in_date_range(
         new_payload = _build_payload_from_scrape(
             date_str,
             merged_result.get("articles", []),
-            merged_result.get("issues", []),
         )
         if cached_payload:
             payloads_by_date[date_str] = _merge_payloads(new_payload, cached_payload)
@@ -420,15 +405,7 @@ def add_url_as_article(url: str) -> dict:
         "source_id": MANUAL_SOURCE_ID,
         "removed": False,
     }
-    issue = {
-        "date": target_date,
-        "source_id": MANUAL_SOURCE_ID,
-        "category": MANUAL_CATEGORY,
-        "title": None,
-        "subtitle": None,
-    }
-
-    new_payload = _build_payload_from_scrape(target_date, [article], [issue])
+    new_payload = _build_payload_from_scrape(target_date, [article])
 
     cached_rows = storage_service.get_daily_payloads_range(target_date, target_date)
     merged_payload = (

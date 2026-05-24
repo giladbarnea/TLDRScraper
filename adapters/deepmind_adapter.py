@@ -105,10 +105,9 @@ class DeepMindAdapter(NewsletterAdapter):
         articles = []
         excluded_set = set(excluded_urls)
 
-        target_date = datetime.fromisoformat(util.format_date_for_url(date))
-        target_month_year = target_date.strftime("%B %Y")
+        target_date_str = util.format_date_for_url(date)
 
-        logger.info(f"Fetching articles for {target_month_year} (excluding {len(excluded_urls)} URLs)")
+        logger.info(f"Fetching articles for {target_date_str} (excluding {len(excluded_urls)} URLs)")
 
         try:
             page_content = self._fetch_page()
@@ -133,34 +132,18 @@ class DeepMindAdapter(NewsletterAdapter):
                     continue
 
                 real_publish_date = self._fetch_article_publish_date(full_url)
-                if not real_publish_date:
-                    continue
-
-                real_month_year = datetime.fromisoformat(real_publish_date).strftime("%B %Y")
-                if real_month_year != target_month_year:
+                if real_publish_date != target_date_str:
                     continue
 
                 article = self._card_to_article(card, real_publish_date)
                 if article:
                     articles.append(article)
 
-            logger.info(f"Found {len(articles)} articles actually published in {target_month_year}")
+            logger.info(f"Found {len(articles)} articles actually published on {target_date_str}")
 
         except Exception as e:
             logger.error(f"Error fetching blog: {e}", exc_info=True)
-
-        issues = []
-        if articles:
-            first_of_month = target_date.replace(day=1).strftime("%Y-%m-%d")
-            issues.append({
-                'date': first_of_month,
-                'source_id': self.config.source_id,
-                'category': self.config.category_display_names.get('blog', 'Google DeepMind'),
-                'title': None,
-                'subtitle': None
-            })
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
 
     def _card_to_article(self, card, date: str) -> dict | None:
         """Convert blog article card to article dict.

@@ -74,18 +74,7 @@ class AnthropicResearchAdapter(NewsletterAdapter):
 
         except Exception as e:
             logger.error(f"Error fetching research: {e}", exc_info=True)
-
-        issues = []
-        if articles:
-            issues.append({
-                'date': target_date_str,
-                'source_id': self.config.source_id,
-                'category': self.config.category_display_names.get('research', 'Anthropic Research'),
-                'title': None,
-                'subtitle': None
-            })
-
-        return self._normalize_response(articles, issues)
+        return self._normalize_response(articles)
 
     def _parse_articles_from_markdown(self, markdown: str) -> list[dict]:
         """Parse articles from Anthropic research markdown.
