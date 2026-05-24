@@ -11,6 +11,7 @@ async function postUrlToArticle(url) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url }),
+    signal: AbortSignal.timeout(20_000),
   })
   return readApiResponse(response, 'POST /api/url-to-article')
 }
@@ -66,11 +67,11 @@ function AddUrlOverlay({ onClose }) {
     function handleKey(event) {
       if (event.key !== 'Escape') return
       event.preventDefault()
-      if (!isSubmitting) onClose()
+      onClose()
     }
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
-  }, [isSubmitting, onClose])
+  }, [onClose])
 
   async function submitUrl(url) {
     setStatus('submitting')
@@ -99,7 +100,7 @@ function AddUrlOverlay({ onClose }) {
   }
 
   function handleBackdropClick() {
-    if (!isSubmitting) onClose()
+    onClose()
   }
 
   const dataState = hasError ? 'error'
