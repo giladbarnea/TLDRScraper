@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-24 05:55
+last_updated: 2026-05-24 11:34
 ---
 
 .
@@ -146,7 +146,6 @@ last_updated: 2026-05-24 05:55
 ├── GOTCHAS.md
 ├── Justfile
 ├── newsletter_config.py
-├── newsletter_merger.py
 ├── newsletter_scraper.py
 ├── podcast_service.py
 ├── pyproject.toml
