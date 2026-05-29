@@ -23,15 +23,17 @@ from esperanto.providers.tts.base import TextToSpeechModel
 _PCM_MIME_PARAMETER_PATTERN = re.compile(r"(rate|channels)\s*=\s*(\d+)", re.IGNORECASE)
 
 
-def _parse_pcm_mime_parameters(mime_type: str) -> tuple[int, int]:
-    """Return sample rate and channel count from Gemini PCM mime type.
+def _parse_pcm_mime_parameters(mime_type: str | None) -> tuple[int, int]:
+    """Return sample rate and channel count from Gemini PCM mime type, defaulting to 24kHz mono.
 
     >>> _parse_pcm_mime_parameters("audio/l16; rate=24000; channels=1")
+    (24000, 1)
+    >>> _parse_pcm_mime_parameters(None)
     (24000, 1)
     """
     sample_rate_hertz = 24_000
     channel_count = 1
-    for key, value in _PCM_MIME_PARAMETER_PATTERN.findall(mime_type):
+    for key, value in _PCM_MIME_PARAMETER_PATTERN.findall(mime_type or ""):
         if key.lower() == "rate":
             sample_rate_hertz = int(value)
         if key.lower() == "channels":
@@ -65,68 +67,19 @@ class GeminiTextToSpeechModel(TextToSpeechModel):
     @property
     def available_voices(self) -> dict[str, Voice]:
         return {
-            "Kore": Voice(
-                name="Kore",
-                id="Kore",
+            self.DEFAULT_VOICE: Voice(
+                name=self.DEFAULT_VOICE,
+                id=self.DEFAULT_VOICE,
                 gender="FEMALE",
                 language_code="en-US",
                 description="Balanced American English voice",
             ),
-            "Charon": Voice(
-                name="Charon",
-                id="Charon",
-                gender="MALE",
-                language_code="en-US",
-                description="Measured American English voice",
-            ),
-            "Puck": Voice(
-                name="Puck",
-                id="Puck",
-                gender="MALE",
-                language_code="en-US",
-                description="Brisk American English voice",
-            ),
-            "Aoede": Voice(
-                name="Aoede",
-                id="Aoede",
-                gender="FEMALE",
-                language_code="en-US",
-                description="Warm American English voice",
-            ),
-            "Callirrhoe": Voice(
-                name="Callirrhoe",
-                id="Callirrhoe",
-                gender="FEMALE",
-                language_code="en-US",
-                description="Expressive American English voice",
-            ),
         }
 
     def _get_models(self) -> list[Model]:
-        return [
-            Model(
-                id="gemini-2.5-flash-preview-tts",
-                owned_by="Google",
-                type="text_to_speech",
-            ),
-            Model(
-                id="gemini-2.5-pro-preview-tts",
-                owned_by="Google",
-                type="text_to_speech",
-            ),
-            Model(
-                id="gemini-3.1-flash-tts-preview",
-                owned_by="Google",
-                type="text_to_speech",
-            ),
-        ]
+        return [Model(id=self.DEFAULT_MODEL, owned_by="Google", type="text_to_speech")]
 
-    def _transcode_pcm_to_mp3(
-        self,
-        pcm_audio_data: bytes,
-        mime_type: str,
-        output_file: str | Path | None,
-    ) -> bytes:
+    def _transcode_pcm_to_mp3(self, pcm_audio_data: bytes, mime_type: str | None) -> bytes:
         sample_rate_hertz, channel_count = _parse_pcm_mime_parameters(mime_type)
         ffmpeg_binary = self._config.get("ffmpeg_binary", "ffmpeg")
 
@@ -155,14 +108,7 @@ class GeminiTextToSpeechModel(TextToSpeechModel):
                 capture_output=True,
                 text=True,
             )
-            mp3_audio_data = temporary_mp3_path.read_bytes()
-
-        if output_file is not None:
-            output_path = Path(output_file)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_bytes(mp3_audio_data)
-
-        return mp3_audio_data
+            return temporary_mp3_path.read_bytes()
 
     def generate_speech(
         self,
@@ -199,12 +145,10 @@ class GeminiTextToSpeechModel(TextToSpeechModel):
         if not getattr(part, "inline_data", None) or not part.inline_data.data:
             raise RuntimeError(f"No audio returned by Gemini TTS: {response}")
 
-        mime_type = part.inline_data.mime_type or "audio/l16; rate=24000; channels=1"
-        mp3_audio_data = self._transcode_pcm_to_mp3(
-            pcm_audio_data=part.inline_data.data,
-            mime_type=mime_type,
-            output_file=output_file,
-        )
+        mime_type = part.inline_data.mime_type
+        mp3_audio_data = self._transcode_pcm_to_mp3(part.inline_data.data, mime_type)
+        if output_file is not None:
+            self.save_audio(mp3_audio_data, output_file)
         return AudioResponse(
             audio_data=mp3_audio_data,
             content_type="audio/mp3",
