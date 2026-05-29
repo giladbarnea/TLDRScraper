@@ -1,210 +1,73 @@
 /* =========================================================================
-   Liquid Glass — clear variant over a grey stage.
-   Visual stack (back→front):
-     0. <canvas id="backdrop">  — grey gradient + headline + body text
-     1. <canvas id="lens">      — WebGL refraction inside pill silhouette
-     2. .lg-pill                — CSS material: tint, glow, specular, content
+   Liquid Glass — scroll-under-glass lensing experiment.
+
+   The defining behaviour: content scrolled beneath a fixed glass pill is
+   refracted by a thick lens whose cross-section is flat in the middle and
+   rounds over at the rims. The flat centre shows content ~1:1 (upright,
+   dampened); each rounded rim bends light hard enough that the sample map
+   FOLDS, producing the vertically-mirrored copy that emerges squished at a
+   horizon, drifts apart from the upright copy, then recedes back into the rim.
+
+   Visual stack (back -> front):
+     0. <canvas id="backdrop">  dark list content, redrawn on scroll
+     1. <canvas id="lens">       WebGL refraction inside the pill silhouette
+     2. #pill                    elevation shadow + mic icon (transparent body)
    ========================================================================= */
 
 * { box-sizing: border-box; }
 
 html, body {
   margin: 0;
-  padding: 0;
-  width: 100%;
   height: 100%;
+  overflow: hidden;
+  background: #050506;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overflow: hidden;
-  background: #9aa0a4;
 }
 
-/* CSS custom properties driven from script.js. */
-:root {
-  --press-x: 50%;
-  --press-y: 50%;
-  --gx: 50%;
-  --gy: 50%;
-  --gi: 0;
-  --tilt-x: 0deg;
-  --tilt-y: 0deg;
-}
-
-/* ---------- Stage --------------------------------------------------------- */
-.stage {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  display: grid;
-  place-items: center;
-  isolation: isolate;
-}
-
-.stage__backdrop {
-  position: absolute;
+#backdrop, #lens {
+  position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 0;
 }
+#backdrop { z-index: 0; }
+#lens     { z-index: 1; pointer-events: none; }
 
-.stage__lens {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* =========================================================================
-   The pill
-   ========================================================================= */
-.lg-pill {
-  --pill-w: 360px;
-  --pill-h: 132px;
-  --pill-r: 66px;
-
-  position: relative;
-  width: var(--pill-w);
-  height: var(--pill-h);
-  border: 0;
-  padding: 0;
+/* The pill body is transparent so the lens canvas shows through it. The DOM
+   element carries only the outer elevation shadow and the mic glyph. The lit
+   rim and the inner clear ring are produced inside the shader. */
+.pill {
+  position: fixed;
+  z-index: 2;
+  border-radius: 999px;
   background: transparent;
-  border-radius: var(--pill-r);
-  overflow: hidden;
-  cursor: pointer;
-  z-index: 2;
-
-  box-shadow:
-    0 6px 14px rgba(0, 0, 0, 0.18),
-    0 18px 40px rgba(0, 0, 0, 0.22);
-
-  transform-origin: var(--press-x) var(--press-y);
-  transform:
-    perspective(700px)
-    rotateX(var(--tilt-x))
-    rotateY(var(--tilt-y))
-    scale(1);
-  transition:
-    transform 240ms cubic-bezier(0.2, 0.9, 0.3, 1.2),
-    box-shadow 240ms ease;
-
-  will-change: transform;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  outline: none;
-}
-
-.lg-pill:focus-visible {
-  box-shadow:
-    0 0 0 3px rgba(0, 102, 255, 0.55),
-    0 6px 14px rgba(0, 0, 0, 0.18),
-    0 18px 40px rgba(0, 0, 0, 0.22);
-}
-
-.lg-pill.is-pressed {
-  transform:
-    perspective(700px)
-    rotateX(var(--tilt-x))
-    rotateY(var(--tilt-y))
-    scale(0.965);
-}
-
-/* Layer — tint. A faint white wash + brightness lift for the dampening
-   that pure refraction can't provide. Backdrop-filter:brightness still
-   works on mobile (only url() backdrop-filters fail). */
-.lg-pill__tint {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.04) 45%,
-    rgba(255, 255, 255, 0.08) 100%
-  );
-  -webkit-backdrop-filter: brightness(1.08) saturate(120%);
-          backdrop-filter: brightness(1.08) saturate(120%);
   pointer-events: none;
-  z-index: 0;
-}
-
-/* Layer — touch glow. Radial gradient anchored to pointer via CSS vars. */
-.lg-pill__glow {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  mix-blend-mode: screen;
-  opacity: var(--gi);
-  background: radial-gradient(
-    140px 140px at var(--gx) var(--gy),
-    rgba(255, 246, 224, 0.95) 0%,
-    rgba(255, 246, 224, 0.55) 22%,
-    rgba(255, 246, 224, 0.18) 50%,
-    rgba(255, 246, 224, 0) 80%
-  );
-  z-index: 1;
-}
-
-/* Layer — specular ridges. Sells convex glass cross-section. */
-.lg-pill__specular {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 2;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.30),
-
-    inset 0 2px 0 -0.5px rgba(255, 255, 255, 0.95),
-    inset 0 8px 14px -8px rgba(255, 255, 255, 0.85),
-
-    inset 6px 4px 14px -10px rgba(255, 255, 255, 1),
-
-    inset -6px -6px 18px -10px rgba(255, 255, 255, 1),
-    inset -2px -2px 0 -0.5px rgba(255, 255, 255, 0.75),
-
-    inset 6px -6px 18px -16px rgba(0, 0, 0, 0.35),
-    inset -10px 6px 24px -18px rgba(0, 0, 0, 0.30),
-
-    inset 0 -1px 0 0 rgba(0, 0, 0, 0.10);
+    0 10px 30px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.45);
 }
 
-/* Layer — content (icons). */
-.lg-pill__content {
+.pill__mic {
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 0 38px;
-  border-radius: inherit;
+  top: 50%;
+  right: 24px;
+  transform: translateY(-50%);
+  color: #f4f4f6;
+  opacity: 0.92;
+}
+
+.hint {
+  position: fixed;
   z-index: 3;
-  transition: transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
-}
-.lg-pill.is-pressed .lg-pill__content { transform: scale(0.985); }
-
-.lg-icon {
-  color: #0a0a0c;
-  width: 36px;
-  height: 36px;
-  filter: drop-shadow(0 0.5px 0 rgba(255, 255, 255, 0.35));
-}
-
-/* ---------- Accessibility modifiers --------------------------------------- */
-@media (prefers-reduced-motion: reduce) {
-  .lg-pill { transition: none; }
-  .lg-pill.is-pressed { transform: scale(0.985); }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .lg-pill__tint {
-    background: rgba(245, 245, 245, 0.92);
-    -webkit-backdrop-filter: none;
-            backdrop-filter: none;
-  }
-  .stage__lens { display: none; }
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.32);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
 }

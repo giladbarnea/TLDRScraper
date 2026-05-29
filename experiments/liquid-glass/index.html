@@ -3,162 +3,129 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Liquid Glass — Clear Button over Grey</title>
+    <title>Liquid Glass — Scroll Lensing</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="stage" id="stage">
-      <!--
-        Layer 0: backdrop canvas. Draws the grey gradient + headline + body
-        text. Used both visually AND as the WebGL texture source for the lens.
-      -->
-      <canvas id="backdrop" class="stage__backdrop" aria-hidden="true"></canvas>
+    <!-- Layer 0: dark list content. Drawn to canvas AND used as the lens texture. -->
+    <canvas id="backdrop" aria-hidden="true"></canvas>
 
-      <!--
-        Layer 1: lens canvas. Full-viewport WebGL surface. Transparent
-        everywhere except inside the pill silhouette, where it samples the
-        backdrop with rim-concentrated refraction offsets.
-      -->
-      <canvas id="lens" class="stage__lens" aria-hidden="true"></canvas>
+    <!-- Layer 1: WebGL refraction. Transparent outside the pill silhouette. -->
+    <canvas id="lens" aria-hidden="true"></canvas>
 
-      <!--
-        Layer 2: the pill. CSS material layers (tint, glow, specular) stack
-        on top of the lensed refraction. Real refraction underneath, real
-        Liquid Glass shading on top.
-      -->
-      <button class="lg-pill" id="pill" type="button" aria-label="Clear glass pill button">
-        <span class="lg-pill__tint" aria-hidden="true"></span>
-        <span class="lg-pill__glow" aria-hidden="true"></span>
-        <span class="lg-pill__specular" aria-hidden="true"></span>
-        <span class="lg-pill__content">
-          <svg class="lg-icon" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="19,7 9,16 19,25" />
-          </svg>
-          <svg class="lg-icon" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="16" y1="7" x2="16" y2="25" />
-            <line x1="7" y1="16" x2="25" y2="16" />
-          </svg>
-          <svg class="lg-icon" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="16" cy="16" r="9" />
-          </svg>
-        </span>
-      </button>
-    </main>
+    <!-- Layer 2: transparent pill body carrying the elevation shadow + mic. -->
+    <div id="pill" class="pill">
+      <span class="pill__mic" aria-hidden="true">
+        <svg width="22" height="30" viewBox="0 0 22 30" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="7" y="2" width="8" height="15" rx="4" fill="currentColor" stroke="none" />
+          <path d="M3 13a8 8 0 0 0 16 0" />
+          <line x1="11" y1="21" x2="11" y2="27" />
+          <line x1="7" y1="27" x2="15" y2="27" />
+        </svg>
+      </span>
+    </div>
 
-    <!-- Lens fragment shader source — kept out of the JS file for readability. -->
-    <script id="lensFragShader" type="x-shader/x-fragment">
+    <div class="hint">scroll &#x2195;</div>
+
+    <script id="vert" type="x-shader/x-vertex">
+      attribute vec2 a_pos;
+      void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
+    </script>
+
+    <!-- =====================================================================
+         Lens fragment shader — thick-lens refraction with a folding rim.
+
+         Cross-section model: height is flat (=1) across the interior and rolls
+         down to 0 within iRimBand of the silhouette edge along a quarter-round
+         curve. The surface normal is derived from that height field; a vertical
+         view ray is refracted through it and marched down by iThickness to find
+         the backdrop sample. Near the rim the normal tilts hard, the refracted
+         rays cross, and the sample map folds -> the inverted mirror copy.
+         ===================================================================== -->
+    <script id="frag" type="x-shader/x-fragment">
       precision highp float;
 
-      uniform vec2  iResolution;   // canvas pixel size
-      uniform vec4  iPill;         // pill rect: x, y, w, h in canvas pixels (y from top)
-      uniform sampler2D iBackdrop; // backdrop canvas as texture
-      uniform float iTime;
-      uniform float iPressIntensity;
-      uniform vec2  iPress;        // press center in canvas pixels
+      uniform vec2      iResolution;  // device px
+      uniform vec4      iPill;        // x,y top-left + w,h, device px (y from top)
+      uniform sampler2D iBackdrop;
+      uniform float     iThickness;   // glass depth, device px (fold magnitude)
+      uniform float     iRimBand;     // width of the rounded rim band, device px
+      uniform float     iSlope;       // peak surface slope at mid-band (fold shape)
+      uniform float     iInnerClear;  // clear ring that buffers reflections, device px
+      uniform float     iOuterRim;    // lit specular rim width, device px
+      uniform float     iRimLight;    // lit rim brightness
+      uniform float     iEta;         // air/glass index ratio (~1/1.5)
+      uniform float     iDampen;      // 0..1 attention dampening of refracted content
 
-      /* Signed distance to a rounded box. p is relative to box center. */
-      float sdRoundedBox(vec2 p, vec2 b, float r) {
+      float sdRoundBox(vec2 p, vec2 b, float r) {
         vec2 q = abs(p) - b + vec2(r);
         return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
       }
 
       void main() {
-        // Fragment in canvas pixel space, y-up.
-        vec2 frag = gl_FragCoord.xy;
-        // Backdrop sample UV — texture is uploaded with y flipped to match gl_FragCoord.
-        vec2 buv = frag / iResolution;
+        vec2 frag = gl_FragCoord.xy;            // y-up
+        vec2 res  = iResolution;
 
-        // Pill center and half-extents in canvas pixels.
-        // iPill is given in DOM coords (y from top); convert to GL y-up.
-        vec2 pillCenter = vec2(iPill.x + iPill.z * 0.5,
-                               iResolution.y - (iPill.y + iPill.w * 0.5));
-        vec2 pillHalf   = vec2(iPill.z * 0.5, iPill.w * 0.5);
-        float pillR     = min(pillHalf.x, pillHalf.y);
+        vec2  pillCenter = vec2(iPill.x + iPill.z * 0.5, res.y - (iPill.y + iPill.w * 0.5));
+        vec2  pillHalf   = vec2(iPill.z * 0.5, iPill.w * 0.5);
+        float pillR      = min(pillHalf.x, pillHalf.y);
 
-        // Distance from pill SDF — negative inside, zero at edge, positive outside.
-        vec2  pLocal = frag - pillCenter;
-        float d      = sdRoundedBox(pLocal, pillHalf, pillR);
+        vec2  p = frag - pillCenter;
+        float d = sdRoundBox(p, pillHalf, pillR);   // <0 inside
 
-        // Outside the pill silhouette → fully transparent.
-        // The CSS specular and shadow will define the edge fall-off.
-        if (d > 1.5) {
-          gl_FragColor = vec4(0.0);
-          return;
-        }
+        if (d > 1.0) { gl_FragColor = vec4(0.0); return; }
+        float silh = smoothstep(1.0, -1.0, d);
 
-        // Inside-the-pill mask with a 1.5px soft edge for clean AA.
-        float inside = smoothstep(1.5, -1.5, d);
+        // Outward unit gradient of the SDF (the surface "downhill" direction).
+        float eps = 1.0;
+        vec2 grad = normalize(vec2(
+          sdRoundBox(p + vec2(eps, 0.0), pillHalf, pillR) - sdRoundBox(p - vec2(eps, 0.0), pillHalf, pillR),
+          sdRoundBox(p + vec2(0.0, eps), pillHalf, pillR) - sdRoundBox(p - vec2(0.0, eps), pillHalf, pillR)
+        ) + 1e-6);
 
-        // ---- Refraction --------------------------------------------------
-        // Compute the SDF gradient (approximate normal) via central differences.
-        // The gradient points OUTWARD from the surface; we offset the sample
-        // INWARD (against the gradient) so light appears to bend toward center.
-        float eps = 1.5;
-        vec2 nrm = normalize(vec2(
-          sdRoundedBox(pLocal + vec2(eps, 0.0), pillHalf, pillR) -
-          sdRoundedBox(pLocal - vec2(eps, 0.0), pillHalf, pillR),
-          sdRoundedBox(pLocal + vec2(0.0, eps), pillHalf, pillR) -
-          sdRoundedBox(pLocal - vec2(0.0, eps), pillHalf, pillR)
-        ));
+        // Rim band slope profile. The surface slope peaks in the MIDDLE of the
+        // band (not at the very edge), which places the refraction caustic
+        // mid-band: inside the caustic the sample map folds -> the inverted
+        // mirror copy; outside it the upright copy advances to the flat centre.
+        float inset = -d;                                   // >=0 inside
+        float e = clamp(inset / iRimBand, 0.0, 1.0);        // 0 at rim, 1 at flat
+        float slope = iSlope * 4.0 * e * (1.0 - e);         // peak at e=0.5
 
-        // Rim weight: 0 at center, 1 at rim. Concentrates bend at the edge,
-        // matching the way a real meniscus refracts most where curvature is
-        // steepest. The shape is a smooth pow ramp on the normalised SDF.
-        float rimNorm = clamp(1.0 - (-d) / pillR, 0.0, 1.0);
-        float rim     = pow(rimNorm, 2.2);
+        // Surface normal tilts outward across the rim band.
+        vec3 N = normalize(vec3(grad * slope, 1.0));
+        vec3 I = vec3(0.0, 0.0, -1.0);
 
-        // Maximum offset in pixels — proportional to pill size for consistency.
-        float maxOffset = pillR * 0.32;
-        vec2  offset    = nrm * rim * maxOffset;
-        // Convert pixel offset to texture-UV offset (y inverts because the
-        // backdrop texture is y-down while frag is y-up).
-        vec2  texOffset = vec2(offset.x, -offset.y) / iResolution;
+        // Subtle vertical asymmetry: 0 at top, 1 at bottom of the pill.
+        float ty = clamp((pillCenter.y + pillHalf.y - frag.y) / (2.0 * pillHalf.y), 0.0, 1.0);
 
-        // Multi-sample for a tiny bit of softness — gives the refraction a
-        // believable depth-of-field rather than a razor-crisp displacement.
-        // 5-tap diamond pattern, cheap on mobile GPU.
-        vec3 acc = vec3(0.0);
-        float weights = 0.0;
-        const float blurPx = 0.6;
-        vec2 blur = vec2(blurPx) / iResolution;
-        for (int i = 0; i < 5; i++) {
-          vec2 o = vec2(
-            (i == 1) ?  1.0 : (i == 2 ? -1.0 : 0.0),
-            (i == 3) ?  1.0 : (i == 4 ? -1.0 : 0.0)
-          );
-          vec2 uv = buv + texOffset + o * blur;
-          acc += texture2D(iBackdrop, uv).rgb;
-          weights += 1.0;
-        }
-        vec3 refracted = acc / weights;
+        vec3  R = refract(I, N, iEta);
+        float thick = iThickness * (1.0 + 0.01 * (ty - 0.5));   // bottom refracts ~1% more
+        float march = (R.z < -1e-4) ? (-thick / R.z) : 0.0;
+        vec2  offset = R.xy * march;                            // device px, y-up
 
-        // Chromatic aberration — sample R/B with slight extra spread at rim.
-        // Almost too subtle to see; the kind of detail that separates 7→9.
-        float ca = rim * 1.2;
-        vec3 chroma;
-        chroma.r = texture2D(iBackdrop, buv + texOffset * (1.0 + ca * 0.03)).r;
-        chroma.g = refracted.g;
-        chroma.b = texture2D(iBackdrop, buv + texOffset * (1.0 - ca * 0.03)).b;
-        refracted = mix(refracted, chroma, 0.6);
+        // Thin inner clear ring buffering reflections off the lit rim.
+        float clearRamp = smoothstep(0.0, iInnerClear, inset);
+        offset *= clearRamp;
 
-        // Slight brightness lift through the body — pure clear glass concentrates
-        // light, gives the interior its hint of warmth.
-        refracted *= 1.04;
+        // Backdrop texture is uploaded y-flipped, so negate offset.y.
+        vec2 sampleUv = (frag + vec2(offset.x, -offset.y)) / res;
+        vec3 col = texture2D(iBackdrop, sampleUv).rgb;
 
-        // Press-driven illumination spreads through the body and brightens the
-        // refracted backdrop slightly. The CSS .lg-pill__glow handles the
-        // visible hotspot; this gives the inside-the-glass brightness lift.
-        float pressDist = distance(frag, iPress);
-        float pressFall = 1.0 - smoothstep(0.0, pillR * 1.6, pressDist);
-        refracted += vec3(0.06) * pressFall * iPressIntensity;
+        // Attention dampening + top-brighter light gradient.
+        col = mix(col, vec3(0.40), iDampen);
+        col *= (1.0 + 0.05 * (0.5 - ty));
 
-        gl_FragColor = vec4(refracted, inside);
+        // Outer lit rim: a bright hairline at the very edge, brighter at the top
+        // and dimmer toward the bottom so the edge reads as a rounded 2.5D bevel.
+        // Just inside it slope ~ 0, so refraction is negligible -> the inner
+        // clear buffer layer that the reflections never overwrite.
+        float rim = smoothstep(iOuterRim, 0.0, inset);
+        float topLight = mix(0.4, 1.0, 1.0 - ty);
+        col += vec3(1.0) * rim * topLight * iRimLight;
+
+        gl_FragColor = vec4(col * silh, silh);   // premultiplied
       }
-    </script>
-
-    <script id="lensVertShader" type="x-shader/x-vertex">
-      attribute vec2 a_pos;
-      void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
     </script>
 
     <script src="script.js"></script>
