@@ -637,7 +637,8 @@ export function useSelectedArticles() {
 // ─── Interaction ─────────────────────────────────────────────────────────────
 
 function isArticleKeyDisabled(key) {
-  return Boolean(articlesByKey.get(key)?.removed)
+  const slice = articlesByKey.get(key)
+  return Boolean(slice?.removed) || Boolean(slice?.read?.isRead)
 }
 
 function getInteractionSnapshot() {
