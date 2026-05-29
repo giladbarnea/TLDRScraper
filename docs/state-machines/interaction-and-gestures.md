@@ -1,7 +1,7 @@
 ---
 name: state-machines/interaction-and-gestures
 description: State machines for selection interaction, container expansion, and swipe gestures.
-last_updated: 2026-05-06 06:49, 02cad9b
+last_updated: 2026-05-29 11:16
 ---
 # State Machines: Interaction and Gestures
 
@@ -48,7 +48,7 @@ After a long-press, an 800ms window prevents the subsequent touchend's short-pre
 
 `expandedContainerIds` is persisted to `localStorage` under key `expandedContainers:v1` (JSON array). Hydrated on init. Selection is ephemeral.
 
-Removed articles are blocked through an `isDisabled(id)` predicate passed to the reducer. The predicate resolves the article slice and returns true for removed articles, so disabled state is not duplicated.
+Removed and read articles are blocked through an `isDisabled(id)` predicate passed to the reducer. The predicate resolves the article slice and returns true for either condition, so disabled state is not duplicated.
 
 ---
 
