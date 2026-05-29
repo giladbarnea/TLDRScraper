@@ -1,0 +1,16 @@
+<div class="container" id="bg">
+	<button class="lg-btn">Simple blur</button>
+	<button class="lg-btn gl">SVG backdrop</button>
+</div>
+
+<small id="info">Ironically, backdrop-filters with SVGs (url(#filter)) seem not to be supported on iOS :)</small>
+
+
+
+<svg style="display: none">
+	<filter id="filter" color-interpolation-filters="linearRGB" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
+		<feDisplacementMap in="SourceGraphic" in2="SourceGraphic" scale="20" xChannelSelector="R" yChannelSelector="B" x="0%" y="0%" width="100%" height="100%" result="displacementMap" />
+		<feGaussianBlur stdDeviation="3 3" x="0%" y="0%" width="100%" height="100%" in="displacementMap" edgeMode="none" result="blur" />
+	</filter>
+
+</svg>

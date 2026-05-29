@@ -3,3 +3,4 @@ https://github.com/giladbarnea/.agents skills/supabase-postgres-best-practices .
 https://github.com/giladbarnea/.agents skills/peer-review .agents/skills/peer-review
 https://github.com/giladbarnea/.agents skills/terse-output .agents/skills/terse-output
 https://github.com/giladbarnea/.agents skills/simplify-code .agents/skills/simplify-code
+https://github.com/giladbarnea/.agents skills/post-implementation .agents/skills/post-implementation

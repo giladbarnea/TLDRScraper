@@ -1,0 +1,101 @@
+#info{
+	position: absolute;
+	left: 5px;
+	bottom: 10px;
+	color: #fff;
+	font-family: sans-serif;
+	font-size: 10px;
+}
+
+.container{
+	position: absolute;
+	display: grid;
+	place-items: center;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-image: url("https://assets.codepen.io/443195/bg_nd.jpg");
+/* 	background-image: url("https://assets.codepen.io/443195/mos-design-13hAeb_-Yts-unsplash.jpg"); */
+/* 	background-size: 150%; */
+/* 	background-position: 50% 15%; */
+	background-image: url("https://assets.codepen.io/443195/a_photo-realitic_pattern_of_colorful_flowers.jpg");
+/* 	background-image: url("https://assets.codepen.io/443195/markus-spiske-RA94dxPhxGg-unsplash.jpg");
+	background-image: url("https://assets.codepen.io/443195/can-egridere-HA-Ksyt8-5I-unsplash.jpg"); */
+	background-image: url("https://assets.codepen.io/443195/carl-raw-8Gdayy2Lhi0-unsplash.jpg");
+/* 	background-size: 140%; */
+	animation: drift 60s ease-in-out infinite alternate;
+}
+
+
+
+.lg-btn{
+	width: 50vmin;
+	height: 20vmin;
+	border-radius: 10.2vmin 9.8vmin 10.2vmin 9.8vmin;
+	background: rgba(255, 255, 255, 0.05);
+	backdrop-filter: blur(4px);
+	box-shadow: inset 2px 2px 1px 0 rgba(255, 255, 255, 0.3),
+    inset -2px -2px 2px 1px rgba(255, 255, 255, 0.3), 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.2);;
+	color: rgba(255, 255, 255, 0.8);
+	font-size: 5vmin;
+	transition: all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.5);
+	cursor: pointer;
+}
+
+.gl{
+	
+	backdrop-filter: url(#filter);
+	-webkit-backdrop-filter: blur(3px);
+}
+
+
+.lg-btn:hover{
+	transform: scale(1.05);
+	border-radius: 9.8vmin 10.2vmin 9.8vmin 10.2vmin;
+}
+
+.lg-btn:select{
+	transform: scale(0.95);
+}
+
+
+
+    @keyframes drift {
+      0% {
+        background-position: 50% 50%;
+      }
+      25% {
+        background-position: 60% 40%;
+      }
+      50% {
+        background-position: 40% 60%;
+      }
+      75% {
+        background-position: 55% 45%;
+      }
+      100% {
+        background-position: 50% 50%;
+      }
+    }
+
+
+/* reset */
+button{
+	display: inline-block;
+	border: none;
+	margin: 0;
+	text-decoration: none;
+	padding: 0;
+	background: none;
+	border-radius: 0;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	overflow: hidden;
+	user-select: none;
+	-webkit-tap-highlight-color: transparent;
+}
+
+button:focus {
+	outline: none;
+}

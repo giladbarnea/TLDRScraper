@@ -1,7 +1,6 @@
 import { FloatingTree } from '@floating-ui/react'
 import { Bug, Calendar } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import AddUrlButton from './components/AddUrlButton'
 import DebugPanel from './components/DebugPanel'
 import DigestOverlay from './components/DigestOverlay'
 import Feed from './components/Feed'
@@ -9,6 +8,7 @@ import PodcastPlayer from './components/PodcastPlayer'
 import ScrapeForm from './components/ScrapeForm'
 import SelectionActionDock from './components/SelectionActionDock'
 import ToastContainer from './components/ToastContainer'
+import LiquidGlassDefs from './components/visual-effects/LiquidGlassDefs'
 import { useDigest } from './hooks/useDigest'
 import { getDefaultFeedDateRange, useFeedLoader } from './hooks/useFeedLoader'
 import { queueBatchArticlePatches } from './lib/dailyPayloadMutations'
@@ -160,9 +160,7 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
             </div>
 
             <div className="flex items-center gap-3">
-              <AddUrlButton />
               <button
-                data-testid="debug-button"
                 onClick={() => setShowDebug(!showDebug)}
                 className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${showDebug ? 'bg-emerald-50 text-emerald-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
                 title="Debug Panel"
@@ -170,7 +168,6 @@ function AppContent({ loadFeed, showSettings, setShowSettings, showDebug, setSho
                 <Bug size={18} className="transition-colors" />
               </button>
               <button
-                data-testid="settings-button"
                 onClick={() => setShowSettings(!showSettings)}
                 className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${showSettings ? 'bg-brand-50 text-brand-600' : 'hover:bg-white hover:shadow-md text-slate-400'}`}
                 title="Date Range & Settings"
@@ -315,6 +312,7 @@ function App() {
 
   return (
     <>
+      <LiquidGlassDefs />
       <ToastContainer />
       <FloatingTree>
         <AppContent

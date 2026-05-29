@@ -172,6 +172,7 @@ function ingestSingleDay(payload) {
 
   daysByDate.set(date, {
     date,
+    issues: payload.issues ?? [],
     digest: payload.digest ?? null,
     storage_updated_at: payload.storage_updated_at ?? null,
     articleKeys: nextKeys,
@@ -258,6 +259,7 @@ export function composeDayPayloadForServer(date) {
     .map(sliceToArticle)
   return {
     date,
+    issues: day.issues,
     digest: day.digest,
     storage_updated_at: day.storage_updated_at,
     articles,
@@ -416,28 +418,16 @@ function buildDayView(date) {
     if (article.removed || article.read?.isRead) completedCount += 1
   }
 
-  const sourceOrder = []
-  const articlesBySource = new Map()
-  for (const article of articles) {
-    const sourceId = article.sourceId
-    if (!articlesBySource.has(sourceId)) {
-      sourceOrder.push(sourceId)
-      articlesBySource.set(sourceId, [])
-    }
-    articlesBySource.get(sourceId).push(article)
-  }
-
-  const issuesWithStatus = sourceOrder.map(sourceId => {
-    const groupArticles = articlesBySource.get(sourceId)
-    let groupRemoved = 0
-    for (const article of groupArticles) {
-      if (article.removed) groupRemoved += 1
+  const issuesWithStatus = day.issues.map(issue => {
+    const issueArticles = articles.filter(article => article.category === issue.category)
+    let issueRemoved = 0
+    for (const article of issueArticles) {
+      if (article.removed) issueRemoved += 1
     }
     return {
-      source_id: sourceId,
-      category: groupArticles[0].category,
-      hasArticles: true,
-      allRemoved: groupRemoved === groupArticles.length,
+      ...issue,
+      hasArticles: issueArticles.length > 0,
+      allRemoved: issueArticles.length > 0 && issueRemoved === issueArticles.length,
     }
   })
 
@@ -464,15 +454,14 @@ function getSnapshotDayView(date) {
 function buildNewsletterView(date, sourceId) {
   const day = daysByDate.get(date)
   if (!day) return null
+  const issue = day.issues.find(i => i.source_id === sourceId)
+  if (!issue) return null
 
   const articles = day.articleKeys
     .map(key => articlesByKey.get(key))
-    .filter(article => article && article.sourceId === sourceId)
+    .filter(article => article && article.category === issue.category)
 
   if (articles.length === 0) return null
-
-  const category = articles[0].category
-  const issue = { source_id: sourceId, category, subtitle: null }
 
   const hasSections = articles.some(a => a.section)
   const sectionsByKey = new Map()
@@ -637,8 +626,7 @@ export function useSelectedArticles() {
 // ─── Interaction ─────────────────────────────────────────────────────────────
 
 function isArticleKeyDisabled(key) {
-  const slice = articlesByKey.get(key)
-  return Boolean(slice?.removed) || Boolean(slice?.read?.isRead)
+  return Boolean(articlesByKey.get(key)?.removed)
 }
 
 function getInteractionSnapshot() {
@@ -809,7 +797,6 @@ export const summaryActions = Object.freeze({
         const currentSlice = articlesByKey.get(key)
         emitToast({
           title: currentSlice?.title ?? url,
-          url,
           onOpen: () => summaryActions.expand(key),
         })
       } else {

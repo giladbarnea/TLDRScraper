@@ -1,7 +1,7 @@
 ---
 name: state-machines/toast
 description: State machine for toast notifications and global pub/sub.
-last_updated: 2026-05-05 06:38, 36614cc
+last_updated: 2026-05-29 12:02
 ---
 # State Machines: Toast
 
@@ -15,14 +15,14 @@ last_updated: 2026-05-05 06:38, 36614cc
 
 #### State
 
-- **Container**: `toasts: Array<{ id, title, url, onOpen }>`, max 2 (`.slice(-2)`).
+- **Container**: `toasts: Array<{ id, title, onOpen }>`, max 2 (`.slice(-2)`).
 - **Per-toast**: `exiting: boolean` (drives exit animation class).
 
 #### Single Trigger Point
 
-Only `useSummary.js` emits toasts — on successful summary fetch:
+`store/articleStore.js` emits toasts from `summaryActions.fetch()` on successful summary fetch:
 ```
-emitToast({ title: article.title, url, onOpen: expand })
+emitToast({ title: article.title, onOpen: expand })
 ```
 
 #### Lifecycle
@@ -45,7 +45,7 @@ Clicking a toast calls `onOpen()` (expands the summary overlay) then dismisses i
 
 #### `toastBus.js`
 
-Global `Set<callback>`. One publisher (`useSummary` on fetch success). One subscriber (`ToastContainer`).
+Global `Set<callback>`. One publisher (`summaryActions.fetch` on fetch success in `store/articleStore.js`). One subscriber (`ToastContainer`).
 
 Direction: Summary Data success → Toast notification → (click) → Summary View expand.
 
