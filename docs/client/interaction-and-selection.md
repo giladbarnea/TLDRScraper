@@ -1,7 +1,7 @@
 ---
 name: client/interaction-and-selection
 description: Client-side interaction architecture, selection modes, and foldable containers.
-last_updated: 2026-05-12 08:22
+last_updated: 2026-05-29 11:16
 ---
 # Client: Interaction and Selection
 
@@ -23,7 +23,7 @@ Selection behavior is implemented as a **declarative state machine** with a smal
   - Persists `expandedContainerIds` to `localStorage` (`expandedContainers:v1` key). Selection is ephemeral and resets on page reload.
 - `reducers/interactionReducer.js`
   - The single source of truth for transitions.
-  - Accepts an `isDisabled(id)` predicate so removed articles are blocked without maintaining a duplicated disabled-ID set.
+  - Accepts an `isDisabled(id)` predicate so removed and read articles are blocked without maintaining a duplicated disabled-ID set.
   - Suppression latch is time-windowed (800ms): set after every long press, consumed (cleared) on the next short press for the same target within the window.
 - `hooks/useLongPress.js`
   - Pointer-event long press detection for mobile and desktop.
@@ -37,7 +37,7 @@ Selection behavior is implemented as a **declarative state machine** with a smal
   - On click, calls `interactionActions.itemShortPress(articleId)`:
     - In Normal mode: returns "should open" → opens TLDR/Zen overlay.
     - In Select mode: toggles selection (no open).
-  - Removed articles are disabled by the reducer's `isDisabled(id)` predicate, which resolves the article slice and prevents selection.
+  - Removed and read articles are disabled by the reducer's `isDisabled(id)` predicate, which resolves the article slice and prevents selection.
   - Derives `swipeEnabled = canDrag && !isSelectMode` — disables Framer Motion drag when in select mode.
 - **FoldableContainer**
   - On click, calls `interactionActions.containerShortPress(containerId)` to expand/collapse, regardless of selection mode.
