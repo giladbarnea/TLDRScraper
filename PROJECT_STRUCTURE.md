@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-24 11:34
+last_updated: 2026-05-29 10:13
 ---
 
 .
@@ -15,6 +15,9 @@ last_updated: 2026-05-24 11:34
 │     ├── update-frontmatter.yml
 │     ├── weekly-branch-pr-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
+├── .pi-session-stats
+│  ├── 019e7246-47fa-7025-9e1a-75ebfa37dfc3.data.js
+│  └── 019e7246-47fa-7025-9e1a-75ebfa37dfc3.html
 ├── adapters
 │  ├── __init__.py
 │  ├── aiwithmike_adapter.py
@@ -143,6 +146,7 @@ last_updated: 2026-05-24 11:34
 ├── .vercelignore
 ├── AGENTS.md
 ├── CLAUDE.md
+├── gemini_tts_adapter.py
 ├── GOTCHAS.md
 ├── Justfile
 ├── newsletter_config.py
@@ -155,6 +159,7 @@ last_updated: 2026-05-24 11:34
 ├── sessions.yaml
 ├── setup.sh
 ├── source_routes.py
+├── speakers_config.json
 ├── storage_service.py
 ├── summarizer.py
 ├── supabase_client.py
