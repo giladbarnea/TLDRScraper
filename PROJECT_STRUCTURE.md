@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-29 15:20
+last_updated: 2026-05-31 08:01
 ---
 
 .
@@ -180,6 +180,7 @@ last_updated: 2026-05-29 15:20
 ├── lg-v2-s72.png
 ├── liquid-glass-0.png
 ├── liquid-glass-1.1.png
+├── liquid-glass-1.2.png
 ├── liquid-glass-1.3.png
 ├── liquid-glass-1.4.png
 ├── liquid-glass-1.5.png
