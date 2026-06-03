@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-31 08:01
+last_updated: 2026-06-03 13:28
 ---
 
 .
@@ -15,11 +15,6 @@ last_updated: 2026-05-31 08:01
 │     ├── update-frontmatter.yml
 │     ├── weekly-branch-pr-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
-├── .pi-session-stats
-│  ├── 019e7246-47fa-7025-9e1a-75ebfa37dfc3.data.js
-│  ├── 019e7246-47fa-7025-9e1a-75ebfa37dfc3.html
-│  ├── 019e7404-c3a5-7ecc-88c3-58ecdef662c7.data.js
-│  └── 019e7404-c3a5-7ecc-88c3-58ecdef662c7.html
 ├── adapters
 │  ├── __init__.py
 │  ├── aiwithmike_adapter.py
@@ -159,25 +154,7 @@ last_updated: 2026-05-31 08:01
 ├── CLAUDE.md
 ├── gemini_tts_adapter.py
 ├── GOTCHAS.md
-├── IMG_0073.jpg
 ├── Justfile
-├── lg-clean-104.png
-├── lg-context-92.png
-├── lg-full-76.png
-├── lg-pill-crop.png
-├── lg-pill-crop2.png
-├── lg-pill-crop3.png
-├── lg-seq-28.png
-├── lg-seq-60.png
-├── lg-seq-76.png
-├── lg-seq-92.png
-├── lg-strong-85.png
-├── lg-test-fold.png
-├── lg-test-fold2.png
-├── lg-test-initial.png
-├── lg-test-rim.png
-├── lg-test-strong.png
-├── lg-v2-s72.png
 ├── liquid-glass-0.png
 ├── liquid-glass-1.1.png
 ├── liquid-glass-1.2.png
@@ -189,6 +166,7 @@ last_updated: 2026-05-31 08:01
 ├── newsletter_config.py
 ├── newsletter_scraper.py
 ├── podcast_service.py
+├── PROJECT_STRUCTURE.md
 ├── pyproject.toml
 ├── README.md
 ├── requirements.txt
