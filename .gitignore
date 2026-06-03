@@ -1,4 +1,5 @@
 .run/
+.pi-session-stats/
 .env
 .env.*
 .env.sh

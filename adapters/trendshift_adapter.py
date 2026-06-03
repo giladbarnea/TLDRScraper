@@ -1,5 +1,5 @@
+import json
 import logging
-import re
 from datetime import datetime, timezone
 
 from bs4 import BeautifulSoup
@@ -64,53 +64,35 @@ class TrendshiftAdapter(NewsletterAdapter):
 
 
 def _extract_repositories_from_html(html: str) -> list[dict]:
-    """Extract repository cards from Trendshift SSR HTML.
+    """Extract repositories from Trendshift's schema.org JSON-LD ItemList.
 
-    >>> html = '<div class="rounded-lg border border-gray-300 bg-white"><a href="/repositories/1">owner/repo</a><a href="https://github.com/owner/repo">GitHub</a><div class="text-gray-500 text-xs leading-5">A cool project</div></div>'
+    Trendshift server-renders its live trending ranking as an ItemList of
+    SoftwareSourceCode items inside a <script type="application/ld+json"> tag,
+    independent of client-side hydration.
+
+    >>> html = '<script type="application/ld+json">{"@type":"ItemList","itemListElement":[{"item":{"name":"owner/repo","description":"A cool project","codeRepository":"https://github.com/owner/repo"}}]}</script>'
     >>> repos = _extract_repositories_from_html(html)
     >>> repos[0]['name']
     'owner/repo'
     """
     soup = BeautifulSoup(html, "html.parser")
-    cards = soup.select("div.rounded-lg.border.border-gray-300.bg-white")
+    json_ld_blocks = (json.loads(script.string) for script in soup.find_all("script", type="application/ld+json"))
+    item_list = next(block for block in json_ld_blocks if block.get("@type") == "ItemList")
+
     repositories = []
     seen_urls = set()
-
-    for card in cards:
-        repo_name = _extract_repo_name(card)
-        if not repo_name:
+    for entry in item_list["itemListElement"]:
+        item = entry["item"]
+        url = item["codeRepository"]
+        if url in seen_urls:
             continue
-
-        full_url = f"https://github.com/{repo_name}"
-        if full_url in seen_urls:
-            continue
-        seen_urls.add(full_url)
-
-        description_element = card.select_one("div.text-gray-500.text-xs.leading-5")
-        description = description_element.get_text(strip=True) if description_element else ""
-
+        seen_urls.add(url)
         repositories.append(
-            {"name": repo_name, "url": full_url, "description": description}
+            {
+                "name": item["name"],
+                "url": url,
+                "description": item.get("description", "").strip(),
+            }
         )
 
     return repositories
-
-
-def _extract_repo_name(card) -> str | None:
-    """Extract 'owner/repo' from a Trendshift card element.
-
-    Tries the internal trendshift link text first (which displays as 'owner/repo'),
-    then falls back to parsing a github.com href.
-    """
-    internal_link = card.select_one('a[href*="/repositories/"]')
-    if internal_link:
-        text = internal_link.get_text(strip=True)
-        if "/" in text:
-            return text
-
-    github_link = card.select_one('a[href*="github.com/"]')
-    if not github_link:
-        return None
-    href = github_link.get("href", "")
-    match = re.search(r"github\.com/([^/?#]+/[^/?#]+)", href)
-    return match.group(1) if match else None
