@@ -8,6 +8,7 @@ from typing import Optional
 import requests
 from curl_cffi import requests as curl_requests
 import html2text
+from bs4 import BeautifulSoup
 
 import util
 import urllib.parse as urlparse
@@ -27,20 +28,21 @@ def _promote_lazy_images(html: str) -> str:
     """Promote lazy-loaded `data-src` URLs into `src` so real images survive HTML→markdown conversion.
 
     Many sites set `src` to a placeholder (e.g. a 1px gif) and keep the real URL in `data-src`.
+    Returns the input untouched when there is nothing to promote, so non-HTML input (e.g. Jina's
+    markdown) is passed through verbatim.
 
     >>> _promote_lazy_images('<img src="/1px.png" data-src="https://x.com/real.jpg">')
-    '<img src="https://x.com/real.jpg" data-src="https://x.com/real.jpg">'
-    >>> _promote_lazy_images('<img src="https://x.com/real.jpg">')
-    '<img src="https://x.com/real.jpg">'
+    '<img data-src="https://x.com/real.jpg" src="https://x.com/real.jpg"/>'
+    >>> _promote_lazy_images('plain markdown ![x](https://x.com/real.jpg)')
+    'plain markdown ![x](https://x.com/real.jpg)'
     """
-    def _replace(match: re.Match) -> str:
-        tag = match.group(0)
-        data_src = re.search(r'\bdata-src="([^"]+)"', tag)
-        if not data_src:
-            return tag
-        return re.sub(r'\ssrc="[^"]*"', f' src="{data_src.group(1)}"', tag, count=1)
-
-    return re.sub(r"<img\b[^>]*>", _replace, html)
+    soup = BeautifulSoup(html, "html.parser")
+    lazy_images = [img for img in soup.find_all("img") if img.get("data-src")]
+    if not lazy_images:
+        return html
+    for img in lazy_images:
+        img["src"] = img["data-src"]
+    return str(soup)
 
 
 def html_to_markdown(html: str) -> str:
