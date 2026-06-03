@@ -36,6 +36,17 @@ def test_extract_repositories_deduplicates_by_url():
     assert len(repos) == 1
 
 
+def test_extract_repositories_selects_item_list_among_other_json_ld():
+    item = {"name": "owner/repo", "description": "A cool project", "codeRepository": "https://github.com/owner/repo"}
+    html = (
+        '<script type="application/ld+json">{"@type": "Organization", "name": "Trendshift"}</script>'
+        + _ld_json_html([item])
+    )
+    repos = _extract_repositories_from_html(html)
+    assert len(repos) == 1
+    assert repos[0]["name"] == "owner/repo"
+
+
 def test_extract_repositories_strips_description_whitespace():
     html = _ld_json_html(
         [{"name": "owner/repo", "description": "Trailing space. ", "codeRepository": "https://github.com/owner/repo"}]

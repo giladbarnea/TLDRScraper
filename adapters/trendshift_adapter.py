@@ -76,7 +76,8 @@ def _extract_repositories_from_html(html: str) -> list[dict]:
     'owner/repo'
     """
     soup = BeautifulSoup(html, "html.parser")
-    item_list = json.loads(soup.find("script", type="application/ld+json").string)
+    json_ld_blocks = (json.loads(script.string) for script in soup.find_all("script", type="application/ld+json"))
+    item_list = next(block for block in json_ld_blocks if block.get("@type") == "ItemList")
 
     repositories = []
     seen_urls = set()
