@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-06-03 06:12
+last_updated: 2026-06-03 12:07
 ---
 
 .
@@ -149,6 +149,7 @@ last_updated: 2026-06-03 06:12
 ├── newsletter_config.py
 ├── newsletter_scraper.py
 ├── podcast_service.py
+├── PROJECT_STRUCTURE.md
 ├── pyproject.toml
 ├── README.md
 ├── requirements.txt

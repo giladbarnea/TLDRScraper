@@ -37,7 +37,7 @@ def _promote_lazy_images(html: str) -> str:
     'plain markdown ![x](https://x.com/real.jpg)'
     """
     soup = BeautifulSoup(html, "html.parser")
-    lazy_images = [img for img in soup.find_all("img") if img.get("data-src")]
+    lazy_images = soup.find_all("img", attrs={"data-src": True})
     if not lazy_images:
         return html
     for img in lazy_images:

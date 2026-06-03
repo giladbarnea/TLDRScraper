@@ -7,44 +7,45 @@ Usage:
     python generate_tree.py [--all] [--git-ignore] [--ignore-glob PATTERNS] [PATH]
 """
 
-import os
 import sys
 import fnmatch
 import argparse
+import subprocess
 from pathlib import Path
-from typing import Set, List, Optional
+from typing import List, Optional, Set
 
 
-def parse_gitignore(gitignore_path: Path) -> List[str]:
+def git_ignored_paths(base_dir: Path) -> Set[str]:
+    """Paths git ignores under base_dir, honoring .gitignore, .git/info/exclude, and global excludes.
+
+    Delegates to git so the full ignore stack is respected (not just the repo-root .gitignore).
+    Directory entries are returned without their trailing slash. Returns an empty set outside a git repo.
     """
-    Parse .gitignore file and return list of patterns.
-
-    >>> patterns = parse_gitignore(Path('.gitignore'))
-    >>> '__pycache__' in patterns or '__pycache__/' in patterns
-    True
-    """
-    if not gitignore_path.exists():
-        return []
-
-    patterns = []
-    with open(gitignore_path) as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#'):
-                patterns.append(line)
-    return patterns
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "-o", "-i", "--exclude-standard", "--directory", "-z"],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return set()
+    return {entry.rstrip('/') for entry in result.stdout.split('\0') if entry}
 
 
-def should_ignore(path: Path, base_dir: Path, gitignore_patterns: List[str],
+def should_ignore(path: Path, base_dir: Path, git_ignored: Set[str],
                   extra_patterns: List[str], show_hidden: bool) -> bool:
     """
-    Check if a path should be ignored based on gitignore and extra patterns.
+    Check if a path should be ignored based on git's ignore stack and the extra --ignore-glob patterns.
 
-    >>> should_ignore(Path('node_modules/foo'), Path('.'), ['node_modules'], [], True)
+    >>> should_ignore(Path('node_modules'), Path('.'), {'node_modules'}, [], True)
     True
-    >>> should_ignore(Path('.hidden'), Path('.'), [], [], False)
+    >>> should_ignore(Path('experimental'), Path('.'), set(), ['experimental'], True)
     True
-    >>> should_ignore(Path('.hidden'), Path('.'), [], [], True)
+    >>> should_ignore(Path('.hidden'), Path('.'), set(), [], False)
+    True
+    >>> should_ignore(Path('.hidden'), Path('.'), set(), [], True)
     False
     """
     rel_path = path.relative_to(base_dir)
@@ -54,9 +55,10 @@ def should_ignore(path: Path, base_dir: Path, gitignore_patterns: List[str],
     if not show_hidden and name.startswith('.') and name not in {'.', '..'}:
         return True
 
-    all_patterns = gitignore_patterns + extra_patterns
+    if rel_path_str in git_ignored:
+        return True
 
-    for pattern in all_patterns:
+    for pattern in extra_patterns:
         pattern = pattern.strip()
         if not pattern or pattern.startswith('#'):
             continue
@@ -81,9 +83,8 @@ def should_ignore(path: Path, base_dir: Path, gitignore_patterns: List[str],
 
 
 def generate_tree(directory: Path, prefix: str = "", is_last: bool = True,
-                  base_dir: Optional[Path] = None, gitignore_patterns: Optional[List[str]] = None,
-                  extra_patterns: Optional[List[str]] = None, show_hidden: bool = False,
-                  use_git_ignore: bool = False) -> List[str]:
+                  base_dir: Optional[Path] = None, git_ignored: Optional[Set[str]] = None,
+                  extra_patterns: Optional[List[str]] = None, show_hidden: bool = False) -> List[str]:
     """
     Generate tree structure recursively.
 
@@ -91,14 +92,10 @@ def generate_tree(directory: Path, prefix: str = "", is_last: bool = True,
     """
     if base_dir is None:
         base_dir = directory
-    if gitignore_patterns is None:
-        gitignore_patterns = []
+    if git_ignored is None:
+        git_ignored = set()
     if extra_patterns is None:
         extra_patterns = []
-
-    if use_git_ignore and directory == base_dir:
-        gitignore_file = directory / '.gitignore'
-        gitignore_patterns = parse_gitignore(gitignore_file)
 
     lines = []
 
@@ -109,7 +106,7 @@ def generate_tree(directory: Path, prefix: str = "", is_last: bool = True,
 
     entries = [
         e for e in entries
-        if not should_ignore(e, base_dir, gitignore_patterns, extra_patterns, show_hidden)
+        if not should_ignore(e, base_dir, git_ignored, extra_patterns, show_hidden)
     ]
 
     for i, entry in enumerate(entries):
@@ -127,10 +124,9 @@ def generate_tree(directory: Path, prefix: str = "", is_last: bool = True,
                 prefix + extension,
                 is_last_entry,
                 base_dir,
-                gitignore_patterns,
+                git_ignored,
                 extra_patterns,
-                show_hidden,
-                use_git_ignore
+                show_hidden
             )
             lines.extend(sub_lines)
 
@@ -164,16 +160,17 @@ def main():
     if args.ignore_glob:
         extra_patterns = [p.strip() for p in args.ignore_glob.split('|')]
 
+    git_ignored = git_ignored_paths(directory) if args.git_ignore else set()
+
     print(".")
     lines = generate_tree(
         directory,
         "",
         True,
         directory,
-        [],
+        git_ignored,
         extra_patterns,
-        args.all,
-        args.git_ignore
+        args.all
     )
 
     for line in lines:
