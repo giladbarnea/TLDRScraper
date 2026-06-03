@@ -1,12 +1,14 @@
 import { BookOpen, Check, ExternalLink, FileText, GitMerge, Podcast, Sparkles, Trash2, X } from 'lucide-react'
+import LiquidGlassSurface from './visual-effects/LiquidGlassSurface'
+import LiquidGlassTouchLight from './visual-effects/LiquidGlassTouchLight'
 
 function DockButton({ label, icon, onClick, disabled = false, danger = false, accent = false, style }) {
-  const buttonBaseClassName = 'group flex min-w-16 flex-col items-center gap-1 rounded-xl px-2 py-1 text-slate-100 transition-all duration-200 ease-[var(--ease-springy)] hover:-translate-y-0.5 hover:text-white active:translate-y-0 active:scale-[0.96] disabled:opacity-35 disabled:hover:translate-y-0 disabled:hover:text-slate-100 disabled:active:scale-100 motion-safe:animate-dock-action-enter'
+  const buttonBaseClassName = 'group flex min-w-16 flex-col items-center gap-1 rounded-xl px-2 py-1 text-slate-700 transition-all duration-200 ease-[var(--ease-springy)] hover:-translate-y-0.5 hover:text-slate-900 active:translate-y-0 active:scale-[0.96] disabled:opacity-35 disabled:hover:translate-y-0 disabled:hover:text-slate-700 disabled:active:scale-100 motion-safe:animate-dock-action-enter'
   const iconClassName = [
     'flex h-11 w-11 items-center justify-center rounded-full transition-transform duration-200 ease-[var(--ease-springy)] group-hover:scale-105 group-active:scale-95',
-    accent ? 'bg-brand-500/85 text-white' : '',
-    danger ? 'bg-red-500/75 text-white' : '',
-    !accent && !danger ? 'bg-white/10 text-white' : '',
+    accent ? 'bg-brand-500 text-white' : '',
+    danger ? 'bg-red-500 text-white' : '',
+    !accent && !danger ? 'bg-slate-900/8 text-slate-700 group-hover:text-slate-900' : '',
   ].join(' ')
 
   return (
@@ -113,8 +115,14 @@ function SelectionActionDock({
         isSelectMode ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
       ].join(' ')}
     >
-      <div className="w-full max-w-md rounded-[1.7rem] border border-slate-900/10 bg-slate-950/95 text-white shadow-2xl backdrop-blur-xl">
-        <div className="flex items-start justify-between gap-1 px-2 py-3">
+      <LiquidGlassSurface
+        variant="solid"
+        depth="compact"
+        lens="subtle"
+        className="w-full max-w-md rounded-[1.7rem] overflow-hidden"
+      >
+        <LiquidGlassTouchLight />
+        <div className="relative z-10 flex items-start justify-between gap-1 px-2 py-3">
           {actions.map((action, index) => (
             <DockButton
               key={action.key}
@@ -128,7 +136,7 @@ function SelectionActionDock({
             />
           ))}
         </div>
-      </div>
+      </LiquidGlassSurface>
     </div>
   )
 }

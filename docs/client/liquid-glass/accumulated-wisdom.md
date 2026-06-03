@@ -1,7 +1,7 @@
 ---
 name: client/liquid-glass
 description: Liquid Glass design guidance for client surfaces, starting from the toast reference implementation.
-last_updated: 2026-05-29 12:02
+last_updated: 2026-06-03 14:10
 ---
 # Client: Liquid Glass
 
@@ -11,11 +11,12 @@ last_updated: 2026-05-29 12:02
 
 This document captures the current working guidance for Liquid Glass client surfaces. The first converged implementation still lives in the global toast surface, but the material shell has now been extracted so future work can reuse it without copying toast code:
 - `client/src/components/ToastContainer.jsx`
+- `client/src/components/SelectionActionDock.jsx`
 - `client/src/components/visual-effects/LiquidGlassSurface.jsx`
 - `client/src/components/visual-effects/LiquidGlassDefs.jsx`
 - `client/src/index.css` (`.liquid-glass-surface` and its data-attribute presets)
 
-Treat the toast as the reference specimen before generalizing the design to other surfaces.
+Treat the toast as the reference specimen before generalizing the design to other surfaces. The bottom selection dock (`SelectionActionDock.jsx`) is the second converged surface and confirms the shell generalizes cleanly to control-plane surfaces, not just transient overlays.
 
 ## What worked
 
