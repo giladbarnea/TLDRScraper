@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-29 10:13
+last_updated: 2026-06-03 06:12
 ---
 
 .
@@ -15,9 +15,6 @@ last_updated: 2026-05-29 10:13
 │     ├── update-frontmatter.yml
 │     ├── weekly-branch-pr-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
-├── .pi-session-stats
-│  ├── 019e7246-47fa-7025-9e1a-75ebfa37dfc3.data.js
-│  └── 019e7246-47fa-7025-9e1a-75ebfa37dfc3.html
 ├── adapters
 │  ├── __init__.py
 │  ├── aiwithmike_adapter.py

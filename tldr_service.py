@@ -306,7 +306,7 @@ def _scrape_url_to_markdown_and_html(url: str) -> tuple[str, str | None]:
     if summarizer._is_github_repo_url(url):
         return summarizer._fetch_github_readme(url), None
     response = summarizer.scrape_url(url)
-    return summarizer.h.handle(response.text), response.text
+    return summarizer.html_to_markdown(response.text), response.text
 
 
 def _extract_h1_from_markdown(markdown: str) -> str | None:
