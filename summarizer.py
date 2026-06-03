@@ -8,6 +8,7 @@ from typing import Optional
 import requests
 from curl_cffi import requests as curl_requests
 import html2text
+from bs4 import BeautifulSoup
 
 import util
 import urllib.parse as urlparse
@@ -18,9 +19,35 @@ logger = logging.getLogger("summarizer")
 h = html2text.HTML2Text()
 h.body_width = 0  # Don't wrap lines
 h.unicode_snob = True  # Use unicode instead of ASCII approximations
-h.ignore_images = True  # Skip images, we only need text
+h.ignore_images = False  # Keep images so legit article images reach the LLM
 h.protect_links = True  # Don't wrap URLs
 h.single_line_break = True  # Use single line breaks
+
+
+def _promote_lazy_images(html: str) -> str:
+    """Promote lazy-loaded `data-src` URLs into `src` so real images survive HTML→markdown conversion.
+
+    Many sites set `src` to a placeholder (e.g. a 1px gif) and keep the real URL in `data-src`.
+    Returns the input untouched when there is nothing to promote, so non-HTML input (e.g. Jina's
+    markdown) is passed through verbatim.
+
+    >>> _promote_lazy_images('<img src="/1px.png" data-src="https://x.com/real.jpg">')
+    '<img data-src="https://x.com/real.jpg" src="https://x.com/real.jpg"/>'
+    >>> _promote_lazy_images('plain markdown ![x](https://x.com/real.jpg)')
+    'plain markdown ![x](https://x.com/real.jpg)'
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    lazy_images = soup.find_all("img", attrs={"data-src": True})
+    if not lazy_images:
+        return html
+    for img in lazy_images:
+        img["src"] = img["data-src"]
+    return str(soup)
+
+
+def html_to_markdown(html: str) -> str:
+    """Convert HTML to markdown, preserving images (including lazy-loaded ones)."""
+    return h.handle(_promote_lazy_images(html))
 
 _SUMMARY_PROMPT_CACHE = None
 _DIGEST_PROMPT_CACHE = None
@@ -237,7 +264,7 @@ def _fetch_github_readme(url: str) -> str:
         logger.info(
             f"Raw fetch succeeded for {raw_url}",
         )
-        return h.handle(response.text)
+        return html_to_markdown(response.text)
     except requests.HTTPError as e:
         if e.response and e.response.status_code == 404:
             master_url = (
@@ -256,7 +283,7 @@ def _fetch_github_readme(url: str) -> str:
                 logger.info(
                     f"Master branch fetch succeeded for {master_url}",
                 )
-                return h.handle(response.text)
+                return html_to_markdown(response.text)
             except Exception:
                 logger.warning(
                     f"Master branch fetch failed for {master_url}",
@@ -264,7 +291,7 @@ def _fetch_github_readme(url: str) -> str:
                 raise
 
     response = scrape_url(url)
-    content = h.handle(response.text)
+    content = html_to_markdown(response.text)
 
     logger.info(
         f"Direct fetch succeeded for {url}",
@@ -282,7 +309,7 @@ def url_to_markdown(url: str) -> str:
         return _fetch_github_readme(url)
 
     response = scrape_url(url)
-    markdown = h.handle(response.text)
+    markdown = html_to_markdown(response.text)
 
     return markdown
 

@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-05-29 10:13
+last_updated: 2026-06-03 12:07
 ---
 
 .
@@ -15,9 +15,6 @@ last_updated: 2026-05-29 10:13
 │     ├── update-frontmatter.yml
 │     ├── weekly-branch-pr-cleanup.yml
 │     └── WORKFLOW_DIAGRAM.md
-├── .pi-session-stats
-│  ├── 019e7246-47fa-7025-9e1a-75ebfa37dfc3.data.js
-│  └── 019e7246-47fa-7025-9e1a-75ebfa37dfc3.html
 ├── adapters
 │  ├── __init__.py
 │  ├── aiwithmike_adapter.py
@@ -152,6 +149,7 @@ last_updated: 2026-05-29 10:13
 ├── newsletter_config.py
 ├── newsletter_scraper.py
 ├── podcast_service.py
+├── PROJECT_STRUCTURE.md
 ├── pyproject.toml
 ├── README.md
 ├── requirements.txt
