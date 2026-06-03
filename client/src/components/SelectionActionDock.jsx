@@ -122,7 +122,7 @@ function SelectionActionDock({
         className="w-full max-w-md rounded-[1.7rem] overflow-hidden"
       >
         <LiquidGlassTouchLight />
-        <div className="relative z-10 flex items-start justify-between gap-1 px-2 py-3">
+        <div className="relative z-10 flex items-center justify-between gap-1 px-2 py-3">
           {actions.map((action, index) => (
             <DockButton
               key={action.key}
