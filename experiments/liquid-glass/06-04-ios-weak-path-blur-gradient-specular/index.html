@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Liquid Glass — iOS weak path (blur + gradient + specular)</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!--
+      Self-contained reproduction of the *base* Liquid Glass recipe the client
+      ships, with the iOS-dead SVG displacement lens removed. The goal: confirm
+      how blur + white gradient + specular box-shadow alone read on a real
+      iPhone behind a near-white, light-gray app background. This is the
+      "honest weak path" (option 1) before porting to SelectionActionDock.
+    -->
+    <main class="feed">
+      <header class="feed__header">
+        <h1>Anthropic News</h1>
+        <span class="feed__count">1 / 2</span>
+      </header>
+
+      <!-- Article rows: the backdrop the glass must dampen but not erase. -->
+      <section class="rows" id="rows"></section>
+    </main>
+
+    <!-- Live debug panel — tune the material on-device. -->
+    <div class="panel" id="panel">
+      <div class="panel__row">
+        <span>white %</span><input type="range" id="white" min="0" max="100" value="35" />
+        <output id="white_v">35</output>
+      </div>
+      <div class="panel__row">
+        <span>blur px</span><input type="range" id="blur" min="0" max="30" value="8" />
+        <output id="blur_v">8</output>
+      </div>
+      <div class="panel__row">
+        <span>saturate %</span><input type="range" id="sat" min="100" max="300" value="135" />
+        <output id="sat_v">135</output>
+      </div>
+      <div class="panel__row">
+        <span>brightness</span><input type="range" id="bright" min="80" max="160" value="110" />
+        <output id="bright_v">1.10</output>
+      </div>
+      <button id="panel_toggle" class="panel__toggle">hide</button>
+    </div>
+
+    <!-- Fixed bottom dock — the surface under test. -->
+    <div class="dock-wrap">
+      <div class="liquid-glass-surface" id="dock">
+        <div class="dock">
+          <button class="dock-btn"><span class="chip">✕</span><label>Deselect</label></button>
+          <button class="dock-btn"><span class="chip">✓</span><label>Read</label></button>
+          <button class="dock-btn"><span class="chip chip--danger">🗑</span><label>Remove</label></button>
+          <button class="dock-btn"><span class="chip chip--accent">🎙</span><label>Podcast</label></button>
+          <button class="dock-btn"><span class="chip chip--accent">⤳</span><label>Digest</label></button>
+          <button class="dock-btn"><span class="chip">▤</span><label>Summarize</label></button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

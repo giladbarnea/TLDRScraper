@@ -16,6 +16,7 @@ dev *arguments='':
   frontend_pid_file='{{frontend_pid_file}}'
   backend_log_file='{{backend_log_file}}'
   frontend_log_file='{{frontend_log_file}}'
+  repo_directory='{{justfile_directory()}}'
   background_mode=true
 
   for argument in "$@"; do
@@ -53,6 +54,35 @@ dev *arguments='':
 
   if [[ "$backend_is_running" == true || "$frontend_is_running" == true ]]; then
     echo "Warning: zombie dev state detected; only one process is running" >&2
+    exit 1
+  fi
+
+  # A prior 'just dev' can leave an orphaned backend/frontend that outlived its
+  # pidfile (laptop sleep, or a hard-killed parent reparenting the worker to init).
+  # It keeps holding our port, so a fresh start hits "Address already in use" and the
+  # page freezes on its initial fetch; 'just stop' can't reap it because it only
+  # follows pidfiles. We only reach here with no tracked instance alive, so any
+  # listener that is ours (cwd under this repo AND matching launch signature) is an orphan.
+  orphan_pids=()
+  detect_orphan_on_port() {
+    local port="$1" role="$2" signature="$3" pid process_cwd process_command
+    for pid in $(lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null || true); do
+      process_cwd="$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1)"
+      process_command="$(ps -o command= -p "$pid" 2>/dev/null || true)"
+      if [[ ( "$process_cwd" == "$repo_directory" || "$process_cwd" == "$repo_directory"/* ) && "$process_command" == *"$signature"* ]]; then
+        orphan_pids+=("$pid")
+        echo "Found orphaned $role process (PID $pid) holding port $port: $process_command" >&2
+      fi
+    done
+  }
+
+  detect_orphan_on_port 5001 server serve.py
+  detect_orphan_on_port 3000 client vite
+
+  if [[ "${#orphan_pids[@]}" -gt 0 ]]; then
+    echo "Error: orphaned TLDRScraper dev process(es) from a previous run are holding our port(s)." >&2
+    echo "They outlived their pidfile, so 'just stop' won't reap them. Kill them, then re-run 'just dev':" >&2
+    echo "    kill ${orphan_pids[*]}" >&2
     exit 1
   fi
 

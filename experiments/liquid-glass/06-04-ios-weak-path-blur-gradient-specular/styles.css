@@ -1,0 +1,171 @@
+/* =========================================================================
+   Liquid Glass — iOS weak path: blur + white gradient + specular only.
+
+   This is the client's base recipe (index.css:268-286) with the
+   @supports url(#lens) displacement branch DELETED. No SVG filter, no WebGL.
+   Every device — including all iOS browsers (WebKit) — renders the same:
+   a near-white translucent surface that blurs and dampens the backdrop.
+   ========================================================================= */
+
+* { box-sizing: border-box; }
+
+:root {
+  --brand-500: #0ea5e9;
+  --danger-500: #ef4444;
+}
+
+html, body {
+  margin: 0;
+  /* The app's neutral light-gray background. */
+  background: #f1f5f9;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #0f172a;
+}
+
+.feed {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 9rem;   /* bottom padding clears the fixed dock */
+}
+
+.feed__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0 1.25rem;
+}
+.feed__header h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+.feed__count {
+  font-size: 0.85rem; font-weight: 600; color: #64748b;
+  background: #e2e8f0; padding: 0.15rem 0.6rem; border-radius: 999px;
+}
+
+.rows { display: flex; flex-direction: column; gap: 0.75rem; }
+
+/* Article cards — varied so the blur has real structure to dampen. */
+.card {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px -16px rgba(15, 23, 42, 0.25);
+}
+.card h2 { font-size: 1.05rem; font-weight: 700; margin: 0 0 0.35rem; letter-spacing: -0.01em; }
+.card p { font-size: 0.9rem; line-height: 1.45; color: #475569; margin: 0; }
+.card--accent { background: linear-gradient(135deg, #0ea5e9, #6366f1); color: #fff; }
+.card--accent h2, .card--accent p { color: #fff; }
+.card__tag {
+  display: inline-block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--brand-500); margin-bottom: 0.4rem;
+}
+
+/* ---- The surface under test ------------------------------------------- */
+.dock-wrap {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem 1rem calc(env(safe-area-inset-bottom) + 0.9rem);
+  z-index: 50;
+}
+
+.liquid-glass-surface {
+  --liquid-glass-light: #ffffff;
+  --liquid-glass-dark: #001428;
+
+  /* Debug-driven knobs (set live from the panel). Defaults are intentionally
+     transparent so the backdrop blur is obvious, not tasteful. */
+  --lg-white: 35%;      /* peak white opacity of the gradient */
+  --lg-blur: 8px;
+  --lg-saturate: 135%;
+  --lg-brightness: 1.1;
+
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  border-radius: 1.7rem;
+  overflow: hidden;
+
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--liquid-glass-light) var(--lg-white), transparent) 0%,
+    color-mix(in srgb, var(--liquid-glass-light) calc(var(--lg-white) - 8%), transparent) 55%,
+    color-mix(in srgb, var(--liquid-glass-light) calc(var(--lg-white) - 16%), transparent) 100%
+  );
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(var(--lg-brightness));
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(var(--lg-brightness));
+  box-shadow:
+    inset 0 0 0 0.5px color-mix(in srgb, var(--liquid-glass-dark) 13%, transparent),
+    inset 0 1.5px 0 -0.25px color-mix(in srgb, var(--liquid-glass-light) 100%, transparent),
+    inset 0 14px 16px -10px color-mix(in srgb, var(--liquid-glass-light) 100%, transparent),
+    inset 0 -1.25px 0 -0.5px color-mix(in srgb, var(--liquid-glass-dark) 15%, transparent),
+    inset 0 -10px 14px -8px color-mix(in srgb, var(--liquid-glass-dark) 13%, transparent),
+    0 1px 2px 0 color-mix(in srgb, var(--liquid-glass-dark) 9%, transparent),
+    0 14px 36px -4px color-mix(in srgb, var(--liquid-glass-dark) 16%, transparent);
+}
+
+.dock {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  padding: 0.75rem 0.5rem;
+}
+
+.dock-btn {
+  appearance: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 4rem;
+  padding: 0.25rem 0.5rem;
+  color: #334155;
+}
+.dock-btn label { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.01em; }
+
+.chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: #334155;
+  font-size: 1.2rem;
+}
+.chip--accent { background: var(--brand-500); color: #fff; }
+.chip--danger { background: var(--danger-500); color: #fff; }
+
+/* ---- Live debug panel ------------------------------------------------- */
+.panel {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 0.5rem);
+  right: 0.5rem;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 0.9rem;
+  background: rgba(15, 23, 42, 0.88);
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.panel.is-collapsed .panel__row { display: none; }
+.panel__row { display: grid; grid-template-columns: 5.5rem 1fr 2.5rem; align-items: center; gap: 0.5rem; }
+.panel__row input { width: 100%; }
+.panel__row output { text-align: right; font-variant-numeric: tabular-nums; }
+.panel__toggle {
+  appearance: none; border: 0; cursor: pointer;
+  background: rgba(255, 255, 255, 0.12); color: #e2e8f0;
+  border-radius: 0.5rem; padding: 0.3rem; font-size: 0.75rem;
+}
