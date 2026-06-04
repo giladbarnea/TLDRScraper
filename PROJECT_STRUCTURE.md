@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-06-04 09:49
+last_updated: 2026-06-04 11:46
 ---
 
 .
@@ -167,6 +167,7 @@ last_updated: 2026-06-04 09:49
 ├── liquid-glass-1.5.png
 ├── liquid-glass-1.6.png
 ├── liquid-glass-1.7.png
+├── liquid.sh
 ├── newsletter_config.py
 ├── newsletter_scraper.py
 ├── podcast_service.py

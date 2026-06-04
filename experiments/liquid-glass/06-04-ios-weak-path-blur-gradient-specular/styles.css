@@ -74,12 +74,12 @@ html, body {
   --liquid-glass-light: #ffffff;
   --liquid-glass-dark: #001428;
 
-  /* Debug-driven knobs (set live from the panel). Defaults are intentionally
-     transparent so the backdrop blur is obvious, not tasteful. */
-  --lg-white: 35%;      /* peak white opacity of the gradient */
-  --lg-blur: 8px;
-  --lg-saturate: 135%;
-  --lg-brightness: 1.1;
+  /* Debug-driven knobs (set live from the panel). Defaults are the values
+     dialed in on-device toward Apple's opaque context-menu look. */
+  --lg-white: 63%;      /* peak white opacity of the gradient */
+  --lg-blur: 7px;
+  --lg-saturate: 206%;
+  --lg-brightness: 0.96;
 
   position: relative;
   width: 100%;
@@ -95,14 +95,22 @@ html, body {
   );
   backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(var(--lg-brightness));
   -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(var(--lg-brightness));
+  /* Point 1: flat thin plate, not a puffy pill. Only a faint edge + a thin top
+     hairline highlight. Point 3: no elevation drop shadow — dimming the rest
+     (the scrim) does the grounding instead. */
   box-shadow:
-    inset 0 0 0 0.5px color-mix(in srgb, var(--liquid-glass-dark) 13%, transparent),
-    inset 0 1.5px 0 -0.25px color-mix(in srgb, var(--liquid-glass-light) 100%, transparent),
-    inset 0 14px 16px -10px color-mix(in srgb, var(--liquid-glass-light) 100%, transparent),
-    inset 0 -1.25px 0 -0.5px color-mix(in srgb, var(--liquid-glass-dark) 15%, transparent),
-    inset 0 -10px 14px -8px color-mix(in srgb, var(--liquid-glass-dark) 13%, transparent),
-    0 1px 2px 0 color-mix(in srgb, var(--liquid-glass-dark) 9%, transparent),
-    0 14px 36px -4px color-mix(in srgb, var(--liquid-glass-dark) 16%, transparent);
+    inset 0 0 0 0.5px color-mix(in srgb, var(--liquid-glass-dark) 10%, transparent),
+    inset 0 1px 0 -0.25px color-mix(in srgb, var(--liquid-glass-light) 90%, transparent);
+}
+
+/* Point 3: dim everything behind the surface a few percent, Apple-style,
+   in lieu of a drop shadow. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background: rgba(0, 0, 0, var(--lg-dim, 0.06));
 }
 
 .dock {
@@ -115,6 +123,8 @@ html, body {
   padding: 0.75rem 0.5rem;
 }
 
+/* Point 4: flat, near-black icon + label. No grey chip circles. Thin-stroke
+   icons as light as the text. Color (blue/red) only as a tint, never a fill. */
 .dock-btn {
   appearance: none;
   background: none;
@@ -123,49 +133,76 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
   min-width: 4rem;
-  padding: 0.25rem 0.5rem;
-  color: #334155;
+  padding: 0.35rem 0.5rem;
+  color: #1d1d1f;
 }
-.dock-btn label { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.01em; }
-
-.chip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.08);
-  color: #334155;
-  font-size: 1.2rem;
+.dock-btn label { font-size: 0.8rem; font-weight: 500; letter-spacing: 0.01em; cursor: pointer; }
+.dock-btn svg {
+  width: 1.65rem;
+  height: 1.65rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
-.chip--accent { background: var(--brand-500); color: #fff; }
-.chip--danger { background: var(--danger-500); color: #fff; }
+.dock-btn--accent { color: var(--brand-500); }
+.dock-btn--danger { color: var(--danger-500); }
 
 /* ---- Live debug panel ------------------------------------------------- */
 .panel {
   position: fixed;
-  top: calc(env(safe-area-inset-top) + 0.5rem);
-  right: 0.5rem;
+  top: calc(env(safe-area-inset-top));
+  inset-inline: 0;
   z-index: 100;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border-radius: 0.9rem;
-  background: rgba(15, 23, 42, 0.88);
+  gap: 0.75rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: 0 0 1.1rem 1.1rem;
+  background: rgba(15, 23, 42, 0.92);
   color: #e2e8f0;
-  font-size: 0.78rem;
+  font-size: 1.15rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 .panel.is-collapsed .panel__row { display: none; }
-.panel__row { display: grid; grid-template-columns: 5.5rem 1fr 2.5rem; align-items: center; gap: 0.5rem; }
-.panel__row input { width: 100%; }
+.panel__row { display: grid; grid-template-columns: 7.5rem 1fr 3.5rem; align-items: center; gap: 0.75rem; }
+.panel__row input[type="range"] {
+  width: 100%;
+  height: 2.25rem;
+  cursor: pointer;
+  accent-color: #38bdf8;
+}
+.panel__row input[type="range"]::-webkit-slider-runnable-track {
+  height: 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.panel__row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: #38bdf8;
+  margin-top: -0.6rem;
+}
+.panel__row input[type="range"]::-moz-range-thumb {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: none;
+  background: #38bdf8;
+}
+.panel__row input[type="range"]::-moz-range-track {
+  height: 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
 .panel__row output { text-align: right; font-variant-numeric: tabular-nums; }
 .panel__toggle {
   appearance: none; border: 0; cursor: pointer;
   background: rgba(255, 255, 255, 0.12); color: #e2e8f0;
-  border-radius: 0.5rem; padding: 0.3rem; font-size: 0.75rem;
+  border-radius: 0.6rem; padding: 0.5rem 1rem; font-size: 1rem;
 }
