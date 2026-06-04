@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-06-04 11:46
+last_updated: 2026-06-04 16:18
 ---
 
 .
@@ -135,6 +135,7 @@ last_updated: 2026-06-04 11:46
 ├── experiments
 │  └── liquid-glass
 │     ├── 06-04-ios-weak-path-blur-gradient-specular
+│     │  ├── DESIGN-NOTES.md
 │     │  ├── index.html
 │     │  ├── script.js
 │     │  └── styles.css
@@ -154,10 +155,12 @@ last_updated: 2026-06-04 11:46
 ├── .gitmodules
 ├── .ignore
 ├── .vercelignore
+├── action-dock.jpg
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── gemini_tts_adapter.py
 ├── GOTCHAS.md
+├── ios-liquid-glass-context-menu.jpg
 ├── Justfile
 ├── liquid-glass-0.png
 ├── liquid-glass-1.1.png

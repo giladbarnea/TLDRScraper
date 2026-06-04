@@ -138,13 +138,15 @@ html, body {
   padding: 0.35rem 0.5rem;
   color: #1d1d1f;
 }
-.dock-btn label { font-size: 0.8rem; font-weight: 500; letter-spacing: 0.01em; cursor: pointer; }
+/* SF Pro regular (400), not 500 — match the icon stroke weight so glyph and
+   label read as one family, the way SF Symbols sit in a real iOS menu. */
+.dock-btn label { font-size: 0.8rem; font-weight: 400; letter-spacing: -0.01em; cursor: pointer; }
 .dock-btn svg {
-  width: 1.65rem;
-  height: 1.65rem;
+  width: 1.6rem;
+  height: 1.6rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.7;
+  stroke-width: 2;          /* lucide-native weight, ~SF Symbols regular */
   stroke-linecap: round;
   stroke-linejoin: round;
 }
