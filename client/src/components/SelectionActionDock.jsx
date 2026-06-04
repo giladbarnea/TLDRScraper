@@ -1,27 +1,24 @@
 import { BookOpen, Check, ExternalLink, FileText, GitMerge, Podcast, Sparkles, Trash2, X } from 'lucide-react'
 import LiquidGlassSurface from './visual-effects/LiquidGlassSurface'
-import LiquidGlassTouchLight from './visual-effects/LiquidGlassTouchLight'
 
+// Flat iOS-menu treatment: a thin-stroke outline glyph above an SF Pro-regular
+// label, near-black by default, with color used only as a tint on icon+label
+// (never a filled chip). The glyph inherits the tint via currentColor.
 function DockButton({ label, icon, onClick, disabled = false, danger = false, accent = false, style }) {
-  const buttonBaseClassName = 'group flex min-w-16 flex-col items-center gap-1 rounded-xl px-2 py-1 text-slate-700 transition-all duration-200 ease-[var(--ease-springy)] hover:-translate-y-0.5 hover:text-slate-900 active:translate-y-0 active:scale-[0.96] disabled:opacity-35 disabled:hover:translate-y-0 disabled:hover:text-slate-700 disabled:active:scale-100 motion-safe:animate-dock-action-enter'
-  const iconClassName = [
-    'flex h-11 w-11 items-center justify-center rounded-full transition-transform duration-200 ease-[var(--ease-springy)] group-hover:scale-105 group-active:scale-95',
-    accent ? 'bg-brand-500 text-white' : '',
-    danger ? 'bg-red-500 text-white' : '',
-    !accent && !danger ? 'bg-slate-900/8 text-slate-700 group-hover:text-slate-900' : '',
-  ].join(' ')
+  const tintClassName = accent ? 'text-brand-500' : danger ? 'text-red-500' : 'text-[#1d1d1f]'
+  const buttonClassName = `group flex min-w-16 flex-col items-center gap-1.5 rounded-xl px-2 py-1 transition-all duration-200 ease-[var(--ease-springy)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96] disabled:opacity-35 disabled:hover:translate-y-0 disabled:active:scale-100 motion-safe:animate-dock-action-enter ${tintClassName}`
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={buttonBaseClassName}
+      className={buttonClassName}
       style={style}
       aria-label={label}
     >
-      <span className={iconClassName}>{icon}</span>
-      <span className="text-xs font-medium tracking-wide text-center leading-none">{label}</span>
+      <span className="transition-transform duration-200 ease-[var(--ease-springy)] group-hover:scale-105 group-active:scale-95">{icon}</span>
+      <span className="text-[0.8rem] font-normal tracking-[-0.01em] text-center leading-none">{label}</span>
     </button>
   )
 }
@@ -47,26 +44,26 @@ function SelectionActionDock({
     {
       key: 'deselect',
       label: 'Deselect',
-      icon: <X size={21} />,
+      icon: <X size={24} />,
       onClick: onClearSelection,
     },
     {
       key: 'read',
       label: 'Read',
-      icon: <Check size={21} />,
+      icon: <Check size={24} />,
       onClick: onMarkRead,
     },
     {
       key: 'remove',
       label: 'Remove',
-      icon: <Trash2 size={21} />,
+      icon: <Trash2 size={24} />,
       onClick: onMarkRemoved,
       danger: true,
     },
     {
       key: 'podcast',
       label: isPodcastLoading ? 'Loading...' : 'Podcast',
-      icon: <Podcast size={21} />,
+      icon: <Podcast size={24} />,
       onClick: onTriggerPodcast,
       disabled: isPodcastLoading,
       accent: true,
@@ -77,7 +74,7 @@ function SelectionActionDock({
     actions.push({
       key: 'summarize-single',
       label: canOpenSingleSummary ? 'Open' : (isSingleSummaryLoading ? 'Loading...' : 'Summarize'),
-      icon: canOpenSingleSummary ? <BookOpen size={21} /> : <Sparkles size={21} />,
+      icon: canOpenSingleSummary ? <BookOpen size={24} /> : <Sparkles size={24} />,
       onClick: onSummarizeSingle,
       disabled: isSingleSummaryLoading,
       accent: true,
@@ -85,7 +82,7 @@ function SelectionActionDock({
     actions.push({
       key: 'browse',
       label: 'Browse',
-      icon: <ExternalLink size={21} />,
+      icon: <ExternalLink size={24} />,
       onClick: onBrowseSingle,
     })
   }
@@ -94,7 +91,7 @@ function SelectionActionDock({
     actions.push({
       key: 'digest',
       label: isDigestLoading ? 'Loading...' : 'Digest',
-      icon: <GitMerge size={21} />,
+      icon: <GitMerge size={24} />,
       onClick: onTriggerDigest,
       disabled: isDigestLoading,
       accent: true,
@@ -102,7 +99,7 @@ function SelectionActionDock({
     actions.push({
       key: 'summarize-each',
       label: 'Summarize Each',
-      icon: <FileText size={21} />,
+      icon: <FileText size={24} />,
       onClick: onSummarizeEach,
       disabled: isSummarizeEachDisabled,
     })
@@ -116,13 +113,10 @@ function SelectionActionDock({
       ].join(' ')}
     >
       <LiquidGlassSurface
-        variant="solid"
-        depth="compact"
-        lens="subtle"
+        variant="plate"
         className="w-full max-w-md rounded-[1.7rem] overflow-hidden"
       >
-        <LiquidGlassTouchLight />
-        <div className="relative z-10 flex items-center justify-between gap-1 px-2 py-3">
+        <div className="flex items-center justify-between gap-1 px-2 py-3">
           {actions.map((action, index) => (
             <DockButton
               key={action.key}

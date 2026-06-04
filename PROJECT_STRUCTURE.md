@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-06-04 16:18
+last_updated: 2026-06-04 16:47
 ---
 
 .
@@ -157,6 +157,8 @@ last_updated: 2026-06-04 16:18
 ├── .vercelignore
 ├── action-dock.jpg
 ├── AGENTS.md
+├── apple-menu-idle-no-press-glow.jpg
+├── apple-menu-long-press-glow-and-item-highlight.jpg
 ├── CLAUDE.md
 ├── gemini_tts_adapter.py
 ├── GOTCHAS.md

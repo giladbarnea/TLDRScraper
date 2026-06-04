@@ -291,3 +291,24 @@
     -webkit-backdrop-filter: blur(4px) saturate(140%) brightness(1.1) url(#liquid-glass-lens-subtle);
   }
 }
+
+/* Flat "plate" variant: iOS-opaque Liquid Glass for the selection dock.
+   Converged in experiments/liquid-glass/06-04-ios-weak-path-blur-gradient-specular
+   (see its DESIGN-NOTES.md). CSS-only and identical on every device — no SVG
+   lens, no WebGL: a flat, milky frosted sheet rather than a thick rounded pill.
+   Thickness shading is dropped to a single top hairline; grounding is the
+   material itself, not a drop shadow. */
+.liquid-glass-surface[data-liquid-glass-variant="plate"] {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--liquid-glass-light) 63%, transparent) 0%,
+      color-mix(in srgb, var(--liquid-glass-light) 55%, transparent) 55%,
+      color-mix(in srgb, var(--liquid-glass-light) 47%, transparent) 100%
+    );
+  backdrop-filter: blur(7px) saturate(206%) brightness(0.96);
+  -webkit-backdrop-filter: blur(7px) saturate(206%) brightness(0.96);
+  box-shadow:
+    inset 0 0 0 0.5px color-mix(in srgb, var(--liquid-glass-dark) 10%, transparent),
+    inset 0 1px 0 -0.25px color-mix(in srgb, var(--liquid-glass-light) 90%, transparent);
+}
