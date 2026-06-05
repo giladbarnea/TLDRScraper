@@ -79,28 +79,21 @@ class ClaudeBlogAdapter(NewsletterAdapter):
     def _parse_articles_from_markdown(self, markdown: str) -> list[dict]:
         """Parse articles from Claude blog markdown.
 
-        Example from curl_cffi:
-        ## Cowork: Claude Code for the rest of your work
-        January 12, 2026
-        [Read more](</blog/cowork-research-preview>)Read more
+        The blog renders posts in two disjoint layouts: a curated *featured carousel*
+        and the *chronological grid* of latest posts. Both must be parsed, since the
+        newest posts only ever appear in the grid.
 
-        Example from firecrawl:
-        ## Title
-        Date
-        [Read more](https://claude.com/blog/slug)
+        Featured carousel (curl_cffi):
+            ## Cowork: Claude Code for the rest of your work
+            January 12, 2026
+            [Read more](</blog/cowork-research-preview>)
+
+        Chronological grid (curl_cffi):
+            June 3, 2026
+            [How Anthropic enables self-service data analytics with Claude](</blog/how-anthropic-...>)
         """
         articles = []
-
-        # Try curl_cffi format first (relative URLs with angle brackets)
-        article_pattern = r'## ([^\n]+)\n([A-Za-z]+ \d+, \d{4})\n\[Read more\]\(</blog/([^\)]+)>\)'
-        matches = re.findall(article_pattern, markdown)
-
-        # If no matches, try firecrawl format (absolute URLs without angle brackets)
-        if not matches:
-            article_pattern = r'## ([^\n]+)\n+([A-Za-z]+ \d+, \d{4})\n+\[Read more\]\((https://claude\.com/blog/[^\)]+)\)'
-            matches_firecrawl = re.findall(article_pattern, markdown)
-            # Convert to same format as curl_cffi matches
-            matches = [(title, date, url.split('/')[-1]) for title, date, url in matches_firecrawl]
+        matches = self._extract_post_tuples(markdown)
 
         for title, date_str, url_part in matches:
             try:
@@ -126,3 +119,35 @@ class ClaudeBlogAdapter(NewsletterAdapter):
             })
 
         return articles
+
+    @staticmethod
+    def _extract_post_tuples(markdown: str) -> list[tuple[str, str, str]]:
+        """Extract (title, date, slug) tuples from both blog layouts, deduped by slug.
+
+        The featured carousel is collected first so its proper title wins over the
+        grid pattern's "Read more" link text for any shared post.
+
+        >>> md = '## Featured Post\\nMay 1, 2026\\n[Read more](</blog/featured>)\\n'
+        >>> md += 'June 3, 2026\\n[Latest Post](</blog/latest>)'
+        >>> ClaudeBlogAdapter._extract_post_tuples(md)
+        [('Featured Post', 'May 1, 2026', 'featured'), ('Latest Post', 'June 3, 2026', 'latest')]
+        """
+        carousel = re.findall(r'## ([^\n]+)\n([A-Za-z]+ \d+, \d{4})\n\[Read more\]\(</blog/([^\)]+)>\)', markdown)
+        grid = [(title, date, slug) for date, title, slug in
+                re.findall(r'([A-Za-z]+ \d+, \d{4})\n\[([^\]]+)\]\(</blog/([^\)]+)>\)', markdown)]
+
+        # Firecrawl fallback (absolute URLs) only when the curl_cffi formats yield nothing.
+        if not carousel and not grid:
+            carousel = [(title, date, url.split('/')[-1]) for title, date, url in
+                        re.findall(r'## ([^\n]+)\n+([A-Za-z]+ \d+, \d{4})\n+\[Read more\]\((https://claude\.com/blog/[^\)]+)\)', markdown)]
+            grid = [(title, date, url.split('/')[-1]) for date, title, url in
+                    re.findall(r'([A-Za-z]+ \d+, \d{4})\n+\[([^\]]+)\]\((https://claude\.com/blog/[^\)]+)\)', markdown)]
+
+        seen: set[str] = set()
+        tuples = []
+        for title, date_str, slug in [*carousel, *grid]:
+            if slug in seen:
+                continue
+            seen.add(slug)
+            tuples.append((title, date_str, slug))
+        return tuples
