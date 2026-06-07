@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-06-04 16:47
+last_updated: 2026-06-07 05:09
 ---
 
 .
@@ -154,14 +154,21 @@ last_updated: 2026-06-04 16:47
 ├── .gitignore
 ├── .gitmodules
 ├── .ignore
+├── .lastwork
 ├── .vercelignore
+├── 06-04-apple-opaque-context-menu-bg-scrim-idle-no-press-glow.jpg
+├── 06-04-apple-opaque-context-menu-bg-scrim-long-press-glow-and-item-highlight.jpg
+├── 06-05-apple-clear-menu-1.jpg
+├── 06-05-apple-clear-menu-2.png
+├── 06-05-our-current-dock-menu-wrongly-opaque-variant-no-press-glow.png
+├── 06-05-our-current-dock-menu-wrongly-opaque-variant-with-press-glow.png
 ├── action-dock.jpg
 ├── AGENTS.md
-├── apple-menu-idle-no-press-glow.jpg
-├── apple-menu-long-press-glow-and-item-highlight.jpg
 ├── CLAUDE.md
 ├── gemini_tts_adapter.py
 ├── GOTCHAS.md
+├── IMG_0195.heic
+├── IMG_0196.heic
 ├── ios-liquid-glass-context-menu.jpg
 ├── Justfile
 ├── liquid-glass-0.png

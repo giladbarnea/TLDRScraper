@@ -80,6 +80,7 @@ html, body {
   --lg-blur: 7px;
   --lg-saturate: 206%;
   --lg-brightness: 0.96;
+  --lg-lit: 0.25;       /* press "light up" intensity (0..1) */
 
   position: relative;
   width: 100%;
@@ -93,14 +94,38 @@ html, body {
     color-mix(in srgb, var(--liquid-glass-light) calc(var(--lg-white) - 8%), transparent) 55%,
     color-mix(in srgb, var(--liquid-glass-light) calc(var(--lg-white) - 16%), transparent) 100%
   );
-  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(var(--lg-brightness));
-  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(var(--lg-brightness));
+  /* --lg-press-boost lifts the backdrop brightness on finger-down (default 1). */
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(calc(var(--lg-brightness) * var(--lg-press-boost, 1)));
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(calc(var(--lg-brightness) * var(--lg-press-boost, 1)));
+  transition: backdrop-filter 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94), -webkit-backdrop-filter 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
   /* Point 1: flat thin plate, not a puffy pill. Only a faint edge + a thin top
      hairline highlight. Point 3: no elevation drop shadow — dimming the rest
      (the scrim) does the grounding instead. */
   box-shadow:
     inset 0 0 0 0.5px color-mix(in srgb, var(--liquid-glass-dark) 10%, transparent),
     inset 0 1px 0 -0.25px color-mix(in srgb, var(--liquid-glass-light) 90%, transparent);
+}
+
+/* The opaque plate lights up as a WHOLE in response to a finger down — not a
+   localized bloom (that is the Clear variant's behavior, where a glow pops
+   against dark see-through content). Here the entire surface brightens, blooming
+   lightest at the top, plus a small global backdrop brightness lift. */
+.liquid-glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;          /* over the gradient/backdrop, under the dock content (z-10) */
+  border-radius: inherit;
+  background: radial-gradient(140% 95% at 50% -12%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 62%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.liquid-glass-surface.is-lit::after {
+  opacity: var(--lg-lit);
+}
+.liquid-glass-surface.is-lit {
+  --lg-press-boost: calc(1 + var(--lg-lit) * 0.35);
 }
 
 /* Point 3: dim everything behind the surface a few percent, Apple-style,
@@ -135,8 +160,32 @@ html, body {
   align-items: center;
   gap: 0.3rem;
   min-width: 4rem;
-  padding: 0.35rem 0.5rem;
+  padding: 0.5rem 0.5rem;
   color: #1d1d1f;
+  /* Fire press feedback on finger-down without the tap/scroll disambiguation
+     delay or double-tap zoom. */
+  touch-action: manipulation;
+  /* Own stacking context so the press layers sit over the glass but under the
+     icon/label, without escaping behind the surface. */
+  position: relative;
+  isolation: isolate;
+}
+
+/* Per-button press feedback: the neutral grey "item highlight" pill behind the
+   pressed button (the global surface light-up is handled on the surface above). */
+.dock-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 0.9rem;
+  background: rgba(15, 23, 42, 0.10);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.dock-btn.is-pressed::before {
+  opacity: 1;
 }
 /* SF Pro regular (400), not 500 — match the icon stroke weight so glyph and
    label read as one family, the way SF Symbols sit in a real iOS menu. */
@@ -169,7 +218,10 @@ html, body {
   font-size: 1.15rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
-.panel.is-collapsed .panel__row { display: none; }
+.panel.is-collapsed .panel__row,
+.panel.is-collapsed .panel__check { display: none; }
+.panel__check { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; }
+.panel__check input { width: 1.3rem; height: 1.3rem; }
 .panel__row { display: grid; grid-template-columns: 7.5rem 1fr 3.5rem; align-items: center; gap: 0.75rem; }
 .panel__row input[type="range"] {
   width: 100%;

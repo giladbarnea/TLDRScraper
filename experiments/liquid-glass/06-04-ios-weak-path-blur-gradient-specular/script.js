@@ -35,6 +35,36 @@
   bind("sat", "--lg-saturate", (v) => ({ css: v + "%", label: v }));
   bind("bright", "--lg-brightness", (v) => ({ css: (v / 100).toFixed(2), label: (v / 100).toFixed(2) }));
   bind("dim", "--lg-dim", (v) => ({ css: (v / 100).toFixed(2), label: v }), scrim);
+  bind("lit", "--lg-lit", (v) => ({ css: (v / 100).toFixed(2), label: v }));
+
+  // Press feedback driven by pointer events, not CSS :active — iOS withholds
+  // :active to disambiguate tap/scroll, which lands the light-up too late (in
+  // the context-menu-open window). pointerdown fires on finger contact, so the
+  // surface lights up immediately and holds until finger up, like a real menu.
+  const dockButtons = Array.from(surface.querySelectorAll(".dock-btn"));
+  const previewPress = document.getElementById("preview_press");
+
+  const releasePress = () => {
+    if (previewPress.checked) return; // leave the static preview engaged
+    surface.classList.remove("is-lit");
+    for (const button of dockButtons) button.classList.remove("is-pressed");
+  };
+  for (const button of dockButtons) {
+    button.addEventListener("pointerdown", () => {
+      surface.classList.add("is-lit");
+      button.classList.add("is-pressed");
+    });
+  }
+  window.addEventListener("pointerup", releasePress);
+  window.addEventListener("pointercancel", releasePress);
+
+  // Static preview: light the whole surface (.is-lit) AND give the "Read" button
+  // (2nd) its item-highlight pill (.is-pressed), inspectable without a finger.
+  const readButton = dockButtons[1];
+  previewPress.addEventListener("change", () => {
+    surface.classList.toggle("is-lit", previewPress.checked);
+    readButton.classList.toggle("is-pressed", previewPress.checked);
+  });
 
   const panel = document.getElementById("panel");
   const toggle = document.getElementById("panel_toggle");
