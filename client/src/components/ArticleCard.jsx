@@ -199,7 +199,7 @@ function ArticleCard({ articleKey }) {
             ${summary.expanded && !stateLoading ? 'ring-1 ring-brand-200/60 shadow-elevated' : ''}
           `}
         >
-          <div className="p-4 flex items-center gap-3">
+          <div className="p-4 flex items-center gap-4">
             {!isRemoved && (
               <ArticleFavicon hostname={hostname} domain={displayDomain} />
             )}

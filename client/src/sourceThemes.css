@@ -3,7 +3,13 @@
  * Cards from a source with a custom palette carry [data-source-theme="<source>"]
  * on their root. Each source defines three colors — text, dim, background — plus
  * a matching border. The shared rules below apply them to the card surface, title
- * and meta line, so adding a new source is just a new [data-source-theme] block.
+ * and meta line.
+ *
+ * To add a new source (two steps):
+ *   1. Map its hostname to a theme name in SOURCE_THEMES (ArticleCard.jsx),
+ *      e.g. 'bloomberg.com': 'bloomberg'.
+ *   2. Add a [data-source-theme="bloomberg"] block below with its four colors.
+ * The shared rules are source-agnostic, so step 2 is the only styling needed.
  *
  * Selectors are scoped one level below the themed root (e.g. .article-card-surface)
  * so they outrank Tailwind's single-class utilities without needing !important.
