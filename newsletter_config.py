@@ -63,18 +63,7 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"show": "HN Show"},
         sort_order=23,
     ),
-    "xeiaso": NewsletterSourceConfig(
-        source_id="xeiaso",
-        display_name="Xe Iaso",
-        base_url="https://xeiaso.net",
-        url_pattern="",
-        types=["blog"],
-        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
-        article_pattern="",
-        category_display_names={"blog": "Xe Iaso"},
-        sort_order=4,  # 0.5/week - rare, consistent
-    ),
-    "simon_willison": NewsletterSourceConfig(
+"simon_willison": NewsletterSourceConfig(
         source_id="simon_willison",
         display_name="Simon Willison",
         base_url="https://simonwillison.net",
