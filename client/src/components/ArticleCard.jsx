@@ -44,32 +44,34 @@ function ArticleTitle({ isRead, title }) {
   )
 }
 
-function ArticleMeta({ hostname, domain, articleMeta }) {
+function ArticleFavicon({ hostname, domain }) {
   const faviconUrl = getFaviconUrl(hostname)
+  if (!faviconUrl) return null
 
   return (
-    <div className="flex items-center gap-2 min-w-0">
-      {faviconUrl && (
-        <div className="w-4 h-4 rounded-full bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
-          <img
-            src={faviconUrl}
-            alt={domain}
-            className="w-full h-full object-contain"
-            loading="lazy"
-            decoding="async"
-            onError={(event) => { event.currentTarget.style.visibility = 'hidden' }}
-          />
-        </div>
-      )}
-      <div className="flex items-baseline gap-1.5 text-xs leading-none min-w-0">
-        <span className="article-card-domain font-medium text-slate-400 shrink-0">
-          {domain && domain}
-        </span>
-        <span className="article-card-sep text-slate-300 shrink-0">·</span>
-        <span className="article-card-meta font-normal text-slate-400 truncate">
-          {articleMeta}
-        </span>
-      </div>
+    <div className="article-card-favicon w-10 h-10 self-center rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+      <img
+        src={faviconUrl}
+        alt={domain}
+        className="w-5 h-5 object-contain"
+        loading="lazy"
+        decoding="async"
+        onError={(event) => { event.currentTarget.style.visibility = 'hidden' }}
+      />
+    </div>
+  )
+}
+
+function ArticleMeta({ domain, articleMeta }) {
+  return (
+    <div className="flex items-baseline gap-1.5 text-xs leading-none min-w-0">
+      <span className="article-card-domain font-medium text-slate-400 shrink-0">
+        {domain && domain}
+      </span>
+      <span className="article-card-sep text-slate-300 shrink-0">·</span>
+      <span className="article-card-meta font-normal text-slate-400 truncate">
+        {articleMeta}
+      </span>
     </div>
   )
 }
@@ -198,6 +200,10 @@ function ArticleCard({ articleKey }) {
           `}
         >
           <div className="p-4 flex items-center gap-3">
+            {!isRemoved && (
+              <ArticleFavicon hostname={hostname} domain={displayDomain} />
+            )}
+
             <div className="flex flex-col gap-1.5 min-w-0 flex-1">
               <ArticleTitle
                 isRead={isRead}
@@ -206,7 +212,6 @@ function ArticleCard({ articleKey }) {
 
               {!isRemoved && (
                 <ArticleMeta
-                  hostname={hostname}
                   domain={displayDomain}
                   articleMeta={slice.articleMeta}
                 />
