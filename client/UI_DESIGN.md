@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-20 08:32, 3c385a5
+last_updated: 2026-06-09 05:19
 ---
 # UI Design Principles
 
@@ -60,6 +60,10 @@ This means a heading and an unread article title share the same color (they're b
 Brand blue appears sparingly and with purpose: the TLDR. period, the loading spinner, the progress bar in zen mode, focus rings, and the selection checkmark. It marks interactive or state-change moments, not decoration.
 
 The single orphan-color violation that existed (a purple progress bar in zen mode) was replaced with brand blue — every accent color should connect to the palette (`ArticleCard.jsx:119`).
+
+### Some sources bring their own palette
+
+Cards from a handful of recognizable domains swap the default light surface for that source's own colors — the same four roles (primary, tertiary, chrome, plus a background), just resolved to the brand rather than the slate scale. A GitHub card reads as dark the way GitHub does; the favicon keeps a light tile so it stays legible against it. This is an extension of the role system, not an escape from it: each source still maps to the same handful of roles, so the hierarchy holds regardless of palette. When adding a domain, see `components/ArticleCard.jsx` (the `SOURCE_THEMES` hostname→theme map) and `sourceThemes.css` (the per-theme palette block).
 
 ## Spacing is hierarchy made visible
 

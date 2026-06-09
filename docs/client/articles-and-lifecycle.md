@@ -1,7 +1,7 @@
 ---
 name: client/articles-and-lifecycle
 description: Client article lifecycle domain and reducer pattern.
-last_updated: 2026-06-09 05:17
+last_updated: 2026-06-09 05:19
 ---
 # Client: Articles and Lifecycle
 
@@ -54,9 +54,3 @@ TIME   ACTOR              ACTION                                TARGET
 ```
 
 `useArticleState` subscribes to a single article slice by date and URL. Batch lifecycle operations build the same reducer patches, then `queueBatchArticlePatches()` groups them by date so a selection action performs one daily payload write per affected date.
-
----
-
-## Per-Domain Card Styling
-
-Cards from select domains adopt that source's color palette (text, dim, background, border) instead of the default light surface. When adding a new domain style, see `components/ArticleCard.jsx` (`SOURCE_THEMES` hostname→theme map) and `sourceThemes.css` (per-theme palette block).
