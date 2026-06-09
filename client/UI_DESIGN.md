@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-06-09 05:19
+last_updated: 2026-06-09 21:25
 ---
 # UI Design Principles
 
@@ -63,7 +63,7 @@ The single orphan-color violation that existed (a purple progress bar in zen mod
 
 ### Some sources bring their own palette
 
-Cards from a handful of recognizable domains swap the default light surface for that source's own colors — the same four roles (primary, tertiary, chrome, plus a background), just resolved to the brand rather than the slate scale. A GitHub card reads as dark the way GitHub does; the favicon keeps a light tile so it stays legible against it. This is an extension of the role system, not an escape from it: each source still maps to the same handful of roles, so the hierarchy holds regardless of palette. When adding a domain, see `components/ArticleCard.jsx` (the `SOURCE_THEMES` hostname→theme map) and `sourceThemes.css` (the per-theme palette block).
+Cards from a handful of recognizable domains swap the default light surface for that source's own colors — the same four roles (primary, tertiary, chrome, plus a background), just resolved to the brand rather than the slate scale. A GitHub card reads as dark the way GitHub does; the favicon keeps a light tile so it stays legible against it. This is an extension of the role system, not an escape from it: each source still maps to the same handful of roles, so the hierarchy holds regardless of palette. Adding a domain is a single edit — one hostname→colors entry in `lib/sourceThemes.js` themes both the card and the overlay header (`sourceThemes.css` holds the generic rules that consume the palette).
 
 ## Spacing is hierarchy made visible
 

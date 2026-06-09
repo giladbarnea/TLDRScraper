@@ -134,7 +134,8 @@ function BaseOverlay({
         <div {...portalRootProps}>
           <div ref={containerRef} className="w-full h-full bg-white flex flex-col animate-zen-enter">
             <div
-              data-source-theme={sourceTheme}
+              data-source-theme={sourceTheme ? 'overlay' : undefined}
+              style={sourceTheme}
               className={`
             overlay-header
             relative shrink-0 z-10

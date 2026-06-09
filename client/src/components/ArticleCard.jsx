@@ -6,6 +6,7 @@ import { useArticleState } from '../hooks/useArticleState'
 import { useSummary } from '../hooks/useSummary'
 import { useSwipeToRemove } from '../hooks/useSwipeToRemove'
 import { getFaviconUrl } from '../lib/faviconUrl'
+import { getSourceTheme } from '../lib/sourceThemes'
 import { interactionActions, useArticleSlice, useIsSelectMode } from '../store/articleStore'
 import Selectable from './Selectable'
 import ZenModeOverlay from './ZenModeOverlay'
@@ -25,9 +26,6 @@ function ErrorToast({ message, onDismiss }) {
     document.body
   )
 }
-
-// Hostnames whose cards adopt the source's color palette. See sourceThemes.css.
-const SOURCE_THEMES = { 'github.com': 'github' }
 
 function ArticleTitle({ isRead, title }) {
   return (
@@ -129,7 +127,7 @@ function ArticleCard({ articleKey }) {
     }
   })()
 
-  const sourceTheme = SOURCE_THEMES[hostname]
+  const sourceTheme = getSourceTheme(hostname)
 
   const handleCardClick = (e) => {
     if (isDragging) return
@@ -152,7 +150,8 @@ function ArticleCard({ articleKey }) {
     <Selectable id={componentId} disabled={isRemoved}>
       <motion.div
         layout
-        data-source-theme={sourceTheme}
+        data-source-theme={sourceTheme ? hostname : undefined}
+        style={sourceTheme}
         className={`relative ${summary.expanded && !stateLoading ? 'mb-4' : 'mb-2.5'}`}
       >
         <div className={`absolute inset-0 rounded-xl bg-slate-100 flex items-center justify-end pr-8 pointer-events-none transition-opacity ${isDragging ? 'opacity-100' : 'opacity-0'}`}>
