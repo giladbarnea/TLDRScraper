@@ -27,6 +27,7 @@ function BaseOverlay({
   onMarkRemoved,
   overlayMenu,
   overlayLayers,
+  sourceTheme,
   children,
 }) {
   const containerRef = useRef(null)
@@ -133,7 +134,9 @@ function BaseOverlay({
         <div {...portalRootProps}>
           <div ref={containerRef} className="w-full h-full bg-white flex flex-col animate-zen-enter">
             <div
+              data-source-theme={sourceTheme}
               className={`
+            overlay-header
             relative shrink-0 z-10
             flex items-center justify-between px-4 py-3
             transition-all duration-200
@@ -142,7 +145,7 @@ function BaseOverlay({
             >
               <button
                 onClick={onClose}
-                className="shrink-0 p-2 rounded-full hover:bg-slate-200/80 text-slate-500 hover:text-slate-700 transition-colors"
+                className="overlay-header-icon shrink-0 p-2 rounded-full hover:bg-slate-200/80 text-slate-500 hover:text-slate-700 transition-colors"
               >
                 <ChevronDown size={20} />
               </button>
@@ -151,7 +154,7 @@ function BaseOverlay({
 
               <button
                 onClick={onMarkRemoved}
-                className="shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
+                className="overlay-header-icon shrink-0 p-2 rounded-full hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors"
               >
                 <Check size={20} />
               </button>

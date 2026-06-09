@@ -1,0 +1,74 @@
+/* ── Per-source card color palettes ──
+ *
+ * Cards from a source with a custom palette carry [data-source-theme="<source>"]
+ * on their root. Each source defines three colors — text, dim, background — plus
+ * a matching border. The shared rules below apply them to the card surface and to
+ * the reading-overlay sticky header, both of which mirror the same palette.
+ *
+ * To add a new source (two steps):
+ *   1. Map its hostname to a theme name in SOURCE_THEMES (ArticleCard.jsx),
+ *      e.g. 'bloomberg.com': 'bloomberg'.
+ *   2. Add a [data-source-theme="bloomberg"] block below with its four colors.
+ * The shared rules are source-agnostic, so step 2 is the only styling needed.
+ *
+ * Selectors are scoped one level below the themed root (e.g. .article-card-surface)
+ * so they outrank Tailwind's single-class utilities without needing !important.
+ * Removed cards keep their standard slate styling via :not([data-removed="true"]). */
+
+[data-source-theme="github"] {
+  --card-bg: #0d1117;
+  --card-text: #e6edf3;
+  --card-dim: #8b949e;
+  --card-border: #30363d;
+}
+
+[data-source-theme] .article-card-surface:not([data-removed="true"]) {
+  background: var(--card-bg);
+  border-color: var(--card-border);
+}
+
+[data-source-theme] .article-card-surface:not([data-removed="true"]) .article-card-title {
+  color: var(--card-text);
+}
+
+[data-source-theme] .article-card-surface[data-read="true"]:not([data-removed="true"]) .article-card-title {
+  color: var(--card-dim);
+}
+
+[data-source-theme] .article-card-surface:not([data-removed="true"]) .article-card-domain,
+[data-source-theme] .article-card-surface:not([data-removed="true"]) .article-card-meta {
+  color: var(--card-dim);
+}
+
+[data-source-theme] .article-card-surface:not([data-removed="true"]) .article-card-sep {
+  color: var(--card-dim);
+  opacity: 0.55;
+}
+
+/* Reading-overlay sticky header — same palette as the card it was opened from.
+ * Here [data-source-theme] sits directly on the header (.overlay-header). */
+[data-source-theme].overlay-header {
+  background: var(--card-bg);
+  border-color: var(--card-border);
+}
+
+[data-source-theme] .overlay-header-domain {
+  color: var(--card-text);
+}
+
+[data-source-theme] .overlay-header-meta {
+  color: var(--card-dim);
+}
+
+[data-source-theme] .overlay-header-favicon {
+  background: #fff;
+}
+
+[data-source-theme] .overlay-header-icon {
+  color: var(--card-dim);
+}
+
+[data-source-theme] .overlay-header-icon:hover {
+  color: var(--card-text);
+  background-color: color-mix(in srgb, var(--card-text) 12%, transparent);
+}

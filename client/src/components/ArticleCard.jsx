@@ -26,10 +26,14 @@ function ErrorToast({ message, onDismiss }) {
   )
 }
 
+// Hostnames whose cards adopt the source's color palette. See sourceThemes.css.
+const SOURCE_THEMES = { 'github.com': 'github' }
+
 function ArticleTitle({ isRead, title }) {
   return (
     <span
       className={`
+        article-card-title
         text-[15px] font-display font-medium leading-snug text-slate-900
         block tracking-tight
         ${isRead ? 'text-slate-400 font-normal' : ''}
@@ -40,32 +44,34 @@ function ArticleTitle({ isRead, title }) {
   )
 }
 
-function ArticleMeta({ hostname, domain, articleMeta }) {
+function ArticleFavicon({ hostname, domain }) {
   const faviconUrl = getFaviconUrl(hostname)
+  if (!faviconUrl) return null
 
   return (
-    <div className="flex items-center gap-2 min-w-0">
-      {faviconUrl && (
-        <div className="w-4 h-4 rounded-full bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
-          <img
-            src={faviconUrl}
-            alt={domain}
-            className="w-full h-full object-contain"
-            loading="lazy"
-            decoding="async"
-            onError={(event) => { event.currentTarget.style.visibility = 'hidden' }}
-          />
-        </div>
-      )}
-      <div className="flex items-baseline gap-1.5 text-xs leading-none min-w-0">
-        <span className="font-medium text-slate-400 shrink-0">
-          {domain && domain}
-        </span>
-        <span className="text-slate-300 shrink-0">·</span>
-        <span className="font-normal text-slate-400 truncate">
-          {articleMeta}
-        </span>
-      </div>
+    <div className="article-card-favicon w-10 h-10 self-center rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+      <img
+        src={faviconUrl}
+        alt={domain}
+        className="w-5 h-5 object-contain"
+        loading="lazy"
+        decoding="async"
+        onError={(event) => { event.currentTarget.style.visibility = 'hidden' }}
+      />
+    </div>
+  )
+}
+
+function ArticleMeta({ domain, articleMeta }) {
+  return (
+    <div className="flex items-baseline gap-1.5 text-xs leading-none min-w-0">
+      <span className="article-card-domain font-medium text-slate-400 shrink-0">
+        {domain && domain}
+      </span>
+      <span className="article-card-sep text-slate-300 shrink-0">·</span>
+      <span className="article-card-meta font-normal text-slate-400 truncate">
+        {articleMeta}
+      </span>
     </div>
   )
 }
@@ -123,6 +129,8 @@ function ArticleCard({ articleKey }) {
     }
   })()
 
+  const sourceTheme = SOURCE_THEMES[hostname]
+
   const handleCardClick = (e) => {
     if (isDragging) return
 
@@ -144,6 +152,7 @@ function ArticleCard({ articleKey }) {
     <Selectable id={componentId} disabled={isRemoved}>
       <motion.div
         layout
+        data-source-theme={sourceTheme}
         className={`relative ${summary.expanded && !stateLoading ? 'mb-4' : 'mb-2.5'}`}
       >
         <div className={`absolute inset-0 rounded-xl bg-slate-100 flex items-center justify-end pr-8 pointer-events-none transition-opacity ${isDragging ? 'opacity-100' : 'opacity-0'}`}>
@@ -179,6 +188,7 @@ function ArticleCard({ articleKey }) {
           data-dragging={isDragging}
           data-can-drag={swipeEnabled}
           className={`
+            article-card-surface
             relative z-10
             rounded-xl border border-slate-200/60
             shadow-card
@@ -189,7 +199,11 @@ function ArticleCard({ articleKey }) {
             ${summary.expanded && !stateLoading ? 'ring-1 ring-brand-200/60 shadow-elevated' : ''}
           `}
         >
-          <div className="p-4 flex items-center gap-3">
+          <div className="p-4 flex items-center gap-4">
+            {!isRemoved && (
+              <ArticleFavicon hostname={hostname} domain={displayDomain} />
+            )}
+
             <div className="flex flex-col gap-1.5 min-w-0 flex-1">
               <ArticleTitle
                 isRead={isRead}
@@ -198,7 +212,6 @@ function ArticleCard({ articleKey }) {
 
               {!isRemoved && (
                 <ArticleMeta
-                  hostname={hostname}
                   domain={displayDomain}
                   articleMeta={slice.articleMeta}
                 />
@@ -215,6 +228,7 @@ function ArticleCard({ articleKey }) {
                 hostname={hostname}
                 displayDomain={displayDomain}
                 articleMeta={slice.articleMeta}
+                sourceTheme={sourceTheme}
                 onClose={() => handleSummaryClose()}
                 onMarkRemoved={() => {
                   handleSummaryClose(false)

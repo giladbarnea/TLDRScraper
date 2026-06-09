@@ -1,7 +1,7 @@
 ---
 name: client/articles-and-lifecycle
 description: Client article lifecycle domain and reducer pattern.
-last_updated: 2026-05-05 06:38, 36614cc
+last_updated: 2026-06-09 05:19
 ---
 # Client: Articles and Lifecycle
 

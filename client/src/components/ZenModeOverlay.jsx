@@ -6,7 +6,7 @@ import BaseOverlay from './BaseOverlay'
 import ElaborationPreview from './ElaborationPreview'
 import OverlayMarkdown from './OverlayMarkdown'
 
-function ZenModeOverlay({ url, summaryMarkdown, hostname, displayDomain, articleMeta, onClose, onMarkRemoved }) {
+function ZenModeOverlay({ url, summaryMarkdown, hostname, displayDomain, articleMeta, sourceTheme, onClose, onMarkRemoved }) {
   const contextMenu = useOverlayContextMenu(true)
   const faviconUrl = getFaviconUrl(hostname)
   const { elaboration, runElaboration, closeElaboration } = useElaboration({
@@ -38,6 +38,7 @@ function ZenModeOverlay({ url, summaryMarkdown, hostname, displayDomain, article
 
   return (
     <BaseOverlay
+      sourceTheme={sourceTheme}
       headerContent={(
         <a
           href={url}
@@ -48,13 +49,13 @@ function ZenModeOverlay({ url, summaryMarkdown, hostname, displayDomain, article
           {faviconUrl && (
             <img
               src={faviconUrl}
-              className="w-4 h-4 rounded-full border border-slate-200"
+              className="overlay-header-favicon w-4 h-4 rounded-full border border-slate-200"
               alt=""
             />
           )}
-          <span className="text-sm text-slate-500 font-medium">
+          <span className="overlay-header-domain text-sm text-slate-500 font-medium">
             {displayDomain}
-            {truncatedMeta && <span className="text-slate-400"> · {truncatedMeta}</span>}
+            {truncatedMeta && <span className="overlay-header-meta text-slate-400"> · {truncatedMeta}</span>}
           </span>
         </a>
       )}
