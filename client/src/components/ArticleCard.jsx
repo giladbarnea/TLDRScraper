@@ -228,6 +228,7 @@ function ArticleCard({ articleKey }) {
                 hostname={hostname}
                 displayDomain={displayDomain}
                 articleMeta={slice.articleMeta}
+                sourceTheme={sourceTheme}
                 onClose={() => handleSummaryClose()}
                 onMarkRemoved={() => {
                   handleSummaryClose(false)

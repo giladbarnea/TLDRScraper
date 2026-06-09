@@ -2,8 +2,8 @@
  *
  * Cards from a source with a custom palette carry [data-source-theme="<source>"]
  * on their root. Each source defines three colors — text, dim, background — plus
- * a matching border. The shared rules below apply them to the card surface, title
- * and meta line.
+ * a matching border. The shared rules below apply them to the card surface and to
+ * the reading-overlay sticky header, both of which mirror the same palette.
  *
  * To add a new source (two steps):
  *   1. Map its hostname to a theme name in SOURCE_THEMES (ArticleCard.jsx),
@@ -43,4 +43,32 @@
 [data-source-theme] .article-card-surface:not([data-removed="true"]) .article-card-sep {
   color: var(--card-dim);
   opacity: 0.55;
+}
+
+/* Reading-overlay sticky header — same palette as the card it was opened from.
+ * Here [data-source-theme] sits directly on the header (.overlay-header). */
+[data-source-theme].overlay-header {
+  background: var(--card-bg);
+  border-color: var(--card-border);
+}
+
+[data-source-theme] .overlay-header-domain {
+  color: var(--card-text);
+}
+
+[data-source-theme] .overlay-header-meta {
+  color: var(--card-dim);
+}
+
+[data-source-theme] .overlay-header-favicon {
+  background: #fff;
+}
+
+[data-source-theme] .overlay-header-icon {
+  color: var(--card-dim);
+}
+
+[data-source-theme] .overlay-header-icon:hover {
+  color: var(--card-text);
+  background-color: color-mix(in srgb, var(--card-text) 12%, transparent);
 }
