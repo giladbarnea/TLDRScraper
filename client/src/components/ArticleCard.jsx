@@ -26,10 +26,14 @@ function ErrorToast({ message, onDismiss }) {
   )
 }
 
+// Hostnames whose cards adopt the source's color palette. See sourceThemes.css.
+const SOURCE_THEMES = { 'github.com': 'github' }
+
 function ArticleTitle({ isRead, title }) {
   return (
     <span
       className={`
+        article-card-title
         text-[15px] font-display font-medium leading-snug text-slate-900
         block tracking-tight
         ${isRead ? 'text-slate-400 font-normal' : ''}
@@ -58,11 +62,11 @@ function ArticleMeta({ hostname, domain, articleMeta }) {
         </div>
       )}
       <div className="flex items-baseline gap-1.5 text-xs leading-none min-w-0">
-        <span className="font-medium text-slate-400 shrink-0">
+        <span className="article-card-domain font-medium text-slate-400 shrink-0">
           {domain && domain}
         </span>
-        <span className="text-slate-300 shrink-0">·</span>
-        <span className="font-normal text-slate-400 truncate">
+        <span className="article-card-sep text-slate-300 shrink-0">·</span>
+        <span className="article-card-meta font-normal text-slate-400 truncate">
           {articleMeta}
         </span>
       </div>
@@ -123,6 +127,8 @@ function ArticleCard({ articleKey }) {
     }
   })()
 
+  const sourceTheme = SOURCE_THEMES[hostname]
+
   const handleCardClick = (e) => {
     if (isDragging) return
 
@@ -144,6 +150,7 @@ function ArticleCard({ articleKey }) {
     <Selectable id={componentId} disabled={isRemoved}>
       <motion.div
         layout
+        data-source-theme={sourceTheme}
         className={`relative ${summary.expanded && !stateLoading ? 'mb-4' : 'mb-2.5'}`}
       >
         <div className={`absolute inset-0 rounded-xl bg-slate-100 flex items-center justify-end pr-8 pointer-events-none transition-opacity ${isDragging ? 'opacity-100' : 'opacity-0'}`}>
@@ -179,6 +186,7 @@ function ArticleCard({ articleKey }) {
           data-dragging={isDragging}
           data-can-drag={swipeEnabled}
           className={`
+            article-card-surface
             relative z-10
             rounded-xl border border-slate-200/60
             shadow-card

@@ -1,0 +1,40 @@
+/* ── Per-source card color palettes ──
+ *
+ * Cards from a source with a custom palette carry [data-source-theme="<source>"]
+ * on their root. Each source defines three colors — text, dim, background — plus
+ * a matching border. The shared rules below apply them to the card surface, title
+ * and meta line, so adding a new source is just a new [data-source-theme] block.
+ *
+ * Selectors are scoped one level below the themed root (e.g. .article-card-surface)
+ * so they outrank Tailwind's single-class utilities without needing !important.
+ * Removed cards keep their standard slate styling via :not([data-removed="true"]). */
+
+[data-source-theme="github"] {
+  --card-bg: #0d1117;
+  --card-text: #e6edf3;
+  --card-dim: #8b949e;
+  --card-border: #30363d;
+}
+
+[data-source-theme] .article-card-surface:not([data-removed="true"]) {
+  background: var(--card-bg);
+  border-color: var(--card-border);
+}
+
+[data-source-theme] .article-card-surface:not([data-removed="true"]) .article-card-title {
+  color: var(--card-text);
+}
+
+[data-source-theme] .article-card-surface[data-read="true"]:not([data-removed="true"]) .article-card-title {
+  color: var(--card-dim);
+}
+
+[data-source-theme] .article-card-surface:not([data-removed="true"]) .article-card-domain,
+[data-source-theme] .article-card-surface:not([data-removed="true"]) .article-card-meta {
+  color: var(--card-dim);
+}
+
+[data-source-theme] .article-card-surface:not([data-removed="true"]) .article-card-sep {
+  color: var(--card-dim);
+  opacity: 0.55;
+}
