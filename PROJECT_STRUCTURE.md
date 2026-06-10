@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-06-09 04:48
+last_updated: 2026-06-09 21:13
 ---
 
 .
@@ -40,8 +40,7 @@ last_updated: 2026-06-09 04:48
 │  ├── stripe_engineering_adapter.py
 │  ├── tldr_adapter.py
 │  ├── trendshift_adapter.py
-│  ├── will_larson_adapter.py
-│  └── xeiaso_adapter.py
+│  └── will_larson_adapter.py
 ├── api
 │  └── index.py
 ├── client
