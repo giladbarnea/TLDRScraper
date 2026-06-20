@@ -92,11 +92,11 @@ docs/build/
 .env
 .env.local
 .venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+/env/
+/venv/
+/ENV/
+/env.bak/
+/venv.bak/
 
 # IDEs and editors
 .idea/

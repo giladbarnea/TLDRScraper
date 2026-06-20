@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-06-09 21:13
+last_updated: 2026-06-20 20:59
 ---
 
 .
@@ -129,6 +129,11 @@ last_updated: 2026-06-09 21:13
 │  ├── UI_DESIGN.md
 │  └── vite.config.js
 ├── scripts
+│  ├── env
+│  │  ├── build_client.sh
+│  │  ├── common.sh
+│  │  ├── ensure_tooling.sh
+│  │  └── ensure_uv_and_sync.sh
 │  └── ops
 │     ├── clean_vercel_deployments.py
 │     ├── generate_project_tree.py
