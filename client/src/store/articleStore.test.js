@@ -173,6 +173,46 @@ describe('expandFirstLeafAfterContainer: removal-driven auto-expansion', () => {
 
     expect(localStorage.getItem('expandedContainers:v1')).toBeNull()
   })
+
+  // Manually collapsing a container twice via short press leaves it folded AND
+  // flagged as user-collapsed (the second press collapses an expanded container).
+  function manuallyCollapse(containerId) {
+    store.interactionActions.containerShortPress(containerId)  // fold -> expand
+    store.interactionActions.containerShortPress(containerId)  // expand -> fold (explicit)
+  }
+
+  it('does not re-open a container the user explicitly collapsed; skips to the next available leaf', () => {
+    const date = '2026-05-04'
+    const alpha = sectionArticle('s1/1', 'src1', 'Alpha', 0)
+    const beta = sectionArticle('s1/2', 'src1', 'Beta', 1)
+    const gamma = sectionArticle('s2/1', 'src2', 'Gamma', 0)
+    store.ingestFeedPayloads([makePayload(date, [alpha, beta, gamma])])
+
+    manuallyCollapse(`section-${date}-src1-Beta`)            // user closes Beta deliberately
+    store.applyArticlePatch(`${date}::${alpha.url}`, { removed: true })  // Alpha exhausted
+    store.interactionActions.expandFirstLeafAfterContainer(`section-${date}-src1-Alpha`)
+
+    const expanded = JSON.parse(localStorage.getItem('expandedContainers:v1') ?? '[]')
+    expect(expanded, `user-collapsed Beta must stay folded, got ${JSON.stringify(expanded)}`)
+      .not.toContain(`section-${date}-src1-Beta`)
+    expect(expanded, `should skip past Beta to Gamma, got ${JSON.stringify(expanded)}`)
+      .toContain(`section-${date}-src2-Gamma`)
+  })
+
+  it('exposes nothing when the only later leaf is inside a user-collapsed container', () => {
+    const date = '2026-05-04'
+    const alpha = sectionArticle('s1/1', 'src1', 'Alpha', 0)
+    const beta = sectionArticle('s1/2', 'src1', 'Beta', 1)
+    store.ingestFeedPayloads([makePayload(date, [alpha, beta])])
+
+    manuallyCollapse(`section-${date}-src1-Beta`)
+    store.applyArticlePatch(`${date}::${alpha.url}`, { removed: true })
+    store.interactionActions.expandFirstLeafAfterContainer(`section-${date}-src1-Alpha`)
+
+    const expanded = JSON.parse(localStorage.getItem('expandedContainers:v1') ?? '[]')
+    expect(expanded, `no container should be auto-expanded, got ${JSON.stringify(expanded)}`)
+      .not.toContain(`section-${date}-src1-Beta`)
+  })
 })
 
 describe('Test 3: stale article on refresh prunes selection', () => {

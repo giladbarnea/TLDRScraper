@@ -75,9 +75,15 @@ function toggleContainerChildren(state, childIds, isDisabled) {
 
 function toggleExpand(state, containerId) {
   const nextExpanded = cloneSet(state.expandedContainerIds)
-  if (nextExpanded.has(containerId)) nextExpanded.delete(containerId)
-  else nextExpanded.add(containerId)
-  return { ...state, expandedContainerIds: nextExpanded }
+  const nextUserCollapsed = cloneSet(state.userCollapsedContainerIds)
+  if (nextExpanded.has(containerId)) {
+    nextExpanded.delete(containerId)
+    nextUserCollapsed.add(containerId)     // explicit collapse → protect from auto-expand
+  } else {
+    nextExpanded.add(containerId)
+    nextUserCollapsed.delete(containerId)  // explicit (re)open → intent cleared
+  }
+  return { ...state, expandedContainerIds: nextExpanded, userCollapsedContainerIds: nextUserCollapsed }
 }
 
 function setExpanded(state, containerId, expanded) {

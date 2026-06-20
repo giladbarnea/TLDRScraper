@@ -89,6 +89,7 @@ function loadExpandedFromStorage() {
 
 let auxiliary = {
   expandedContainerIds: loadExpandedFromStorage(),
+  userCollapsedContainerIds: new Set(),  // ephemeral: containers the user explicitly collapsed this session
   suppressNextShortPress: { id: null, untilMs: 0 },
   selectedCount: 0,
 }
@@ -552,9 +553,17 @@ function getSnapshotContainerExpanded(containerId) {
 // ─── Removal-driven auto-expansion ─────────────────────────────────────────────
 
 // Flat list of every article leaf in visual order across all visible dates, each
-// tagged with the container IDs of its day/source/section ancestors.
+// tagged with its day/source/section ancestor container IDs and whether it is
+// available for auto-reveal — removed leaves and leaves inside a user-collapsed
+// container are unavailable.
 function buildOrderedArticleLeaves() {
+  const userCollapsed = auxiliary.userCollapsedContainerIds
   const leaves = []
+  const pushLeaf = (key, ancestorContainerIds) => {
+    const removed = Boolean(articlesByKey.get(key)?.removed)
+    const blocked = ancestorContainerIds.some(id => userCollapsed.has(id))
+    leaves.push({ available: !removed && !blocked, ancestorContainerIds })
+  }
   for (const date of feed.visibleDates) {
     const dayView = getSnapshotDayView(date)
     if (!dayView) continue
@@ -567,21 +576,17 @@ function buildOrderedArticleLeaves() {
       if (newsletterView.hasSections) {
         for (const section of newsletterView.sections) {
           const sectionId = `section-${date}-${sourceId}-${section.key}`
-          for (const key of section.articleKeys) {
-            leaves.push({ removed: Boolean(articlesByKey.get(key)?.removed), ancestorContainerIds: [calendarId, newsletterId, sectionId] })
-          }
+          for (const key of section.articleKeys) pushLeaf(key, [calendarId, newsletterId, sectionId])
         }
       } else {
-        for (const key of newsletterView.articleKeys) {
-          leaves.push({ removed: Boolean(articlesByKey.get(key)?.removed), ancestorContainerIds: [calendarId, newsletterId] })
-        }
+        for (const key of newsletterView.articleKeys) pushLeaf(key, [calendarId, newsletterId])
       }
     }
   }
   return leaves
 }
 
-// Ancestor container IDs of the first non-removed leaf positioned after the given
+// Ancestor container IDs of the first available leaf positioned after the given
 // container's last leaf, or [] when no later available leaf exists. Pure.
 function firstLeafAncestorsAfterContainer(orderedLeaves, containerId) {
   let lastContainerLeafIndex = -1
@@ -590,7 +595,7 @@ function firstLeafAncestorsAfterContainer(orderedLeaves, containerId) {
   }
   if (lastContainerLeafIndex === -1) return []
   for (let index = lastContainerLeafIndex + 1; index < orderedLeaves.length; index += 1) {
-    if (!orderedLeaves[index].removed) return orderedLeaves[index].ancestorContainerIds
+    if (orderedLeaves[index].available) return orderedLeaves[index].ancestorContainerIds
   }
   return []
 }
@@ -695,6 +700,7 @@ function getInteractionSnapshot() {
   return {
     selectedIds,
     expandedContainerIds: auxiliary.expandedContainerIds,
+    userCollapsedContainerIds: auxiliary.userCollapsedContainerIds,
     suppressNextShortPress: auxiliary.suppressNextShortPress,
   }
 }
@@ -718,6 +724,7 @@ function commitInteractionState(nextState) {
 
   auxiliary = {
     expandedContainerIds: nextState.expandedContainerIds,
+    userCollapsedContainerIds: nextState.userCollapsedContainerIds,
     suppressNextShortPress: nextState.suppressNextShortPress,
     selectedCount: newSelectedCount,
   }
