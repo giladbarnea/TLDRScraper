@@ -94,6 +94,87 @@ describe('Test 2: fresh scrape adds article to a cached date', () => {
   })
 })
 
+describe('expandFirstLeafAfterContainer: removal-driven auto-expansion', () => {
+  const sectionArticle = (url, sourceId, sectionKey, sectionOrder) =>
+    makeArticle(url, { sourceId, category: sourceId, section: sectionKey, sectionOrder })
+
+  function expandedIds() {
+    const raw = localStorage.getItem('expandedContainers:v1')
+    return raw ? JSON.parse(raw) : []
+  }
+
+  it('expands the next sibling sections ancestors within the same source', () => {
+    const date = '2026-05-04'
+    const alpha = sectionArticle('s1/1', 'src1', 'Alpha', 0)
+    const beta = sectionArticle('s1/2', 'src1', 'Beta', 1)
+    store.ingestFeedPayloads([makePayload(date, [alpha, beta])])
+
+    store.applyArticlePatch(`${date}::${alpha.url}`, { removed: true })  // Alpha exhausted
+    store.interactionActions.expandFirstLeafAfterContainer(`section-${date}-src1-Alpha`)
+
+    expect(expandedIds()).toEqual(expect.arrayContaining([
+      `calendar-${date}`, `newsletter-${date}-src1`, `section-${date}-src1-Beta`,
+    ]))
+    expect(expandedIds()).not.toContain(`section-${date}-src1-Alpha`)
+  })
+
+  it('skips fully-removed sibling sections to reach the first available leaf', () => {
+    const date = '2026-05-04'
+    const alpha = sectionArticle('s1/1', 'src1', 'Alpha', 0)
+    const beta = sectionArticle('s1/2', 'src1', 'Beta', 1)
+    const gamma = sectionArticle('s1/3', 'src1', 'Gamma', 2)
+    store.ingestFeedPayloads([makePayload(date, [alpha, beta, gamma])])
+
+    store.applyArticlePatch(`${date}::${alpha.url}`, { removed: true })
+    store.applyArticlePatch(`${date}::${beta.url}`, { removed: true })
+    store.interactionActions.expandFirstLeafAfterContainer(`section-${date}-src1-Alpha`)
+
+    expect(expandedIds()).toContain(`section-${date}-src1-Gamma`)
+    expect(expandedIds()).not.toContain(`section-${date}-src1-Beta`)
+  })
+
+  it('falls back to the next source within the same day', () => {
+    const date = '2026-05-04'
+    const a = sectionArticle('s1/1', 'src1', 'Alpha', 0)
+    const b = sectionArticle('s2/1', 'src2', 'Alpha', 0)
+    store.ingestFeedPayloads([makePayload(date, [a, b])])
+
+    store.applyArticlePatch(`${date}::${a.url}`, { removed: true })  // whole src1 exhausted
+    store.interactionActions.expandFirstLeafAfterContainer(`newsletter-${date}-src1`)
+
+    expect(expandedIds()).toEqual(expect.arrayContaining([
+      `calendar-${date}`, `newsletter-${date}-src2`, `section-${date}-src2-Alpha`,
+    ]))
+  })
+
+  it('falls back to the next days first leaf', () => {
+    const a = sectionArticle('s1/1', 'src1', 'Alpha', 0)
+    const b = sectionArticle('s1/1', 'src1', 'Alpha', 0)
+    store.ingestFeedPayloads([
+      makePayload('2026-05-04', [a]),
+      makePayload('2026-05-05', [b]),
+    ])
+
+    store.applyArticlePatch(`2026-05-04::${a.url}`, { removed: true })  // whole day exhausted
+    store.interactionActions.expandFirstLeafAfterContainer('calendar-2026-05-04')
+
+    expect(expandedIds()).toEqual(expect.arrayContaining([
+      'calendar-2026-05-05', 'newsletter-2026-05-05-src1', 'section-2026-05-05-src1-Alpha',
+    ]))
+  })
+
+  it('does nothing when there is no later available leaf', () => {
+    const date = '2026-05-04'
+    const a = sectionArticle('s1/1', 'src1', 'Alpha', 0)
+    store.ingestFeedPayloads([makePayload(date, [a])])
+
+    store.applyArticlePatch(`${date}::${a.url}`, { removed: true })
+    store.interactionActions.expandFirstLeafAfterContainer(`section-${date}-src1-Alpha`)
+
+    expect(localStorage.getItem('expandedContainers:v1')).toBeNull()
+  })
+})
+
 describe('Test 3: stale article on refresh prunes selection', () => {
   it('refresh that drops a selected article removes it and clears select-mode if it was the only selection', () => {
     const date = '2026-05-04'

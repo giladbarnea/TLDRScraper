@@ -549,6 +549,52 @@ function getSnapshotContainerExpanded(containerId) {
   return auxiliary.expandedContainerIds.has(containerId)
 }
 
+// ─── Removal-driven auto-expansion ─────────────────────────────────────────────
+
+// Flat list of every article leaf in visual order across all visible dates, each
+// tagged with the container IDs of its day/source/section ancestors.
+function buildOrderedArticleLeaves() {
+  const leaves = []
+  for (const date of feed.visibleDates) {
+    const dayView = getSnapshotDayView(date)
+    if (!dayView) continue
+    const calendarId = `calendar-${date}`
+    for (const issue of dayView.issues) {
+      const sourceId = issue.source_id
+      const newsletterId = `newsletter-${date}-${sourceId}`
+      const newsletterView = getSnapshotNewsletterView(date, sourceId)
+      if (!newsletterView) continue
+      if (newsletterView.hasSections) {
+        for (const section of newsletterView.sections) {
+          const sectionId = `section-${date}-${sourceId}-${section.key}`
+          for (const key of section.articleKeys) {
+            leaves.push({ removed: Boolean(articlesByKey.get(key)?.removed), ancestorContainerIds: [calendarId, newsletterId, sectionId] })
+          }
+        }
+      } else {
+        for (const key of newsletterView.articleKeys) {
+          leaves.push({ removed: Boolean(articlesByKey.get(key)?.removed), ancestorContainerIds: [calendarId, newsletterId] })
+        }
+      }
+    }
+  }
+  return leaves
+}
+
+// Ancestor container IDs of the first non-removed leaf positioned after the given
+// container's last leaf, or [] when no later available leaf exists. Pure.
+function firstLeafAncestorsAfterContainer(orderedLeaves, containerId) {
+  let lastContainerLeafIndex = -1
+  for (let index = 0; index < orderedLeaves.length; index += 1) {
+    if (orderedLeaves[index].ancestorContainerIds.includes(containerId)) lastContainerLeafIndex = index
+  }
+  if (lastContainerLeafIndex === -1) return []
+  for (let index = lastContainerLeafIndex + 1; index < orderedLeaves.length; index += 1) {
+    if (!orderedLeaves[index].removed) return orderedLeaves[index].ancestorContainerIds
+  }
+  return []
+}
+
 function getSnapshotAnySelected() {
   return auxiliary.selectedCount > 0
 }
@@ -722,6 +768,18 @@ export const interactionActions = Object.freeze({
     const snapshot = getInteractionSnapshot()
     const { state: nextState } = interactionReduce(snapshot, { type: 'SET_EXPANDED', containerId, expanded }, { isDisabled: isArticleKeyDisabled })
     commitInteractionState(nextState)
+  },
+  // After a container auto-collapses on exhaustion, expand the next available
+  // leaf's day/source/section ancestors so its first article card is exposed.
+  expandFirstLeafAfterContainer(containerId) {
+    const targetContainerIds = firstLeafAncestorsAfterContainer(buildOrderedArticleLeaves(), containerId)
+    if (targetContainerIds.length === 0) return
+    const snapshot = getInteractionSnapshot()
+    const nextExpanded = new Set(snapshot.expandedContainerIds)
+    const sizeBefore = nextExpanded.size
+    for (const id of targetContainerIds) nextExpanded.add(id)
+    if (nextExpanded.size === sizeBefore) return
+    commitInteractionState({ ...snapshot, expandedContainerIds: nextExpanded })
   },
 })
 

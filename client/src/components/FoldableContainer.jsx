@@ -1,15 +1,19 @@
 import { ChevronRight } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { interactionActions, useIsExpanded } from '../store/articleStore'
 
 function FoldableContainer({ id, title, children, defaultFolded = false, className = '', headerClassName = '', contentClassName = '', dataAttributes = {} }) {
   const expanded = useIsExpanded(id)
   const isFolded = !expanded
+  const wasAutoFoldedRef = useRef(defaultFolded)
 
   useEffect(() => {
     if (defaultFolded) {
       interactionActions.setExpanded(id, false)
+      // Only on the live exhaustion edge (not the initial already-removed mount).
+      if (!wasAutoFoldedRef.current) interactionActions.expandFirstLeafAfterContainer(id)
     }
+    wasAutoFoldedRef.current = defaultFolded
   }, [defaultFolded, id])
 
   return (
