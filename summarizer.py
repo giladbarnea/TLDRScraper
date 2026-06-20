@@ -15,13 +15,13 @@ import urllib.parse as urlparse
 
 logger = logging.getLogger("summarizer")
 
-# Configure html2text for optimal conversion
-h = html2text.HTML2Text()
-h.body_width = 0  # Don't wrap lines
-h.unicode_snob = True  # Use unicode instead of ASCII approximations
-h.ignore_images = False  # Keep images so legit article images reach the LLM
-h.protect_links = True  # Don't wrap URLs
-h.single_line_break = True  # Use single line breaks
+_HTML2TEXT_CONFIG: dict = {
+    "body_width": 0,
+    "unicode_snob": True,
+    "ignore_images": False,
+    "protect_links": True,
+    "single_line_break": True,
+}
 
 
 def _promote_lazy_images(html: str) -> str:
@@ -47,7 +47,10 @@ def _promote_lazy_images(html: str) -> str:
 
 def html_to_markdown(html: str) -> str:
     """Convert HTML to markdown, preserving images (including lazy-loaded ones)."""
-    return h.handle(_promote_lazy_images(html))
+    converter = html2text.HTML2Text()
+    for attribute, value in _HTML2TEXT_CONFIG.items():
+        setattr(converter, attribute, value)
+    return converter.handle(_promote_lazy_images(html))
 
 _SUMMARY_PROMPT_CACHE = None
 _DIGEST_PROMPT_CACHE = None

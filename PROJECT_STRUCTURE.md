@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-06-03 12:07
+last_updated: 2026-06-10 05:29
 ---
 
 .
@@ -143,7 +143,6 @@ last_updated: 2026-06-03 12:07
 ├── .vercelignore
 ├── AGENTS.md
 ├── CLAUDE.md
-├── gemini_tts_adapter.py
 ├── GOTCHAS.md
 ├── Justfile
 ├── newsletter_config.py
@@ -157,7 +156,6 @@ last_updated: 2026-06-03 12:07
 ├── sessions.yaml
 ├── setup.sh
 ├── source_routes.py
-├── speakers_config.json
 ├── storage_service.py
 ├── summarizer.py
 ├── supabase_client.py

@@ -1,8 +1,4 @@
-"""Podcast episode generation: scrape URLs, generate audio via podcast-creator, persist to Supabase.
-
-`podcast_creator` still handles outline and transcript generation. A local Gemini TTS adapter
-backs the `solo_expert` speaker profile and saves MP3 clips for the existing concat pipeline.
-"""
+"""Podcast episode generation: scrape URLs, generate audio via podcast-creator, persist to Supabase."""
 import asyncio
 import base64
 import hashlib
@@ -16,32 +12,16 @@ import tldr_service
 import util
 
 logger = logging.getLogger("podcast_service")
-_SPEAKERS_CONFIG_PATH = Path(__file__).with_name("speakers_config.json")
-
-
-def _configure_podcast_creator() -> None:
-    import esperanto.factory
-    import podcast_creator
-
-    esperanto.factory.AIFactory._provider_modules["text_to_speech"]["google"] = (
-        "gemini_tts_adapter:GeminiTextToSpeechModel"
-    )
-    podcast_creator.configure("speakers_config", str(_SPEAKERS_CONFIG_PATH))
 
 
 async def _generate_audio_bytes(content_markdown: str, episode_name: str) -> bytes:
     from podcast_creator import create_podcast
 
-    _configure_podcast_creator()
     work_dir = Path(tempfile.mkdtemp(prefix="podcast_"))
     try:
         result = await create_podcast(
             content=content_markdown,
-            episode_profile="solo_expert",
-            outline_provider="openai",
-            outline_model="gpt-4o-mini",
-            transcript_provider="openai",
-            transcript_model="gpt-4o-mini",
+            episode_profile="gemini_solo_expert",
             episode_name=episode_name,
             output_dir=str(work_dir),
         )
