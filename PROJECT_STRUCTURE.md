@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-06-20 21:21
+last_updated: 2026-06-26 15:26
 ---
 
 .
@@ -24,6 +24,7 @@ last_updated: 2026-06-20 21:21
 │  ├── danluu_adapter.py
 │  ├── deepmind_adapter.py
 │  ├── google_research_adapter.py
+│  ├── grandimam_adapter.py
 │  ├── hackernews_adapter.py
 │  ├── hillel_wayne_adapter.py
 │  ├── jessitron_adapter.py

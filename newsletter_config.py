@@ -283,6 +283,17 @@ NEWSLETTER_CONFIGS = {
         category_display_names={"blog": "Armin Ronacher"},
         sort_order=7,  # High priority - Flask/Ruff creator
     ),
+    "grandimam": NewsletterSourceConfig(
+        source_id="grandimam",
+        display_name="Grandimam",
+        base_url="https://blog.grandimam.com",
+        url_pattern="",
+        types=["blog"],
+        user_agent="Mozilla/5.0 (compatible; Newsletter-Aggregator/1.0)",
+        article_pattern="",
+        category_display_names={"blog": "Grandimam"},
+        sort_order=7,  # ~1/week - bursty Python/performance blog
+    ),
     "trendshift": NewsletterSourceConfig(
         source_id="trendshift",
         display_name="Trendshift",
