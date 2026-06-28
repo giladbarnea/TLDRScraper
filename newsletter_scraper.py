@@ -86,6 +86,9 @@ def _get_adapter_for_source(config):
     elif config.source_id == "lucumr":
         from adapters.lucumr_adapter import LucumrAdapter
         return LucumrAdapter(config)
+    elif config.source_id == "grandimam":
+        from adapters.grandimam_adapter import GrandimamAdapter
+        return GrandimamAdapter(config)
     elif config.source_id == "trendshift":
         from adapters.trendshift_adapter import TrendshiftAdapter
         return TrendshiftAdapter(config)
